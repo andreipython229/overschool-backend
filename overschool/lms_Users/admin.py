@@ -1,66 +1,37 @@
-from .models import User, Roles, Course
+from .models import User
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin, Group
-
-admin.site.register(Roles)
-admin.site.unregister(Group)
+from django.contrib.auth.admin import UserAdmin
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("username", "role", "password1", "password2"),
-            },
-        ),
-    )
-    list_display = ('username', 'email','role')
-    fieldsets = (
-        (None, {"fields": ("username", "password")}),
-        (("Personal info"), {"fields": ("email",)}),
-        (
-            ("Permissions"),
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
+    list_display = ('username', 'email')
+    ordering = ("email",)
+
+    def get_fieldsets(self, request, obj=None):
+        userGroup = list(request.user.groups.values_list('name', flat=True))
+        if "Администратор" in userGroup:
+            return (
+                (None, {"fields": ("username", "password")}),
+                ("Персональная информация", {"fields": ("email",)}),
+                (
+                    ("Права"),
+                    {
+                        "fields": (
+                            "is_active",
+                            "is_staff",
+                            "groups",
+                        ),
+                    },
                 ),
-            },
-        ),
-        ("Important dates", {"fields": ("last_login",)}),
-    )
+                ("Важные даты", {"fields": ("last_login",)}),
+            )
+        elif "Менеджер" in userGroup:
+            pass
+        elif "Редактор" in userGroup:
+            pass
+        elif "Преподаватель" in userGroup:
+            pass
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        is_superuser = request.user.is_superuser
-        disabled_fields = set()
+        return super(UserAdmin, self).get_fieldsets(request, obj)
 
-        if not is_superuser:
-            disabled_fields |= {
-                'is_superuser',
-                'user_permissions',
-            }
-
-        if (
-                not is_superuser
-                and obj is not None
-                and obj == request.user
-        ):
-            disabled_fields |= {
-                'is_staff',
-                'is_superuser',
-            }
-
-        for f in disabled_fields:
-            if f in form.base_fields:
-                form.base_fields[f].disabled = True
-
-        return form
-
-
-class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_id', )
