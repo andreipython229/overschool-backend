@@ -1,0 +1,11 @@
+asgiref==3.5.2
+Django==4.0.6
+django-pgconnection==1.0.2
+django-pgtrigger==2.4.1
+djangorestframework==3.13.1
+psycopg2-binary==2.9.3
+pytz==2022.1
+six==1.16.0
+sqlparse==0.4.2
+tzdata==2022.1
+
