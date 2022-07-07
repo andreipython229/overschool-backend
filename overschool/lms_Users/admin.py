@@ -1,37 +1,42 @@
 from .models import User
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin, Group
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email')
     ordering = ("email",)
+    fieldsets = (
+        (None, {"fields": ("username", "password")}
+         ),
+        ("Персональная информация", {"fields": ("email",)}),
+        (
+            "Права",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "groups"
+                ),
+            },
+        ),
+        ("Важные даты", {"fields": ("last_login",)}),
+    )
 
-    def get_fieldsets(self, request, obj=None):
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
         userGroup = list(request.user.groups.values_list('name', flat=True))
         if "Администратор" in userGroup:
-            return (
-                (None, {"fields": ("username", "password")}),
-                ("Персональная информация", {"fields": ("email",)}),
-                (
-                    ("Права"),
-                    {
-                        "fields": (
-                            "is_active",
-                            "is_staff",
-                            "groups",
-                        ),
-                    },
-                ),
-                ("Важные даты", {"fields": ("last_login",)}),
-            )
+            if db_field.name == "groups":
+                kwargs["queryset"] = Group.objects.exclude(name="Администратор")
         elif "Менеджер" in userGroup:
-            pass
-        elif "Редактор" in userGroup:
-            pass
-        elif "Преподаватель" in userGroup:
-            pass
+            if db_field.name == "groups":
+                kwargs["queryset"] = Group.objects.filter(name="Студент")
+        return super(CustomUserAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
-        return super(UserAdmin, self).get_fieldsets(request, obj)
-
+    def get_form(self, request, obj=None, **kwargs):
+        defaults = {}
+        if obj is None:
+            defaults["form"] = self.add_form
+        defaults.update(kwargs)
+        return super().get_form(request, obj, **defaults)
