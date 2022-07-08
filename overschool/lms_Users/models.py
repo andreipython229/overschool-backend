@@ -1,7 +1,9 @@
+from ckeditor.fields import RichTextField
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permission, PermissionsMixin
 from django.db import models
-from ckeditor.fields import RichTextField
 from embed_video.fields import EmbedVideoField
+
+from .database_managers import managers
 
 
 class TimeStampedModel(models.Model):
@@ -72,161 +74,112 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-class Course(TimeStampedModel):
-    "Модель курсов"
-    course_id = models.AutoField(primary_key=True, editable=True,
-                                 verbose_name="Курс ID",
-                                 help_text="Уникальный идентификатор курса")
-
-    class Meta:
-        verbose_name = "Курс"
-        verbose_name_plural = "Курсы"
-
-    def save(self, *args, **kwargs):
-        course_obj = super(Course, self).save(*args, **kwargs)
-        return course_obj
-
-
-class CourseName(Course):
-    "Модель атрибута названия курса"
-    # course_id_fk = models.OneToOneField(Course, to_field='course_id',
-    #                                     primary_key=True, related_name='course_name_id_fk',
-    #                                     on_delete=models.CASCADE, verbose_name="Курс ID",
-    #                                     help_text="Уникальный идентификатор курса")
-    name = models.CharField(max_length=256, verbose_name="Название курса",
-                            help_text="Главное название курса")
-
-    def __str__(self):
-        return str(self.name)
-
-    class Meta:
-        verbose_name = "Название"
-        verbose_name_plural = "Названия"
-
-
-class CourseDuration(Course):
-    "Модель атрибута продолжительности курса"
-    # course_id_fk = models.OneToOneField(Course, to_field='course_id',
-    #                                     primary_key=True, related_name='course_duration_id_fk',
-    #                                     on_delete=models.CASCADE, verbose_name="Курс ID",
-    #                                     help_text="Уникальный идентификатор курса")
-    duration_days = models.IntegerField(verbose_name="Продолжительность курса",
-                                        help_text="Продолжительность курса в днях")
-
-    def __str__(self):
-        return str(self.course_id)
-
-    class Meta:
-        verbose_name = "Длительность"
-        verbose_name_plural = "Длительности"
-
-
 class Status(models.TextChoices):
     "Варианты статусов для курса"
     UNPUBLISHED = 'НО', 'Не опубликован'
     PUBLISHED = 'О', 'Опубликован'
 
 
-class CourseStatus(Course):
-    "Модель атрибута статуса курса"
+class Course(TimeStampedModel):
+    "Модель курсов"
+    course_id = models.AutoField(primary_key=True, editable=True,
+                                 verbose_name="Курс ID",
+                                 help_text="Уникальный идентификатор курса")
+    name = models.CharField(max_length=256, verbose_name="Название курса",
+                            help_text="Главное название курса")
+    duration_days = models.IntegerField(verbose_name="Продолжительность курса",
+                                        help_text="Продолжительность курса в днях")
     status = models.CharField(max_length=256,
                               choices=Status.choices,
                               default=Status.UNPUBLISHED,
                               verbose_name="Статус курса",
                               help_text="Статус курса, отображает состояние курса (опубликован - то сть используется юзерами, не опубликован - это ещё в разработке")
-
-    def __str__(self):
-        return str(self.course_id)
-
-    class Meta:
-        verbose_name = "Статус"
-        verbose_name_plural = "Статусы"
-
-
-class CoursePrice(Course):
-    "Модель атрибута цены курса"
     price = models.DecimalField(max_digits=15, decimal_places=2,
                                 verbose_name="Цена",
                                 help_text="Цена курса в BYN")
-
-    def __str__(self):
-        return str(self.course_id)
-
-    class Meta:
-        verbose_name = "Цена"
-        verbose_name_plural = "Цены"
-
-
-class CourseDescription(Course):
-    "Модель атрибута описания курса"
     description = RichTextField(verbose_name="Описание",
                                 help_text="Описание курса для отображения, сохраняется в html")
-
-    def __str__(self):
-        return str(self.course_id)
-
-    class Meta:
-        verbose_name = "Описание курса"
-        verbose_name_plural = "Описания курсов"
-
-
-class CoursePhoto(Course):
-    "Модель атрибута фотографии курса"
     photo = models.ImageField(upload_to="images/courses/main/", verbose_name="Фотография",
                               help_text="Главная фотография")
 
     def __str__(self):
-        return str(self.course_id)
+        return str(self.course_id)+" "+str(self.name)
 
     class Meta:
-        verbose_name = "Фото"
-        verbose_name_plural = "Фото"
+        verbose_name = "Курс"
+        verbose_name_plural = "Курсы"
 
 
 class Section(TimeStampedModel):
     "Модель раздела курса"
     section_id = models.AutoField(primary_key=True, editable=True,
-                                 verbose_name="ID Раздела",
-                                 help_text="Уникальный идентификатор раздела")
+                                  verbose_name="ID Раздела",
+                                  help_text="Уникальный идентификатор раздела")
     course_id = models.ForeignKey(Course, on_delete=models.CASCADE,
-                                     related_name="course_section_id_fk",
-                                     verbose_name="ID курса",
-                                     help_text="ID курса раздела")
-
-
-class SectionName(Section):
-    "Модель атрибута названия раздела"
+                                  related_name="course_section_id_fk",
+                                  verbose_name="ID курса",
+                                  help_text="ID курса раздела")
     name = models.CharField(max_length=256, verbose_name="Название курса",
                             help_text="Название раздела курса")
+    previous_section_id = models.ForeignKey('self', on_delete=models.PROTECT,
+                                            null=True, related_name="section_id_fk",
+                                            verbose_name="ID прошлого раздела",
+                                            help_text="ID предыдущего курса, если ID None - курс первый")
+
+    objects = managers.SectionManager
+
+    def __str__(self):
+        return str(self.section_id)+" "+str(self.name)
+
+    def order(self):
+        if self.previous_section_id:
+            previous_section: Section = Section.objects.get(section_id=self.previous_section_id)
+            return previous_section.order() + 1
+        else:
+            return 0
+
+    class Meta:
+        verbose_name = "Раздел"
+        verbose_name_plural = "Разделы"
 
 
+# Надо добавить очередь
 class Lesson(TimeStampedModel):
     "Модель урока в разделе"
     lesson_id = models.AutoField(primary_key=True, editable=True,
                                  verbose_name="ID Урока",
                                  help_text="Уникальный идентификатор урока")
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE,
-                                      related_name="section_lesson_id_fk",
-                                      verbose_name="ID раздела",
-                                      help_text="ID раздела курса")
-
-
-class LessonName(Lesson):
-    "Модель атрибута названия урока"
+                                   related_name="section_lesson_id_fk",
+                                   verbose_name="ID раздела",
+                                   help_text="ID раздела курса")
     name = models.CharField(max_length=256, verbose_name="Название урока",
                             help_text="Название урока")
-
-
-class LessonDescription(Lesson):
-    "Модель атрибута описания урока"
     description = models.TextField(verbose_name="Описание",
                                    help_text="Описание к уроку")
-
-
-class LessonVideo(Lesson):
-    "Модель атрибута видео урока"
     video = EmbedVideoField(verbose_name="Видео",
                             help_text="Сюда всталвяем ссылку на видос с ютуба, поэтому сначала его надо загрузить туда")
+    previous_lesson_id = models.ForeignKey('self', on_delete=models.PROTECT,
+                                           related_name="lesson_id_fk",
+                                           verbose_name="Предыдущий урок",
+                                           help_text="Предыдущий урок, если None, значит, этот урок первый",
+                                           null=True)
+
+    objects = managers.LessonManager
+
+    def __str__(self):
+        return str(self.lesson_id)+" "+str(self.name)
+
+    def order(self):
+        if self.previous_lesson_id:
+            previous_lesson: Lesson = Lesson.objects.get(lesson_id=self.previous_lesson_id)
+            return previous_lesson.order() + 1
+        else:
+            return 0
+
+    class Meta:
+        verbose_name = "Урок"
+        verbose_name_plural = "Уроки"
 
 
 class Test(TimeStampedModel):
@@ -238,29 +191,41 @@ class Test(TimeStampedModel):
                                   related_name="lesson_test_id_fk",
                                   verbose_name="ID урока",
                                   help_text="Урок, после которого идёт данный тест")
-
-
-class TestName(Test):
-    "Модель атрибута названия теста"
     name = models.CharField(max_length=256, verbose_name="Название",
                             help_text="Название теста")
+
+    def __str__(self):
+        return str(self.test_id)+" "+str(self.name)
+
+    class Meta:
+        verbose_name = "Тест"
+        verbose_name_plural = "Тесы"
 
 
 class Question(TimeStampedModel):
     "Модель вопроса в тесте"
     question_id = models.AutoField(primary_key=True, editable=True,
-                                    verbose_name="ID Вопроса",
-                                    help_text="Уникальный идентификатор вопроса")
+                                   verbose_name="ID Вопроса",
+                                   help_text="Уникальный идентификатор вопроса")
     test_id = models.ForeignKey(Test, on_delete=models.CASCADE,
                                 related_name="question_test_id_fk",
                                 verbose_name="Тест",
                                 help_text="Тест, к котрому приввязан вопрос")
-
-
-class QuestionBody(Question):
-    "Модель атрибута тела вопроса"
     body = RichTextField(verbose_name="Вопрос",
                          help_text="Тело вопроса")
+
+    def __str__(self):
+        return str(self.question_id)+" "+str(self.body)
+
+    class Meta:
+        verbose_name = "Вопрос"
+        verbose_name_plural = "Вопросы"
+
+
+class AnswerStatusChoices(models.TextChoices):
+    "Варианты статусов для ответов"
+    INCORRECT = 'П', 'Правильный'
+    CORRECT = 'Н', 'Неправильный'
 
 
 class Answer(TimeStampedModel):
@@ -272,27 +237,20 @@ class Answer(TimeStampedModel):
                                     related_name="question_answer_id_fk",
                                     verbose_name="ID Вопроса",
                                     help_text="Вопрос, к которому привязан ответ")
-
-
-class AnswerBody(Answer):
-    "Модель тела ответа"
     body = RichTextField(verbose_name="Тело ответа",
                          help_text="HTML вариант ответа")
-
-
-class AnswerStatusChoices(models.TextChoices):
-    "Варианты статусов для ответов"
-    INCORRECT = 'П', 'Правильный'
-    CORRECT = 'Н', 'Неправильный'
-
-
-class AnswerStatus(Answer):
-    "Модель тела статуса"
     status = models.CharField(max_length=256, choices=AnswerStatusChoices.choices,
                               default=AnswerStatusChoices.INCORRECT,
                               verbose_name="Тип ответа",
                               help_text="Тип ответа: Правильный или неправильный или ещё какой"
                               )
+
+    def __str__(self):
+        return str(self.answer_id)+" "+str(self.body)
+
+    class Meta:
+        verbose_name = "Ответ"
+        verbose_name_plural = "Ответы"
 
 
 class Homework(TimeStampedModel):
@@ -304,19 +262,26 @@ class Homework(TimeStampedModel):
                                   related_name="homework_lesson_id_fk",
                                   verbose_name="Домашнее задание",
                                   )
-
-
-class TextHomework(Homework):
-    "Модель атрибута текста к доммашнему заданию"
     text = RichTextField(verbose_name="Описание домашнего задания",
                          help_text="HTML вариан описания домашки")
-
-
-class FileHomeWork(Homework):
-    "Модель атрибута файла к домашке"
     file = models.FileField(upload_to="media/homework/task/files",
                             verbose_name="Файл домашнего задания",
                             help_text="Файл, в котором хранится вся небходимая информация для домашнего задания")
+
+    def __str__(self):
+        return str(self.homework_id)+" Урок: "+str(self.lesson_id)
+
+    class Meta:
+        verbose_name = "Домашнее задание"
+        verbose_name_plural = "Домашние задания"
+
+
+class UserHomeworkStatusChoices(models.TextChoices):
+    "Варианты статусов для ответа на домашнее задание"
+    ARRIVE = 'ПРИ', 'Пришёл'
+    CHECKED = 'ПРО', 'Проверен'
+    FAILED = "НЕП", "Неправильно"
+    SUCCESS = "ПРА", "Правильно"
 
 
 class UserHomework(TimeStampedModel):
@@ -337,49 +302,28 @@ class UserHomework(TimeStampedModel):
                                    verbose_name="ID учителя",
                                    help_text="Учитель, который проверял домашнюю работы",
                                    null=True)
-
-
-class TextUserHomeWork(UserHomework):
-    "Модель атрибута текста, который прислал ученик в ответ на домашнее задание"
     text = models.TextField(verbose_name="Ответ ученика",
                             help_text="Ответ ученика на домашнее задание")
-
-
-class UserHomeworkStatusChoices(models.TextChoices):
-    "Варианты статусов для ответа на домашнее задание"
-    ARRIVE = 'ПРИ', 'Пришёл'
-    CHECKED = 'ПРО', 'Проверен'
-    FAILED = "НЕП", "Неправильно"
-    SUCCESS = "ПРА", "Правильно"
-
-
-class StatusUserHomework(UserHomework):
-    "Модель атрибута статуса домашнего задания"
     status = models.CharField(max_length=256, choices=UserHomeworkStatusChoices.choices,
                               default=UserHomeworkStatusChoices.ARRIVE,
                               verbose_name="Статус",
                               help_text="Статус отправленной домашки")
-
-
-class FileUserHomeWork(UserHomework):
-    "Модель атрибута файла к отправленной домашке"
     file = models.FileField(upload_to="media/homework/task/answers",
                             verbose_name="Файл ответа",
                             help_text="Файл, в котором содержится ответ на домашнюю работу")
-
-
-class MarkUserHomework(UserHomework):
-    "Модель атрибута отметки на домашнее задание"
     mark = models.IntegerField(verbose_name="Отметка",
                                help_text="Отметка за домашнюю работу",
-                               null=True)
-
-
-class TeacherMessageUserHomeWork(UserHomework):
-    "Модель атрибута комментария от учителя"
+                               null=True, blank=True)
     teacher_message = models.TextField(verbose_name="Комментарий",
                                        help_text="Комментарий преподавателя по проделанной работе",
-                                       null=True)
+                                       null=True, blank=True)
+
+    def __str__(self):
+        return str(self.user_homework_id)+" "+str(self.user_id)
+
+    class Meta:
+        verbose_name = "Сданная домашка"
+        verbose_name_plural = "Сданные домашки"
 
 
 class UserTest(TimeStampedModel):
@@ -394,14 +338,31 @@ class UserTest(TimeStampedModel):
                                 default=1, verbose_name="ID пользователя",
                                 related_name="user_test_user_id_fk",
                                 help_text="Уникальный идентификатор пользователя")
-
-
-class MarkUserTest(UserTest):
-    "Модель атрибута отметки за пройденный тест"
     mark = models.DecimalField(max_digits=10, decimal_places=2,
                                verbose_name="Отметка за тест",
                                help_text="Отметка за пройденный тест")
 
+    class Meta:
+        verbose_name = "Сданный тест"
+        verbose_name_plural = "Сданные тесты"
 
-class UserProgress(TimeStampedModel):
-    pass
+
+class UserProgress(models.Model):
+    "Модель для отслеживания прогресса пользователя"
+    user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
+                                default=1, related_name="user_progress_user_id_fk",
+                                verbose_name="ID ученика",
+                                help_text="ID ученика по прогрессу на курсе")
+    course_id = models.ForeignKey(Course, on_delete=models.CASCADE,
+                                  related_name="user_progress_course_id_fk",
+                                  verbose_name="ID курса",
+                                  help_text="ID курса, который сейчас проходит ученик")
+    lesson_id = models.ForeignKey(Lesson, on_delete=models.SET_NULL,
+                                  related_name="user_progress_lesson_id_fk",
+                                  verbose_name="ID урока",
+                                  null=True,
+                                  help_text="ID курса, на котором сейчас находится ученик, если None значит, урок был удалён, либо ученик только начал")
+
+    class Meta:
+        verbose_name = "Надоело писать"
+        verbose_name_plural = "Надоело писать 2"
