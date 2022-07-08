@@ -14,3 +14,4 @@ class VideoModel(models.Model):
 	def __str__(self):
 		return str(self.tutorial_Title) if self.tutorial_Title else " "
 # Create your models here.
+
