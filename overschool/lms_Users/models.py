@@ -7,7 +7,9 @@ from .database_managers import managers
 
 
 class TimeStampedModel(models.Model):
-    "Базовая модель для дополнения остальных полями created_at и updated_at"
+    """
+    Базовая модель для дополнения остальных полями created_at и updated_at
+    """
 
     created_on = models.DateTimeField(auto_now_add=True, verbose_name="Создано",
                                       help_text="Дата и время, когда запись была создана")
@@ -82,7 +84,7 @@ class Status(models.TextChoices):
 
 class Course(TimeStampedModel):
     "Модель курсов"
-    course_id = models.AutoField(primary_key=True, editable=True,
+    course_id = models.AutoField(primary_key=True, editable=False,
                                  verbose_name="Курс ID",
                                  help_text="Уникальный идентификатор курса")
     name = models.CharField(max_length=256, verbose_name="Название курса",
@@ -112,7 +114,7 @@ class Course(TimeStampedModel):
 
 class Section(TimeStampedModel):
     "Модель раздела курса"
-    section_id = models.AutoField(primary_key=True, editable=True,
+    section_id = models.AutoField(primary_key=True, editable=False,
                                   verbose_name="ID Раздела",
                                   help_text="Уникальный идентификатор раздела")
     course_id = models.ForeignKey(Course, on_delete=models.CASCADE,
@@ -146,7 +148,7 @@ class Section(TimeStampedModel):
 # Надо добавить очередь
 class Lesson(TimeStampedModel):
     "Модель урока в разделе"
-    lesson_id = models.AutoField(primary_key=True, editable=True,
+    lesson_id = models.AutoField(primary_key=True, editable=False,
                                  verbose_name="ID Урока",
                                  help_text="Уникальный идентификатор урока")
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE,
@@ -184,7 +186,7 @@ class Lesson(TimeStampedModel):
 
 class Test(TimeStampedModel):
     "Модель теста"
-    test_id = models.AutoField(primary_key=True, editable=True,
+    test_id = models.AutoField(primary_key=True, editable=False,
                                verbose_name="ID Теста",
                                help_text="Уникальный идентификатор теста")
     lesson_id = models.ForeignKey(Lesson, on_delete=models.CASCADE,
@@ -193,6 +195,8 @@ class Test(TimeStampedModel):
                                   help_text="Урок, после которого идёт данный тест")
     name = models.CharField(max_length=256, verbose_name="Название",
                             help_text="Название теста")
+    success_percent = models.IntegerField(verbose_name="Проходной балл",
+                                          help_text="Процент правильных ответов для успешно пройденного теста")
 
     def __str__(self):
         return str(self.test_id)+" "+str(self.name)
@@ -204,7 +208,7 @@ class Test(TimeStampedModel):
 
 class Question(TimeStampedModel):
     "Модель вопроса в тесте"
-    question_id = models.AutoField(primary_key=True, editable=True,
+    question_id = models.AutoField(primary_key=True, editable=False,
                                    verbose_name="ID Вопроса",
                                    help_text="Уникальный идентификатор вопроса")
     test_id = models.ForeignKey(Test, on_delete=models.CASCADE,
@@ -230,7 +234,7 @@ class AnswerStatusChoices(models.TextChoices):
 
 class Answer(TimeStampedModel):
     "Модель ответа на вопрос"
-    answer_id = models.AutoField(primary_key=True, editable=True,
+    answer_id = models.AutoField(primary_key=True, editable=False,
                                  verbose_name="ID Вопроса",
                                  help_text="Уникальный идентификатор вопроса")
     question_id = models.ForeignKey(Question, on_delete=models.CASCADE,
@@ -277,7 +281,9 @@ class Homework(TimeStampedModel):
 
 
 class UserHomeworkStatusChoices(models.TextChoices):
-    "Варианты статусов для ответа на домашнее задание"
+    """
+    Варианты статусов для ответа на домашнее задание
+    """
     ARRIVE = 'ПРИ', 'Пришёл'
     CHECKED = 'ПРО', 'Проверен'
     FAILED = "НЕП", "Неправильно"
@@ -285,8 +291,10 @@ class UserHomeworkStatusChoices(models.TextChoices):
 
 
 class UserHomework(TimeStampedModel):
-    "Модель выполненной домашки юзером, здесь будут храниться его ответы и комменты препода"
-    user_homework_id = models.AutoField(primary_key=True, editable=True,
+    """
+    Модель выполненной домашки юзером, здесь будут храниться его ответы и комменты препода
+    """
+    user_homework_id = models.AutoField(primary_key=True, editable=False,
                                         verbose_name="ID выполненного домашнего задания",
                                         help_text="Уникальный идентификатор выполненной домашней работы")
     user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
@@ -326,9 +334,15 @@ class UserHomework(TimeStampedModel):
         verbose_name_plural = "Сданные домашки"
 
 
+class UserTestStatusChoices(models.TextChoices):
+    "Варианты статусов для пройденного теста"
+    SUCCESS = 'П', 'Прошёл'
+    FAILED = 'Н', 'Не прошёл'
+
+
 class UserTest(TimeStampedModel):
     "Модель сданнаго теста учеником"
-    user_test_id = models.AutoField(primary_key=True, editable=True,
+    user_test_id = models.AutoField(primary_key=True, editable=False,
                                     verbose_name="ID сданнаго теста",
                                     help_text="Уникальный идентификатор сданнаго теста")
     test_id = models.ForeignKey(Test, on_delete=models.CASCADE,
@@ -338,17 +352,23 @@ class UserTest(TimeStampedModel):
                                 default=1, verbose_name="ID пользователя",
                                 related_name="user_test_user_id_fk",
                                 help_text="Уникальный идентификатор пользователя")
-    mark = models.DecimalField(max_digits=10, decimal_places=2,
-                               verbose_name="Отметка за тест",
-                               help_text="Отметка за пройденный тест")
+    success_percent = models.DecimalField(max_digits=10, decimal_places=2,
+                                          verbose_name="Процент(%) правильных ответов",
+                                          help_text="Процент правильных ответов, которые ввёл ученик ученик")
+    status = models.CharField(max_length=256, choices=UserTestStatusChoices.choices,
+                              default=UserTestStatusChoices.SUCCESS,
+                              verbose_name="Статус",
+                              help_text="Статус, отображающий, пройден ли тест учеником")
 
     class Meta:
         verbose_name = "Сданный тест"
         verbose_name_plural = "Сданные тесты"
 
 
-class UserProgress(models.Model):
-    "Модель для отслеживания прогресса пользователя"
+class UserProgress(TimeStampedModel):
+    """
+    Модель для отслеживания прогресса пользователя
+    """
     user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
                                 default=1, related_name="user_progress_user_id_fk",
                                 verbose_name="ID ученика",
@@ -366,3 +386,39 @@ class UserProgress(models.Model):
     class Meta:
         verbose_name = "Надоело писать"
         verbose_name_plural = "Надоело писать 2"
+
+
+class Chat(TimeStampedModel):
+    """
+    Модель чата
+    """
+    chat_id = models.AutoField(primary_key=True, editable=False,
+                               verbose_name="ID чата",
+                               help_text="Уникальный идентификатор чата")
+    admin = models.ForeignKey(User, on_delete=models.SET_DEFAULT, default=1,
+                              verbose_name="Админ",
+                              help_text="Пользователь, являющийся админом чата, по умолчанию - супер админ")
+    participants = models.ManyToManyField(User, related_name='user_chat_mtm',
+                                          verbose_name="Пользователи")
+
+    class Meta:
+        verbose_name = "Чат"
+        verbose_name_plural = "Чаты"
+
+
+class Message(TimeStampedModel):
+    message_id = models.AutoField(primary_key=True, editable=False,
+                                  verbose_name="ID сообщения",
+                                  help_text="Уникальный идентификатор сообщения")
+    user = models.ForeignKey(User, on_delete=models.SET_DEFAULT, default=1,
+                             verbose_name="Пользователь",
+                             help_text="Пользователь, отправивший сообщение")
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='message_chat_id_fk',
+                             verbose_name="ID чата",
+                             help_text="Чат, в котором было отправлено это сообщение")
+    text = models.TextField(max_length=500, verbose_name="Сообщение",
+                            help_text="Сообщение, которое было отправлено пользователем")
+
+    class Meta:
+        verbose_name = "Сообщение"
+        verbose_name_plural = "Сообщения"

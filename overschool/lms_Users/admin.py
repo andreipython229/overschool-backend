@@ -63,4 +63,4 @@ class CustomUserAdmin(UserAdmin):
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_id')
+    list_display = ('course_id', )
