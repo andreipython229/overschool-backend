@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from lms_User.models import Answer
+from lms_Users.models import Answer
 
 
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from lms_User.models import UserTest
+from lms_Users.models import UserTest
 
 
 class UserTestSerializer(serializers.ModelSerializer):

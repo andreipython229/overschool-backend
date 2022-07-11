@@ -1,6 +1,5 @@
-from django.urls import path, include
 from rest_framework import routers
-from lms_Users.api.views import UserViewSet
+from lms_Users.api_views import UserViewSet
 
 router = routers.DefaultRouter()
 router.register('users', UserViewSet, basename="users")
