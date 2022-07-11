@@ -1,5 +1,5 @@
 import pytest
-from .models import Course
+from lms_Users.models import Course
 
 @pytest.mark.django_db
 def test_user_create():
