@@ -3,7 +3,9 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from embed_video.fields import EmbedVideoField
 
-from .database_managers import managers
+from .database_managers.section import SectionManager
+from .database_managers.lesson import LessonManager
+
 
 
 class TimeStampedModel(models.Model):
@@ -52,14 +54,7 @@ class MyUserManager(BaseUserManager):
         return self._create_user(email, username, password, is_staff=True, is_superuser=True, role=role)
 
 
-# @pgtrigger.register(
-#     pgtrigger.Protect(
-#         name='set_user_permissions',
-#         operation=pgtrigger.Insert | pgtrigger.Update,
-#         when=pgtrigger.Before,
-#         func=f"UPDATE user SET user_permissions = '{Roles.objects.get()}' WHERE role = '';",
-#     )
-# )
+
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=100, blank=True)
@@ -128,7 +123,7 @@ class Section(TimeStampedModel):
                                             verbose_name="ID прошлого раздела",
                                             help_text="ID предыдущего курса, если ID None - курс первый")
 
-    objects = managers.SectionManager
+    objects = SectionManager
 
     def __str__(self):
         return str(self.section_id)+" "+str(self.name)
@@ -167,7 +162,7 @@ class Lesson(TimeStampedModel):
                                            help_text="Предыдущий урок, если None, значит, этот урок первый",
                                            null=True)
 
-    objects = managers.LessonManager
+    objects = LessonManager
 
     def __str__(self):
         return str(self.lesson_id)+" "+str(self.name)
