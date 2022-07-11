@@ -1,4 +1,4 @@
-from .models import User
+from .models.user import User
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, Group
 
@@ -44,3 +44,7 @@ class CustomUserAdmin(UserAdmin):
 
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('course_id', )
+
+
+from .models.section import Section
+admin.site.register(Section)
