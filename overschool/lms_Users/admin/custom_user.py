@@ -1,4 +1,4 @@
-from .models.user import User
+from lms_Users.models import User
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, Group
 
@@ -40,11 +40,3 @@ class CustomUserAdmin(UserAdmin):
             defaults["form"] = self.add_form
         defaults.update(kwargs)
         return super().get_form(request, obj, **defaults)
-
-
-class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_id', )
-
-
-from .models.section import Section
-admin.site.register(Section)
