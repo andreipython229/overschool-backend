@@ -1,66 +1,42 @@
-from .models import User, Roles, Course
+from .models import User
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, Group
-
-admin.site.register(Roles)
-admin.site.unregister(Group)
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("username", "role", "password1", "password2"),
-            },
-        ),
-    )
-    list_display = ('username', 'email','role')
+    list_display = ('username', 'email')
+    ordering = ("email",)
     fieldsets = (
-        (None, {"fields": ("username", "password")}),
-        (("Personal info"), {"fields": ("email",)}),
+        (None, {"fields": ("username", "password")}
+         ),
+        ("Персональная информация", {"fields": ("email",)}),
         (
-            ("Permissions"),
+            "Права",
             {
                 "fields": (
                     "is_active",
                     "is_staff",
-                    "is_superuser",
+                    "groups"
                 ),
             },
         ),
-        ("Important dates", {"fields": ("last_login",)}),
+        ("Важные даты", {"fields": ("last_login",)}),
     )
 
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        userGroup = list(request.user.groups.values_list('name', flat=True))
+        if "Администратор" in userGroup:
+            if db_field.name == "groups":
+                kwargs["queryset"] = Group.objects.exclude(name="Администратор")
+        elif "Менеджер" in userGroup:
+            if db_field.name == "groups":
+                kwargs["queryset"] = Group.objects.filter(name="Студент")
+        return super(CustomUserAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
     def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        is_superuser = request.user.is_superuser
-        disabled_fields = set()
-
-        if not is_superuser:
-            disabled_fields |= {
-                'is_superuser',
-                'user_permissions',
-            }
-
-        if (
-                not is_superuser
-                and obj is not None
-                and obj == request.user
-        ):
-            disabled_fields |= {
-                'is_staff',
-                'is_superuser',
-            }
-
-        for f in disabled_fields:
-            if f in form.base_fields:
-                form.base_fields[f].disabled = True
-
-        return form
-
-
-class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_id', )
+        defaults = {}
+        if obj is None:
+            defaults["form"] = self.add_form
+        defaults.update(kwargs)
+        return super().get_form(request, obj, **defaults)
