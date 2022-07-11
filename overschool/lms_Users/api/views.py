@@ -1,6 +1,6 @@
-from ..serializers import UserSerializer
+from lms_Users.serializers import UserSerializer
 from rest_framework import viewsets
-from ..models import User
+from lms_Users.models import User
 
 
 class UserViewSet(viewsets.ModelViewSet):
