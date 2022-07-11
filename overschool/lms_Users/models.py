@@ -1,14 +1,18 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
+from ckeditor.fields import RichTextField
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permission, PermissionsMixin
 from django.db import models
 from embed_video.fields import EmbedVideoField
-from ckeditor.fields import RichTextField
-from .database_managers import managers
+
+from .database_managers.section import SectionManager
+from .database_managers.lesson import LessonManager
+
 
 
 class TimeStampedModel(models.Model):
     """
     Базовая модель для дополнения остальных полями created_at и updated_at
     """
+
     created_on = models.DateTimeField(auto_now_add=True, verbose_name="Создано",
                                       help_text="Дата и время, когда запись была создана")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлено",
@@ -18,50 +22,54 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
-# class Roles(models.Model):
-#     role = models.CharField(max_length=20, blank=False)
-#     user_permissions = models.ManyToManyField(Permission)
-#
-#     def __str__(self):
-#         return self.role
+class Roles(models.Model):
+    role = models.CharField(max_length=20, blank=False)
+    user_permissions = models.ManyToManyField(Permission)
+
+    def __str__(self):
+        return self.role
 
 
 class MyUserManager(BaseUserManager):
 
-    def _create_user(self, email, password, **extra_fields):
+    def _create_user(self, email, username, password, **extra_fields):
         if not email:
             raise ValueError("Вы не ввели Email")
+        if not username:
+            raise ValueError("Вы не ввели Логин")
         user = self.model(
             email=self.normalize_email(email),
+            username=username,
             **extra_fields,
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password):
-        return self._create_user(email, password, is_staff=False)
+    def create_user(self, email, username, password):
+        return self._create_user(email, username, password)
 
-    def create_superuser(self, email, password):
-        return self._create_user(email, password, is_staff=True, is_superuser=True)
+    def create_superuser(self, email, username, password):
+        role = Roles.objects.get(id=5)
+        return self._create_user(email, username, password, is_staff=True, is_superuser=True, role=role)
 
-# @pgtrigger.register(
-#     pgtrigger.Protect(
-#         name='set_user_permissions',
-#         operation=pgtrigger.Insert | pgtrigger.Update,
-#         when=pgtrigger.Before,
-#         func=f"UPDATE user SET user_permissions = '{Roles.objects.get()}' WHERE role = '';",
-#     )
-# )
-class User(AbstractUser, PermissionsMixin):
-    email = models.EmailField('Почта', unique=True)
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    username = models.CharField(max_length=50, unique=True)
+    email = models.EmailField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+    role = models.ForeignKey(Roles, on_delete=models.CASCADE)
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
 
     objects = MyUserManager()
 
     def __str__(self):
         return self.username
+
 
 class Status(models.TextChoices):
     "Варианты статусов для курса"
@@ -115,7 +123,7 @@ class Section(TimeStampedModel):
                                             verbose_name="ID прошлого раздела",
                                             help_text="ID предыдущего курса, если ID None - курс первый")
 
-    objects = managers.SectionManager
+    objects = SectionManager
 
     def __str__(self):
         return str(self.section_id)+" "+str(self.name)
@@ -154,7 +162,7 @@ class Lesson(TimeStampedModel):
                                            help_text="Предыдущий урок, если None, значит, этот урок первый",
                                            null=True)
 
-    objects = managers.LessonManager
+    objects = LessonManager
 
     def __str__(self):
         return str(self.lesson_id)+" "+str(self.name)
