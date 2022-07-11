@@ -1,9 +1,10 @@
-from .models import User, Roles
+from .models import User, Roles, Course
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, Group
 
 admin.site.register(Roles)
 admin.site.unregister(Group)
+
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -59,3 +60,7 @@ class CustomUserAdmin(UserAdmin):
                 form.base_fields[f].disabled = True
 
         return form
+
+
+class CourseAdmin(admin.ModelAdmin):
+    list_display = ('course_id', )
