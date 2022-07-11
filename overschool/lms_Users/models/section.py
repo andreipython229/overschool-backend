@@ -1,6 +1,6 @@
 from django.db import models
 
-from lms_Users.database_managers.section import SectionManager
+from lms_Users.database_managers import SectionManager
 from .time_stamped_model import TimeStampedModel
 from .course import Course
 
