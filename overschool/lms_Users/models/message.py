@@ -2,6 +2,7 @@ from django.db import models
 
 from .time_stamped_model import TimeStampedModel
 from .user import User
+from .chat import Chat
 
 
 class Message(TimeStampedModel):

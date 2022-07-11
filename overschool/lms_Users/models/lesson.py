@@ -1,9 +1,9 @@
 from django.db import models
 from embed_video.fields import EmbedVideoField
 
-from lms_Users.database_managers.lesson import LessonManager
+from lms_Users.database_managers import LessonManager
 from .time_stamped_model import TimeStampedModel
-
+from .section import Section
 
 # Надо добавить очередь
 class Lesson(TimeStampedModel):

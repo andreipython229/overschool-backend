@@ -2,6 +2,7 @@ from ckeditor.fields import RichTextField
 from django.db import models
 
 from .time_stamped_model import TimeStampedModel
+from .question import Question
 
 
 class AnswerStatusChoices(models.TextChoices):
