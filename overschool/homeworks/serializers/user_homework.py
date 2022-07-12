@@ -10,6 +10,4 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserHomework
-        fields = '__all__'
-
-
+        fields = "__all__"

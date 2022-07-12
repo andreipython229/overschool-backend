@@ -2,7 +2,6 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class SchoolUserManager(BaseUserManager):
-
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError("Вы не ввели Email")

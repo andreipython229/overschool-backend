@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from tests.models import Test
+from lesson_tests.models import Test
 
 
 class TestSerializer(serializers.ModelSerializer):
@@ -10,4 +10,4 @@ class TestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Test
-        fields = '__all__'
+        fields = "__all__"

@@ -34,5 +34,4 @@ class APIRequestLogAdmin(admin.ModelAdmin):
         return False
 
 
-
 admin.site.register(APIRequestLog, APIRequestLogAdmin)
