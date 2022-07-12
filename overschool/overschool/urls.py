@@ -7,5 +7,10 @@ from django.views.static import serve
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('users.urls')),
-]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # path('', include('chat.urls')),
+    # path('', include('courses.urls')),
+    # path('', include('tests.urls')),
+    # path('', include('hometasks.urls')),
+
+              ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT,}),]

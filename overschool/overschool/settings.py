@@ -40,10 +40,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'api_request_logs',
     'users',
-    # 'chat',
-    # 'course',
+    'chat',
+    # 'courses',
     # 'tests',
-    # 'hometask',
+    # 'hometasks',
 ]
 
 CORS_ALLOWED_ORIGINS =[
