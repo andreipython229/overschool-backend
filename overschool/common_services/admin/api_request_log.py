@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import APIRequestLog
+from common_services.models import APIRequestLog
 
 
 class APIRequestLogAdmin(admin.ModelAdmin):

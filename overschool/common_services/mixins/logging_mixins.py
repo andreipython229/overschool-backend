@@ -5,7 +5,7 @@ import traceback
 from django.db import connection
 from django.utils.timezone import now
 
-from .models import APIRequestLog
+from common_services.models import APIRequestLog
 
 logger = logging.getLogger(__name__)
 

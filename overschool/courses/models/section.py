@@ -1,7 +1,7 @@
 from django.db import models
 
 from courses.managers import SectionManager
-from overschool.abstract_models import TimeStampedModel
+from common_services.models import TimeStampedModel
 
 from .course import Course
 
