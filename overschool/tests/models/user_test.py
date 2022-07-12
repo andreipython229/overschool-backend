@@ -1,8 +1,8 @@
 from django.db import models
 
-from .time_stamped_model import TimeStampedModel
+from overschool.abstract_models import TimeStampedModel
 from .test import Test
-from .user import User
+from users.models import SchoolUser
 
 
 class UserTestStatusChoices(models.TextChoices):
@@ -19,7 +19,7 @@ class UserTest(TimeStampedModel):
     test_id = models.ForeignKey(Test, on_delete=models.CASCADE,
                                 verbose_name="ID теста", related_name="user_test_test_id_fk",
                                 help_text="Уникальный идентификатор теста")
-    user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
+    user_id = models.ForeignKey(SchoolUser, on_delete=models.SET_DEFAULT,
                                 default=1, verbose_name="ID пользователя",
                                 related_name="user_test_user_id_fk",
                                 help_text="Уникальный идентификатор пользователя")

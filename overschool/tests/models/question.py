@@ -1,7 +1,7 @@
 from ckeditor.fields import RichTextField
 from django.db import models
 
-from .time_stamped_model import TimeStampedModel
+from overschool.abstract_models import TimeStampedModel
 from .test import Test
 
 
