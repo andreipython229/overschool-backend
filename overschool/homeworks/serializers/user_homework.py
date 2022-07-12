@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from lms_Users.models import UserHomework
+from homeworks.models import UserHomework
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):

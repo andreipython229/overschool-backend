@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'courses',
-    # 'tests',
-    # 'hometasks',
+    'tests',
+    'homeworks',
 ]
 
 CORS_ALLOWED_ORIGINS =[

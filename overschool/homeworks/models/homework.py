@@ -1,8 +1,8 @@
 from ckeditor.fields import RichTextField
 from django.db import models
 
-from .time_stamped_model import TimeStampedModel
-from .lesson import Lesson
+from overschool.abstract_models import TimeStampedModel
+from courses.models import Lesson
 
 
 class Homework(TimeStampedModel):

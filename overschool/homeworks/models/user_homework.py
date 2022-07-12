@@ -1,9 +1,9 @@
 from django.db import models
 
-from .time_stamped_model import TimeStampedModel
-from .lesson import Lesson
+from overschool.abstract_models import TimeStampedModel
+from courses.models import Lesson
 from .homework import Homework
-from .user import User
+from users.models import SchoolUser
 
 
 class UserHomeworkStatusChoices(models.TextChoices):
@@ -23,7 +23,7 @@ class UserHomework(TimeStampedModel):
     user_homework_id = models.AutoField(primary_key=True, editable=False,
                                         verbose_name="ID выполненного домашнего задания",
                                         help_text="Уникальный идентификатор выполненной домашней работы")
-    user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
+    user_id = models.ForeignKey(SchoolUser, on_delete=models.SET_DEFAULT,
                                 default=1, related_name="user_homework_user_id_fk",
                                 verbose_name="ID ученика",
                                 help_text="ID ученика, выолнившего домашнюю работу")
@@ -31,7 +31,7 @@ class UserHomework(TimeStampedModel):
                                     related_name="user_homework_homework_id_fk",
                                     verbose_name="ID домашнего задания",
                                     help_text="ID домашнего задания, ответ на который прислали")
-    teacher_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT,
+    teacher_id = models.ForeignKey(SchoolUser, on_delete=models.SET_DEFAULT,
                                    default=1, related_name="user_homework_teacher_id_fk",
                                    verbose_name="ID учителя",
                                    help_text="Учитель, который проверял домашнюю работы",
