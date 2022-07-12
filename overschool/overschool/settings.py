@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'api_request_logs',
     'users',
     'chat',
-    # 'courses',
+    'courses',
     # 'tests',
     # 'hometasks',
 ]
