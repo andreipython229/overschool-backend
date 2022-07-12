@@ -3,7 +3,7 @@ from django.db import models
 from overschool.abstract_models import TimeStampedModel
 from users.models import SchoolUser
 
-from .test import Test
+from .lesson_test import LessonTest
 
 
 class UserTestStatusChoices(models.TextChoices):
@@ -21,7 +21,7 @@ class UserTest(TimeStampedModel):
         help_text="Уникальный идентификатор сданнаго теста",
     )
     test_id = models.ForeignKey(
-        Test,
+        LessonTest,
         on_delete=models.CASCADE,
         verbose_name="ID теста",
         related_name="user_test_test_id_fk",

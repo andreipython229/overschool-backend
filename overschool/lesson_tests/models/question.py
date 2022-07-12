@@ -3,7 +3,7 @@ from django.db import models
 
 from overschool.abstract_models import TimeStampedModel
 
-from .test import Test
+from .lesson_test import LessonTest
 
 
 class Question(TimeStampedModel):
@@ -15,7 +15,7 @@ class Question(TimeStampedModel):
         help_text="Уникальный идентификатор вопроса",
     )
     test_id = models.ForeignKey(
-        Test,
+        LessonTest,
         on_delete=models.CASCADE,
         related_name="question_test_id_fk",
         verbose_name="Тест",

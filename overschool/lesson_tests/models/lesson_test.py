@@ -4,7 +4,7 @@ from courses.models import Lesson
 from overschool.abstract_models import TimeStampedModel
 
 
-class Test(TimeStampedModel):
+class LessonTest(TimeStampedModel):
     "Модель теста"
     test_id = models.AutoField(
         primary_key=True,
