@@ -2,7 +2,7 @@ from ckeditor.fields import RichTextField
 from django.db import models
 
 from courses.models import Lesson
-from overschool.abstract_models import TimeStampedModel
+from common_services.models import TimeStampedModel
 
 
 class Homework(TimeStampedModel):

@@ -1,7 +1,7 @@
 from ckeditor.fields import RichTextField
 from django.db import models
 
-from overschool.abstract_models import TimeStampedModel
+from common_services.models import TimeStampedModel
 
 
 class Status(models.TextChoices):

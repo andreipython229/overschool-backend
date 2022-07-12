@@ -1,7 +1,7 @@
 from django.db import models
 
 from courses.models import Lesson
-from overschool.abstract_models import TimeStampedModel
+from common_services.models import TimeStampedModel
 from users.models import SchoolUser
 
 from .homework import Homework

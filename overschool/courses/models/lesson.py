@@ -2,7 +2,7 @@ from django.db import models
 from embed_video.fields import EmbedVideoField
 
 from courses.managers import LessonManager
-from overschool.abstract_models import TimeStampedModel
+from common_services.models import TimeStampedModel
 
 from .section import Section
 

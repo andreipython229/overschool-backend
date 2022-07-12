@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     'ckeditor',
-    "api_request_logs",
+    'common_services',
     "users",
     "chat",
     "courses",
