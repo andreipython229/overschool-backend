@@ -39,7 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'api_request_logs',
-    'lms_Users',
+    'users',
+    # 'chat',
+    # 'course',
+    # 'tests',
+    # 'hometask',
 ]
 
 CORS_ALLOWED_ORIGINS =[
@@ -98,7 +102,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "lms_Users.User"
+AUTH_USER_MODEL = "users.SchoolUser"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
