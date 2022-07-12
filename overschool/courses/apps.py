@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class LmsUsersConfig(AppConfig):
+class CoursesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'lms_Users'
+    name = 'courses'

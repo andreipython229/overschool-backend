@@ -12,7 +12,7 @@ class Message(TimeStampedModel):
     user = models.ForeignKey(SchoolUser, on_delete=models.SET_DEFAULT, default=1,
                              verbose_name="Пользователь",
                              help_text="Пользователь, отправивший сообщение")
-    chat = models.ForeignKey(SchoolUser, on_delete=models.CASCADE, related_name='message_chat_id_fk',
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='message_chat_id_fk',
                              verbose_name="ID чата",
                              help_text="Чат, в котором было отправлено это сообщение")
     text = models.TextField(max_length=500, verbose_name="Сообщение",
