@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from tests.models import Answer
-
+from lesson_tests.models import Answer
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -11,4 +10,4 @@ class AnswerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Answer
-        fields = '__all__'
+        fields = "__all__"

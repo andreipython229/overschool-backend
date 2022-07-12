@@ -8,14 +8,23 @@ class Chat(TimeStampedModel):
     """
     Модель чата
     """
-    chat_id = models.AutoField(primary_key=True, editable=False,
-                               verbose_name="ID чата",
-                               help_text="Уникальный идентификатор чата")
-    admin = models.ForeignKey(SchoolUser, on_delete=models.SET_DEFAULT, default=1,
-                              verbose_name="Админ",
-                              help_text="Пользователь, являющийся админом чата, по умолчанию - супер админ")
-    participants = models.ManyToManyField(SchoolUser, related_name='user_chat_mtm',
-                                          verbose_name="Пользователи")
+
+    chat_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID чата",
+        help_text="Уникальный идентификатор чата",
+    )
+    admin = models.ForeignKey(
+        SchoolUser,
+        on_delete=models.SET_DEFAULT,
+        default=1,
+        verbose_name="Админ",
+        help_text="Пользователь, являющийся админом чата, по умолчанию - супер админ",
+    )
+    participants = models.ManyToManyField(
+        SchoolUser, related_name="user_chat_mtm", verbose_name="Пользователи"
+    )
 
     class Meta:
         verbose_name = "Чат"
