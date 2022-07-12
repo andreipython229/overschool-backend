@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from lms_Users.models import Answer
+from tests.models import Answer
 
 
 

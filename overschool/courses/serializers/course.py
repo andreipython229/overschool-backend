@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from lms_Users.models import Course
+from courses.models import Course
 
 
 class CourseSerializer(serializers.ModelSerializer):
