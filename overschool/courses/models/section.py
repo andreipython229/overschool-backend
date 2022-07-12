@@ -1,7 +1,7 @@
 from django.db import models
 
-from courses.managers import SectionManager
 from common_services.models import TimeStampedModel
+from courses.managers import SectionManager
 
 from .course import Course
 
