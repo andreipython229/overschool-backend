@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from overschool.lesson_tests.models import UserTest
+from lesson_tests.models import UserTest
 
 
 class UserTestSerializer(serializers.ModelSerializer):
