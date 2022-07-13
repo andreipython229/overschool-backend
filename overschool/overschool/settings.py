@@ -47,6 +47,18 @@ INSTALLED_APPS = [
     "homeworks",
 ]
 
+REDIS_HOST = 'redis'
+REDIS_PORT = '6379'
+BROKER_BACKEND = 'redis'
+
+CELERY_BROKER_URL = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
+# CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
 MIDDLEWARE = [
