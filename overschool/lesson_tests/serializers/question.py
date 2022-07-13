@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from overschool.lesson_tests.models import Question
+from lesson_tests.models import Question
 
 
 class QuestionSerializer(serializers.ModelSerializer):
