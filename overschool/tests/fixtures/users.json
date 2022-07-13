@@ -19,7 +19,7 @@
 },
 {
     "model": "users.schooluser",
-    "pk": 1,
+    "pk": 2,
     "fields": {
         "password": "pbkdf2_sha256$320000$1N9JuklQOodCthmoMfllsN$6Zcs6IA9vN/+cmCP98g5PLlVZZVu1hjMDnBBvdvx5SE=",
         "last_login": null,
