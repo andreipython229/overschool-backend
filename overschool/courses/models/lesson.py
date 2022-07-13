@@ -1,8 +1,8 @@
 from django.db import models
 from embed_video.fields import EmbedVideoField
 
-from courses.managers import LessonManager
 from common_services.models import TimeStampedModel
+from courses.managers import LessonManager
 
 from .section import Section
 
