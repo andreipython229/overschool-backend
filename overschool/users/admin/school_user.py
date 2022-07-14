@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import Group, UserAdmin
-
+from users.forms import SchoolUserForm
 from users.models import SchoolUser
 
 
@@ -9,7 +9,7 @@ class SchoolUserAdmin(UserAdmin):
     list_display = ("username", "email")
     ordering = ("email",)
     fieldsets = (
-        (None, {"fields": ("username", "password")}),
+        (None, {"fields": ("username", "password", 'send_code_type')}),
         ("Персональная информация", {"fields": ("email",)}),
         (
             "Права",
@@ -19,6 +19,18 @@ class SchoolUserAdmin(UserAdmin):
         ),
         ("Важные даты", {"fields": ("last_login",)}),
     )
+
+    actions = ['link_by_phone', 'link_by_post']
+
+    @admin.action(description='Отправляет уникальную ссылку на телефон')
+    def link_by_phone(self, request, queryset):
+        ## Отправить ссылку повторно
+        queryset.update(status='p')
+
+    @admin.action(description='Отправляет уникальную ссылку на почту')
+    def link_by_post(self, request, queryset):
+        ## Оправить ссылку повторно
+        queryset.update(status='p')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         userGroup = list(request.user.groups.values_list("name", flat=True))

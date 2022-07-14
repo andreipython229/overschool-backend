@@ -59,6 +59,14 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtpout.secureserver.net"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 80
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_NAME')
+EMAIL_HOST_USER = os.getenv('EMAIL_NAME')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
 MIDDLEWARE = [
@@ -167,7 +175,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Rest-framework
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
     ]
 }
 
