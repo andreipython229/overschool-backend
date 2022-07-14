@@ -9,7 +9,7 @@ urlpatterns = [
     path("", include("users.urls")),
     # path('', include('chat.urls')),
     # path('', include('courses.urls')),
-    # path('', include('lesson_tests.urls')),
+    path('lesson_tests/', include('lesson_tests.urls')),
     # path('', include('homeworks.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [

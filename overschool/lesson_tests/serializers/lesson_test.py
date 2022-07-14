@@ -1,4 +1,4 @@
-from lesson_test.models import LessonTest
+from lesson_tests.models import LessonTest
 from rest_framework import serializers
 
 
