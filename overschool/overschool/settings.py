@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     "chat",
     "courses",
     "lesson_tests",
-    "homeworks",
+    "homeworks"
+    "django_rest_passwordreset",
 ]
 
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
@@ -304,3 +305,11 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+EMAIL_BACKEND = 'django.overschool.mail.backends.console.EmailBackend'
+
+
+
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
