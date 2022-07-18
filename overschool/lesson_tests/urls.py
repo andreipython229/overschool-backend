@@ -1,6 +1,6 @@
 from rest_framework import routers
 
-from lesson_tests.api_views import TestViewSet, QuestionViewSet, AnswerViewSet
+from lesson_tests.api_views import AnswerViewSet, QuestionViewSet, TestViewSet
 
 router = routers.DefaultRouter()
 router.register("tests", TestViewSet, basename="tests")
