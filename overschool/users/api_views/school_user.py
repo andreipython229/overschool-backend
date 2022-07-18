@@ -17,20 +17,28 @@ class SchoolUserViewSet(viewsets.ModelViewSet):
     serializer_class = SchoolUserSerializer
 
 
-
 class RegisterView(views.APIView,
                    SenderServiceMixin):
-    permission_classes = (permissions.AllowAny,)
+    """
+    Вьюха для регистрации со стороны админа
+    """
+    permission_classes = (permissions.AllowAny,)  # далее можно изменить
 
     def post(self, request):
+        """
+        Функция для отправки регистрационной ссылки пользоваелю, ответы требуют доработки
+        """
         sender_type = request.data.get('sender_type')
         if sender_type == "mail":
-            result = self.send_code_by_email(request.data.get('recipient'))
+            result = self.send_code_by_email(request.data.get('recipient'),
+                                             request.data.get('user_type'))
         else:
-            result = self.send_code_by_phone(request.data.get('recipient'))
+            result = self.send_code_by_phone(request.data.get('recipient'),
+                                             request.data.get('user_type'))
         if result:
-            return Response({"result": "Хайпим"}, status=status.HTTP_200_OK)
+            return Response({"result": "OK", "message": "Всё прошло хорошо, сообщение отправлено"},
+                            status=status.HTTP_200_OK)
         else:
-            return Response({"result": "Не Хайпим("}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"result": "Error", "message": "Что-то пошло не так"}, status=status.HTTP_400_BAD_REQUEST)
 
 
