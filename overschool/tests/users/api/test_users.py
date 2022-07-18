@@ -11,7 +11,3 @@ class TestUsersList(APITestCase):
     def test_get_countries(self):
         response = self.client.get(reverse(self.url_name), format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
-
-
-def test():
-    assert 1 == 3
