@@ -36,7 +36,7 @@ class SenderServiceMixin:
             if phone_data[1] == "BY":
                 params = {
                     "token": SenderServiceMixin.BY_TOKEN,
-                    "message": f"https://login/{token}",
+                    "message": f"https://overschool/users/login/?token={token}",
                     "phone": phone_data[0],
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
@@ -48,7 +48,7 @@ class SenderServiceMixin:
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
                     "psw": SenderServiceMixin.RUSSIAN_PASS,
                     "phones": [phone_data[0]],
-                    "mes": f"https://login/{token}",
+                    "mes": f"https://overschool/users/login/?token={token}",
                     "fmt": 3,
                 }
                 send_code.send_code_to_phone.delay(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT,
@@ -64,7 +64,7 @@ class SenderServiceMixin:
         """
         try:
             token = self.save_data_to_redis(email, user_type)
-            send_code.send_email.delay(email, f"https://login/{token}")
+            send_code.send_email.delay(email, f"https://overschool/users/login/?token={token}")
             return True
         except BaseException:
             return False
