@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 
 class TestUsersList(APITestCase):
     """Проверка API получения списка всех пользователей"""
+
     url_name = "users-list"
 
     def test_get_countries(self):

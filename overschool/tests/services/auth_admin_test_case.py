@@ -3,6 +3,7 @@ from django.test import Client, TestCase
 
 class AuthAdminTestCase(TestCase):
     """Абстрактная модель, позволяющая тестировать панель админа, залогинившись админом"""
+
     fixtures = ["tests/fixtures/users.json"]
 
     def setUp(self):

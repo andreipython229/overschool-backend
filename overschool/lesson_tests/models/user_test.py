@@ -1,6 +1,5 @@
-from django.db import models
-
 from common_services.models import TimeStampedModel
+from django.db import models
 from users.models import SchoolUser
 
 from .lesson_test import LessonTest

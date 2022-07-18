@@ -1,7 +1,6 @@
-from django.db import models
-
 from chat.models import Chat
 from common_services.models import TimeStampedModel
+from django.db import models
 from users.models import SchoolUser
 
 

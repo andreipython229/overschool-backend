@@ -160,7 +160,7 @@ REST_FRAMEWORK = {
     ]
 }
 
-## ckeditor settings
+# ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 
 CKEDITOR_CONFIGS = {
