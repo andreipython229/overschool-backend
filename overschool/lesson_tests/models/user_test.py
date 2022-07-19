@@ -16,8 +16,8 @@ class UserTest(TimeStampedModel):
     user_test_id = models.AutoField(
         primary_key=True,
         editable=False,
-        verbose_name="ID сданнаго теста",
-        help_text="Уникальный идентификатор сданнаго теста",
+        verbose_name="ID сданного теста",
+        help_text="Уникальный идентификатор сданного теста",
     )
     test_id = models.ForeignKey(
         LessonTest,
@@ -45,7 +45,7 @@ class UserTest(TimeStampedModel):
         choices=UserTestStatusChoices.choices,
         default=UserTestStatusChoices.SUCCESS,
         verbose_name="Статус",
-        help_text="Статус, отображающий, пройден ли тест учеником",
+        help_text="Статус, отображающий пройден ли тест учеником",
     )
 
     class Meta:
