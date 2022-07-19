@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_yasg",
     "ckeditor",
     "common_services",
     "users",
@@ -159,7 +160,7 @@ REST_FRAMEWORK = {
     ]
 }
 
-## ckeditor settings
+# ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 
 CKEDITOR_CONFIGS = {
