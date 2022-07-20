@@ -1,3 +1,6 @@
+from django.db import models
+
+from common_services.models import TimeStampedModel
 from common_services.models import TimeStampedModel
 from django.db import models
 from users.models import SchoolUser
