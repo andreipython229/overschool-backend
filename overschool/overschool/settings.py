@@ -12,20 +12,24 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from pathlib import Path
 
+from environ import Env
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = Env(DEBUG=(bool, False))
+Env.read_env(str(BASE_DIR / ".env"))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-=q++i5d=n#g218)cuv7h-^*ilebo=_m6vno@4mx2(yomp!@psb"
+SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else []
 
 
 # Application definition
@@ -83,23 +87,7 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'overschool',
-#         'USER': 'root',
-#         'PASSWORD': '1234',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#     }
-# }
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": env.db_url("DB_URL")}
 
 AUTH_USER_MODEL = "users.SchoolUser"
 
@@ -138,13 +126,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-STATICFILES = (os.path.join(BASE_DIR, "static"),)
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 
 # Default primary key field type
@@ -153,13 +139,9 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Rest-framework
-REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
-    ]
-}
+REST_FRAMEWORK = {"DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"]}
 
-## ckeditor settings
+# ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 
 CKEDITOR_CONFIGS = {

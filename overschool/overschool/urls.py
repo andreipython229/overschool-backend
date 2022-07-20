@@ -8,8 +8,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("users.urls")),
     # path('', include('chat.urls')),
-    path("courses/", include("courses.urls")),
-    path("lesson_tests/", include("lesson_tests.urls")),
     # path('', include('homeworks.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [
