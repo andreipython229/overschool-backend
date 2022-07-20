@@ -9,7 +9,7 @@ class SchoolUserAdmin(UserAdmin):
     list_display = ("username", "email")
     ordering = ("email",)
     fieldsets = (
-        (None, {"fields": ("username", "password", 'send_code_type')}),
+        (None, {"fields": ("username", "password")}),
         ("Персональная информация", {"fields": ("email",)}),
         (
             "Права",

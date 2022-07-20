@@ -38,13 +38,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    'ckeditor',
-    'common_services',
+    "drf_yasg",
+    "ckeditor",
+    "common_services",
     "users",
     "chat",
     "courses",
     "lesson_tests",
-    "homeworks",
     'djoser'
 ]
 
