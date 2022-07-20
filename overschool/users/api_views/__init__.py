@@ -1,1 +1,1 @@
-from .school_user import *
+from .registration_views import *

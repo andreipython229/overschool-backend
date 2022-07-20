@@ -1,15 +1,13 @@
-import datetime
 import os
 import random
 import re
 from users.tasks import send_code
+from .redis_data_mixin import RedisDataMixin
 import redis
 from django.conf import settings
-import secrets
-import json
 
 
-class SenderServiceMixin:
+class SenderServiceMixin(RedisDataMixin):
     """Функционал для отправки регистрационных сообщений ученикам, менеджерам"""
     RUSSIAN_SERVICE_ENDPOINT = "https://smsc.ru/sys/send.php"
     BELARUSIAN_SERVICE_ENDPOINT = "http://app.sms.by/api/v1/sendQuickSMS"
@@ -19,6 +17,11 @@ class SenderServiceMixin:
     RUSSIAN_PASS = os.getenv('RUSSIAN_PASSWORD')
     REDIS_INSTANCE = redis.StrictRedis(host=settings.REDIS_HOST,
                                        port=settings.REDIS_PORT, db=0, password="sOmE_sEcUrE_pAsS")
+
+    def get_data_token(self, token):
+        """
+        Используется для получения всей необходимой информации
+        """
 
     def __random_integer_code_generator(self):
         """
@@ -32,7 +35,7 @@ class SenderServiceMixin:
         """
         phone_data = self.check_num(phone)
         if phone_data:
-            token = self.save_data_to_redis(phone_data[0], user_type)
+            token = self._save_data_to_redis(phone_data[0], user_type)
             if phone_data[1] == "BY":
                 params = {
                     "token": SenderServiceMixin.BY_TOKEN,
@@ -62,12 +65,12 @@ class SenderServiceMixin:
         """
         Отправка ссылки на email
         """
-        try:
-            token = self.save_data_to_redis(email, user_type)
-            send_code.send_email.delay(email, f"https://overschool/users/login/?token={token}")
-            return True
-        except BaseException:
-            return False
+        # try:
+        token = self._save_data_to_redis(email, user_type)
+        send_code.send_email.delay(email, f"https://overschool/users/login/?token={token}")
+        return True
+        # except BaseException:
+        #     return False
 
     def check_num(self, phone_number: str):
         """
@@ -82,18 +85,3 @@ class SenderServiceMixin:
         elif bool(ru.match(phone_number)):
             return phone_number, "RU"
         return None
-
-    def save_data_to_redis(self, recipient: str, user_type: str) -> str:
-        """
-        Функция сохранения данных для регистрации, пока в redis (есть идея сохранять в бд)
-        """
-        token = secrets.token_hex(16)
-        SenderServiceMixin.REDIS_INSTANCE.lpush('registration_data',
-                                                json.dumps({
-                                                    "token": token,
-                                                    "recipient": recipient,
-                                                    "user_type": user_type,
-                                                    "status": True,
-                                                    "datetime": datetime.datetime.now().timestamp()
-                                                }))
-        return token

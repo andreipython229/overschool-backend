@@ -1,19 +1,6 @@
 version: "3.9"
 
 services:
-  db:
-    image: postgres:latest
-    container_name: postgresdb
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data/pgdata
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: trust
-      POSTGRES_DB: django_db
-      POSTGRES_PASSWORD: password
-      PGDATA: /var/lib/postgresql/data/pgdata
-    restart: always
   redis:
     image: "redis:alpine"
     restart: always
@@ -33,15 +20,8 @@ services:
     container_name: backendDjango
     ports:
       - "80:8000"
-    environment:
-      POSTGRES_NAME: django_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST: db
-    restart: always
     depends_on:
       - redis
-      - db
   celery:
     restart: always
     build:
@@ -49,15 +29,6 @@ services:
     command: celery -A overschool worker -l info
     volumes:
       - ./app:/app
-    environment:
-      POSTGRES_NAME: django_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST: db
-    depends_on:
-      - db
-      - redis
-      - back
   celery-beat:
     build:
       context: overschool

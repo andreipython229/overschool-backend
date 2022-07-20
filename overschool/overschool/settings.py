@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "courses",
     "lesson_tests",
     "homeworks",
+    'djoser'
 ]
 
 REDIS_HOST = 'redis'
@@ -172,11 +173,20 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Rest-framework
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
+    'DEFAULT_PERMISSION_CLASSES': [
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'TEST_REQUEST_RENDERER_CLASSES': [
+        'rest_framework.renderers.MultiPartRenderer',
+        'rest_framework.renderers.JSONRenderer'
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication'
+    ],
 }
 
 ## ckeditor settings

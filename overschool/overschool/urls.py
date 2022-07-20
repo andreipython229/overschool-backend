@@ -7,6 +7,8 @@ from django.views.static import serve
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("users.urls")),
+    path(r'api/v1/auth/', include('djoser.urls')),
+    re_path(r'^auth/', include('djoser.urls.authtoken')),
     # path('', include('chat.urls')),
     # path('', include('courses.urls')),
     # path('', include('lesson_tests.urls')),
