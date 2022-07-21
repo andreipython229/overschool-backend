@@ -4,6 +4,14 @@ from users.managers import UserManager
 
 
 class User(AbstractUser):
+    """User model"""
+
+    user_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID пользователя",
+        help_text="Уникальный идентификатор пользователя",
+    )
     username = None
     email = models.EmailField("Почта", unique=True)
 
