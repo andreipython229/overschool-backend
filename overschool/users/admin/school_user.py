@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.contrib.auth.admin import Group, UserAdmin
-from users.forms import SchoolUserForm
 from users.models import SchoolUser
 
 

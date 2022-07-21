@@ -41,3 +41,15 @@ class RedisDataMixin:
                                                 }))
         print(token)
         return token
+
+    def _delete_data_from_redis(self, token):
+        for i in range(0, RedisDataMixin.REDIS_INSTANCE.llen(RedisDataMixin.REGISTRATION_DATA_KEY)):
+            record = RedisDataMixin.REDIS_INSTANCE.lindex(RedisDataMixin.REGISTRATION_DATA_KEY,
+                                                       i)
+            record_loads = json.loads(record)
+            if record_loads['token'] == token:
+                data = record_loads
+                break
+        else:
+            data = {}
+        return data

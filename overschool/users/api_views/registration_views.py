@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import SchoolUser
 from users.serializers import SchoolUserSerializer, RegisterSerializer
-from users.services import SenderServiceMixin
+from users.services import SenderServiceMixin, RedisDataMixin
 
 
 class SchoolUserViewSet(viewsets.ModelViewSet):
@@ -18,12 +18,18 @@ class SchoolUserViewSet(viewsets.ModelViewSet):
     serializer_class = SchoolUserSerializer
 
 
-class RegisterView(APIView):
+class RegisterView(APIView, RedisDataMixin):
     def post(self, request):
         serializer = SchoolUserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        data = self._get_data_token(request.data.get('token'))
+        if serializer.is_valid() and data and data['status']:
+            serializer.save()
+
+            return Response({"status": "OK", "message": "User created successfully",
+                             "data": serializer.data},
+                              status=status.HTTP_200_OK)
+        else:
+            return Response({"status": "Error", "message": "Bad credentials"})
 
 
 class LoginView(APIView):
@@ -79,7 +85,8 @@ class LogoutView(APIView):
         response = Response()
         response.delete_cookie('jwt')
         response.data = {
-            'message': 'success'
+            "status": "OK",
+            'message': 'User Log out'
         }
         return response
 
@@ -116,6 +123,9 @@ class RegisterAdminView(views.APIView,
                             status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
+        """
+        Отправка данных, которые оставил админ, при входе юзера на страницу регистрации
+        """
         token = request.data.get('token')
         data = self._get_data_token(token)
         if data:
