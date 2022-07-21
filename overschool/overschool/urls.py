@@ -6,9 +6,11 @@ from django.views.static import serve
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("users.urls")),
-    # path('', include('chat.urls')),
-    # path('', include('homeworks.urls')),
+    path("api-auth/", include("rest_framework.urls")),
+    path("api/users/", include("users.urls")),
+    path("api/courses/", include("courses.urls")),
+    path("api/lesson_tests/", include("lesson_tests.urls")),
+    path("api/homeworks/", include("homeworks.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [
     re_path(

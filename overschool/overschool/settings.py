@@ -89,7 +89,7 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 
 DATABASES = {"default": env.db_url("DB_URL")}
 
-AUTH_USER_MODEL = "users.SchoolUser"
+AUTH_USER_MODEL = "users.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

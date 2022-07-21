@@ -1,1 +1,2 @@
-from .school_user import *
+from .user import UserViewSet
+from .user_role import UserRoleViewSet

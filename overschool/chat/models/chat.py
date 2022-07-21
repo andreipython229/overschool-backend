@@ -1,7 +1,6 @@
-from django.db import models
-
 from common_services.models import TimeStampedModel
-from users.models import SchoolUser
+from django.db import models
+from users.models import User
 
 
 class Chat(TimeStampedModel):
@@ -16,15 +15,13 @@ class Chat(TimeStampedModel):
         help_text="Уникальный идентификатор чата",
     )
     admin = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         verbose_name="Админ",
         help_text="Пользователь, являющийся админом чата, по умолчанию - супер админ",
     )
-    participants = models.ManyToManyField(
-        SchoolUser, related_name="user_chat_mtm", verbose_name="Пользователи"
-    )
+    participants = models.ManyToManyField(User, related_name="user_chat_mtm", verbose_name="Пользователи")
 
     class Meta:
         verbose_name = "Чат"
