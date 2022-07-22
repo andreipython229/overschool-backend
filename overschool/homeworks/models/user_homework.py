@@ -1,7 +1,7 @@
-from django.db import models
-
 from common_services.models import TimeStampedModel
-from users.models import SchoolUser
+from courses.models import Lesson
+from django.db import models
+from users.models import User
 
 from .homework import Homework
 
@@ -29,7 +29,7 @@ class UserHomework(TimeStampedModel):
         help_text="Уникальный идентификатор выполненной домашней работы",
     )
     user_id = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         related_name="user_homework_user_id_fk",
@@ -44,7 +44,7 @@ class UserHomework(TimeStampedModel):
         help_text="ID домашнего задания, ответ на который прислали",
     )
     teacher_id = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         related_name="user_homework_teacher_id_fk",
@@ -52,9 +52,7 @@ class UserHomework(TimeStampedModel):
         help_text="Учитель, который проверял домашнюю работы",
         null=True,
     )
-    text = models.TextField(
-        verbose_name="Ответ ученика", help_text="Ответ ученика на домашнее задание"
-    )
+    text = models.TextField(verbose_name="Ответ ученика", help_text="Ответ ученика на домашнее задание")
     status = models.CharField(
         max_length=256,
         choices=UserHomeworkStatusChoices.choices,

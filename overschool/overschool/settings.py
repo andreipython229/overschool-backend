@@ -12,19 +12,25 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from pathlib import Path
 
+from environ import Env
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = Env(DEBUG=(bool, False))
+Env.read_env(str(BASE_DIR / ".env"))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-=q++i5d=n#g218)cuv7h-^*ilebo=_m6vno@4mx2(yomp!@psb"
+SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else []
+
 
 # Application definition
 
@@ -47,25 +53,25 @@ INSTALLED_APPS = [
     "dbbackup",
 ]
 
-REDIS_HOST = "redis"
-REDIS_PORT = "6379"
-BROKER_BACKEND = "redis"
+REDIS_HOST = 'redis'
+REDIS_PORT = '6379'
+BROKER_BACKEND = 'redis'
 
-CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+CELERY_BROKER_URL = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 # CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
-CELERY_ACCEPT_CONTENT = ["application/json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtpout.secureserver.net"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 80
-DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
-EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_NAME')
+EMAIL_HOST_USER = os.getenv('EMAIL_NAME')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
@@ -99,28 +105,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "overschool.wsgi.application"
 
+
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'overschool',
-#         'USER': 'root',
-#         'PASSWORD': '1234',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#     }
-# }
+DATABASES = {"default": env.db_url("DB_URL")}
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
-AUTH_USER_MODEL = "users.SchoolUser"
+AUTH_USER_MODEL = "users.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -141,6 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
@@ -152,11 +144,14 @@ USE_I18N = True
 
 USE_TZ = True
 
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
+
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
 DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
@@ -172,6 +167,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -194,7 +190,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-## ckeditor settings
+# ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 
 CKEDITOR_CONFIGS = {

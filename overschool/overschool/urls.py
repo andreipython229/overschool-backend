@@ -9,11 +9,11 @@ from rest_framework import permissions
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("users.urls")),
-    # path('', include('chat.urls')),
-    path("courses/", include("courses.urls")),
-    path("lesson_tests/", include("lesson_tests.urls")),
-    # path('', include('homeworks.urls')),
+    path("api-auth/", include("rest_framework.urls")),
+    path("api/users/", include("users.urls")),
+    path("api/courses/", include("courses.urls")),
+    path("api/lesson_tests/", include("lesson_tests.urls")),
+    path("api/homeworks/", include("homeworks.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
