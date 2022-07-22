@@ -2,10 +2,9 @@ import ast
 import logging
 import traceback
 
+from common_services.models import APIRequestLog
 from django.db import connection
 from django.utils.timezone import now
-
-from common_services.models import APIRequestLog
 
 logger = logging.getLogger(__name__)
 

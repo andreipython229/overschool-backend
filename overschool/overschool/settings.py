@@ -42,14 +42,35 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_yasg",
     "ckeditor",
     "common_services",
     "users",
     "chat",
     "courses",
     "lesson_tests",
-    "homeworks",
+    "djoser",
 ]
+
+REDIS_HOST = "redis"
+REDIS_PORT = "6379"
+BROKER_BACKEND = "redis"
+
+CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+# CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtpout.secureserver.net"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 80
+DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
+EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
@@ -138,8 +159,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Rest-framework
-REST_FRAMEWORK = {"DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"]}
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+    "TEST_REQUEST_RENDERER_CLASSES": [
+        "rest_framework.renderers.MultiPartRenderer",
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+}
 
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"

@@ -1,7 +1,8 @@
 from common_services.models import TimeStampedModel
 from courses.managers import SectionManager
-from courses.models import Course
 from django.db import models
+
+from .course import Course
 
 
 class Section(TimeStampedModel):
@@ -40,7 +41,9 @@ class Section(TimeStampedModel):
 
     def order(self):
         if self.previous_section_id:
-            previous_section: Section = Section.objects.get(section_id=self.previous_section_id)
+            previous_section: Section = Section.objects.get(
+                section_id=self.previous_section_id
+            )
             return previous_section.order() + 1
         else:
             return 0
