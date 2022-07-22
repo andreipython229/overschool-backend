@@ -5,11 +5,6 @@ from rest_framework import permissions, status, views, viewsets
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from users.models import SchoolUser
-from users.serializers import RegisterSerializer, SchoolUserSerializer
-from users.services import RedisDataMixin, SenderServiceMixin
-
 from users.models import User
 from users.serializers import RegisterSerializer, UserSerializer
 from users.services import RedisDataMixin, SenderServiceMixin
