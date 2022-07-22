@@ -1,6 +1,7 @@
+from django.db import models
+
 from common_services.models import TimeStampedModel
 from courses.models import Lesson
-from django.db import models
 
 
 class LessonTest(TimeStampedModel):
@@ -18,14 +19,22 @@ class LessonTest(TimeStampedModel):
         verbose_name="ID урока",
         help_text="Урок, после которого идёт данный тест",
     )
-    name = models.CharField(max_length=256, verbose_name="Название", help_text="Название теста")
+    name = models.CharField(
+        max_length=256, verbose_name="Название", help_text="Название теста"
+    )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
     )
-    random_questions = models.BooleanField(default=False, verbose_name="Перемешать вопросы")
-    random_answers = models.BooleanField(default=False, verbose_name="Перемешать ответы")
-    show_right_answers = models.BooleanField(default=False, verbose_name="Показать правильные ответы")
+    random_questions = models.BooleanField(
+        default=False, verbose_name="Перемешать вопросы"
+    )
+    random_answers = models.BooleanField(
+        default=False, verbose_name="Перемешать ответы"
+    )
+    show_right_answers = models.BooleanField(
+        default=False, verbose_name="Показать правильные ответы"
+    )
 
     def __str__(self):
         return str(self.test_id) + " " + str(self.name)

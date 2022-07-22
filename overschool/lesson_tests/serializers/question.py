@@ -1,5 +1,6 @@
-from lesson_tests.models import Question
 from rest_framework import serializers
+
+from lesson_tests.models import Question
 
 
 class QuestionSerializer(serializers.ModelSerializer):

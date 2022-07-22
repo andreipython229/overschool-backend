@@ -50,27 +50,28 @@ INSTALLED_APPS = [
     "courses",
     "lesson_tests",
     "djoser",
+    "dbbackup",
 ]
 
-REDIS_HOST = "redis"
-REDIS_PORT = "6379"
-BROKER_BACKEND = "redis"
+REDIS_HOST = 'redis'
+REDIS_PORT = '6379'
+BROKER_BACKEND = 'redis'
 
-CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+CELERY_BROKER_URL = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://default:sOmE_sEcUrE_pAsS@redis:6379/0'
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 # CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
-CELERY_ACCEPT_CONTENT = ["application/json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtpout.secureserver.net"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 80
-DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
-EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_NAME')
+EMAIL_HOST_USER = os.getenv('EMAIL_NAME')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
@@ -150,8 +151,22 @@ USE_TZ = True
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
+DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
+
+# DBBACKUP_STORAGE = "storages.backends.dropbox.DropBoxStorage"
+# DBBACKUP_STORAGE_OPTIONS = {
+#     "oauth2_access_token": "sl.BL4ztniJ3eNeWsP8FiA5LI0OKZTD4opm5QItWouN3_J0VrgiipY-avIeqnztK4ewzf26ubEEqfV89e72Rk2sxn0A0HOj55ByWfXX2s9A_LD5gtLIDG4SwGxYvuWpENhbcQTYVdYQ3eXd",
+#     "root_path": "/Backups Denka/",
+# }
+DBBACKUP_CLEANUP_KEEP = 2
+
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+STATICFILES = (os.path.join(BASE_DIR, "static"),)
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 
 # Default primary key field type
