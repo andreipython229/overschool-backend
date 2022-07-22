@@ -1,22 +1,30 @@
 import os
 import random
 import re
-from users.tasks import send_code
-from .redis_data_mixin import RedisDataMixin
+
 import redis
 from django.conf import settings
+
+from users.tasks import send_code
+
+from .redis_data_mixin import RedisDataMixin
 
 
 class SenderServiceMixin(RedisDataMixin):
     """Функционал для отправки регистрационных сообщений ученикам, менеджерам"""
+
     RUSSIAN_SERVICE_ENDPOINT = "https://smsc.ru/sys/send.php"
     BELARUSIAN_SERVICE_ENDPOINT = "http://app.sms.by/api/v1/sendQuickSMS"
-    BY_TOKEN = os.getenv('BY_TOKEN')
+    BY_TOKEN = os.getenv("BY_TOKEN")
     ALFA_SMS = os.getenv("ALFA_SMS")
-    RUSSIAN_LOGIN = os.getenv('RUSSIAN_LOGIN')
-    RUSSIAN_PASS = os.getenv('RUSSIAN_PASSWORD')
-    REDIS_INSTANCE = redis.StrictRedis(host=settings.REDIS_HOST,
-                                       port=settings.REDIS_PORT, db=0, password="sOmE_sEcUrE_pAsS")
+    RUSSIAN_LOGIN = os.getenv("RUSSIAN_LOGIN")
+    RUSSIAN_PASS = os.getenv("RUSSIAN_PASSWORD")
+    REDIS_INSTANCE = redis.StrictRedis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        db=0,
+        password="sOmE_sEcUrE_pAsS",
+    )
 
     def get_data_token(self, token):
         """
@@ -43,9 +51,9 @@ class SenderServiceMixin(RedisDataMixin):
                     "phone": phone_data[0],
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
-                send_code.send_code_to_phone.delay(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT,
-                                               params,
-                                               "post")
+                send_code.send_code_to_phone.delay(
+                    SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post"
+                )
             elif phone_data[1] == "RU":
                 params = {
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
@@ -54,9 +62,9 @@ class SenderServiceMixin(RedisDataMixin):
                     "mes": f"https://overschool/users/login/?token={token}",
                     "fmt": 3,
                 }
-                send_code.send_code_to_phone.delay(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT,
-                                               params,
-                                               "get")
+                send_code.send_code_to_phone.delay(
+                    SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get"
+                )
             return phone_data[0]
         else:
             return None
@@ -67,7 +75,9 @@ class SenderServiceMixin(RedisDataMixin):
         """
         # try:
         token = self._save_data_to_redis(email, user_type)
-        send_code.send_email.delay(email, f"https://overschool/users/login/?token={token}")
+        send_code.send_email.delay(
+            email, f"https://overschool/users/login/?token={token}"
+        )
         return True
         # except BaseException:
         #     return False

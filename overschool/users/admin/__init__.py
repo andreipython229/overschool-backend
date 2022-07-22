@@ -1,1 +1,2 @@
-from .school_user import *
+from .user import UserAdmin
+from .user_role import UserRoleAdmin

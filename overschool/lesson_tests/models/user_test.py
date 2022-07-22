@@ -1,6 +1,6 @@
 from common_services.models import TimeStampedModel
 from django.db import models
-from users.models import SchoolUser
+from users.models import User
 
 from .lesson_test import LessonTest
 
@@ -27,7 +27,7 @@ class UserTest(TimeStampedModel):
         help_text="Уникальный идентификатор теста",
     )
     user_id = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         verbose_name="ID пользователя",
