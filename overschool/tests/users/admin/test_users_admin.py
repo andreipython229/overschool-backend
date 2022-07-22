@@ -2,9 +2,8 @@ from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.urls import reverse
 from rest_framework import status
 
-from users.models import SchoolUser
-
 from tests.services.auth_admin_test_case import AuthAdminTestCase
+from users.models import SchoolUser
 
 
 class TestUsersAdmin(AuthAdminTestCase):

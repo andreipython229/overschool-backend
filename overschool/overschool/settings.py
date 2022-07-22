@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -27,7 +26,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -38,14 +36,36 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_yasg",
     "ckeditor",
     "common_services",
     "users",
     "chat",
     "courses",
     "lesson_tests",
-    "homeworks",
+    "djoser",
+    "dbbackup",
 ]
+
+REDIS_HOST = "redis"
+REDIS_PORT = "6379"
+BROKER_BACKEND = "redis"
+
+CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+# CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtpout.secureserver.net"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 80
+DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
+EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 
@@ -78,7 +98,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "overschool.wsgi.application"
-
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -122,7 +141,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
@@ -134,29 +152,46 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 
+DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
+DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
+
+# DBBACKUP_STORAGE = "storages.backends.dropbox.DropBoxStorage"
+# DBBACKUP_STORAGE_OPTIONS = {
+#     "oauth2_access_token": "sl.BL4ztniJ3eNeWsP8FiA5LI0OKZTD4opm5QItWouN3_J0VrgiipY-avIeqnztK4ewzf26ubEEqfV89e72Rk2sxn0A0HOj55ByWfXX2s9A_LD5gtLIDG4SwGxYvuWpENhbcQTYVdYQ3eXd",
+#     "root_path": "/Backups Denka/",
+# }
+DBBACKUP_CLEANUP_KEEP = 2
+
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Rest-framework
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
-    ]
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+    "TEST_REQUEST_RENDERER_CLASSES": [
+        "rest_framework.renderers.MultiPartRenderer",
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
 }
 
 ## ckeditor settings
