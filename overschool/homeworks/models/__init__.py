@@ -1,2 +1,2 @@
-from .homework import *
-from .user_homework import *
+from .homework import Homework
+from .user_homework import UserHomework

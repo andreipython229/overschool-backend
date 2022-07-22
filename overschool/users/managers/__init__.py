@@ -1,1 +1,1 @@
-from .school_user import *
+from .user import UserManager
