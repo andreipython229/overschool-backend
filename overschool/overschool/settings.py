@@ -158,6 +158,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 MEDIA_URL = "/media/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -173,7 +174,6 @@ DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
 DBBACKUP_CLEANUP_KEEP = 2
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 
 # Default primary key field type
