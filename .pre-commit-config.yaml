@@ -5,6 +5,7 @@ repos:
     hooks:
       - id: isort
         language_version: python3.9.1
+        args: ["--profile", "black"]
 
   # python code formatting - will amend files
   - repo: https://github.com/psf/black
@@ -27,4 +28,6 @@ repos:
       - id: trailing-whitespace
       - id: check-ast
       - id: end-of-file-fixer
+        exclude: requirements.txt
       - id: mixed-line-ending
+        exclude: requirements.txt
