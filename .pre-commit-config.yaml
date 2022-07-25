@@ -28,4 +28,6 @@ repos:
       - id: trailing-whitespace
       - id: check-ast
       - id: end-of-file-fixer
+        exclude: requirements.txt
       - id: mixed-line-ending
+        exclude: requirements.txt
