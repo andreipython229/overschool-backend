@@ -1,6 +1,13 @@
 version: "3.9"
 
 services:
+  rabbitmq:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
   redis:
     image: "redis:alpine"
     restart: always
@@ -37,3 +44,4 @@ services:
       - .app:/app_beat
     depends_on:
       - redis
+      - rabbitmq

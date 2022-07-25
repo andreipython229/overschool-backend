@@ -5,20 +5,14 @@ from rest_framework import permissions, status, views, viewsets
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from users.models import SchoolUser
-from users.serializers import RegisterSerializer, SchoolUserSerializer
+from users.models import User
+from users.serializers import RegisterSerializer, UserSerializer
 from users.services import RedisDataMixin, SenderServiceMixin
-
-
-class SchoolUserViewSet(viewsets.ModelViewSet):
-    queryset = SchoolUser.objects.all()
-    serializer_class = SchoolUserSerializer
 
 
 class RegisterView(APIView, RedisDataMixin):
     def post(self, request):
-        serializer = SchoolUserSerializer(data=request.data)
+        serializer = UserSerializer(data=request.data)
         data = self._get_data_token(request.data.get("token"))
         if serializer.is_valid() and data and data["status"]:
             serializer.save()
@@ -40,7 +34,7 @@ class LoginView(APIView):
         email = request.data["email"]
         password = request.data["password"]
 
-        user = SchoolUser.objects.filter(email=email).first()
+        user = User.objects.filter(email=email).first()
 
         if user is None:
             raise AuthenticationFailed("User not found!")
@@ -75,8 +69,8 @@ class UserView(APIView):
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Unauthenticated!")
 
-        user = SchoolUser.objects.filter(id=payload["id"]).first()
-        serializer = SchoolUserSerializer(user)
+        user = User.objects.filter(id=payload["id"]).first()
+        serializer = UserSerializer(user)
         return Response(serializer.data)
 
 

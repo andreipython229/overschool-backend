@@ -44,13 +44,14 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "ckeditor",
-    "common_services",
-    "users",
-    "chat",
-    "courses",
-    "lesson_tests",
+    "common_services.apps.CommonServicesConfig",
+    "users.apps.UsersConfig",
+    "chat.apps.ChatConfig",
+    "courses.apps.CoursesConfig",
+    "lesson_tests.apps.LessonTestsConfig",
     "djoser",
     "dbbackup",
+    "homeworks.apps.HomeworksConfig"
 ]
 
 REDIS_HOST = 'redis'
@@ -109,7 +110,14 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL")}
+# DATABASES = {"default": env.db_url("DB_URL")}
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
+
 
 AUTH_USER_MODEL = "users.User"
 
@@ -162,8 +170,6 @@ DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
 #     "root_path": "/Backups Denka/",
 # }
 DBBACKUP_CLEANUP_KEEP = 2
-
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
