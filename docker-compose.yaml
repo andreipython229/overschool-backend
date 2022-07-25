@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.3"
 
 services:
   rabbitmq:
@@ -23,7 +23,7 @@ services:
     build: overschool
     image: back
     restart: always
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8002
     container_name: backendDjango
     ports:
       - "80:8000"
