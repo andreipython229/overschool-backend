@@ -13,6 +13,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = (
             "user",
+            "avatar",
             "phone_number",
             "city",
             "description",
