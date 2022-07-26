@@ -1,8 +1,8 @@
+from common_services.models import TimeStampedModel
 from django.db import models
+from users.models import User
 
 from chat.models import Chat
-from common_services.models import TimeStampedModel
-from users.models import SchoolUser
 
 
 class Message(TimeStampedModel):
@@ -13,7 +13,7 @@ class Message(TimeStampedModel):
         help_text="Уникальный идентификатор сообщения",
     )
     user = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         verbose_name="Пользователь",

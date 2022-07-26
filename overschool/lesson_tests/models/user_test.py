@@ -1,7 +1,6 @@
-from django.db import models
-
 from common_services.models import TimeStampedModel
-from users.models import SchoolUser
+from django.db import models
+from users.models import User
 
 from .lesson_test import LessonTest
 
@@ -17,8 +16,8 @@ class UserTest(TimeStampedModel):
     user_test_id = models.AutoField(
         primary_key=True,
         editable=False,
-        verbose_name="ID сданнаго теста",
-        help_text="Уникальный идентификатор сданнаго теста",
+        verbose_name="ID сданного теста",
+        help_text="Уникальный идентификатор сданного теста",
     )
     test_id = models.ForeignKey(
         LessonTest,
@@ -28,7 +27,7 @@ class UserTest(TimeStampedModel):
         help_text="Уникальный идентификатор теста",
     )
     user_id = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         verbose_name="ID пользователя",
@@ -46,7 +45,7 @@ class UserTest(TimeStampedModel):
         choices=UserTestStatusChoices.choices,
         default=UserTestStatusChoices.SUCCESS,
         verbose_name="Статус",
-        help_text="Статус, отображающий, пройден ли тест учеником",
+        help_text="Статус, отображающий пройден ли тест учеником",
     )
 
     class Meta:

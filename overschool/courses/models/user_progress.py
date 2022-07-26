@@ -1,7 +1,6 @@
-from django.db import models
-
 from common_services.models import TimeStampedModel
-from users.models import SchoolUser
+from django.db import models
+from users.models import User
 
 from .course import Course
 from .lesson import Lesson
@@ -13,7 +12,7 @@ class UserProgress(TimeStampedModel):
     """
 
     user_id = models.ForeignKey(
-        SchoolUser,
+        User,
         on_delete=models.SET_DEFAULT,
         default=1,
         related_name="user_progress_user_id_fk",
@@ -33,9 +32,10 @@ class UserProgress(TimeStampedModel):
         related_name="user_progress_lesson_id_fk",
         verbose_name="ID урока",
         null=True,
-        help_text="ID курса, на котором сейчас находится ученик, если None значит, урок был удалён, либо ученик только начал",
+        help_text="ID курса, на котором сейчас находится ученик, если None значит,"
+        "урок был удалён, либо ученик только начал",
     )
 
     class Meta:
-        verbose_name = "Надоело писать"
-        verbose_name_plural = "Надоело писать 2"
+        verbose_name = "Прогресс юзера"
+        verbose_name_plural = "Прогрессы юзеров"

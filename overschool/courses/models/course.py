@@ -4,6 +4,12 @@ from django.db import models
 from common_services.models import TimeStampedModel
 
 
+class Format(models.TextChoices):
+    "Варианты форматов для курса"
+    OFFLINE = "ОФФ", "Оффлайн"
+    ONLINE = "ОН", "Онлайн"
+
+
 class Status(models.TextChoices):
     "Варианты статусов для курса"
     UNPUBLISHED = "НО", "Не опубликован"
@@ -17,6 +23,13 @@ class Course(TimeStampedModel):
         editable=False,
         verbose_name="Курс ID",
         help_text="Уникальный идентификатор курса",
+    )
+    format = models.CharField(
+        max_length=256,
+        choices=Format.choices,
+        default=Format.ONLINE,
+        verbose_name="Формат курса",
+        help_text="Формат курса, отображает формат обучения (Онлайн либо Оффлайн)",
     )
     name = models.CharField(
         max_length=256,

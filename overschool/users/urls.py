@@ -1,20 +1,26 @@
+from django.urls import path
 from rest_framework import routers
-from django.urls import path, include
-
-from . import apis
-from .apis import ChangePasswordView
-
-from users.api_views import SchoolUserOfflineViewSet, SchoolUserViewSet
+from users.api_views import (
+    LoginView,
+    LogoutView,
+    ProfileViewSet,
+    RegisterView,
+    UserRoleViewSet,
+    UserView,
+    UserViewSet,
+)
 
 router = routers.DefaultRouter()
-router.register("users", SchoolUserViewSet, basename="users")
-router.register("users_offline/", SchoolUserOfflineViewSet, basename="users_offline")
+router.register("users", UserViewSet, basename="users")
+router.register("user_roles", UserRoleViewSet, basename="user_roles")
+router.register("profiles", ProfileViewSet, basename="profiles")
 
-urlpatterns = [
-    path("register/", apis.RegisterApi.as_view(), name="register"),
-    path("login/", apis.LoginApi.as_view(), name="login"),
-    path("me/", apis.UserApi.as_view(), name="me"),
-    path("logout/", apis.LogoutApi.as_view(), name="logout"),
-    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
-    path('password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+urlpatterns_to_add = [
+    path("register", RegisterView.as_view(), name="register"),
+    path("login", LoginView.as_view(), name="login"),
+    path("user", UserView.as_view(), name="user"),
+    path("logout", LogoutView.as_view(), name="logout"),
+    path("admin_register/", RegisterView.as_view(), name="register"),
 ]
+urlpatterns = router.urls
+urlpatterns += urlpatterns_to_add
