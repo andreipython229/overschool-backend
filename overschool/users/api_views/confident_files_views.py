@@ -4,6 +4,6 @@ from .models import Documents
 from .serializers import UploadSerializer
 
 
-class UploadViewSet(viewsets.ModelViewSet):
+class ConfidentFilesViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = UploadSerializer

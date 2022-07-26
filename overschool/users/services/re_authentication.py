@@ -2,10 +2,10 @@ import jwt
 from django.conf import settings
 from rest_framework import authentication, exceptions
 
-from . import models
+from overschool.users.authentication import models
 
 
-class CustomUserAuthentication(authentication.BaseAuthentication):
+class CustomUserReAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         token = request.COOKIES.get("jwt")
 
