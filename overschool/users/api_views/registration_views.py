@@ -6,11 +6,18 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import User
-from users.serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer, user_serializer
-from users.services import RedisDataMixin, re_authentication
+from users.serializers import RegisterSerializer, UserSerializer, FirstRegisterSerializer, LoginSerializer, ChangePasswordSerializer
+from users.services import RedisDataMixin, re_authentication, SenderServiceMixin
 from rest_framework.permissions import IsAuthenticated
 
-class RegisterView(APIView, RedisDataMixin):
+
+class RegisterView(generics.GenericAPIView, RedisDataMixin):
+    """
+    Эндпоинт регистрации юзера на платформе
+    """
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         data = self._get_data_token(request.data.get("token"))
@@ -26,56 +33,75 @@ class RegisterView(APIView, RedisDataMixin):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"})
+            return Response({"status": "Error", "message": "Bad credentials"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
-class LoginView(APIView):
+class LoginView(generics.GenericAPIView):
+    """
+    Эндпоинт логина пользователя
+    """
+
+    serializer_class = LoginSerializer
+
     def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
 
-        user = User.objects.filter(email=email).first()
+        serializer = LoginSerializer(request.data)
+        if serializer.is_valid():
+            email = serializer.email
+            password = serializer.password
 
-        if user is None:
-            raise AuthenticationFailed("User not found!")
+            user = User.objects.filter(email=email).first()
 
-        if not user.check_password(password):
-            raise AuthenticationFailed("Incorrect password!")
+            if user is None:
+                raise AuthenticationFailed("User not found!")
 
-        payload = {
-            "id": user.id,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
-            "iat": datetime.datetime.utcnow(),
-        }
+            if not user.check_password(password):
+                raise AuthenticationFailed("Incorrect password!")
 
-        token = jwt.encode(payload, "secret", algorithm="HS256").decode("utf-8")
+            payload = {
+                "id": user.id,
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+                "iat": datetime.datetime.utcnow(),
+            }
 
-        response = Response()
+            token = jwt.encode(payload, "secret", algorithm="HS256").decode("utf-8")
 
-        response.set_cookie(key="jwt", value=token, httponly=True)
-        response.data = {"jwt": token}
-        return response
+            response = Response(status=status.HTTP_201_CREATED)
+            response.set_cookie(key="jwt", value=token, httponly=True)
+            response.data = {"jwt": token}
+            return response
+        else:
+            return Response(
+                {"status": "Error", "message": f"{serializer.errors}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class UserView(APIView):
+    """
+    Эндпоинт для получения данных юзера
+    """
+
     def get(self, request):
         token = request.COOKIES.get("jwt")
 
         if not token:
             raise AuthenticationFailed("Unauthenticated!")
-
         try:
             payload = jwt.decode(token, "secret", algorithm=["HS256"])
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Unauthenticated!")
 
-        user = User.objects.filter(id=payload["id"]).first()
+        user = User.objects.filter(user_id=payload["id"]).first()
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
 
 class LogoutView(APIView):
-
+    """
+    Эндпоинт выхода пользователя из аккаунта
+    """
 
     def post(self, request):
         response = Response()
@@ -86,8 +112,7 @@ class LogoutView(APIView):
 
 class UserApi(views.APIView):
     """
-    This endpoint can only be used
-    if the user is authenticated
+    Возможно, более лучшая версия похожей вьюхи
     """
 
     authentication_classes = (re_authentication.CustomUserReAuthentication,)
@@ -96,12 +121,15 @@ class UserApi(views.APIView):
     def get(self, request):
         user = request.user
 
-        serializer = user_serializer.UserSerializer(user)
+        serializer = UserSerializer(user)
 
         return response.Response(serializer.data)
 
 
 class LogoutApi(views.APIView):
+    """
+    Снова же более лучшая версия прошлой вьюхи
+    """
     authentication_classes = (re_authentication.CustomUserReAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -148,11 +176,12 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class RegisterAdminView(views.APIView, SenderServiceMixin):
-    """
-    Вьюха для регистрации со стороны админа
-    """
 
+class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
+    """
+    Эндпоинт для отправки приглашения со стороны админа
+    """
+    serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)  # далее можно изменить
 
     def post(self, request):
@@ -161,14 +190,14 @@ class RegisterAdminView(views.APIView, SenderServiceMixin):
         """
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            sender_type = serializer["sender_type"]
+            sender_type = serializer.data["sender_type"]
             if sender_type == "mail":
                 result = self.send_code_by_email(
-                    serializer["recipient"], serializer["user_type"]
+                    serializer.data["recipient"], serializer.data["user_type"], serializer.data['course_id']
                 )
             else:
                 result = self.send_code_by_phone(
-                    serializer["recipient"], serializer["user_type"]
+                    serializer.data["recipient"], serializer.data["user_type"], serializer.data['course_id']
                 )
             if result:
                 return Response(
@@ -181,11 +210,19 @@ class RegisterAdminView(views.APIView, SenderServiceMixin):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         else:
-
             return Response(
                 {"status": "Error", "message": f"{serializer.errors}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class FirstTimeRegisterView(generics.GenericAPIView, SenderServiceMixin):
+    """
+    Эндпоинт на проверку валидности токена, по которому хочет зарегистрироваться пользователь
+    """
+
+    serializer_class = FirstRegisterSerializer
+    queryset = User.objects.all()
 
     def get(self, request):
         """
@@ -199,6 +236,7 @@ class RegisterAdminView(views.APIView, SenderServiceMixin):
                     "status": "OK",
                     "user_type": data["user_type"],
                     "token_status": data["status"],
+                    "course": data['course']
                 },
                 status=status.HTTP_200_OK,
             )
@@ -207,3 +245,28 @@ class RegisterAdminView(views.APIView, SenderServiceMixin):
                 {"status": "Error", "error": "no_data"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class AdminForceRegistration(generics.GenericAPIView):
+    """
+    Эндпоинт регистрации пользователя админом (полной регистрации)
+    """
+
+    serializer_class = UserSerializer
+
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                {
+                    "status": "OK",
+                    "message": "User created successfully",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response({"status": "Error", "message": "Bad credentials"},
+                            status=status.HTTP_400_BAD_REQUEST)
