@@ -4,7 +4,7 @@ from users.managers import UserManager
 
 
 class User(AbstractUser):
-    """User model"""
+    """Модель пользователя"""
 
     user_id = models.AutoField(
         primary_key=True,

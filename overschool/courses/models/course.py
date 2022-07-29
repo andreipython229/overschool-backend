@@ -1,7 +1,8 @@
 from ckeditor.fields import RichTextField
+from common_services.mixins import OrderMixin
+from common_services.models import AuthorPublishedModel, TimeStampedModel
+from courses.managers import CourseManager
 from django.db import models
-
-from common_services.models import TimeStampedModel
 
 
 class Format(models.TextChoices):
@@ -10,19 +11,19 @@ class Format(models.TextChoices):
     ONLINE = "ОН", "Онлайн"
 
 
-class Status(models.TextChoices):
-    "Варианты статусов для курса"
-    UNPUBLISHED = "НО", "Не опубликован"
-    PUBLISHED = "О", "Опубликован"
+class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+    """Модель курсов"""
 
-
-class Course(TimeStampedModel):
-    "Модель курсов"
     course_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="Курс ID",
         help_text="Уникальный идентификатор курса",
+    )
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название курса",
+        help_text="Главное название курса",
     )
     format = models.CharField(
         max_length=256,
@@ -31,21 +32,9 @@ class Course(TimeStampedModel):
         verbose_name="Формат курса",
         help_text="Формат курса, отображает формат обучения (Онлайн либо Оффлайн)",
     )
-    name = models.CharField(
-        max_length=256,
-        verbose_name="Название курса",
-        help_text="Главное название курса",
-    )
-    duration_days = models.IntegerField(
+    duration_days = models.PositiveIntegerField(
         verbose_name="Продолжительность курса",
         help_text="Продолжительность курса в днях",
-    )
-    status = models.CharField(
-        max_length=256,
-        choices=Status.choices,
-        default=Status.UNPUBLISHED,
-        verbose_name="Статус курса",
-        help_text="Статус курса, отображает состояние курса (опубликован - то сть используется юзерами, не опубликован - это ещё в разработке",
     )
     price = models.DecimalField(
         max_digits=15,
@@ -62,6 +51,8 @@ class Course(TimeStampedModel):
         verbose_name="Фотография",
         help_text="Главная фотография",
     )
+
+    objects = CourseManager()
 
     def __str__(self):
         return str(self.course_id) + " " + str(self.name)

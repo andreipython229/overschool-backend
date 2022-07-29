@@ -7,17 +7,9 @@ from .user import UserInitialsSerializer
 class ProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
 
-    user = UserInitialsSerializer()
-
     class Meta:
         model = Profile
-        fields = (
-            "user",
-            "phone_number",
-            "city",
-            "description",
-            "sex",
-        )
+        fields = "__all__"
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user")
