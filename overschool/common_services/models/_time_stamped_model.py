@@ -6,7 +6,7 @@ class TimeStampedModel(models.Model):
     Базовая модель для дополнения остальных полями created_at и updated_at
     """
 
-    created_on = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Создано",
         help_text="Дата и время, когда запись была создана",

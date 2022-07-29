@@ -6,32 +6,34 @@ from .lesson_test import LessonTest
 
 
 class UserTestStatusChoices(models.TextChoices):
-    "Варианты статусов для пройденного теста"
+    """Варианты статусов для пройденного теста"""
+
     SUCCESS = "П", "Прошёл"
     FAILED = "Н", "Не прошёл"
 
 
 class UserTest(TimeStampedModel):
-    "Модель сданнаго теста учеником"
+    """Модель сданнаго теста учеником"""
+
     user_test_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID сданного теста",
         help_text="Уникальный идентификатор сданного теста",
     )
-    test_id = models.ForeignKey(
+    test = models.ForeignKey(
         LessonTest,
         on_delete=models.CASCADE,
         verbose_name="ID теста",
-        related_name="user_test_test_id_fk",
+        related_name="tests",
         help_text="Уникальный идентификатор теста",
     )
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         User,
-        on_delete=models.SET_DEFAULT,
+        on_delete=models.CASCADE,
         default=1,
         verbose_name="ID пользователя",
-        related_name="user_test_user_id_fk",
+        related_name="users",
         help_text="Уникальный идентификатор пользователя",
     )
     success_percent = models.DecimalField(

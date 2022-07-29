@@ -1,26 +1,27 @@
 from ckeditor.fields import RichTextField
-from django.db import models
-
 from common_services.models import TimeStampedModel
+from django.db import models
 
 from .question import Question
 
 
 class AnswerStatusChoices(models.TextChoices):
-    "Варианты статусов для ответов"
+    """Варианты статусов для ответов"""
+
     INCORRECT = "П", "Правильный"
     CORRECT = "Н", "Неправильный"
 
 
 class Answer(TimeStampedModel):
-    "Модель ответа на вопрос"
+    """Модель ответа на вопрос"""
+
     answer_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID Вопроса",
         help_text="Уникальный идентификатор вопроса",
     )
-    question_id = models.ForeignKey(
+    question = models.ForeignKey(
         Question,
         on_delete=models.CASCADE,
         related_name="question_answer_id_fk",

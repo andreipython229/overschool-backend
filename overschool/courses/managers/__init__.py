@@ -1,2 +1,3 @@
-from .lesson import *
-from .section import *
+from .course import CourseManager
+from .lesson import LessonManager
+from .section import SectionManager
