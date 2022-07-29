@@ -1,0 +1,37 @@
+[
+  {
+    "model": "users.UserRole",
+    "pk": 1,
+    "fields": {
+      "name": "Student"
+    }
+  },
+  {
+    "model": "users.UserRole",
+    "pk": 2,
+    "fields": {
+      "name": "Teacher"
+    }
+  },
+  {
+    "model": "users.UserRole",
+    "pk": 3,
+    "fields": {
+      "name": "Manager"
+    }
+  },
+    {
+    "model": "users.UserRole",
+    "pk": 4,
+    "fields": {
+      "name": "Editor"
+    }
+  },
+  {
+    "model": "users.UserRole",
+    "pk": 5,
+    "fields": {
+      "name": "SuperAdmin"
+    }
+  }
+]
