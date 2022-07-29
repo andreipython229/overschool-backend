@@ -35,7 +35,7 @@ class RedisDataMixin:
             data = {}
         return data
 
-    def _save_data_to_redis(self, recipient: str, user_type: str) -> str:
+    def _save_data_to_redis(self, recipient: str, user_type: int, course: int) -> str:
         """
         Функция сохранения данных для регистрации, пока в redis (есть идея сохранять в бд)
         """
@@ -47,6 +47,7 @@ class RedisDataMixin:
                     "token": token,
                     "recipient": recipient,
                     "user_type": user_type,
+                    "course": course,
                     "status": True,
                     "datetime": datetime.datetime.now().timestamp(),
                 }

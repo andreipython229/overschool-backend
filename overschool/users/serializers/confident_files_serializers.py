@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Documents
+from users.models import Documents
 
 
 # Serializers define the API representation.

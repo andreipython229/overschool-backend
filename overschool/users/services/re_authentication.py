@@ -2,7 +2,7 @@ import jwt
 from django.conf import settings
 from rest_framework import authentication, exceptions
 
-from overschool.users.authentication import models
+from users.models import User
 
 
 class CustomUserReAuthentication(authentication.BaseAuthentication):
@@ -17,6 +17,6 @@ class CustomUserReAuthentication(authentication.BaseAuthentication):
         except:
             raise exceptions.AuthenticationFailed("Unauthorized")
 
-        user = models.User.objects.filter(id=payload["id"]).first()
+        user = User.objects.filter(id=payload["id"]).first()
 
         return (user, None)
