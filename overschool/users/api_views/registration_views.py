@@ -1,14 +1,14 @@
 import datetime
 
 import jwt
-from rest_framework import permissions, status, views, generics, response
+from rest_framework import permissions, status, views, viewsets
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import User
-from users.serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer, user_serializer
-from users.services import RedisDataMixin, re_authentication
-from rest_framework.permissions import IsAuthenticated
+from users.serializers import RegisterSerializer, UserSerializer
+from users.services import RedisDataMixin, SenderServiceMixin
+
 
 class RegisterView(APIView, RedisDataMixin):
     def post(self, request):
@@ -75,77 +75,11 @@ class UserView(APIView):
 
 
 class LogoutView(APIView):
-
-
     def post(self, request):
         response = Response()
         response.delete_cookie("jwt")
         response.data = {"status": "OK", "message": "User Log out"}
         return response
-
-
-class UserApi(views.APIView):
-    """
-    This endpoint can only be used
-    if the user is authenticated
-    """
-
-    authentication_classes = (re_authentication.CustomUserReAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get(self, request):
-        user = request.user
-
-        serializer = user_serializer.UserSerializer(user)
-
-        return response.Response(serializer.data)
-
-
-class LogoutApi(views.APIView):
-    authentication_classes = (re_authentication.CustomUserReAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def post(self, request):
-        resp = response.Response()
-        resp.delete_cookie("jwt")
-        resp.data = {"message": "so long farewell"}
-
-        return resp
-
-
-class ChangePasswordView(generics.UpdateAPIView):
-    """
-    An endpoint for changing password.
-    """
-    serializer_class = ChangePasswordSerializer
-    model = User
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self, queryset=None):
-        obj = self.request.user
-        return obj
-
-    def update(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
-            # Check old password
-            if not self.object.check_password(serializer.data.get("old_password")):
-                return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
-            # set_password also hashes the password that the user will get
-            self.object.set_password(serializer.data.get("new_password"))
-            self.object.save()
-            response = {
-                'status': 'success',
-                'code': status.HTTP_200_OK,
-                'message': 'Password updated successfully',
-                'data': []
-            }
-
-            return Response(response)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegisterAdminView(views.APIView, SenderServiceMixin):
