@@ -98,18 +98,6 @@ class UserView(APIView):
         return Response(serializer.data)
 
 
-class LogoutView(APIView):
-    """
-    Эндпоинт выхода пользователя из аккаунта
-    """
-
-    def post(self, request):
-        response = Response()
-        response.delete_cookie("jwt")
-        response.data = {"status": "OK", "message": "User Log out"}
-        return response
-
-
 class UserApi(views.APIView):
     """
     Возможно, более лучшая версия похожей вьюхи
@@ -126,7 +114,7 @@ class UserApi(views.APIView):
         return response.Response(serializer.data)
 
 
-class LogoutApi(views.APIView):
+class LogoutView(views.APIView):
     """
     Снова же более лучшая версия прошлой вьюхи
     """

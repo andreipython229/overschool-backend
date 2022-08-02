@@ -3,55 +3,60 @@
     "model": "homeworks.HomeWork",
     "homework_id": 1,
     "fields": {
-      "lesson_id": 1,
+      "lesson": 1,
       "text": "<p>Текст домашки 1<p>",
       "file": "media/homework/task/files/homework_file_1.odt",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
-      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 1
     }
   },
   {
     "model": "homeworks.HomeWork",
     "homework_id": 2,
     "fields": {
-      "lesson_id": 2,
+      "lesson": 2,
       "text": "<p>Текст домашки 2<p>",
       "file": "media/homework/task/files/homework_file_1.odt",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
-      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 2
     }
   },
    {
     "model": "homeworks.HomeWork",
     "homework_id": 3,
     "fields": {
-      "lesson_id": 3,
+      "lesson": 3,
       "text": "<p>Текст домашки 3<p>",
       "file": "media/homework/task/files/homework_file_1.odt",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
-      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 3
     }
   },
   {
     "model": "homeworks.HomeWork",
     "homework_id": 4,
     "fields": {
-      "lesson_id": 4,
+      "lesson": 4,
       "text": "<p>Текст домашки 4<p>",
       "file": "media/homework/task/files/homework_file_1.odt",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
-      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 4
     }
   },
   {
     "model": "homeworks.HomeWork",
     "homework_id": 5,
     "fields": {
-      "lesson_id": 5,
+      "lesson": 5,
       "text": "<p>Текст домашки 5<p>",
       "file": "media/homework/task/files/homework_file_1.odt",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
-      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 5
     }
   }
 ]

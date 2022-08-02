@@ -1,22 +1,24 @@
 from ckeditor.fields import RichTextField
-from django.db import models
-
-from common_services.models import TimeStampedModel
+from common_services.mixins import OrderMixin
+from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.models import Lesson
+from django.db import models
+from homeworks.managers import HomeworkManager
 
 
-class Homework(TimeStampedModel):
-    "Модель домашнего задания"
+class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+    """Модель домашнего задания"""
+
     homework_id = models.AutoField(
         primary_key=True,
         editable=True,
         verbose_name="ID домашнего задания",
         help_text="Уникальный идентификатор домашнего задания",
     )
-    lesson_id = models.ForeignKey(
+    lesson = models.ForeignKey(
         Lesson,
         on_delete=models.CASCADE,
-        related_name="homework_lesson_id_fk",
+        related_name="homeworks",
         verbose_name="Домашнее задание",
     )
     text = RichTextField(
@@ -29,8 +31,10 @@ class Homework(TimeStampedModel):
         help_text="Файл, в котором хранится вся небходимая информация для домашнего задания",
     )
 
+    objects = HomeworkManager()
+
     def __str__(self):
-        return str(self.homework_id) + " Урок: " + str(self.lesson_id)
+        return str(self.homework_id) + " Урок: " + str(self.lesson)
 
     class Meta:
         verbose_name = "Домашнее задание"

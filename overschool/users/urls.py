@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework import routers
+
 from users.api_views import (
     LoginView,
     LogoutView,
@@ -11,7 +12,8 @@ from users.api_views import (
     ConfidentFilesViewSet,
     SendInviteView,
     FirstTimeRegisterView,
-    AdminForceRegistration
+    AdminForceRegistration,
+    ChangePasswordView
 )
 
 router = routers.DefaultRouter()
@@ -21,6 +23,8 @@ router.register("profiles", ProfileViewSet, basename="profiles")
 router.register(r'upload', ConfidentFilesViewSet, basename="upload")
 
 urlpatterns_to_add = [
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
     path('register/', RegisterView.as_view(), name='register'),
     path("send_invite/", SendInviteView.as_view(), name="send_invite"),
     path("first_register/", FirstTimeRegisterView.as_view(), name="first_register"),
