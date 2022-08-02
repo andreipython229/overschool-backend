@@ -1,0 +1,42 @@
+[
+  {
+    "model": "users.User",
+    "user_id": 1,
+    "fields": {
+      "email": "test1@gmail.com",
+      "password": "W;afd9cx_1"
+    }
+  },
+  {
+    "model": "users.User",
+    "user_id": 2,
+    "fields": {
+      "email": "test2@gmail.com",
+      "password": "W;afd9cx_2"
+    }
+  },
+  {
+    "model": "users.User",
+    "user_id": 3,
+    "fields": {
+      "email": "test3@gmail.com",
+      "password": "W;afd9cx_3"
+    }
+  },
+  {
+    "model": "users.User",
+    "user_id": 4,
+    "fields": {
+      "email": "test4@gmail.com",
+      "password": "W;afd9cx_4"
+    }
+  },
+  {
+    "model": "users.User",
+    "user_id": 5,
+    "fields": {
+      "email": "test5@gmail.com",
+      "password": "W;afd9cx_5"
+    }
+  }
+]

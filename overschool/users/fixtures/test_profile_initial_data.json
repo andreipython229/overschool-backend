@@ -1,0 +1,72 @@
+[
+  {
+    "model": "users.Profile",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "avatar": "media/images/users/avatar_1.png",
+      "phone_number": "+375447606898",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Очень крутое описание",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 2,
+    "fields": {
+      "user": 2,
+      "avatar": "media/images/users/avatar_2.png",
+      "phone_number": "+375447606892",
+      "city": "Могилёв",
+      "sex": "Ж",
+      "description": "Очень крутое описание",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 3,
+    "fields": {
+      "user": 3,
+      "avatar": "media/images/users/avatar_3.png",
+      "phone_number": "+375447606895",
+      "city": "Брест",
+      "sex": "М",
+      "description": "Очень крутое описание",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 4,
+    "fields": {
+      "user": 4,
+      "avatar": "media/images/users/avatar_4.png",
+      "phone_number": "+375447606896",
+      "city": "Гомель",
+      "sex": "Ж",
+      "description": "Очень крутое описание",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 5,
+    "fields": {
+      "user": 5,
+      "avatar": "media/images/users/avatar_5.png",
+      "phone_number": "+375447606823",
+      "city": "Гродно",
+      "sex": "М",
+      "description": "Очень крутое описание",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  }
+]
