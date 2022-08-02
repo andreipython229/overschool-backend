@@ -1,0 +1,82 @@
+[
+  {
+    "model": "courses.Course",
+    "pk": 1,
+    "fields": {
+      "course_id": 1,
+      "format": "ОН",
+      "name": "Название курса 1",
+      "duration_days": 120,
+      "status": "О",
+      "price": 20.22,
+      "description": "Описание 1",
+      "photo": "media/images/courses/courses_1.png",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 2,
+    "fields": {
+      "course_id": 2,
+      "format": "ОН",
+      "name": "Название курса 2",
+      "duration_days": 90,
+      "status": "НЕ",
+      "price": 20.23,
+      "description": "Описание 2",
+      "photo": "media/images/courses/courses_2.png",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 3,
+    "fields": {
+      "course_id": 3,
+      "format": "ОН",
+      "name": "Название курса 3",
+      "duration_days": 120,
+      "status": "О",
+      "price": 20.22,
+      "description": "Описание 3",
+      "photo": "media/images/courses/courses_3.png",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 4,
+    "fields": {
+      "course_id": 4,
+      "format": "ОФФ",
+      "name": "Название курса 4",
+      "duration_days": 120,
+      "status": "О",
+      "price": 20.22,
+      "description": "Описание 4",
+      "photo": "media/images/courses/courses_4.png",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 5,
+    "fields": {
+      "course_id": 5,
+      "format": "ОН",
+      "name": "Название курса 5",
+      "duration_days": 120,
+      "status": "О",
+      "price": 20.22,
+      "description": "Описание 5",
+      "photo": "media/images/courses/courses_5.png",
+      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  }
+]
