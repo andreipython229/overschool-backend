@@ -23,14 +23,14 @@ services:
     build: overschool
     image: back
     restart: always
-    command: bash -c "chmod 755 buildScriptTestData.sh && ./buildScriptTestData.sh"
+    command: bash -c "chmod 755 buildScript.sh && ./buildScript.sh"
     container_name: backendDjango
     ports:
       - "80:80"
     depends_on:
       - redis
     volumes:
-      - ./buildScriptTestData.sh:/buildScriptTestData.sh
+      - ./buildScript.sh:/buildScript.sh
   celery:
     restart: always
     build:
