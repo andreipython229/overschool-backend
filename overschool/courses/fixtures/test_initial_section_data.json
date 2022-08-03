@@ -3,9 +3,12 @@
     "model": "courses.Section",
     "section_id": 1,
     "fields": {
-      "course_id": 1,
+      "course": 1,
       "name": "Название раздела 1",
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "author_id": 1,
+      "published": true,
+      "order": 1,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
     }
   },
@@ -13,10 +16,12 @@
     "model": "courses.Section",
     "section_id": 2,
     "fields": {
-      "course_id": 1,
+      "course": 1,
+      "order": 2,
       "name": "Название раздела 2",
-      "previous_section_id": 1,
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
     }
   },
@@ -24,10 +29,12 @@
     "model": "courses.Section",
     "section_id": 3,
     "fields": {
-      "course_id": 1,
+      "course": 1,
+      "order": 3,
       "name": "Название раздела 3",
-      "previous_section_id": 2,
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
     }
   },
@@ -35,10 +42,12 @@
     "model": "courses.Section",
     "section_id": 4,
     "fields": {
-      "course_id": 1,
+      "course": 1,
+      "order": 4,
       "name": "Название раздела 4",
-      "previous_section_id": 4,
-      "created_on": "2022-08-02 12:34:37.000000-03:00",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
     }
   },
@@ -46,7 +55,10 @@
     "model": "courses.Section",
     "section_id": 5,
     "fields": {
-      "course_id": 1,
+      "course": 1,
+      "order": 5,
+      "author_id": 1,
+      "published": true,
       "name": "Название раздела 5",
       "previous_section_id": 4,
       "created_on": "2022-08-02 12:34:37.000000-03:00",
