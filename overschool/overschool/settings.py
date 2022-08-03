@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
+    'django_rest_passwordreset'
 ]
 
 REDIS_HOST = "redis"
@@ -113,13 +114,14 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL")}
+DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",
 #         "NAME": BASE_DIR / "db.sqlite3",
 #     }
 # }
+
 
 
 AUTH_USER_MODEL = "users.User"

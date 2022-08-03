@@ -6,5 +6,4 @@ echo "кто мечтает быть пилотом?
 потому что в самолете все зависит от ......"
 python manage.py makemigrations
 python manage.py migrate
-python manage.py loaddata initial_role_data.json
 python manage.py runserver 0.0.0.0:80

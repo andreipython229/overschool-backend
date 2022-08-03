@@ -1,0 +1,16 @@
+[
+  {
+    "model": "users.Profile",
+    "pk": 1,
+    "fields": {
+      "user_id": 1,
+      "avatar": "media/images/users/avatar_1.png",
+      "phone_number": "+375447606898",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Очень крутое описание",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  }
+]
