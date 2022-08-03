@@ -7,9 +7,7 @@ from .homework import Homework
 
 
 class UserHomeworkStatusChoices(models.TextChoices):
-    """
-    Варианты статусов для ответа на домашнее задание
-    """
+    """Варианты статусов для ответа на домашнее задание"""
 
     ARRIVE = "ПРИ", "Пришёл"
     CHECKED = "ПРО", "Проверен"
@@ -18,9 +16,7 @@ class UserHomeworkStatusChoices(models.TextChoices):
 
 
 class UserHomework(TimeStampedModel):
-    """
-    Модель выполненной домашки юзером, здесь будут храниться его ответы и комменты препода
-    """
+    """Модель выполненной домашки юзером, здесь будут храниться его ответы и комменты препода"""
 
     user_homework_id = models.AutoField(
         primary_key=True,
@@ -28,29 +24,26 @@ class UserHomework(TimeStampedModel):
         verbose_name="ID выполненного домашнего задания",
         help_text="Уникальный идентификатор выполненной домашней работы",
     )
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         User,
-        on_delete=models.SET_DEFAULT,
-        default=1,
-        related_name="user_homework_user_id_fk",
+        on_delete=models.CASCADE,
+        related_name="user_homeworks",
         verbose_name="ID ученика",
-        help_text="ID ученика, выолнившего домашнюю работу",
+        help_text="ID ученика, выполнившего домашнюю работу",
     )
-    homework_id = models.ForeignKey(
+    homework = models.ForeignKey(
         Homework,
         on_delete=models.CASCADE,
-        related_name="user_homework_homework_id_fk",
+        related_name="user_homeworks",
         verbose_name="ID домашнего задания",
         help_text="ID домашнего задания, ответ на который прислали",
     )
-    teacher_id = models.ForeignKey(
+    teacher = models.ForeignKey(
         User,
-        on_delete=models.SET_DEFAULT,
-        default=1,
-        related_name="user_homework_teacher_id_fk",
+        on_delete=models.CASCADE,
+        related_name="teacher_homeworks",
         verbose_name="ID учителя",
         help_text="Учитель, который проверял домашнюю работы",
-        null=True,
     )
     text = models.TextField(verbose_name="Ответ ученика", help_text="Ответ ученика на домашнее задание")
     status = models.CharField(

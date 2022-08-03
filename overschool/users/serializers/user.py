@@ -12,3 +12,10 @@ class UserInitialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("email", "first_name", "last_name")
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    model = User
+
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

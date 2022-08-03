@@ -7,13 +7,12 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from .main_router import router
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
-    path("api/users/", include("users.urls")),
-    path("api/courses/", include("courses.urls")),
-    path("api/lesson_tests/", include("lesson_tests.urls")),
-    path("api/homeworks/", include("homeworks.urls")),
+    path("api/", include(router.urls)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

@@ -4,7 +4,7 @@ from users.managers import UserManager
 
 
 class User(AbstractUser):
-    """User model"""
+    """Модель пользователя"""
 
     user_id = models.AutoField(
         primary_key=True,
@@ -13,7 +13,7 @@ class User(AbstractUser):
         help_text="Уникальный идентификатор пользователя",
     )
     username = None
-    email = models.EmailField("Почта", unique=True)
+    email = models.EmailField(verbose_name="Почта", unique=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

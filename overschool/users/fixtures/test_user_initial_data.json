@@ -1,0 +1,11 @@
+[
+  {
+    "model": "users.User",
+    "pk": 1,
+    "fields": {
+      "user_id": 1,
+      "email": "checkanim@gmail.com",
+      "password": "kajshdasjdH$"
+    }
+  }
+]

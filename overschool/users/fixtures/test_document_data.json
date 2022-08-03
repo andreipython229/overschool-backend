@@ -1,0 +1,10 @@
+[
+  {
+    "model": "users.Documents",
+    "pk": 1,
+    "fields": {
+      "doc_name": "test_document",
+      "doc": "media/documents/document.odt"
+    }
+  }
+]
