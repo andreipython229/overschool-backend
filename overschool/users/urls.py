@@ -1,16 +1,9 @@
-from django.urls import path
 from rest_framework import routers
 
 from users.api_views import (
-    AdminForceRegistration,
     ConfidentFilesViewSet,
-    FirstTimeRegisterView,
-    LogoutView,
     ProfileViewSet,
-    RegisterView,
-    SendInviteView,
     UserRoleViewSet,
-    UserView,
     UserViewSet,
 )
 
