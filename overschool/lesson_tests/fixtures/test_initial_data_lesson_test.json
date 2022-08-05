@@ -3,7 +3,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 1,
     "fields": {
-      "lesson_id": 1,
+      "lesson": 1,
       "name": "Клёвый тест 1",
       "success_percent": 80,
       "random_questions": true,
@@ -20,7 +20,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 2,
     "fields": {
-      "lesson_id": 2,
+      "lesson": 2,
       "name": "Клёвый тест 2",
       "success_percent": 80,
       "random_questions": true,
@@ -37,7 +37,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 3,
     "fields": {
-      "lesson_id": 3,
+      "lesson": 3,
       "name": "Клёвый тест 3",
       "success_percent": 80,
       "random_questions": true,
@@ -54,7 +54,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 4,
     "fields": {
-      "lesson_id": 4,
+      "lesson": 4,
       "name": "Клёвый тест 4",
       "success_percent": 80,
       "random_questions": true,
@@ -71,7 +71,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 5,
     "fields": {
-      "lesson_id": 5,
+      "lesson": 5,
       "name": "Клёвый тест 5",
       "success_percent": 80,
       "random_questions": true,
