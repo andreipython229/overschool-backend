@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
-    "django_rest_passwordreset",
 ]
 
 REDIS_HOST = "redis"
@@ -69,7 +68,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.yandex.ru"
+EMAIL_HOST = 'smtp.yandex.ru'
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 EMAIL_PORT = 465
@@ -115,21 +114,10 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 # DATABASES = {"default": env.db_url("DB_URL")}
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.environ.get("POSTGRES_NAME"),
-        "USER": os.environ.get("POSTGRES_USER"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
-        "HOST": os.environ.get("POSTGRES_HOST", default="localhost"),
-        "PORT": "5432",
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
