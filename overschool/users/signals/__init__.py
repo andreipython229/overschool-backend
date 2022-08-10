@@ -1,1 +1,1 @@
-from .create_users_profile import create_users_profile
+from .users_profile import create_users_profile, delete_users_profile

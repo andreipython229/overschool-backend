@@ -1,13 +1,10 @@
-from rest_framework import decorators, mixins, viewsets
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from common_services.mixins import WithHeadersViewSet
+from rest_framework import permissions, viewsets
 from users.models import Profile
-from users.permissions import IsSuperAdmin
 from users.serializers import ProfileSerializer
 
 
-class ProfileViewSet(
-    viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
-):
+class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated | IsAdminUser]
+    permission_classes = [permissions.DjangoModelPermissions]

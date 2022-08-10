@@ -33,5 +33,12 @@
     "fields": {
       "name": "SuperAdmin"
     }
+  },
+  {
+    "model": "users.UserRole",
+    "pk": 6,
+    "fields": {
+      "name": "Admin"
+    }
   }
 ]
