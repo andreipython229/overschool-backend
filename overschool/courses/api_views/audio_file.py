@@ -1,10 +1,10 @@
+from common_services.mixins import WithHeadersViewSet
 from courses.models import AudioFile
 from courses.serializers import AudioFileSerializer
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework import permissions, viewsets
 
 
-class AudioFileView(viewsets.ModelViewSet):
-    serializer_class = AudioFileSerializer
-    permission_classes = [AllowAny]
+class AudioFileView(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = AudioFile.objects.all()
+    serializer_class = AudioFileSerializer
+    permission_classes = [permissions.AllowAny]
