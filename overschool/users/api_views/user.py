@@ -5,11 +5,10 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.decorators import permission_classes as permissions
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, DjangoModelPermissions, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
-from users.permissions import IsSuperAdmin
 from users.serializers import (
     ChangePasswordSerializer,
     FirstRegisterSerializer,
@@ -17,13 +16,13 @@ from users.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
-from users.services import RedisDataMixin, SenderServiceMixin, re_authentication
+from users.services import SenderServiceMixin
 
 
 class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser | IsSuperAdmin]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
 
     @action(methods=["POST"], detail=False)
     @permissions([AllowAny])
@@ -112,7 +111,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["POST"], detail=False)
-    @permissions([IsAdminUser])
+    @permissions([IsAuthenticated])
     def send_invite(self, request: Request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -163,7 +162,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
             )
 
     @action(methods=["POST"], detail=False)
-    @permissions([IsAuthenticated, IsAdminUser])
+    @permissions([IsAuthenticated])
     def register_by_admin(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
