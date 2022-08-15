@@ -1,20 +1,27 @@
 import datetime
 
 import jwt
-from rest_framework import permissions, status, views, generics, response
+from rest_framework import generics, permissions, response, status, views
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import User
-from users.serializers import RegisterSerializer, UserSerializer, FirstRegisterSerializer, LoginSerializer, ChangePasswordSerializer
-from users.services import RedisDataMixin, re_authentication, SenderServiceMixin
-from rest_framework.permissions import IsAuthenticated
+from users.serializers import (
+    ChangePasswordSerializer,
+    FirstRegisterSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+from users.services import RedisDataMixin, SenderServiceMixin, re_authentication
 
 
 class RegisterView(generics.GenericAPIView, RedisDataMixin):
     """
     Эндпоинт регистрации юзера на платформе
     """
+
     serializer_class = UserSerializer
     queryset = User.objects.all()
 
@@ -33,8 +40,7 @@ class RegisterView(generics.GenericAPIView, RedisDataMixin):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(generics.GenericAPIView):
@@ -98,18 +104,6 @@ class UserView(APIView):
         return Response(serializer.data)
 
 
-class LogoutView(APIView):
-    """
-    Эндпоинт выхода пользователя из аккаунта
-    """
-
-    def post(self, request):
-        response = Response()
-        response.delete_cookie("jwt")
-        response.data = {"status": "OK", "message": "User Log out"}
-        return response
-
-
 class UserApi(views.APIView):
     """
     Возможно, более лучшая версия похожей вьюхи
@@ -126,10 +120,11 @@ class UserApi(views.APIView):
         return response.Response(serializer.data)
 
 
-class LogoutApi(views.APIView):
+class LogoutView(views.APIView):
     """
     Снова же более лучшая версия прошлой вьюхи
     """
+
     authentication_classes = (re_authentication.CustomUserReAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -145,6 +140,7 @@ class ChangePasswordView(generics.UpdateAPIView):
     """
     An endpoint for changing password.
     """
+
     serializer_class = ChangePasswordSerializer
     model = User
     permission_classes = (IsAuthenticated,)
@@ -165,10 +161,10 @@ class ChangePasswordView(generics.UpdateAPIView):
             self.object.set_password(serializer.data.get("new_password"))
             self.object.save()
             response = {
-                'status': 'success',
-                'code': status.HTTP_200_OK,
-                'message': 'Password updated successfully',
-                'data': []
+                "status": "success",
+                "code": status.HTTP_200_OK,
+                "message": "Password updated successfully",
+                "data": [],
             }
 
             return Response(response)
@@ -176,11 +172,11 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
     """
     Эндпоинт для отправки приглашения со стороны админа
     """
+
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)  # далее можно изменить
 
@@ -193,11 +189,11 @@ class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
             sender_type = serializer.data["sender_type"]
             if sender_type == "mail":
                 result = self.send_code_by_email(
-                    serializer.data["recipient"], serializer.data["user_type"], serializer.data['course_id']
+                    serializer.data["recipient"], serializer.data["user_type"], serializer.data["course_id"]
                 )
             else:
                 result = self.send_code_by_phone(
-                    serializer.data["recipient"], serializer.data["user_type"], serializer.data['course_id']
+                    serializer.data["recipient"], serializer.data["user_type"], serializer.data["course_id"]
                 )
             if result:
                 return Response(
@@ -236,7 +232,7 @@ class FirstTimeRegisterView(generics.GenericAPIView, SenderServiceMixin):
                     "status": "OK",
                     "user_type": data["user_type"],
                     "token_status": data["status"],
-                    "course": data['course']
+                    "course": data["course"],
                 },
                 status=status.HTTP_200_OK,
             )
@@ -268,5 +264,4 @@ class AdminForceRegistration(generics.GenericAPIView):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)

@@ -23,7 +23,7 @@ services:
     build: overschool
     image: back
     restart: always
-    command: bash -c "cd overschool && chmod 755 buildScript.sh && ./buildScript.sh"
+    command: bash -c "cd overschool && chmod 755 buildScriptTestData.sh && ./buildScriptTestData.sh"
     container_name: backendDjango
     ports:
       - "80:80"

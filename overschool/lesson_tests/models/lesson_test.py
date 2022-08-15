@@ -14,10 +14,10 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         verbose_name="ID теста",
         help_text="Уникальный идентификатор теста",
     )
-    lesson_id = models.ForeignKey(
+    lesson = models.ForeignKey(
         Lesson,
         on_delete=models.CASCADE,
-        related_name="lesson_test_id_fk",
+        related_name="lessons",
         verbose_name="ID урока",
         help_text="Урок, после которого идёт данный тест",
     )
