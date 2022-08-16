@@ -4,4 +4,5 @@ from django.contrib import admin
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['course_id', 'name', 'format', 'duration_days', 'price',
+                    'description', 'photo']
