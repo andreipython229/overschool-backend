@@ -114,13 +114,13 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
+# DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
 
 AUTH_USER_MODEL = "users.User"

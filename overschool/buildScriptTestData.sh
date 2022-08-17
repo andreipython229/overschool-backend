@@ -20,5 +20,5 @@ python manage.py loaddata test_initial_data_lesson_test.json
 python manage.py loaddata test_initial_data_question.json
 python manage.py loaddata test_initial_data_answer.json
 python manage.py loaddata test_initial_data_user_test.json
-python manage.py loaddata test_initial_stidents_group_data.json
+python manage.py loaddata test_initial_students_group_data.json
 python manage.py runserver 0.0.0.0:8000
