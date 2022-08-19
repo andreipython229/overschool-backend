@@ -1,13 +1,13 @@
 version: "3.3"
 
 services:
-#  rabbitmq:
-#    image: rabbitmq:latest
-#    environment:
-#      - RABBITMQ_DEFAULT_USER=guest
-#      - RABBITMQ_DEFAULT_PASS=guest
-#    ports:
-#      - "5672:5672"
+  rabbitmq:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
   redis:
     image: "redis:alpine"
     restart: always
@@ -23,7 +23,7 @@ services:
     build: overschool
     image: back
     restart: always
-    command: make back
+    command: bash -c "cd overschool && make back"
     container_name: backendDjango
     ports:
       - "8000:8000"
@@ -31,19 +31,19 @@ services:
       - redis
     volumes:
       - .:/code/
-#  celery:
-#    restart: always
-#    build:
-#      context: overschool
-#    command: celery -A overschool worker -l info
-#    volumes:
-#      - ./app:/app
-#  celery-beat:
-#    build:
-#      context: overschool
-#    command: celery -A overschool beat -l info
-#    volumes:
-#      - .app:/app_beat
-#    depends_on:
-#      - redis
-#      - rabbitmq
+  celery:
+    restart: always
+    build:
+      context: overschool
+    command: celery -A overschool worker -l info
+    volumes:
+      - ./app:/app
+  celery-beat:
+    build:
+      context: overschool
+    command: celery -A overschool beat -l info
+    volumes:
+      - .app:/app_beat
+    depends_on:
+      - redis
+      - rabbitmq
