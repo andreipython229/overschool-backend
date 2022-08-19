@@ -3,7 +3,6 @@ from datetime import datetime
 import jwt
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.decorators import permission_classes as permissions
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, DjangoModelPermissions, IsAuthenticated
 from rest_framework.request import Request
@@ -17,15 +16,15 @@ from users.serializers import (
     UserSerializer,
 )
 from users.services import SenderServiceMixin
+from common_services.mixins import WithHeadersViewSet
 
 
-class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+class UserViewSet(WithHeadersViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [AllowAny]
 
-    @action(methods=["POST"], detail=False)
-    @permissions([AllowAny])
+    @action(methods=["POST"], detail=False, permission_classes=[AllowAny])
     def register(self, request):
         serializer = UserSerializer(data=request.data)
         data = self._get_data_token(request.data.get("token"))
@@ -43,8 +42,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
         else:
             return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=["POST"], detail=False)
-    @permissions([AllowAny])
+    @action(methods=["POST"], detail=False, permission_classes=[AllowAny])
     def login(self, request: Request):
 
         serializer = LoginSerializer(request.data)
@@ -78,16 +76,14 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(methods=["POST"], detail=False)
-    @permissions([IsAuthenticated])
+    @action(methods=["POST"], detail=False, permission_classes=[IsAuthenticated])
     def logout(self, request: Request):
         response = Response()
         response.delete_cookie("jwt")
         response.data = {"status": "OK", "message": "User Log out"}
         return response
 
-    @action(methods=["PATCH"], detail=False)
-    @permissions([IsAuthenticated])
+    @action(methods=["PATCH"], detail=False, permission_classes=[IsAuthenticated])
     def change_password(self, request: Request):
         user = self.request.user
         serializer = ChangePasswordSerializer(data=request.data)
@@ -110,8 +106,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=["POST"], detail=False)
-    @permissions([IsAuthenticated])
+    @action(methods=["POST"], detail=False, permission_classes=[IsAuthenticated])
     def send_invite(self, request: Request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -140,8 +135,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(methods=["GET"], detail=False)
-    @permissions([AllowAny])
+    @action(methods=["GET"], detail=False, permission_classes=[AllowAny])
     def get_token(self, request: Request):
         token = request.data.get("token")
         data = self._get_data_token(token)
@@ -161,8 +155,7 @@ class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelM
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(methods=["POST"], detail=False)
-    @permissions([IsAuthenticated])
+    @action(methods=["POST"], detail=False, permission_classes=[IsAuthenticated])
     def register_by_admin(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():

@@ -20,7 +20,7 @@ class StudentsGroup(TimeStampedModel):
         help_text="Название группы",
     )
     course_id = models.ForeignKey(Course,
-                                  on_delete=models.PROTECT,
+                                  on_delete=models.CASCADE,
                                   verbose_name="Курс",
                                   help_text="Курс, который проходит эта группа",
                                   related_name="group_course_fk")
