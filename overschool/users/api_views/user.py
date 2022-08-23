@@ -1,30 +1,80 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import jwt
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, renderer_classes
+from rest_framework.decorators import permission_classes as permissions
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, DjangoModelPermissions, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from users.models import User
+from users.renderers import UserJSONRenderer
+from users.models import User, UserRole
 from users.serializers import (
     ChangePasswordSerializer,
     FirstRegisterSerializer,
     LoginSerializer,
-    RegisterSerializer,
+    RegisterAdminSerializer,
     UserSerializer,
+    RegistrationSerializer,
+    LoginPrSerializer
 )
 from users.services import SenderServiceMixin
-from common_services.mixins import WithHeadersViewSet
 
 
-class UserViewSet(WithHeadersViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+class RegisterView(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+    queryset = User.objects.all()
+    serializer_class = RegistrationSerializer
+    permission_classes = [AllowAny]
+    renderer_classes = [UserJSONRenderer]
+
+    @action(['POST'], detail=False)
+    def register_user(self, request):
+        print(request.data)
+        if request.data.user is not None:
+            user = request.data.get('user', {})
+        serializer = RegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.save()
+        role = UserRole.objects.get(pk=request.data['group'])
+        role.user_set.add(User.objects.get(pk=data.pk))
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class LoginView(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+    queryset = User.objects.all()
+    serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
+    renderer_classes = [UserJSONRenderer]
+
+    @action(methods=["POST"], detail=False)
+    def login_view(self, request):
+        print(request.data.get('user', {}))
+        user = request.data.get('user', {})
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class UserViewSet(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
 
-    @action(methods=["POST"], detail=False, permission_classes=[AllowAny])
+    @action(methods=["POST"], detail=False)
+    @permissions([AllowAny])
+    @renderer_classes([UserJSONRenderer])
+    def login_view(self, request):
+        user = request.data.get('user', {})
+
+        serializer = LoginSerializer(data=user)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["POST"], detail=False)
+    @permissions([AllowAny])
     def register(self, request):
         serializer = UserSerializer(data=request.data)
         data = self._get_data_token(request.data.get("token"))
@@ -60,8 +110,8 @@ class UserViewSet(WithHeadersViewSet, SenderServiceMixin, mixins.ListModelMixin,
 
             payload = {
                 "id": user.id,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
-                "iat": datetime.datetime.utcnow(),
+                "exp": datetime.utcnow() + timedelta(minutes=60),
+                "iat": datetime.utcnow(),
             }
 
             token = jwt.encode(payload, "secret", algorithm="HS256").decode("utf-8")
@@ -108,7 +158,7 @@ class UserViewSet(WithHeadersViewSet, SenderServiceMixin, mixins.ListModelMixin,
 
     @action(methods=["POST"], detail=False, permission_classes=[IsAuthenticated])
     def send_invite(self, request: Request):
-        serializer = RegisterSerializer(data=request.data)
+        serializer = RegisterAdminSerializer(data=request.data)
         if serializer.is_valid():
             sender_type = serializer.data["sender_type"]
             if sender_type == "mail":

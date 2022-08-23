@@ -5,10 +5,10 @@
     "fields": {
       "section": 1,
       "author_id": 1,
-      "name": "Название урока 1",
+      "name": "Виды данных в Python",
       "published": true,
       "order": 1,
-      "description": "Крутое описание урока 1",
+      "description": "Классификация данных, и их применение.",
       "video": "https://www.youtube.com/watch?v=arUwVMtXm_U",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
@@ -22,8 +22,8 @@
       "order": 2,
       "author_id": 1,
       "published": true,
-      "name": "Название урока 2",
-      "description": "Крутое описание урока 2",
+      "name": "Строки и числа",
+      "description": "Работа с данными: str, int, float.",
       "video": "https://www.youtube.com/watch?v=arUwVMtXm_U",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
@@ -37,8 +37,8 @@
       "order": 3,
       "author_id": 1,
       "published": true,
-      "name": "Название урока 3",
-      "description": "Крутое описание урока 3",
+      "name": "Коллекции, их виды применение",
+      "description": "Коллекции и их встроееные свойства.",
       "video": "https://www.youtube.com/watch?v=arUwVMtXm_U",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
@@ -52,8 +52,8 @@
       "order": 4,
       "author_id": 1,
       "published": true,
-      "name": "Название урока 4",
-      "description": "Крутое описание урока 4",
+      "name": "Функции",
+      "description": "Знакомство с функциями, и их применением в коде.",
       "video": "https://www.youtube.com/watch?v=arUwVMtXm_U",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"
@@ -67,8 +67,8 @@
       "order": 5,
       "author_id": 1,
       "published": true,
-      "name": "Название урока 5",
-      "description": "Крутое описание урока 5",
+      "name": "Git",
+      "description": "Регистрация и знакомство с системами контроля версий.",
       "video": "https://www.youtube.com/watch?v=arUwVMtXm_U",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00"

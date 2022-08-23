@@ -4,7 +4,7 @@
     "test_id": 1,
     "fields": {
       "lesson": 1,
-      "name": "Клёвый тест 1",
+      "name": "Типы данных",
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -21,7 +21,7 @@
     "test_id": 2,
     "fields": {
       "lesson": 2,
-      "name": "Клёвый тест 2",
+      "name": "Коллекции",
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -38,7 +38,7 @@
     "test_id": 3,
     "fields": {
       "lesson": 3,
-      "name": "Клёвый тест 3",
+      "name": "Функции",
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -55,7 +55,7 @@
     "test_id": 4,
     "fields": {
       "lesson": 4,
-      "name": "Клёвый тест 4",
+      "name": "Классы",
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -72,7 +72,7 @@
     "test_id": 5,
     "fields": {
       "lesson": 5,
-      "name": "Клёвый тест 5",
+      "name": "Git",
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,

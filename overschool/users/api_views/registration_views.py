@@ -11,7 +11,7 @@ from users.serializers import (
     ChangePasswordSerializer,
     FirstRegisterSerializer,
     LoginSerializer,
-    RegisterSerializer,
+    RegisterAdminSerializer,
     UserSerializer,
 )
 from users.services import RedisDataMixin, SenderServiceMixin, re_authentication
@@ -177,14 +177,14 @@ class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
     Эндпоинт для отправки приглашения со стороны админа
     """
 
-    serializer_class = RegisterSerializer
+    serializer_class = RegisterAdminSerializer
     permission_classes = (permissions.AllowAny,)  # далее можно изменить
 
     def post(self, request):
         """
         Функция для отправки регистрационной ссылки пользоваелю, ответы требуют доработки
         """
-        serializer = RegisterSerializer(data=request.data)
+        serializer = RegisterAdminSerializer(data=request.data)
         if serializer.is_valid():
             sender_type = serializer.data["sender_type"]
             if sender_type == "mail":

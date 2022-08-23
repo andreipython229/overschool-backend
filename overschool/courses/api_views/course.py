@@ -2,9 +2,10 @@ from common_services.mixins import WithHeadersViewSet
 from courses.models import Course
 from courses.serializers import CourseSerializer
 from rest_framework import permissions, viewsets
+from rest_framework.permissions import IsAuthenticated
 
 
 class CourseViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = (IsAuthenticated,)
