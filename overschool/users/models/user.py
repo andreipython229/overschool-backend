@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from phonenumber_field.modelfields import PhoneNumberField
 from users.managers import UserManager
 
 
@@ -12,10 +13,9 @@ class User(AbstractUser):
         verbose_name="ID пользователя",
         help_text="Уникальный идентификатор пользователя",
     )
-    username = None
-    email = models.EmailField("Почта", unique=True)
+    email = models.EmailField(verbose_name="Почта", help_text="Почта", null=True, blank=True)
+    phone_number = PhoneNumberField(verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True)
 
-    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects = UserManager()

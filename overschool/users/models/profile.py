@@ -1,6 +1,5 @@
 from common_services.models import TimeStampedModel
 from django.db import models
-from phonenumber_field.modelfields import PhoneNumberField
 
 from .user import User
 
@@ -20,7 +19,6 @@ class Profile(User, TimeStampedModel):
         help_text="Аватар",
         verbose_name="Аватар",
     )
-    phone_number = PhoneNumberField(help_text="Номер телефона", verbose_name="Номер телефона", null=True, blank=True)
     city = models.CharField(help_text="Город", verbose_name="Город", max_length=256, null=True, blank=True)
     sex = models.CharField(
         max_length=64,
@@ -33,4 +31,4 @@ class Profile(User, TimeStampedModel):
     description = models.TextField(help_text="О себе", verbose_name="Город", null=True, blank=True)
 
     def __str__(self):
-        return self.email
+        return self.username
