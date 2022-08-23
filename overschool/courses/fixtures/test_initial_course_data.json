@@ -1,0 +1,92 @@
+[
+  {
+    "model": "courses.Course",
+    "pk": 1,
+    "fields": {
+      "course_id": 1,
+      "author_id": 1,
+      "format": "ОН",
+      "name": "Java",
+      "duration_days": 120,
+      "published": true,
+      "order": 1,
+      "price": 20.22,
+      "description": "Строго типизированный объектно-ориентированный язык программирования общего назначения.",
+      "photo": "media/images/courses/courses_1.png",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 2,
+    "fields": {
+      "course_id": 2,
+      "author_id": 1,
+      "format": "ОН",
+      "order": 2,
+      "name": "Python",
+      "duration_days": 90,
+      "published": true,
+      "price": 20.23,
+      "description": "Высокоуровневый язык программирования общего назначения с динамической строгой типизацией и автоматическим управлением памятью.",
+      "photo": "media/images/courses/courses_2.png",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 3,
+    "fields": {
+      "course_id": 3,
+      "author_id": 1,
+      "format": "ОН",
+      "order": 3,
+      "name": "Frontend",
+      "duration_days": 120,
+      "published": true,
+      "price": 20.22,
+      "description": "Frontend — это разработка пользовательского интерфейса и функций, которые работают на клиентской стороне веб‑сайта или приложения.",
+      "photo": "media/images/courses/courses_3.png",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 4,
+    "fields": {
+      "course_id": 4,
+      "author_id": 1,
+      "format": "ОФФ",
+      "order": 4,
+      "name": "JavaScript",
+      "duration_days": 120,
+      "published": true,
+      "price": 20.22,
+      "description": "Мультипарадигменный язык программирования.",
+      "photo": "media/images/courses/courses_4.png",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Course",
+    "pk": 5,
+    "fields": {
+      "course_id": 5,
+      "author_id": 1,
+      "format": "ОН",
+      "order": 5,
+      "name": "DevOps",
+      "duration_days": 120,
+      "published": true,
+      "price": 20.22,
+      "description": "Методология автоматизации технологических процессов сборки, настройки и развёртывания программного обеспечения.",
+      "photo": "media/images/courses/courses_5.png",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  }
+]

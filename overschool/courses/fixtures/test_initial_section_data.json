@@ -1,0 +1,67 @@
+[
+  {
+    "model": "courses.Section",
+    "section_id": 1,
+    "fields": {
+      "course": 1,
+      "order": 1,
+      "name": "Типы данных",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Section",
+    "section_id": 2,
+    "fields": {
+      "course": 1,
+      "order": 2,
+      "name": "Коллекции",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Section",
+    "section_id": 3,
+    "fields": {
+      "course": 1,
+      "order": 3,
+      "name": "Функции",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Section",
+    "section_id": 4,
+    "fields": {
+      "course": 1,
+      "order": 4,
+      "name": "Классы",
+      "author_id": 1,
+      "published": true,
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  },
+  {
+    "model": "courses.Section",
+    "section_id": 5,
+    "fields": {
+      "course": 1,
+      "order": 5,
+      "author_id": 1,
+      "published": true,
+      "name": "Git",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00"
+    }
+  }
+]

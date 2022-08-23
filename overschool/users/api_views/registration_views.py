@@ -11,7 +11,7 @@ from users.serializers import (
     ChangePasswordSerializer,
     FirstRegisterSerializer,
     LoginSerializer,
-    RegisterSerializer,
+    RegisterAdminSerializer,
     UserSerializer,
 )
 from users.services import RedisDataMixin, SenderServiceMixin, re_authentication
@@ -104,18 +104,6 @@ class UserView(APIView):
         return Response(serializer.data)
 
 
-class LogoutView(APIView):
-    """
-    Эндпоинт выхода пользователя из аккаунта
-    """
-
-    def post(self, request):
-        response = Response()
-        response.delete_cookie("jwt")
-        response.data = {"status": "OK", "message": "User Log out"}
-        return response
-
-
 class UserApi(views.APIView):
     """
     Возможно, более лучшая версия похожей вьюхи
@@ -132,7 +120,7 @@ class UserApi(views.APIView):
         return response.Response(serializer.data)
 
 
-class LogoutApi(views.APIView):
+class LogoutView(views.APIView):
     """
     Снова же более лучшая версия прошлой вьюхи
     """
@@ -189,14 +177,14 @@ class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
     Эндпоинт для отправки приглашения со стороны админа
     """
 
-    serializer_class = RegisterSerializer
+    serializer_class = RegisterAdminSerializer
     permission_classes = (permissions.AllowAny,)  # далее можно изменить
 
     def post(self, request):
         """
         Функция для отправки регистрационной ссылки пользоваелю, ответы требуют доработки
         """
-        serializer = RegisterSerializer(data=request.data)
+        serializer = RegisterAdminSerializer(data=request.data)
         if serializer.is_valid():
             sender_type = serializer.data["sender_type"]
             if sender_type == "mail":

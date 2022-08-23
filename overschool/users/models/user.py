@@ -1,5 +1,9 @@
+from datetime import datetime, timedelta
+
+import jwt
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from overschool import settings
 from phonenumber_field.modelfields import PhoneNumberField
 from users.managers import UserManager
 
@@ -19,6 +23,27 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    @property
+    def token(self):
+        return self._generate_jwt_token()
+
+    def get_full_name(self):
+        return self.username
+
+    def get_short_name(self):
+        return self.username
+
+    def _generate_jwt_token(self):
+        """
+        Генерирует веб-токен JSON, в котором хранится идентификатор этого
+        пользователя, срок действия токена составляет 1 день от создания
+        """
+        dt = datetime.now() + timedelta(days=1)
+
+        token = jwt.encode({"id": self.pk, "exp": int(dt.strftime("%s"))}, settings.SECRET_KEY, algorithm="HS256")
+
+        return token
 
     def __str__(self):
         return self.username
