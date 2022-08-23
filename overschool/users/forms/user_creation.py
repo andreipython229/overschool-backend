@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from phonenumber_field.widgets import PhoneNumberPrefixWidget
 from users.models import User
 
 
@@ -9,7 +10,10 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ("email",)
+        fields = ("email", "phone_number")
+        widgets = {
+            "phone_number": PhoneNumberPrefixWidget(),
+        }
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
