@@ -1,17 +1,19 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from phonenumber_field.formfields import PhoneNumberField
+from phonenumber_field.widgets import PhoneNumberPrefixWidget
 from users.models import User
 
 
 class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Password confirmation", widget=forms.PasswordInput)
-    phone_number = PhoneNumberField()
 
     class Meta:
         model = User
         fields = ("email", "phone_number")
+        widgets = {
+            "phone_number": PhoneNumberPrefixWidget(),
+        }
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
