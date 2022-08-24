@@ -10,7 +10,7 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ("email", "phone_number")
+        fields = ("username", "email", "phone_number")
         widgets = {
             "phone_number": PhoneNumberPrefixWidget(),
         }
