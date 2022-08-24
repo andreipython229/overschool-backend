@@ -9,7 +9,7 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ("email", "phone_number", "password")
+        fields = ("username", "email", "phone_number", "password")
         widgets = {
             "phone_number": PhoneNumberPrefixWidget(),
         }
