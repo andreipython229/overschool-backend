@@ -31,8 +31,6 @@ class RegisterView(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModel
     @action(['POST'], detail=False)
     def register_user(self, request):
         print(request.data)
-        if request.data.user is not None:
-            user = request.data.get('user', {})
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.save()
