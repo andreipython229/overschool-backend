@@ -47,9 +47,12 @@ class LoginView(viewsets.GenericViewSet, SenderServiceMixin, mixins.ListModelMix
 
     @action(methods=["POST"], detail=False)
     def login_view(self, request):
-        print(request.data.get('user', {}))
         user = request.data.get('user', {})
         serializer = LoginSerializer(data=request.data)
+        role = UserRole.objects.all()
+        print(serializer)
+        for r in role:
+            print(r.__dict__)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

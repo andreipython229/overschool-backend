@@ -20,7 +20,7 @@ class User(AbstractUser):
     email = models.EmailField(verbose_name="Почта", help_text="Почта", null=True, blank=True)
     phone_number = PhoneNumberField(verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True)
 
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['email', 'phone_number']
 
     objects = UserManager()
 

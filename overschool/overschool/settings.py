@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
     "django_rest_passwordreset",
+    'corsheaders',
 ]
 
 REDIS_HOST = "redis"
@@ -83,6 +84,7 @@ CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -114,13 +116,13 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL_DEV")}
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
+# DATABASES = {"default": env.db_url("DB_URL_DEV")}
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
 
 AUTH_USER_MODEL = "users.User"
