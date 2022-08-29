@@ -77,8 +77,16 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+    "HEAD",
 ]
 
 MIDDLEWARE = [
