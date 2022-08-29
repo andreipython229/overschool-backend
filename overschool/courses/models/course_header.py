@@ -17,20 +17,28 @@ class CourseHeader(TimeStampedModel):
         verbose_name="Название школы",
         help_text="Главное название школы",
         unique=True,
+        blank=True,
+        null=True,
     )
     description = RichTextField(
         verbose_name="Описание",
         help_text="Описание школы для отображения, сохраняется в html",
+        blank=True,
+        null=True,
     )
     photo_logo = models.ImageField(
         upload_to="images/courses/school/",
         verbose_name="Фотография",
         help_text="Фотография заголовка",
+        blank=True,
+        null=True,
     )
     photo_background = models.ImageField(
         upload_to="images/courses/school/",
         verbose_name="Фотография",
         help_text="Фотография фона",
+        blank=True,
+        null=True,
     )
 
     def __str__(self):
