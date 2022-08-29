@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 import jwt
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from users.managers import UserManager
-
 from overschool import settings
+from phonenumber_field.modelfields import PhoneNumberField
+from users.managers import UserManager
 
 
 class User(AbstractUser):
@@ -17,11 +17,10 @@ class User(AbstractUser):
         verbose_name="ID пользователя",
         help_text="Уникальный идентификатор пользователя",
     )
-    username = None
-    email = models.EmailField(verbose_name="Почта", unique=True)
+    email = models.EmailField(verbose_name="Почта", help_text="Почта", null=True, blank=True)
+    phone_number = PhoneNumberField(verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True)
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = []
 
     objects = UserManager()
 
@@ -42,12 +41,9 @@ class User(AbstractUser):
         """
         dt = datetime.now() + timedelta(days=1)
 
-        token = jwt.encode({
-            'id': self.pk,
-            'exp': int(dt.strftime('%s'))
-        }, settings.SECRET_KEY, algorithm='HS256')
+        token = jwt.encode({"id": self.pk, "exp": int(dt.strftime("%s"))}, settings.SECRET_KEY, algorithm="HS256")
 
         return token
 
     def __str__(self):
-        return self.email
+        return self.username
