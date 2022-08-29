@@ -22,7 +22,7 @@ class CourseHeader(TimeStampedModel):
         verbose_name="Описание",
         help_text="Описание школы для отображения, сохраняется в html",
     )
-    photo_header = models.ImageField(
+    photo_logo = models.ImageField(
         upload_to="images/courses/school/",
         verbose_name="Фотография",
         help_text="Фотография заголовка",
