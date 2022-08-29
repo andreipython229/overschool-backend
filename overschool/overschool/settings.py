@@ -77,20 +77,34 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-
-CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-  'accept',
-  'accept-encoding',
-  'authorization',
-  'content-type',
-  'origin',
-  'dnt',
-  'user-agent',
-  'x-csrftoken',
-  'x-requested-with']
-CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = (
+    '*'
+)
+CORS_ALLOW_METHODS = (
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+    'VIEW',
+)
+
+CORS_ALLOW_HEADERS = (
+    'XMLHttpRequest',
+    'X_FILENAME',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'Pragma',
+)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
