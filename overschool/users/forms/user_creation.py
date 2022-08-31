@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth.forms import UsernameField
 from django.core.exceptions import ValidationError
+from phonenumber_field.formfields import PhoneNumberField
 from phonenumber_field.widgets import PhoneNumberPrefixWidget
 from users.models import User
 
@@ -11,9 +13,15 @@ class UserCreationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ("username", "email", "phone_number")
+        field_classes = {"username": UsernameField, "phone_number": PhoneNumberField}
         widgets = {
             "phone_number": PhoneNumberPrefixWidget(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self._meta.model.USERNAME_FIELD in self.fields:
+            self.fields[self._meta.model.USERNAME_FIELD].widget.attrs["autofocus"] = True
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")

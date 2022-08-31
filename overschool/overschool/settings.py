@@ -194,7 +194,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        'users.backends.authentication.JWTAuthentication',
+        "users.backends.authentication.JWTAuthentication",
     ],
 }
 
