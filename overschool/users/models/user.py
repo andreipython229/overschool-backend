@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import jwt
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
@@ -13,12 +13,6 @@ from users.managers import UserManager
 class User(AbstractBaseUser, PermissionsMixin):
     """Модель пользователя"""
 
-    user_id = models.AutoField(
-        primary_key=True,
-        editable=False,
-        verbose_name="ID пользователя",
-        help_text="Уникальный идентификатор пользователя",
-    )
     username = models.CharField(verbose_name="Имя пользователя", max_length=150, unique=True)
     first_name = models.CharField(verbose_name="Имя", max_length=150, null=True, blank=True)
     last_name = models.CharField(verbose_name="Фамилия", max_length=150, null=True, blank=True)
@@ -30,6 +24,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(verbose_name="Дата регистрации", default=timezone.now)
 
     USERNAME_FIELD = "username"
+    EMAIL_FIELD = "email"
     REQUIRED_FIELDS = ["email", "phone_number"]
 
     objects = UserManager()

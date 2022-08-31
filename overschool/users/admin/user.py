@@ -12,7 +12,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("is_superuser", "is_staff", "is_active")
     search_fields = ("username", "email", "phone_number")
     fieldsets = (
-        (None, {"fields": ("username", "email", "phone_number" "password")}),
+        (None, {"fields": ("username", "email", "phone_number", "password")}),
         ("Personal info", {"classes": ("collapse",), "fields": ("first_name", "last_name")}),
         (
             "Permissions",
