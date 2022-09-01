@@ -79,7 +79,9 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+]
 
 CORS_ALLOW_METHODS = (
     'DELETE',
@@ -139,7 +141,7 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
+DATABASES = {"default": env.db_url("DB_URL_DEV")}
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",
