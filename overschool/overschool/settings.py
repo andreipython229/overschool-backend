@@ -28,7 +28,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
 
 # Application definition
 
@@ -79,9 +79,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1",
-]
+
 
 CORS_ALLOW_METHODS = (
     'DELETE',
@@ -141,13 +139,13 @@ WSGI_APPLICATION = "overschool.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": env.db_url("DB_URL_LOCAL")}
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 AUTH_USER_MODEL = "users.User"
 

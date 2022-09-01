@@ -4,4 +4,4 @@ from .lesson import *
 from .section import *
 from .user_progress import *
 from .students_group import *
-from .course_header import *
+from .school_header import *
