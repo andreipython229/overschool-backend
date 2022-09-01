@@ -6,11 +6,11 @@ from courses.api_views import (
     LessonViewSet,
     SectionViewSet,
     StudentsGroupViewSet,
-    CourseHeaderViewSet,
+    SchoolHeaderViewSet,
 )
 
 router = routers.DefaultRouter()
-router.register("course_header", CourseHeaderViewSet, basename="course_header")
+router.register("school_header", SchoolHeaderViewSet, basename="school_header")
 router.register("courses", CourseViewSet, basename="courses")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
