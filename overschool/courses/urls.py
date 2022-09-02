@@ -5,10 +5,12 @@ from courses.api_views import (
     AudioFileView,
     LessonViewSet,
     SectionViewSet,
-    StudentsGroupViewSet
+    StudentsGroupViewSet,
+    SchoolHeaderViewSet,
 )
 
 router = routers.DefaultRouter()
+router.register("school_header", SchoolHeaderViewSet, basename="school_header")
 router.register("courses", CourseViewSet, basename="courses")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
