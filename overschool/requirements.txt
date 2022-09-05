@@ -3,7 +3,7 @@ asgiref==3.5.2
 async-timeout==4.0.2
 atomicwrites==1.4.1
 attrs==21.4.0
-babel==2.10.3
+Babel==2.10.3
 billiard==3.6.4.0
 black==22.6.0
 celery==5.2.7
@@ -88,5 +88,3 @@ urllib3==1.26.10
 vine==5.0.0
 wcwidth==0.2.5
 wrapt==1.14.1
-django-phonenumber-field==6.3.0
-Babel==2.10.3
