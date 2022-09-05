@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField, UsernameField
 from phonenumber_field.formfields import PhoneNumberField
-from phonenumber_field.widgets import PhoneNumberPrefixWidget
 from users.models import User
 
 
@@ -12,9 +11,6 @@ class UserChangeForm(forms.ModelForm):
         model = User
         fields = "__all__"
         field_classes = {"username": UsernameField, "phone_number": PhoneNumberField}
-        widgets = {
-            "phone_number": PhoneNumberPrefixWidget(),
-        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

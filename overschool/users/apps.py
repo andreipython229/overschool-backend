@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_save, pre_delete
 
 
 class UsersConfig(AppConfig):
@@ -9,7 +9,7 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         from users.models import User
-        from users.signals import create_users_profile, delete_users_profile
+        from users.signals import create_profile, save_profile
 
-        post_save.connect(create_users_profile, sender=User)
-        post_delete.connect(delete_users_profile, sender=User)
+        post_save.connect(create_profile, sender=User)
+        post_save.connect(save_profile, sender=User)
