@@ -11,9 +11,15 @@ class SexChoices(models.TextChoices):
     FEMALE = "Ж", "Женский"
 
 
-class Profile(User, TimeStampedModel):
+class Profile(TimeStampedModel):
     """Модель профиля пользователя, создается сигналом при создании пользователя"""
 
+    profile_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID профиля",
+        help_text="Уникальный идентификатор профиля",
+    )
     avatar = models.ImageField(
         upload_to="images/users/avatar/",
         help_text="Аватар",
@@ -28,7 +34,10 @@ class Profile(User, TimeStampedModel):
         blank=True,
         help_text="Пол",
     )
-    description = models.TextField(help_text="О себе", verbose_name="Город", null=True, blank=True)
+    description = models.TextField(help_text="О себе", verbose_name="О себе", null=True, blank=True)
+    user = models.OneToOneField(
+        User, help_text="Пользователь", verbose_name="Пользователь", related_name="profile", on_delete=models.CASCADE
+    )
 
     def __str__(self):
-        return self.username
+        return self.user.username

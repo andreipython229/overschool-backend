@@ -13,6 +13,12 @@ from users.managers import UserManager
 class User(AbstractBaseUser, PermissionsMixin):
     """Модель пользователя"""
 
+    user_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID пользователя",
+        help_text="Уникальный идентификатор пользователя",
+    )
     username = models.CharField(verbose_name="Имя пользователя", max_length=150, unique=True)
     first_name = models.CharField(verbose_name="Имя", max_length=150, null=True, blank=True)
     last_name = models.CharField(verbose_name="Фамилия", max_length=150, null=True, blank=True)
