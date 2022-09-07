@@ -1,60 +1,24 @@
-from common_services.models import TimeStampedModel
 from django.db import models
 from users.models import User
 
 
 def get_default_students_table_info():
-    return {
-        'name': {
-            'display': True,
-            'order': 1
-        },
-        'email': {
-            'display': True,
-            'order': 2
-        },
-        'last_activity': {
-            'display': True,
-            'order': 3
-        },
-        'average_mark': {
-            'display': True,
-            'order': 4
-        },
-        'sum_mark': {
-            'display': True,
-            'order': 5
-        },
-        'updated_at': {
-            'display': True,
-            'order': 6
-        },
-        'course': {
-            'display': True,
-            'order': 7
-        },
-        'assurance_date': {
-            'display': False,
-            'order': 8
-        },
-        'progress': {
-            'display': False,
-            'order': 9
-        },
-        'comment': {
-            'display': False,
-            'order': 10
-        },
-        'group': {
-            'display': False,
-            'order': 11
-        }
-    }
-
-# TODO: показать Виталику JS0N
+    return [
+        { "id": 1, "order": 1, "name": 'Имя', "checked": True },
+        { "id": 2, "order": 2, "name": 'Email', "checked": True },
+        { "id": 3, "order": 3, "name": 'Суммарный балл', "checked": False },
+        { "id": 4, "order": 4, "name": 'Курс', "checked": False },
+        { "id": 5, "order": 5, "name": 'Последняя активность', "checked": False },
+        { "id": 6, "order": 6, "name": 'Прогресс', "checked": False },
+        { "id": 7, "order": 7, "name": 'Комментарий', "checked": True },
+        { "id": 8, "order": 8, "name": 'Группа', "checked": False },
+        { "id": 9, "order": 9, "name": 'Средний балл', "checked": False },
+        { "id": 10, "order": 10, "name": 'Дата обновления', "checked": False },
+        { "id": 11, "order": 11, "name": 'Дата заверения', "checked": False },
+    ]
 
 
-class StudentsTableInfo(TimeStampedModel):
+class StudentsTableInfo(models.Model):
     """
     Модель для хранения настроек отображения информации о студентах в таблице у админа
     """
@@ -71,7 +35,7 @@ class StudentsTableInfo(TimeStampedModel):
         default=1,
         verbose_name="Админ",
         help_text="Пользователь, являющийся админом, по умолчанию - супер админ",
-    ) # TODO: сделать так, чтобы про создании админа создавалась модель
+    )
     students_table_info = models.JSONField(
         default=get_default_students_table_info,
         verbose_name="Отображение информации о студентах",

@@ -6,5 +6,5 @@ from courses.models import StudentsTableInfo
 
 @receiver(post_save, sender=User)
 def create_students_table_info(sender, instance, created, **kwargs):
-    if created: #TODO: сохранять только если админ или кто там надо
+    if created:
         StudentsTableInfo.objects.create(admin=instance)
