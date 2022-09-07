@@ -30,7 +30,7 @@ class Profile(User, TimeStampedModel):
         blank=True,
         help_text="Пол",
     )
-    description = models.TextField(help_text="О себе", verbose_name="Город", null=True, blank=True)
+    description = models.TextField(help_text="О себе", verbose_name="О себе", null=True, blank=True)
 
     def __str__(self):
         return self.email
