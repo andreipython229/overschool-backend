@@ -1,6 +1,5 @@
 from common_services.models import TimeStampedModel
 from django.db import models
-from phonenumber_field.modelfields import PhoneNumberField
 
 from .user import User
 
@@ -12,15 +11,20 @@ class SexChoices(models.TextChoices):
     FEMALE = "Ж", "Женский"
 
 
-class Profile(User, TimeStampedModel):
+class Profile(TimeStampedModel):
     """Модель профиля пользователя, создается сигналом при создании пользователя"""
 
+    profile_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID профиля",
+        help_text="Уникальный идентификатор профиля",
+    )
     avatar = models.ImageField(
         upload_to="images/users/avatar/",
         help_text="Аватар",
         verbose_name="Аватар",
     )
-    phone_number = PhoneNumberField(help_text="Номер телефона", verbose_name="Номер телефона", null=True, blank=True)
     city = models.CharField(help_text="Город", verbose_name="Город", max_length=256, null=True, blank=True)
     sex = models.CharField(
         max_length=64,
@@ -31,6 +35,9 @@ class Profile(User, TimeStampedModel):
         help_text="Пол",
     )
     description = models.TextField(help_text="О себе", verbose_name="О себе", null=True, blank=True)
+    user = models.OneToOneField(
+        User, help_text="Пользователь", verbose_name="Пользователь", related_name="profile", on_delete=models.CASCADE
+    )
 
     def __str__(self):
-        return self.email
+        return self.user.username

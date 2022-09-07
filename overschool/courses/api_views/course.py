@@ -4,12 +4,13 @@ from courses.serializers import CourseSerializer
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 
 class CourseViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = (IsAuthenticated,)
 
     @action(detail=True)
     def sections(self, request, pk):
