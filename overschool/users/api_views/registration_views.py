@@ -6,15 +6,13 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from users.models import User
-from users.serializers import (
-    ChangePasswordSerializer,
-    FirstRegisterSerializer,
-    LoginSerializer,
-    RegisterAdminSerializer,
-    UserSerializer,
-)
-from users.services import RedisDataMixin, SenderServiceMixin, re_authentication
+from users.serializers import (ChangePasswordSerializer,
+                               FirstRegisterSerializer, LoginSerializer,
+                               RegisterAdminSerializer, UserSerializer)
+from users.services import (RedisDataMixin, SenderServiceMixin,
+                            re_authentication)
 
 
 class RegisterView(generics.GenericAPIView, RedisDataMixin):
@@ -40,7 +38,10 @@ class RegisterView(generics.GenericAPIView, RedisDataMixin):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "Error", "message": "Bad credentials"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class LoginView(generics.GenericAPIView):
@@ -156,7 +157,10 @@ class ChangePasswordView(generics.UpdateAPIView):
         if serializer.is_valid():
             # Check old password
             if not self.object.check_password(serializer.data.get("old_password")):
-                return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"old_password": ["Wrong password."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             # set_password also hashes the password that the user will get
             self.object.set_password(serializer.data.get("new_password"))
             self.object.save()
@@ -189,11 +193,15 @@ class SendInviteView(generics.GenericAPIView, SenderServiceMixin):
             sender_type = serializer.data["sender_type"]
             if sender_type == "mail":
                 result = self.send_code_by_email(
-                    serializer.data["recipient"], serializer.data["user_type"], serializer.data["course_id"]
+                    serializer.data["recipient"],
+                    serializer.data["user_type"],
+                    serializer.data["course_id"],
                 )
             else:
                 result = self.send_code_by_phone(
-                    serializer.data["recipient"], serializer.data["user_type"], serializer.data["course_id"]
+                    serializer.data["recipient"],
+                    serializer.data["user_type"],
+                    serializer.data["course_id"],
                 )
             if result:
                 return Response(
@@ -264,4 +272,7 @@ class AdminForceRegistration(generics.GenericAPIView):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "Error", "message": "Bad credentials"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
