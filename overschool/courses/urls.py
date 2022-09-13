@@ -7,6 +7,7 @@ from courses.api_views import (
     SectionViewSet,
     StudentsGroupViewSet,
     SchoolHeaderViewSet,
+    UsersCourse
 )
 
 router = routers.DefaultRouter()
@@ -16,5 +17,6 @@ router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("audiofile", AudioFileView, basename="audiofile")
 router.register("students_group", StudentsGroupViewSet, basename="students_group")
+router.register("course_stat", UsersCourse, basename="course_stat")
 
 urlpatterns = router.urls

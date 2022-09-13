@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from homeworks.models import UserHomework
 from homeworks.serializers import UserHomeworkSerializer, UserHomeworkStatisticsSerializer
 from rest_framework import viewsets
@@ -9,13 +9,13 @@ from django.db.models import F, Max, Q
 from homeworks.paginators import UserHomeworkPagination
 
 
-class HomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
 
-class HomeworkStatisticsView(WithHeadersViewSet, generics.ListAPIView):
+class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.AllowAny]
@@ -61,29 +61,3 @@ class HomeworkStatisticsView(WithHeadersViewSet, generics.ListAPIView):
                                last_update=Window(expression=Max('updated_at'),
                                                   partition_by=[F('user__email'),
                                                                 F('homework__homework_id')]))
-
-# class HomeworkListView(generics.ListAPIView):
-#     queryset = UserHomework.objects.all()
-#     serializer_class = UserHomeworkSerializer
-#     permission_classes = [permissions.AllowAny]
-#     filter_backends = (DjangoFilterBackend)
-#     filterset_class = HomeworkFilter
-#
-
-# class StudentsGroupFilter(filters.FilterSet):
-#     group_id = filters.CharFilter(field_name="group_id", lookup_expr="icontains")
-#     name = filters.CharFilter(field_name="name", lookup_expr="icontains")
-#     teacher_id = filters.CharFilter(field_name="teacher__id", lookup_expr="icontains")
-#     course = filters.CharFilter(field_name="course__id", lookup_expr="icontains")
-#     students = filters.CharFilter(field_name="students__name", lookup_expr="icontains")
-#
-#     class Meta:
-#         model = StudentsGroup
-#         fields = ["group_id", "name", "teacher_id", "course", "students"]
-#
-# class StudentsGroupViewSet(WithHeadersViewSet, viewsets.ModelViewSet, ):
-#     queryset = StudentsGroup.objects.all()
-#     serializer_class = StudentsGroupSerializer
-#     permission_classes = [permissions.AllowAny]
-#     filter_backends = (DjangoFilterBackend,)
-#     filterset_class = StudentsGroupFilter

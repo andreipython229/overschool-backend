@@ -11,3 +11,13 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentsGroup
         fields = "__all__"
+
+
+class GroupStudentsSerializer(serializers.Serializer):
+    """
+    Сериализатор
+    """
+    group_id = serializers.IntegerField(help_text="Номер группы")
+
+    class Meta:
+        fields = '__all__'

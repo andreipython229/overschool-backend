@@ -27,6 +27,7 @@ class RegisterView(generics.GenericAPIView, RedisDataMixin):
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)
+        print(serializer)
         data = self._get_data_token(request.data.get("token"))
         if serializer.is_valid() and data and data["status"]:
             serializer.save()
