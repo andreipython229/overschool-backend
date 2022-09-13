@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from users.models import Profile
 
-from .user import UserInitialsSerializer
-
 
 class ProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""

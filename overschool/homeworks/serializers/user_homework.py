@@ -1,7 +1,7 @@
-from rest_framework import serializers
+from datetime import date
 
 from homeworks.models import UserHomework
-from datetime import date
+from rest_framework import serializers
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
@@ -13,13 +13,12 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
         model = UserHomework
         fields = "__all__"
 
+
 class UserHomeworkStatisticsSerializer(serializers.Serializer):
     """
     Сериализатор для статистики по сданным домашним заданиям
     """
 
-    limit = serializers.IntegerField(help_text="Количество записей на одной странице",
-                                     default=25, required=False)
     start_date = serializers.DateField(help_text="С какой даты показать записи", default=date(2014, 1, 1),
                                        required=False)
     end_date = serializers.DateField(help_text="До какой даты показать записи", required=False,
@@ -31,16 +30,17 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
     end_mark = serializers.IntegerField(help_text="Оценка до",
                                         default=10,
                                         required=False)
-    course_id = serializers.IntegerField(help_text="Id курса",
+
+    course_id = serializers.ListField(help_text="Id курса",
                                       default=None,
                                       required=False)
+
     group_id = serializers.IntegerField(help_text="Id группы",
-                                      required=False,
-                                      default=None)
-    homework_id = serializers.IntegerField(help_text="Id домашней работы",
+                                        required=False,
+                                        default=None)
+    homework_id = serializers.ListField(help_text="Id домашней работы",
                                         required=False,
                                         default=None)
 
     class Meta:
         fields = '__all__'
-
