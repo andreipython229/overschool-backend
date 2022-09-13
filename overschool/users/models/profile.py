@@ -24,6 +24,8 @@ class Profile(TimeStampedModel):
         upload_to="images/users/avatar/",
         help_text="Аватар",
         verbose_name="Аватар",
+        null=True,
+        blank=True,
     )
     city = models.CharField(help_text="Город", verbose_name="Город", max_length=256, null=True, blank=True)
     sex = models.CharField(
@@ -38,6 +40,11 @@ class Profile(TimeStampedModel):
     user = models.OneToOneField(
         User, help_text="Пользователь", verbose_name="Пользователь", related_name="profile", on_delete=models.CASCADE
     )
+
+    def avatar_url(self):
+        if self.avatar:
+            return "https://api.itdev.by" + self.avatar.url
+        return None
 
     def __str__(self):
         return self.user.username
