@@ -1,4 +1,4 @@
-from .profile import ProfileSerializer
+from .profile import ProfileSerializer, UserProfileSerializer
 from .register import RegisterAdminSerializer, FirstRegisterSerializer, LoginSerializer, RegistrationSerializer, LoginPrSerializer
 from .user import UserSerializer, ChangePasswordSerializer
 from .user_role import UserRoleSerializer
