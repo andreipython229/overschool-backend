@@ -1,7 +1,7 @@
-from rest_framework import serializers
+from datetime import date
 
 from homeworks.models import UserHomework
-from datetime import date
+from rest_framework import serializers
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
@@ -18,6 +18,7 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
     """
     Сериализатор для статистики по сданным домашним заданиям
     """
+
     start_date = serializers.DateField(help_text="С какой даты показать записи", default=date(2014, 1, 1),
                                        required=False)
     end_date = serializers.DateField(help_text="До какой даты показать записи", required=False,
@@ -37,6 +38,5 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
     homework_id = serializers.IntegerField(help_text="Id домашней работы",
                                            required=False,
                                            default=None)
-
     class Meta:
         fields = '__all__'

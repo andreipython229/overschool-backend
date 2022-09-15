@@ -3,15 +3,20 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import UsernameField
 from django.core.exceptions import ValidationError
 from phonenumber_field.formfields import PhoneNumberField
+
 from users.models import User
 
 
 class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(
-        label="Password", help_text=password_validation.password_validators_help_text_html(), widget=forms.PasswordInput
+        label="Password",
+        help_text=password_validation.password_validators_help_text_html(),
+        widget=forms.PasswordInput,
     )
     password2 = forms.CharField(
-        label="Password confirmation", help_text="Введите пароль вначале, для верификации.", widget=forms.PasswordInput
+        label="Password confirmation",
+        help_text="Введите пароль вначале, для верификации.",
+        widget=forms.PasswordInput,
     )
 
     class Meta:
@@ -22,7 +27,9 @@ class UserCreationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self._meta.model.USERNAME_FIELD in self.fields:
-            self.fields[self._meta.model.USERNAME_FIELD].widget.attrs["autofocus"] = True
+            self.fields[self._meta.model.USERNAME_FIELD].widget.attrs[
+                "autofocus"
+            ] = True
 
     def clean_username(self):
         username = self.cleaned_data.get("username")

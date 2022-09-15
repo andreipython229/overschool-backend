@@ -5,6 +5,13 @@ from courses.managers import CourseManager
 from django.db import models
 
 
+class Public(models.TextChoices):
+    "Варианты публикации для курса"
+    PUBLISHED = "О", "Опубликован"
+    NOT_PUBLISHED = "Н", "Не опубликован"
+    HIDDEN = "С", "Скрыт настройками курса"
+
+
 class Format(models.TextChoices):
     "Варианты форматов для курса"
     OFFLINE = "ОФФ", "Оффлайн"
@@ -19,6 +26,15 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         editable=False,
         verbose_name="Курс ID",
         help_text="Уникальный идентификатор курса",
+    )
+    public = models.CharField(
+        max_length=256,
+        choices=Public.choices,
+        default=Public.NOT_PUBLISHED,
+        verbose_name="Формат публикации курса",
+        help_text="Формат публикации курса, отображает статус (Опубликован, Не опубликован, Скрыт настройками курса)",
+        blank=True,
+        null=True
     )
     name = models.CharField(
         max_length=256,
@@ -64,12 +80,11 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         null=True
     )
 
-
     objects = CourseManager()
 
     def photo_url(self):
         if self.photo:
-            return "https://api.itdev.by"+self.photo.url
+            return "https://api.itdev.by" + self.photo.url
         return None
 
     def __str__(self):
