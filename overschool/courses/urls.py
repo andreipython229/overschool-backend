@@ -13,7 +13,7 @@ from courses.api_views import (
 
 router = routers.DefaultRouter()
 router.register("school_header", SchoolHeaderViewSet, basename="school_header")
-router.register("course", CourseViewSet, basename="courses")
+router.register("courses", CourseViewSet, basename="courses")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("audiofile", AudioFileView, basename="audiofile")
