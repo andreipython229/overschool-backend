@@ -25,22 +25,18 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
                                      default=date(2200, 1, 1))
     status = serializers.CharField(max_length=20, help_text="Статус работы", required=False,
                                    default=None)
-    start_mark = serializers.IntegerField(help_text="Оценка от", default=1,
+    start_mark = serializers.IntegerField(help_text="Оценка от",
                                           required=False)
     end_mark = serializers.IntegerField(help_text="Оценка до",
-                                        default=10,
                                         required=False)
-
-    course_id = serializers.ListField(help_text="Id курса",
-                                      default=None,
-                                      required=False)
-
+    course_id = serializers.IntegerField(help_text="Id курса",
+                                         default=None,
+                                         required=False)
     group_id = serializers.IntegerField(help_text="Id группы",
                                         required=False,
                                         default=None)
-    homework_id = serializers.ListField(help_text="Id домашней работы",
-                                        required=False,
-                                        default=None)
-
+    homework_id = serializers.IntegerField(help_text="Id домашней работы",
+                                           required=False,
+                                           default=None)
     class Meta:
         fields = '__all__'
