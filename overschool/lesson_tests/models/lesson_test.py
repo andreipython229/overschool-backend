@@ -3,9 +3,10 @@ from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.models import Lesson
 from django.db import models
 from lesson_tests.managers import LessonTestManager
+from model_clone import CloneMixin
 
 
-class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
     test_id = models.AutoField(
@@ -29,6 +30,7 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin):
     random_questions = models.BooleanField(default=False, verbose_name="Перемешать вопросы")
     random_answers = models.BooleanField(default=False, verbose_name="Перемешать ответы")
     show_right_answers = models.BooleanField(default=False, verbose_name="Показать правильные ответы")
+    _clone_m2o_or_o2m_fields = ["question_test_id_fk"]
 
     objects = LessonTestManager()
 

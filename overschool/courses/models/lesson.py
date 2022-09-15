@@ -5,9 +5,11 @@ from django.db import models
 from embed_video.fields import EmbedVideoField
 
 from .section import Section
+from model_clone import CloneMixin
+from ckeditor.fields import RichTextField
 
 
-class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель урока в разделе"""
 
     lesson_id = models.AutoField(
@@ -23,12 +25,44 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )
-    name = models.CharField(max_length=256, verbose_name="Название урока", help_text="Название урока")
-    description = models.TextField(verbose_name="Описание", help_text="Описание к уроку")
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название урока",
+        help_text="Название урока",
+        default="",
+    )
+    description = models.TextField(
+        verbose_name="Описание",
+        help_text="Описание к уроку",
+        default="",
+    )
     video = EmbedVideoField(
         verbose_name="Видео",
         help_text="Сюда всталвяем ссылку на видос с ютуба, поэтому сначала его надо загрузить туда",
+        blank=True,
+        null=True,
     )
+    file = models.FileField(
+        upload_to="media/lesson/main",
+        verbose_name="Файл урока",
+        help_text="Загрузить методичку для урока",
+        blank=True,
+        null=True,
+    )
+    audio = models.FileField(
+        upload_to="audio/lesson/main",
+        verbose_name="Аудиофайл",
+        help_text="Загрузить аудио ......",
+        blank=True,
+        null=True,
+    )
+    code = RichTextField(
+        verbose_name="Код",
+        help_text="Код для урока",
+        blank=True,
+        null=True,
+    )
+    _clone_m2o_or_o2m_fields = ["homeworks", "lessons"]
 
     objects = LessonManager()
 

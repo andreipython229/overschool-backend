@@ -1,5 +1,5 @@
 from courses.serializers import CourseSerializer, CourseStudentsSerializer
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions, viewsets
 from users.models import User
 from django.db.models import F, Sum, Avg, Count
 from homeworks.paginators import UserHomeworkPagination
@@ -7,12 +7,9 @@ from lesson_tests.models import UserTest
 from courses.models import StudentsGroup
 from common_services.mixins import WithHeadersViewSet, LoggingMixin
 from courses.models import Course, Section
-from courses.serializers import CourseSerializer
-from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
 
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -24,13 +21,15 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def sections(self, request, pk):
         course = self.get_object()
 
-        sections = Section.objects.filter(course_id=course.pk).order_by("section_id")
+        sections = Section.objects.filter(course_id=course.pk).order_by("order")
 
         all_data = {}
+
+        sect = "sections"
+        all_data["course_id"] = f"{course.pk}"
         for section in sections:
-            courses = f"{course.pk}"
-            if courses in all_data.keys():
-                all_data[courses].append(
+            if sect in all_data.keys():
+                all_data[sect].append(
                     {
                         "name": section.name,
                         "section_id": section.section_id,
@@ -39,8 +38,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
             else:
-                all_data[courses] = []
-                all_data[courses].append(
+                all_data[sect] = []
+                all_data[sect].append(
                     {
                         "name": section.name,
                         "section_id": section.section_id,
@@ -49,6 +48,14 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
         return Response(all_data)
+
+    @action(detail=True)
+    def clone(self, request, pk):
+        course = self.get_object()
+        course_copy = course.make_clone(attrs={'name': f'{course.name}-копия'})
+        queryset = Course.objects.filter(pk=course_copy.pk)
+        return Response(queryset.values())
+
 
 class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     queryset = User.objects.all()
@@ -82,7 +89,7 @@ class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
         )
         for row in data:
             mark_sum = \
-            UserTest.objects.filter(user=row['student']).values('user').aggregate(mark_sum=Sum("success_percent"))[
-                'mark_sum']
+                UserTest.objects.filter(user=row['student']).values('user').aggregate(mark_sum=Sum("success_percent"))[
+                    'mark_sum']
             row['mark_sum'] += mark_sum // 10 if mark_sum else 0
         return data
