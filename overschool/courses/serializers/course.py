@@ -25,7 +25,7 @@ class CourseStudentsSerializer(serializers.Serializer):
     """
     Сериализатор
     """
-    course_id = serializers.IntegerField(help_text="Номер курса")
+    course_id = serializers.IntegerField(help_text="Номер курса", required=False)
 
     class Meta:
         fields = '__all__'

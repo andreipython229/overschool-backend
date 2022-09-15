@@ -37,6 +37,7 @@ class RegisterView(viewsets.ModelViewSet):
 class LoginView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
 
     @action(methods=["POST"], detail=False)
     def login_view(self, request):
