@@ -4,4 +4,4 @@ from django.contrib import admin
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['section_id', 'course', 'name', 'order']

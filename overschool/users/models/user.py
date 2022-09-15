@@ -9,6 +9,7 @@ from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from users.managers import UserManager
+from common_services.models import TimeStampedModel
 
 
 class User(TimeStampedModel, AbstractBaseUser, PermissionsMixin):
