@@ -21,16 +21,16 @@ class User(TimeStampedModel, AbstractBaseUser, PermissionsMixin):
         help_text="Уникальный идентификатор пользователя",
     )
     username = models.CharField(
-        verbose_name="Имя пользователя", max_length=150, unique=True
+        verbose_name="Имя пользователя", max_length=150, unique=True,
     )
     first_name = models.CharField(
-        verbose_name="Имя", max_length=150, null=True, blank=True
+        verbose_name="Имя", max_length=150, default="",
     )
     last_name = models.CharField(
-        verbose_name="Фамилия", max_length=150, null=True, blank=True
+        verbose_name="Фамилия", max_length=150, default="",
     )
     patronymic = models.CharField(
-        verbose_name="Отчество", max_length=150, null=True, blank=True
+        verbose_name="Отчество", max_length=150, default="",
     )
     email = models.EmailField(
         verbose_name="Почта", help_text="Почта", null=True, blank=True

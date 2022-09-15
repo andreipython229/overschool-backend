@@ -3,6 +3,7 @@ from common_services.mixins import OrderMixin
 from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.managers import CourseManager
 from django.db import models
+from model_clone import CloneMixin
 
 
 class Public(models.TextChoices):
@@ -18,7 +19,7 @@ class Format(models.TextChoices):
     ONLINE = "ОН", "Онлайн"
 
 
-class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель курсов"""
 
     course_id = models.AutoField(
@@ -79,6 +80,7 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         blank=True,
         null=True
     )
+    _clone_m2o_or_o2m_fields = ["sections"]
 
     objects = CourseManager()
 
