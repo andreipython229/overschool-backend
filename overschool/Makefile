@@ -1,5 +1,5 @@
 MANAGE = python manage.py
-DOCKER_TEST = docker-compose exec back python  overschool/manage.py
+DOCKER_TEST = docker compose exec back python  overschool/manage.py
  # .PHONY defines parts of the makefile that are not dependant on any specific file
  .PHONY = run back test
 
@@ -18,7 +18,7 @@ DOCKER_TEST = docker-compose exec back python  overschool/manage.py
 	@echo "------------------------------------"
 
  run:
-	docker-compose up --build
+	sudo docker compose up --build
 
  back:  
 	${MANAGE} makemigrations

@@ -19,3 +19,13 @@ class CourseSerializer(serializers.ModelSerializer):
                   "description",
                   "photo",
                   "photo_url"]
+
+
+class CourseStudentsSerializer(serializers.Serializer):
+    """
+    Сериализатор
+    """
+    course_id = serializers.IntegerField(help_text="Номер курса")
+
+    class Meta:
+        fields = '__all__'

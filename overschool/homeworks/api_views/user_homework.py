@@ -1,21 +1,21 @@
-from common_services.mixins import WithHeadersViewSet
-from django.db.models import F, Max, Q
-from django.db.models.expressions import Window
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from homeworks.models import UserHomework
-from homeworks.paginators import UserHomeworkPagination
 from homeworks.serializers import UserHomeworkSerializer, UserHomeworkStatisticsSerializer
-from rest_framework import generics, permissions, status
 from rest_framework import viewsets
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from django.db.models.expressions import Window
+from django.db.models import F, Max, Q
+from homeworks.paginators import UserHomeworkPagination
 
 
-class HomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
 
-class HomeworkStatisticsView(WithHeadersViewSet, generics.ListAPIView):
+class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.AllowAny]
