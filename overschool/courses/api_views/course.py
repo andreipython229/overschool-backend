@@ -12,7 +12,6 @@ from lesson_tests.models import UserTest
 from courses.models import StudentsGroup
 
 
-
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
@@ -40,15 +39,18 @@ class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
         queryset = StudentsGroup.objects.filter(
             course_id=kwargs['course_id']
         )
-        check = queryset.values(email=F("students__email"),
-                                student_name=F("students__first_name"),
-                                student=F("students__user_id"),
-                                group=F("group_id")).annotate(
-            marks_sum=Sum("students__user_homeworks__mark"),
+        data = queryset.values(email=F("students__email"),
+                               student_name=F("students__first_name"),
+                               student=F("students__user_id"),
+                               group=F("group_id")).annotate(
+            mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100) / Count(
                 "course_id__sections__lessons__lesson_id")
         )
-        for c in check:
-            c['marks_sum'] += sum([i.success_percent // 10 for i in UserTest.objects.filter(user=c['student'])])
-        return check
+        for row in data:
+            mark_sum = \
+            UserTest.objects.filter(user=row['student']).values('user').aggregate(mark_sum=Sum("success_percent"))[
+                'mark_sum']
+            row['mark_sum'] += mark_sum // 10 if mark_sum else 0
+        return data

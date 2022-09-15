@@ -8,9 +8,10 @@ from django.utils import timezone
 from overschool import settings
 from phonenumber_field.modelfields import PhoneNumberField
 from users.managers import UserManager
+from common_services.models import TimeStampedModel
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     """Модель пользователя"""
 
     user_id = models.AutoField(
