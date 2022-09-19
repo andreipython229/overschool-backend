@@ -1,24 +1,102 @@
-from django.contrib.auth import authenticate
 from rest_framework import serializers
+from django.contrib.auth.hashers import make_password
+from rest_framework.exceptions import ValidationError
+from users.models import User, Profile
+from dj_rest_auth.registration.serializers import RegisterSerializer
+from dj_rest_auth.serializers import LoginSerializer
+from phonenumber_field.serializerfields import PhoneNumberField
 
-from users.models import User
+
+class RegistrationSerializer(RegisterSerializer):
+    username = serializers.CharField(max_length=255)
+    email = serializers.EmailField(max_length=255, allow_blank=True)
+    phone_number = PhoneNumberField(allow_blank=True)
+
+    def get_cleaned_data(self):
+        data_dict = super().get_cleaned_data()
+        data_dict['email'] = self.validated_data.get('email', '')
+        data_dict['phone_number'] = self.validated_data.get('phone_number', '')
+        if not data_dict['email'] and not data_dict['phone_number']:
+            raise ValidationError("Укажи email либо номер телефона")
+        else:
+            return data_dict
+
+    def save(self, request):
+        cleaned_data = self.get_cleaned_data()
+
+        user = User.objects.create(
+            username=cleaned_data['username'],
+            password=make_password(cleaned_data['password1']),
+            email=cleaned_data['email'],
+            phone_number=cleaned_data['phone_number'],
+        )
+        return user
 
 
-class RegistrationSerializer(serializers.ModelSerializer):
-    """Сериализация регистрации пользователя и создания нового."""
+UserModel = User
 
-    class Meta:
-        model = User
-        fields = ["username", "email", "phone_number", "password"]
-        extra_kwargs = {"password": {"write_only": True}}
 
-        def create(self, validated_data):
-            password = validated_data.pop("password", None)
-            instance = self.Meta.model(**validated_data)
-            if password:
-                instance.set_password(password)
-            instance.save()
-            return instance
+class LoginSerializer(LoginSerializer):
+    """Сериализатор входа в свою учетную запись."""
+
+    username = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    phone_number = PhoneNumberField(required=False, allow_blank=True)
+    password = serializers.CharField(style={'input_type': 'password'})
+
+    def _validate_phone_number(self, phone_number, password):
+        if phone_number and password:
+            user = self.authenticate(phone_number=phone_number, password=password)
+            return user
+
+    def get_auth_user_using_orm(self, username, email, phone_number, password):
+        if email:
+            try:
+                username = UserModel.objects.get(email__iexact=email).get_username()
+            except UserModel.DoesNotExist:
+                pass
+        if phone_number:
+            try:
+                username = UserModel.objects.get(phone_number__iexact=phone_number).get_username()
+            except UserModel.DoesNotExist:
+                pass
+        if username:
+            return self._validate_username_email(username, '', password)
+        return None
+
+    def get_auth_user_using_allauth(self, username, email, phone_number, password):
+        if phone_number and password:
+            return self._validate_phone_number(phone_number, password)
+
+        # Authentication through email
+        if email and password:
+            return self._validate_email(email, password)
+
+        # Authentication through username
+        if username and password:
+            return self._validate_username(email, password)
+
+        # Authentication through either username or email
+        return self._validate_username_email(username, email, password)
+
+    def get_auth_user(self, username, email, phone_number, password):
+        return self.get_auth_user_using_orm(username, email, phone_number, password)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        password = attrs.get('password')
+        phone_number = attrs.get('phone_number')
+
+        user = self.get_auth_user(username, email, phone_number, password)
+
+        if not user:
+            print("Ошибка")
+
+        self.validate_auth_user_status(user)
+
+        attrs['user'] = user
+        return attrs
 
 
 class RegisterAdminSerializer(serializers.Serializer):
@@ -44,63 +122,3 @@ class RegisterAdminSerializer(serializers.Serializer):
         error_messages={"required": "No course id sent"},
         help_text="Айди курса, на которого регистрируют пользователя",
     )
-
-
-class FirstRegisterSerializer(serializers.Serializer):
-    token = serializers.CharField(
-        max_length=256,
-        required=True,
-        error_messages={"required": "No token"},
-        help_text="Токен, полученный при регистрации пользователя админом",
-    )
-
-
-class LoginPrSerializer(serializers.Serializer):
-    password = serializers.CharField(
-        max_length=256,
-        required=True,
-        error_messages={"required": "No password"},
-        help_text="Пароль пользователя",
-    )
-    email = serializers.EmailField(
-        required=True,
-        error_messages={"required": "No email"},
-        help_text="Почта пользователя",
-    )
-
-
-class LoginSerializer(serializers.Serializer):
-    """Сериализатор входа в свою учетную запись."""
-
-    username = serializers.CharField(max_length=255)
-    email = serializers.CharField(max_length=255, read_only=True)
-    phone_number = serializers.CharField(max_length=128, read_only=True)
-    password = serializers.CharField(max_length=128, write_only=True)
-    token = serializers.CharField(max_length=255, read_only=True)
-
-    def create(self, data):
-        username = data.get("username", None)
-        password = data.get("password", None)
-
-        if username is None:
-            raise serializers.ValidationError("Для входа требуется имя пользователя.")
-
-        if password is None:
-            raise serializers.ValidationError("Для входа требуется пароль.")
-
-        user = authenticate(username=username, password=password)
-
-        if user is None:
-            raise serializers.ValidationError(
-                "Пользователь с таким адресом электронной почты и паролем не найден."
-            )
-
-        if not user.is_active:
-            raise serializers.ValidationError("Этот пользователь был деактивирован.")
-
-        return {
-            "username": user.username,
-            "email": user.email,
-            "phone_number": user.phone_number,
-            "token": user.token,
-        }

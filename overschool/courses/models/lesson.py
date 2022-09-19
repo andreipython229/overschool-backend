@@ -43,7 +43,7 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         null=True,
     )
     file = models.FileField(
-        upload_to="media/lesson/main",
+        upload_to="pdf/lesson/main",
         verbose_name="Файл урока",
         help_text="Загрузить методичку для урока",
         blank=True,

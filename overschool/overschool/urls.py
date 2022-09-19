@@ -6,15 +6,18 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-
+from dj_rest_auth.views import LoginView, LogoutView
 from .main_router import router
+from dj_rest_auth.jwt_auth import get_refresh_view
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api-auth/", include("rest_framework.urls")),
-    path("api/", include(router.urls)),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
+                  path("admin/", admin.site.urls),
+                  path('api/register/', include('dj_rest_auth.registration.urls')),
+                  path('api/login/', LoginView.as_view(), name="login"),
+                  path('api/logout/', LogoutView.as_view(), name="logout"),
+                  path('api/token-refresh/', get_refresh_view().as_view(), name='token_refresh'),
+                  path("api/", include(router.urls)),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 schema_view = get_schema_view(
     openapi.Info(

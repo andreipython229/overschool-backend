@@ -2,17 +2,17 @@ from rest_framework import serializers
 from users.models import Profile, User
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
 
     class Meta:
         model = User
-        fields = ["email", "phone_number", "first_name", "last_name"]
+        fields = ["id", "email", "phone_number", "first_name", "last_name"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
-    user = ProfileSerializer()
+    user = UserSerializer()
 
     class Meta:
         model = Profile
