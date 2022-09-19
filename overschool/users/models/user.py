@@ -1,21 +1,15 @@
-from datetime import datetime, timedelta
-
-import jwt
-from common_services.models import TimeStampedModel
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from users.managers import UserManager
-from common_services.models import TimeStampedModel
 
 
-class User(TimeStampedModel, AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin):
     """Модель пользователя"""
 
-    user_id = models.AutoField(
+    id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID пользователя",
@@ -53,22 +47,3 @@ class User(TimeStampedModel, AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.username} ({self.email or self.phone_number})"
-
-    @property
-    def token(self):
-        return self._generate_jwt_token()
-
-    def _generate_jwt_token(self):
-        """
-        Generates a JSON Web Token that stores this user's ID and has an expiry
-        date set to 60 days into the future.
-        """
-        dt = datetime.now() + timedelta(days=60)
-
-        token = jwt.encode(
-            {"id": self.pk, "exp": int(dt.strftime("%S"))},
-            settings.SECRET_KEY,
-            algorithm="HS256",
-        )
-
-        return token

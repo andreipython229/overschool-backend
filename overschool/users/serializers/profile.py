@@ -2,26 +2,26 @@ from rest_framework import serializers
 from users.models import Profile, User
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
 
     class Meta:
         model = User
-        fields = ["email", "phone_number", "first_name", "last_name"]
+        fields = ["id", "email", "phone_number", "first_name", "last_name"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
-    user = ProfileSerializer()
+    user = UserSerializer()
 
     class Meta:
         model = Profile
         fields = ["profile_id", "avatar", "avatar_url", "city", "sex", "description", "user"]
 
     def update(self, instance, validated_data):
-        user_data = validated_data.pop("user")
+        if 'user' in validated_data:
+            user_data = validated_data.pop("user")
 
-        if user_data:
             user = instance.user
             user.first_name = user_data.get("first_name", user.first_name)
             user.last_name = user_data.get("last_name", user.last_name)
@@ -31,3 +31,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             user.save()
 
             return super().update(instance=instance, validated_data=validated_data)
+        # if 'avatar' or "city" or "sex" or "description" in validated_data:
+
+        instance.avatar = validated_data.get("avatar", instance.avatar)
+        instance.city = validated_data.get("city", instance.city)
+        instance.sex = validated_data.get("sex", instance.sex)
+        instance.description = validated_data.get("description", instance.description)
+
+        instance.save()
+
+        return instance
