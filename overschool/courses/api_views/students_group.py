@@ -35,7 +35,7 @@ class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
 
     def get_queryset(self, *args, **kwargs):
         queryset = StudentsGroup.objects.filter(
-            group_id=kwargs['group_id']
+            group_id=1
         )
         data = queryset.values(email=F("students__email"),
                                student_name=F("students__first_name"),
@@ -70,7 +70,7 @@ class GroupUsersByMonthView(LoggingMixin, WithHeadersViewSet, generics.ListAPIVi
 
     def get_queryset(self, *args, **kwargs):
         queryset = StudentsGroup.objects.filter(
-            group_id=kwargs['group_id'],
+            group_id=1,
             students__created_at__month=kwargs['month_number']
         )
         datas = queryset.values(group=F("group_id")).annotate(

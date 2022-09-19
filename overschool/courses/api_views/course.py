@@ -9,13 +9,13 @@ from common_services.mixins import WithHeadersViewSet, LoggingMixin
 from courses.models import Course, Section
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
     @action(detail=True)
     def sections(self, request, pk):
@@ -76,7 +76,7 @@ class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
 
     def get_queryset(self, *args, **kwargs):
         queryset = StudentsGroup.objects.filter(
-            course_id=kwargs['course_id']
+            course_id=1
         )
         data = queryset.values(email=F("students__email"),
                                student_name=F("students__first_name"),

@@ -39,4 +39,3 @@ services:
       - .app:/app_beat
     depends_on:
       - redis
-      - rabbitmq
