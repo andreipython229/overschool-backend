@@ -4,4 +4,4 @@ from django.contrib import admin
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['lesson_id', 'section', 'name', 'description', 'video', 'order']

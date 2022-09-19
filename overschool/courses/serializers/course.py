@@ -11,6 +11,7 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = ["course_id",
+                  "public",
                   "name",
                   "format",
                   "duration_days",
@@ -18,3 +19,13 @@ class CourseSerializer(serializers.ModelSerializer):
                   "description",
                   "photo",
                   "photo_url"]
+
+
+class CourseStudentsSerializer(serializers.Serializer):
+    """
+    Сериализатор
+    """
+    course_id = serializers.IntegerField(help_text="Номер курса", required=False)
+
+    class Meta:
+        fields = '__all__'

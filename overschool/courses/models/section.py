@@ -4,9 +4,10 @@ from courses.managers import SectionManager
 from django.db import models
 
 from .course import Course
+from model_clone import CloneMixin
 
 
-class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель раздела курса"""
 
     section_id = models.AutoField(
@@ -27,6 +28,7 @@ class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         verbose_name="Название курса",
         help_text="Название раздела курса",
     )
+    _clone_m2o_or_o2m_fields = ["lessons"]
 
     objects = SectionManager()
 
