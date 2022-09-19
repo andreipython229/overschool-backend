@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from users.models import User, UserRole
-from users.serializers import ChangePasswordSerializer, UserSerializer, RegisterAdminSerializer
+from users.serializers import UserSerializer, RegisterAdminSerializer
 from users.services import SenderServiceMixin
 from common_services.mixins import WithHeadersViewSet
 
@@ -14,32 +14,6 @@ from common_services.mixins import WithHeadersViewSet
 class UserViewSet(WithHeadersViewSet, viewsets.ModelViewSet, SenderServiceMixin, ):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
-    @action(methods=["PATCH"], detail=False)
-    def change_password(self, request: Request):
-        user = self.request.user
-        serializer = ChangePasswordSerializer(data=request.data)
-
-        if serializer.is_valid():
-            # Check old password
-            if not user.check_password(serializer.data.get("old_password")):
-                return Response(
-                    {"old_password": ["Wrong password."]},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            # set_password also hashes the password that the user will get
-            user.set_password(serializer.data.get("new_password"))
-            user.save()
-            response = {
-                "status": "success",
-                "code": status.HTTP_200_OK,
-                "message": "Password updated successfully",
-                "data": [],
-            }
-
-            return Response(response)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["POST"], detail=False)
     def send_invite(self, request: Request):
