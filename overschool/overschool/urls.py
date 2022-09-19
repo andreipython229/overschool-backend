@@ -6,7 +6,7 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from dj_rest_auth.views import LoginView, LogoutView
+from dj_rest_auth.views import LoginView, LogoutView, PasswordChangeView, PasswordResetConfirmView, PasswordResetView
 from .main_router import router
 from dj_rest_auth.jwt_auth import get_refresh_view
 
@@ -16,6 +16,9 @@ urlpatterns = [
                   path('api/login/', LoginView.as_view(), name="login"),
                   path('api/logout/', LogoutView.as_view(), name="logout"),
                   path('api/token-refresh/', get_refresh_view().as_view(), name='token_refresh'),
+                  path('password_reset/', PasswordResetView.as_view(), name='password_reset'),
+                  path('password_reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+                  path('password_change/', PasswordChangeView.as_view(), name='password_change'),
                   path("api/", include(router.urls)),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

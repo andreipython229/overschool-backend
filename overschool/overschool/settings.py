@@ -58,7 +58,6 @@ INSTALLED_APPS = [
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
-    "django_rest_passwordreset",
     "corsheaders",
 ]
 
