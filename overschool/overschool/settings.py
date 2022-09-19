@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+import datetime
 import os
 from pathlib import Path
 
@@ -39,7 +40,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "allauth",
+    "allauth.account",
     "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "phonenumber_field",
     "drf_yasg",
     "ckeditor",
@@ -51,7 +58,6 @@ INSTALLED_APPS = [
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
-    "django_rest_passwordreset",
     "corsheaders",
 ]
 
@@ -221,6 +227,28 @@ REST_FRAMEWORK = {
     ],
     'EXCEPTION_HANDLER': 'users.exceptions.user_registration.core_exception_handler',
     'NON_FIELD_ERRORS_KEY': 'error',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+SITE_ID = 1
+ACCOUNT_SESSION_REMEMBER = True
+
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
+}
+
+REST_USE_JWT = True
+JWT_AUTH_COOKIE = 'jwt-auth'
+
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'users.serializers.register.RegistrationSerializer',
+}
+REST_AUTH_SERIALIZERS = {
+    'LOGIN_SERIALIZER': 'users.serializers.register.LoginSerializer',
 }
 
 # ckeditor settings
