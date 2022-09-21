@@ -42,6 +42,12 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         blank=True,
         null=True,
     )
+    code = RichTextField(
+        verbose_name="Код",
+        help_text="Код для урока",
+        blank=True,
+        null=True,
+    )
     file = models.FileField(
         upload_to="pdf/lesson/main",
         verbose_name="Файл урока",
@@ -56,15 +62,20 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         blank=True,
         null=True,
     )
-    code = RichTextField(
-        verbose_name="Код",
-        help_text="Код для урока",
-        blank=True,
-        null=True,
-    )
+
     _clone_m2o_or_o2m_fields = ["homeworks", "lessons"]
 
     objects = LessonManager()
+
+    def file_url(self):
+        if self.file:
+            return "https://api.itdev.by" + self.file.url
+        return None
+
+    def audio_url(self):
+        if self.audio:
+            return "https://api.itdev.by" + self.audio.url
+        return None
 
     def __str__(self):
         return str(self.lesson_id) + " " + str(self.name)
