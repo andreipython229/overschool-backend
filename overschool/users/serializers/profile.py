@@ -1,22 +1,14 @@
 from rest_framework import serializers
-from users.models import Profile, User
-
-
-class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для личного кабинета пользователя"""
-
-    class Meta:
-        model = User
-        fields = ["id", "email", "phone_number", "first_name", "last_name"]
+from users.models import Profile
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
-    user = UserSerializer()
 
     class Meta:
         model = Profile
         fields = ["profile_id", "avatar", "avatar_url", "city", "sex", "description", "user"]
+        depth = 1
 
     def update(self, instance, validated_data):
         if 'user' in validated_data:
