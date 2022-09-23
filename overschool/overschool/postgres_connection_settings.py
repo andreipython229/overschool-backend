@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+import datetime
 import os
 from pathlib import Path
 
@@ -18,7 +19,6 @@ from environ import Env
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env(DEBUG=(bool, False))
 Env.read_env(str(BASE_DIR / ".env"))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -31,7 +31,6 @@ DEBUG = env.bool("DEBUG", False)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -41,7 +40,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "allauth",
+    "allauth.account",
     "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "phonenumber_field",
     "drf_yasg",
     "ckeditor",
@@ -53,6 +58,7 @@ INSTALLED_APPS = [
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
+    "corsheaders",
 ]
 
 REDIS_HOST = "redis"
@@ -68,7 +74,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 EMAIL_PORT = 465
@@ -77,11 +83,43 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-CORS_ALLOWED_ORIGINS = ["https://localhost:8000"]
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://localhost:3000"
+]
+
+CSRF_TRUSTED_ORIGINS = ['https://api.itdev.by']
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+    "VIEW",
+)
+
+CORS_ALLOW_HEADERS = (
+    "XMLHttpRequest",
+    "X_FILENAME",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "Pragma",
+)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -109,17 +147,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "overschool.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {"default": env.db_url("DB_URL")}
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": env.db_url("DB_URL_DEV")}
 
 
 AUTH_USER_MODEL = "users.User"
@@ -143,7 +174,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
@@ -154,7 +184,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
@@ -177,7 +206,6 @@ DBBACKUP_CLEANUP_KEEP = 2
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
@@ -188,15 +216,34 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
     ],
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
-    "TEST_REQUEST_RENDERER_CLASSES": [
-        "rest_framework.renderers.MultiPartRenderer",
-        "rest_framework.renderers.JSONRenderer",
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
     ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+    'EXCEPTION_HANDLER': 'users.exceptions.user_registration.core_exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+}
+
+SITE_ID = 1
+ACCOUNT_SESSION_REMEMBER = True
+
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
+}
+
+REST_USE_JWT = True
+JWT_AUTH_COOKIE = 'jwt-auth'
+
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'users.serializers.register.RegistrationSerializer',
+}
+REST_AUTH_SERIALIZERS = {
+    'LOGIN_SERIALIZER': 'users.serializers.register.LoginSerializer',
 }
 
 # ckeditor settings
