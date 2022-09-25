@@ -22,7 +22,7 @@ class RedisDataMixin:
         Функция для получения данных по токену
         """
         for i in range(
-            0, RedisDataMixin.REDIS_INSTANCE.llen(RedisDataMixin.REGISTRATION_DATA_KEY)
+                0, RedisDataMixin.REDIS_INSTANCE.llen(RedisDataMixin.REGISTRATION_DATA_KEY)
         ):
             record = RedisDataMixin.REDIS_INSTANCE.lindex(
                 RedisDataMixin.REGISTRATION_DATA_KEY, i
@@ -39,6 +39,7 @@ class RedisDataMixin:
         """
         Функция сохранения данных для регистрации, пока в redis (есть идея сохранять в бд)
         """
+        course = 0
         token = secrets.token_hex(16)
         RedisDataMixin.REDIS_INSTANCE.lpush(
             RedisDataMixin.REGISTRATION_DATA_KEY,
@@ -58,7 +59,7 @@ class RedisDataMixin:
 
     def _delete_data_from_redis(self, token):
         for i in range(
-            0, RedisDataMixin.REDIS_INSTANCE.llen(RedisDataMixin.REGISTRATION_DATA_KEY)
+                0, RedisDataMixin.REDIS_INSTANCE.llen(RedisDataMixin.REGISTRATION_DATA_KEY)
         ):
             record = RedisDataMixin.REDIS_INSTANCE.lindex(
                 RedisDataMixin.REGISTRATION_DATA_KEY, i
