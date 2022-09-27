@@ -1,10 +1,12 @@
 from common_services.mixins import WithHeadersViewSet
-from rest_framework import permissions, viewsets
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from users.models import Profile
-from users.serializers import ProfileSerializer
+from users.permissions import OwnerProfilePermissions
+from users.serializers import UserProfileSerializer
 
 
 class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    serializer_class = UserProfileSerializer
+    permission_classes = (IsAuthenticated, OwnerProfilePermissions)

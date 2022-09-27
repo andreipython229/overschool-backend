@@ -24,20 +24,39 @@ class Profile(TimeStampedModel):
         upload_to="images/users/avatar/",
         help_text="Аватар",
         verbose_name="Аватар",
+        blank=True,
+        null=True,
     )
-    city = models.CharField(help_text="Город", verbose_name="Город", max_length=256, null=True, blank=True)
+    city = models.CharField(
+        help_text="Город",
+        verbose_name="Город",
+        max_length=256,
+        default="",
+    )
     sex = models.CharField(
         max_length=64,
         choices=SexChoices.choices,
         verbose_name="Пол",
-        null=True,
-        blank=True,
         help_text="Пол",
+        default="",
     )
-    description = models.TextField(help_text="О себе", verbose_name="О себе", null=True, blank=True)
+    description = models.TextField(
+        help_text="О себе",
+        verbose_name="О себе",
+        default="",
+    )
     user = models.OneToOneField(
-        User, help_text="Пользователь", verbose_name="Пользователь", related_name="profile", on_delete=models.CASCADE
+        User,
+        help_text="Пользователь",
+        verbose_name="Пользователь",
+        related_name="profile",
+        on_delete=models.CASCADE,
     )
+
+    def avatar_url(self):
+        if self.avatar:
+            return "https://api.itdev.by" + self.avatar.url
+        return None
 
     def __str__(self):
         return self.user.username

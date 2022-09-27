@@ -3,6 +3,14 @@ from common_services.mixins import OrderMixin
 from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.managers import CourseManager
 from django.db import models
+from model_clone import CloneMixin
+
+
+class Public(models.TextChoices):
+    "Варианты публикации для курса"
+    PUBLISHED = "О", "Опубликован"
+    NOT_PUBLISHED = "Н", "Не опубликован"
+    HIDDEN = "С", "Скрыт настройками курса"
 
 
 class Format(models.TextChoices):
@@ -11,7 +19,7 @@ class Format(models.TextChoices):
     ONLINE = "ОН", "Онлайн"
 
 
-class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
+class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель курсов"""
 
     course_id = models.AutoField(
@@ -19,6 +27,15 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         editable=False,
         verbose_name="Курс ID",
         help_text="Уникальный идентификатор курса",
+    )
+    public = models.CharField(
+        max_length=256,
+        choices=Public.choices,
+        default=Public.NOT_PUBLISHED,
+        verbose_name="Формат публикации курса",
+        help_text="Формат публикации курса, отображает статус (Опубликован, Не опубликован, Скрыт настройками курса)",
+        blank=True,
+        null=True
     )
     name = models.CharField(
         max_length=256,
@@ -63,13 +80,13 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         blank=True,
         null=True
     )
-
+    _clone_m2o_or_o2m_fields = ["sections"]
 
     objects = CourseManager()
 
     def photo_url(self):
         if self.photo:
-            return "https://api.itdev.by"+self.photo.url
+            return "https://api.itdev.by" + self.photo.url
         return None
 
     def __str__(self):

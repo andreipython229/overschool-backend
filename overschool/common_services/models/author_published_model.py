@@ -12,7 +12,8 @@ class AuthorPublishedModel(models.Model):
         verbose_name="Опубликовано?",
         help_text="Опубликовать запись или нет",
     )
-    author_id = models.ForeignKey(User, verbose_name="Автор", help_text="Автор записи", on_delete=models.CASCADE)
+    author_id = models.ForeignKey(User, verbose_name="Автор", help_text="Автор записи", on_delete=models.CASCADE,
+    default=1)
 
     class Meta:
         abstract = True

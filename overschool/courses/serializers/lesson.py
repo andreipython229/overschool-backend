@@ -10,4 +10,14 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = "__all__"
+        fields = ["lesson_id",
+                  "section",
+                  "name",
+                  "order",
+                  "description",
+                  "video",
+                  "code",
+                  "file",
+                  "audio",
+                  "file_url",
+                  "audio_url"]
