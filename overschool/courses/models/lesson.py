@@ -9,6 +9,7 @@ from model_clone import CloneMixin
 from ckeditor.fields import RichTextField
 
 
+## TODO: как загружать бесконечное количество медиа в урок или тест, или дз
 class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель урока в разделе"""
 
@@ -62,6 +63,8 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         blank=True,
         null=True,
     )
+    balls = models.PositiveIntegerField(verbose_name="Кол-во баллов за урок",
+                                        help_text="Кол-во баллов за урок")
 
     _clone_m2o_or_o2m_fields = ["homeworks", "lessons"]
 
