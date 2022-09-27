@@ -1,10 +1,9 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import OrderMixin
 from common_services.models import AuthorPublishedModel, TimeStampedModel
-from courses.models import Lesson
 from django.db import models
 from homeworks.managers import HomeworkManager
-
+from courses.models import Section
 
 class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
     """Модель домашнего задания"""
@@ -15,11 +14,11 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         verbose_name="ID домашнего задания",
         help_text="Уникальный идентификатор домашнего задания",
     )
-    lesson = models.ForeignKey(
-        Lesson,
+    section = models.ForeignKey(
+        Section,
         on_delete=models.CASCADE,
         related_name="homeworks",
-        verbose_name="Домашнее задание",
+        verbose_name="Секция",
     )
     text = RichTextField(
         verbose_name="Описание домашнего задания",
