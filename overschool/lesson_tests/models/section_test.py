@@ -7,7 +7,7 @@ from model_clone import CloneMixin
 
 
 # TODO: переписать на SectionTest
-class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
+class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
     test_id = models.AutoField(

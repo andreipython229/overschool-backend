@@ -2,7 +2,7 @@ from common_services.models import TimeStampedModel
 from django.db import models
 from users.models import User
 
-from .lesson_test import LessonTest
+from .section_test import LessonTest
 
 
 class UserTestStatusChoices(models.TextChoices):
