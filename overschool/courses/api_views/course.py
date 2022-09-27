@@ -11,6 +11,14 @@ from users.models import User
 from datetime import datetime
 
 
+## TODO: Надо переписать GET запрос на курсы, чтобы он возвращал вот такой json
+## {"course_id": 0,
+#   "course_name": "",
+#    "sections": [
+#    {"type" : "lesson/test/homework/vebinar??/section", "id": 0, "name": "", "order": 0},
+#    ]
+## TODO: Проверить все вьюхи, которые используют эти типы данных
+## TODO: высчитывания баллов для конкретного юзера по курсу
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
