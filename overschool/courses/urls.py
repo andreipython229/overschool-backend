@@ -25,5 +25,6 @@ router.register("course_stat", UsersCourse, basename="course_stat")
 router.register("user_count_by_month_group", GroupUsersByMonthView, basename="user_count_by_month_group")
 router.register("user_count_by_month_course", CourseUsersByMonthView, basename="user_count_by_month_course")
 router.register("group_stat", UsersGroup, basename="group_stat")
+router.register("students_table_info", StudentsTableInfoViewSet, basename="students_table_info")
 
 urlpatterns = router.urls
