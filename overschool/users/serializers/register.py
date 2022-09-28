@@ -99,12 +99,12 @@ class LoginSerializer(LoginSerializer):
         return attrs
 
 
-class RegisterAdminSerializer(serializers.Serializer):
+class InviteSerializer(serializers.Serializer):
     sender_type = serializers.CharField(
         max_length=10,
         required=True,
         error_messages={"required": "No sender type sent"},
-        help_text="Тип отправки сообщения с урлом и токеном может быть либо mail либо phone",
+        help_text="Тип отправки сообщения с урлом и токеном может быть либо email либо phone",
     )
     recipient = serializers.CharField(
         max_length=256,
@@ -118,7 +118,18 @@ class RegisterAdminSerializer(serializers.Serializer):
         help_text="Айди роли пользователя",
     )
     course_id = serializers.IntegerField(
-        required=True,
+        required=False,
         error_messages={"required": "No course id sent"},
         help_text="Айди курса, на которого регистрируют пользователя",
     )
+
+    # def validate(self, data):
+    #     if not data['course_id']:
+    #         raise serializers.ValidationError("Для этой роли пользователя необходим id курса")
+    #     return data
+
+
+class ValidTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=256, required=True,
+                                  error_messages={"required": "No token"},
+                                  help_text="Токен, полученный при регистрации пользователя админом")

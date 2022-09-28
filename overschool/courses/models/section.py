@@ -28,7 +28,7 @@ class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         verbose_name="Название курса",
         help_text="Название раздела курса",
     )
-    _clone_m2o_or_o2m_fields = ["lessons"]
+    _clone_m2o_or_o2m_fields = ["lessons", "homeworks", "tests"]
 
     objects = SectionManager()
 

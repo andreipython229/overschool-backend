@@ -1,3 +1,3 @@
 from .profile import ProfileViewSet
-from .user import UserViewSet
+from .user import *
 from .confident_files_views import ConfidentFilesViewSet
