@@ -2,6 +2,7 @@ from rest_framework import routers
 
 from courses.api_views import (
     CourseViewSet,
+    CourseDataSet,
     AudioFileView,
     LessonViewSet,
     SectionViewSet,
@@ -24,5 +25,6 @@ router.register("course_stat", UsersCourse, basename="course_stat")
 router.register("user_count_by_month_group", GroupUsersByMonthView, basename="user_count_by_month_group")
 router.register("user_count_by_month_course", CourseUsersByMonthView, basename="user_count_by_month_course")
 router.register("group_stat", UsersGroup, basename="group_stat")
+router.register("courses_data", CourseDataSet, basename="courses_data")
 
 urlpatterns = router.urls

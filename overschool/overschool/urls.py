@@ -16,9 +16,9 @@ urlpatterns = [
                   path('api/login/', LoginView.as_view(), name="login"),
                   path('api/logout/', LogoutView.as_view(), name="logout"),
                   path('api/token-refresh/', get_refresh_view().as_view(), name='token_refresh'),
-                  path('password_reset/', PasswordResetView.as_view(), name='password_reset'),
-                  path('password_reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-                  path('password_change/', PasswordChangeView.as_view(), name='password_change'),
+                  path('api/password_reset/', PasswordResetView.as_view(), name='password_reset'),
+                  path('api/password_reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+                  path('api/password_change/', PasswordChangeView.as_view(), name='password_change'),
                   path("api/", include(router.urls)),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

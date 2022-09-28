@@ -5,6 +5,7 @@ from django.db import models
 from homeworks.managers import HomeworkManager
 from courses.models import Section
 
+
 class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
     """Модель домашнего задания"""
 
@@ -19,6 +20,12 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         on_delete=models.CASCADE,
         related_name="homeworks",
         verbose_name="Секция",
+    )
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название домашней работы",
+        help_text="Домашняя работа по уроку,теме..",
+        default="",
     )
     text = RichTextField(
         verbose_name="Описание домашнего задания",
