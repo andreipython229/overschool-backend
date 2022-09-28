@@ -14,8 +14,7 @@ from rest_framework.response import Response
 class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-
-    # permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     @action(detail=True)
     def lessons(self, request, pk):
