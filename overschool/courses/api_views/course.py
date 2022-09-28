@@ -92,7 +92,7 @@ class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
                                ).annotate(
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
-            progress=(F("students__user_progresses__lesson__order") * 100)
+            progress=(Count("course_id__lessons__user_progresses__") * 100)
                      / Count("course_id__sections__lessons__lesson_id"),
         )
         for row in data:
