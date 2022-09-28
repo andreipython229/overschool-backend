@@ -118,10 +118,15 @@ class InviteSerializer(serializers.Serializer):
         help_text="Айди роли пользователя",
     )
     course_id = serializers.IntegerField(
-        required=True,
+        required=False,
         error_messages={"required": "No course id sent"},
         help_text="Айди курса, на которого регистрируют пользователя",
     )
+
+    # def validate(self, data):
+    #     if not data['course_id']:
+    #         raise serializers.ValidationError("Для этой роли пользователя необходим id курса")
+    #     return data
 
 
 class ValidTokenSerializer(serializers.Serializer):

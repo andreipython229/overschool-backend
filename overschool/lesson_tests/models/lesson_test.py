@@ -19,7 +19,7 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="section",
+        related_name="tests",
         verbose_name="Секции",
         help_text="Секция, внутри которой находится этот тест",
     )
