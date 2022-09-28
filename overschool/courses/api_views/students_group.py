@@ -14,6 +14,9 @@ from users.models import User
 from datetime import datetime
 
 
+## TODO: Переписать логику
+
+
 class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = StudentsGroup.objects.all()
     serializer_class = StudentsGroupSerializer

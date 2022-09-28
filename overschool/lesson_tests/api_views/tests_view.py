@@ -2,11 +2,12 @@
 from rest_framework import permissions, viewsets
 from common_services.mixins import LoggingMixin
 from lesson_tests.serializers import (AnswerSerializer, QuestionSerializer,
-                               TestSerializer, UserTestSerializer)
+                                      TestSerializer, UserTestSerializer)
 from rest_framework import viewsets
 from lesson_tests.models import Answer, LessonTest, Question, UserTest
 
 
+## TODO: Виталику надо сделать
 class TestViewSet(LoggingMixin, viewsets.ModelViewSet):
     queryset = LessonTest.objects.all()
     serializer_class = TestSerializer
@@ -29,5 +30,3 @@ class UserTestViewSet(LoggingMixin, viewsets.ModelViewSet):
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-

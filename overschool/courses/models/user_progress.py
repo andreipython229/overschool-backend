@@ -8,7 +8,7 @@ from homeworks.models import Homework
 from lesson_tests.models import SectionTest
 
 
-# TODO: прогресс считается не по лесону, а по логам, типа студент прошёл такой-то урок или такую-то дз и т.д.
+# TODO: прогресс считается не по лесону, а по логам, типа студент прошёл такой-то урок или такую-то дз и т.д. - Done
 class UserProgressLogs(TimeStampedModel):
     """Модель для отслеживания прогресса пользователя"""
 
