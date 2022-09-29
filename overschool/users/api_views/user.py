@@ -1,18 +1,19 @@
-from rest_framework import generics, mixins, status, viewsets, permissions
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from users.models import User, UserRole
-from users.serializers import UserSerializer, RegisterAdminSerializer
+from users.models import User
+from users.permissions import OwnerUserPermissions
+from users.serializers import RegisterAdminSerializer, UserSerializer
 from users.services import SenderServiceMixin
-from common_services.mixins import WithHeadersViewSet, LoggingMixin
 
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet, SenderServiceMixin):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [DjangoModelPermissions | OwnerUserPermissions]
 
     @action(methods=["POST"], detail=False)
     def send_invite(self, request: Request):
