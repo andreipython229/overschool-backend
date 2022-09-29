@@ -3,7 +3,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 1,
     "fields": {
-      "lesson": 1,
+      "section": 1,
       "name": "Типы данных",
       "success_percent": 80,
       "random_questions": true,
@@ -20,7 +20,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 2,
     "fields": {
-      "lesson": 2,
+      "section": 2,
       "name": "Коллекции",
       "success_percent": 80,
       "random_questions": true,
@@ -37,7 +37,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 3,
     "fields": {
-      "lesson": 3,
+      "section": 3,
       "name": "Функции",
       "success_percent": 80,
       "random_questions": true,
@@ -54,7 +54,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 4,
     "fields": {
-      "lesson": 4,
+      "section": 1,
       "name": "Классы",
       "success_percent": 80,
       "random_questions": true,
@@ -71,7 +71,7 @@
     "model": "lesson_tests.LessonTest",
     "test_id": 5,
     "fields": {
-      "lesson": 5,
+      "section": 1,
       "name": "Git",
       "success_percent": 80,
       "random_questions": true,

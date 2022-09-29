@@ -5,11 +5,11 @@ from django.db import models
 from embed_video.fields import EmbedVideoField
 
 from .section import Section
-from model_clone import CloneMixin
 from ckeditor.fields import RichTextField
 
 
-class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
+## TODO: как загружать бесконечное количество медиа в урок или тест, или дз
+class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
     """Модель урока в разделе"""
 
     lesson_id = models.AutoField(
@@ -62,8 +62,8 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         blank=True,
         null=True,
     )
-
-    _clone_m2o_or_o2m_fields = ["homeworks", "lessons"]
+    balls = models.PositiveIntegerField(verbose_name="Кол-во баллов за урок",
+                                        help_text="Кол-во баллов за урок")
 
     objects = LessonManager()
 
