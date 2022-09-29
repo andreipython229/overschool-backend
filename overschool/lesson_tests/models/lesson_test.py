@@ -1,11 +1,12 @@
 from common_services.mixins import OrderMixin
 from common_services.models import AuthorPublishedModel, TimeStampedModel
-from courses.models import Lesson
+from courses.models import Section
 from django.db import models
 from lesson_tests.managers import LessonTestManager
 from model_clone import CloneMixin
 
 
+# TODO: переписать на SectionTest
 class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
@@ -15,12 +16,12 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
         verbose_name="ID теста",
         help_text="Уникальный идентификатор теста",
     )
-    lesson = models.ForeignKey(
-        Lesson,
+    section = models.ForeignKey(
+        Section,
         on_delete=models.CASCADE,
-        related_name="lessons",
-        verbose_name="ID урока",
-        help_text="Урок, после которого идёт данный тест",
+        related_name="tests",
+        verbose_name="Секции",
+        help_text="Секция, внутри которой находится этот тест",
     )
     name = models.CharField(max_length=256, verbose_name="Название", help_text="Название теста")
     success_percent = models.IntegerField(

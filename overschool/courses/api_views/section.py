@@ -1,6 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Section, Lesson
+from homeworks.models import Homework
+from lesson_tests.models import LessonTest
+from django.db.models import F
+from django.forms.models import model_to_dict
 from courses.serializers import SectionSerializer
+
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,40 +19,32 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     @action(detail=True)
     def lessons(self, request, pk):
         section = self.get_object()
+        queryset = Section.objects.filter(section_id=section.pk)
+        data = queryset.values(
+            section_name=F("name"),
+            section=F("section_id"),
+        )
+        result_data = dict(
+            section_name=data[0]["section_name"],
+            section_id=data[0]["section"],
+            lessons=[],
+        )
+        types = {0: "homework", 1: "lesson", 2: "test"}
+        for index, value in enumerate(data):
+            a = Homework.objects.filter(section=value["section"])
+            b = Lesson.objects.filter(section=value["section"])
+            c = LessonTest.objects.filter(section=value["section"])
+            for i in enumerate((a, b, c)):
+                for obj in i[1]:
+                    dict_obj = model_to_dict(obj)
+                    result_data["lessons"].append(
+                        {
+                            "type": types[i[0]],
+                            "order": dict_obj["order"],
+                            "name": dict_obj["name"],
+                            "id": obj.pk,
+                        }
+                    )
+            result_data["lessons"].sort(key=lambda x: x["order"])
 
-        lessons = Lesson.objects.filter(section_id=section.pk).order_by("order")
-
-        all_data = {}
-
-        less = "lessons"
-        all_data["section_id"] = f"{section.pk}"
-        for lesson in lessons:
-            if less in all_data.keys():
-                all_data[less].append(
-                    {
-                        "name": lesson.name,
-                        "lesson_id": lesson.lesson_id,
-                        "description": lesson.description,
-                        "video": lesson.video,
-                        "code": lesson.code,
-                        "file": str(lesson.file),
-                        "homeworks": lesson.homeworks.values().order_by("order"),
-                        "tests": lesson.lessons.values().order_by("order"),
-                    }
-                )
-            else:
-                all_data[less] = []
-                all_data[less].append(
-                    {
-                        "name": lesson.name,
-                        "lesson_id": lesson.lesson_id,
-                        "description": lesson.description,
-                        "video": lesson.video,
-                        "code": lesson.code,
-                        "file": str(lesson.file),
-                        "homeworks": lesson.homeworks.values().order_by("order"),
-                        "tests": lesson.lessons.values().order_by("order"),
-                    }
-                )
-
-        return Response(all_data)
+        return Response(result_data)

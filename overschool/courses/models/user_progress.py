@@ -6,6 +6,7 @@ from .course import Course
 from .lesson import Lesson
 
 
+# TODO: прогресс считается не по лесону, а по логам, типа студент прошёл такой-то урок или такую-то дз и т.д.
 class UserProgress(TimeStampedModel):
     """Модель для отслеживания прогресса пользователя"""
 
