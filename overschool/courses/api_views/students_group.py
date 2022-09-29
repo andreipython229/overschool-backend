@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
+from courses.models import StudentsGroup, UserProgressLogs
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
@@ -38,6 +38,7 @@ class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
             return Response(data={"status": "Error", "message": "No group_id"}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self, *args, **kwargs):
+        ## легче SQL написать
         queryset = StudentsGroup.objects.filter(group_id=kwargs['group_id'])
         data = queryset.values(course=F("course_id"),
                                email=F("students__email"),

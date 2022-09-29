@@ -7,7 +7,7 @@ from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
 from homeworks.models import Homework
 from homeworks.paginators import UserHomeworkPagination
-from lesson_tests.models import LessonTest, UserTest
+from lesson_tests.models import SectionTest, UserTest
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -69,7 +69,7 @@ class CourseDataSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
             )
             a = Homework.objects.filter(section=value["section"])
             b = Lesson.objects.filter(section=value["section"])
-            c = LessonTest.objects.filter(section=value["section"])
+            c = SectionTest.objects.filter(section=value["section"])
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
                     dict_obj = model_to_dict(obj)

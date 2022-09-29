@@ -2,7 +2,7 @@ from ckeditor.fields import RichTextField
 from common_services.models import TimeStampedModel
 from django.db import models
 
-from .section_test import LessonTest
+from .section_test import SectionTest
 
 
 class Question(TimeStampedModel):
@@ -14,7 +14,7 @@ class Question(TimeStampedModel):
         help_text="Уникальный идентификатор вопроса",
     )
     test = models.ForeignKey(
-        LessonTest,
+        SectionTest,
         on_delete=models.CASCADE,
         related_name="question_test_id_fk",
         verbose_name="Тест",

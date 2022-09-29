@@ -1,6 +1,6 @@
 [
   {
-    "model": "lesson_tests.LessonTest",
+    "model": "lesson_tests.SectionTest",
     "test_id": 1,
     "fields": {
       "section": 1,
@@ -17,7 +17,7 @@
     }
   },
   {
-    "model": "lesson_tests.LessonTest",
+    "model": "lesson_tests.SectionTest",
     "test_id": 2,
     "fields": {
       "section": 2,
@@ -34,7 +34,7 @@
     }
   },
   {
-    "model": "lesson_tests.LessonTest",
+    "model": "lesson_tests.SectionTest",
     "test_id": 3,
     "fields": {
       "section": 3,
@@ -51,7 +51,7 @@
     }
   },
    {
-    "model": "lesson_tests.LessonTest",
+    "model": "lesson_tests.SectionTest",
     "test_id": 4,
     "fields": {
       "section": 1,
@@ -68,7 +68,7 @@
     }
   },
   {
-    "model": "lesson_tests.LessonTest",
+    "model": "lesson_tests.SectionTest",
     "test_id": 5,
     "fields": {
       "section": 1,

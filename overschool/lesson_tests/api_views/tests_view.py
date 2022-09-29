@@ -4,12 +4,11 @@ from common_services.mixins import LoggingMixin
 from lesson_tests.serializers import (AnswerSerializer, QuestionSerializer,
                                       TestSerializer, UserTestSerializer)
 from rest_framework import viewsets
-from lesson_tests.models import Answer, LessonTest, Question, UserTest
+from lesson_tests.models import Answer, SectionTest, Question, UserTest
 
 
-## TODO: Виталику надо сделать
 class TestViewSet(LoggingMixin, viewsets.ModelViewSet):
-    queryset = LessonTest.objects.all()
+    queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
