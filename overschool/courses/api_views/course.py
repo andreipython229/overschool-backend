@@ -11,7 +11,7 @@ from lesson_tests.models import LessonTest, UserTest
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.models import User
+from courses.serializers import StudentsGroupSerializer
 
 
 ## TODO: Проверить все вьюхи, которые используют эти типы данных
@@ -22,31 +22,24 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.DjangoModelPermissions]
+    pagination_class = UserHomeworkPagination
 
     @action(detail=True)
     def clone(self, request, pk):
+        """ Клонирование курса """
+
         course = self.get_object()
         course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
         queryset = Course.objects.filter(pk=course_copy.pk)
         return Response(queryset.values())
 
+    @action(detail=True)
+    def sections(self, request, pk):
+        """ Данные по всем секция курса """
 
-class CourseDataSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = Course.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
+        course = self.get_object()
+        queryset = Course.objects.filter(course_id=course.pk)
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(course=request.GET["course_id"])
-            return Response(queryset)
-        except KeyError:
-            return Response(
-                data={"status": "Error", "message": "No course_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-    def get_queryset(self, *args, **kwargs):
-        queryset = Course.objects.filter(course_id=kwargs["course"])
         data = queryset.values(
             course=F("course_id"),
             course_name=F("name"),
@@ -82,28 +75,37 @@ class CourseDataSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
                         }
                     )
             result_data["sections"][index]["lessons"].sort(key=lambda x: x["order"])
-        return result_data
+        return Response(result_data)
 
+    @action(detail=True)
+    def user_count_by_month(self, request, pk):
+        """ Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
+        для конкретного месяца указываем параметр month_number= """
 
-class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
-    pagination_class = UserHomeworkPagination
+        course = self.get_object()
+        queryset = StudentsGroup.objects.filter(course_id=course.pk,
+                                                students__date_joined__month=request.GET["month_number"]
+                                                if "month_number" in request.GET
+                                                else datetime.now().month, )
+        datas = queryset.values(course=F("course_id")).annotate(
+            students_sum=Count("students__id")
+        )
+        for data in datas:
+            data["graphic_data"] = queryset.values(
+                course=F("course_id"), date=F("students__date_joined__day")
+            ).annotate(students_sum=Count("students__id"))
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(course=request.GET["course_id"])
-            paginator = self.pagination_class()
-            data = paginator.paginate_queryset(request=request, queryset=queryset)
-            return paginator.get_paginated_response(data=data)
-        except KeyError as e:
-            return Response(
-                data={"status": "Error", "message": "No course_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        page = self.paginate_queryset(datas)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(datas)
 
-    def get_queryset(self, *args, **kwargs):
-        queryset = StudentsGroup.objects.filter(course_id=kwargs["course"])
+    @action(detail=True)
+    def stats(self, request, pk):
+        """ Статистика всех студентов курса """
+
+        course = self.get_object()
+        queryset = StudentsGroup.objects.filter(course_id=course.pk)
         data = queryset.values(
             course=F("course_id"),
             email=F("students__email"),
@@ -126,38 +128,19 @@ class UsersCourse(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
-        return data
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(data)
 
+    @action(detail=True)
+    def student_groups(self, request, pk):
+        """ Список всех групп курса """
 
-class CourseUsersByMonthView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
-
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(
-                month_number=request.GET["month_number"]
-                if "month_number" in request.GET
-                else datetime.now().month,
-                course_id=request.GET["course_id"],
-            )
-            return Response(queryset, status=status.HTTP_200_OK)
-        except KeyError as e:
-            return Response(
-                data={"status": "Error", "message": "No course_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-    def get_queryset(self, *args, **kwargs):
-        queryset = StudentsGroup.objects.filter(
-            course_id=kwargs["course_id"],
-            students__date_joined__month=kwargs["month_number"],
-        )
-        datas = queryset.values(course=F("course_id")).annotate(
-            students_sum=Count("students__id")
-        )
-        for data in datas:
-            data["graphic_data"] = queryset.values(
-                course=F("course_id"), date=F("students__date_joined__day")
-            ).annotate(students_sum=Count("students__id"))
-        return datas
+        queryset = StudentsGroup.objects.filter(course_id=pk)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = StudentsGroupSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = StudentsGroupSerializer(queryset, many=True)
+        return Response(serializer.data)

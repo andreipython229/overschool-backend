@@ -20,6 +20,7 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def lessons(self, request, pk):
         section = self.get_object()
         queryset = Section.objects.filter(section_id=section.pk)
+
         data = queryset.values(
             section_name=F("name"),
             section=F("section_id"),
