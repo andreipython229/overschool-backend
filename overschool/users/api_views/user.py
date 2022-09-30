@@ -1,24 +1,26 @@
-from rest_framework import generics, mixins, status, viewsets, permissions
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from users.models import User, UserRole
-from users.serializers import UserSerializer, InviteSerializer, ValidTokenSerializer
-from users.services import SenderServiceMixin, RedisDataMixin
-from common_services.mixins import WithHeadersViewSet, LoggingMixin
+from users.models import User
+from users.permissions import OwnerUserPermissions
+from users.serializers import InviteSerializer, UserSerializer, ValidTokenSerializer
+from users.services import RedisDataMixin, SenderServiceMixin
 
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [DjangoModelPermissions | OwnerUserPermissions]
 
 
 class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
     """
     Эндпоинт для отправки приглашения со стороны админа
     """
+
     serializer_class = InviteSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
@@ -45,7 +47,8 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
                 self._save_data_to_redis(
                     serializer.data["recipient"],
                     serializer.data["user_type"],
-                    serializer.data["course_id"], )
+                    serializer.data["course_id"],
+                )
                 return Response(
                     {"status": "OK", "message": "Url was sent"},
                     status=status.HTTP_200_OK,
@@ -66,6 +69,7 @@ class ValidTokenView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin
     """
     Эндпоинт на проверку валидности токена, по которому хочет зарегистрироваться пользователь
     """
+
     serializer_class = ValidTokenSerializer
     queryset = User.objects.all()
     permission_classes = [permissions.DjangoModelPermissions]
@@ -97,6 +101,7 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
     """
     Эндпоинт регистрации пользователя админом
     """
+
     serializer_class = UserSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
@@ -114,5 +119,4 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
