@@ -63,7 +63,8 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         null=True,
     )
     balls = models.PositiveIntegerField(verbose_name="Кол-во баллов за урок",
-                                        help_text="Кол-во баллов за урок")
+                                        help_text="Кол-во баллов за урок",
+                                        default=0, )
 
     objects = LessonManager()
 

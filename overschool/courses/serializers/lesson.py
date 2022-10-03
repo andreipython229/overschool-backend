@@ -20,4 +20,5 @@ class LessonSerializer(serializers.ModelSerializer):
                   "file",
                   "audio",
                   "file_url",
-                  "audio_url"]
+                  "audio_url",
+                  "balls", ]
