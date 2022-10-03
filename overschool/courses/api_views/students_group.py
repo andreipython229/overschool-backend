@@ -1,17 +1,16 @@
+from datetime import datetime
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup, UserProgressLogs
+from courses.models import StudentsGroup
 from courses.serializers import (
-    GroupStudentsSerializer,
-    GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
 from django.db.models import Avg, Count, F, Sum
-from homeworks.paginators import UserHomeworkPagination
 from lesson_tests.models import UserTest
 from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
-from datetime import datetime
 
 
 ## TODO: Переписать логику
@@ -22,24 +21,10 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
-
-class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
-    pagination_class = UserHomeworkPagination
-
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(group_id=request.GET['group_id'])
-            paginator = self.pagination_class()
-            data = paginator.paginate_queryset(request=request, queryset=queryset)
-            return paginator.get_paginated_response(data=data)
-        except KeyError as e:
-            return Response(data={"status": "Error", "message": "No group_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_queryset(self, *args, **kwargs):
-        ## легче SQL написать
-        queryset = StudentsGroup.objects.filter(group_id=kwargs['group_id'])
+    @action(detail=True)
+    def stats(self, request, pk):
+        group = self.get_object()
+        queryset = StudentsGroup.objects.filter(group_id=group.pk)
         data = queryset.values(course=F("course_id"),
                                email=F("students__email"),
                                student_name=F("students__first_name"),
@@ -54,14 +39,16 @@ class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
             progress=(F("students__user_progresses__lesson__order") * 100)
                      / Count("course_id__sections__lessons__lesson_id"),
         )
+
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
-                .values("user")
-                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
+                    .values("user")
+                    .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
-        return data
+
+        return Response(data)
 
 
 class GroupUsersByMonthView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
