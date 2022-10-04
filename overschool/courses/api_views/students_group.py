@@ -1,5 +1,7 @@
+from datetime import datetime
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
+from courses.models import StudentsGroup, UserProgressLogs
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
@@ -39,6 +41,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             progress=(F("students__user_progresses__lesson__order") * 100)
                      / Count("course_id__sections__lessons__lesson_id"),
         )
+
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
