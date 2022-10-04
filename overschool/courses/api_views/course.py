@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, Lesson, Section, StudentsGroup
+from courses.models import Course, Lesson, Section, StudentsGroup, UserProgressLogs
 from courses.serializers import CourseSerializer, CourseStudentsSerializer
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
@@ -21,7 +21,7 @@ from courses.serializers import StudentsGroupSerializer
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
 
     @action(detail=True)
@@ -118,9 +118,21 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         ).annotate(
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
-            progress=(Count("course_id__lessons__user_progresses__") * 100)
-                     / Count("course_id__sections__lessons__lesson_id"),
+            chekau=Count("course_id__sections__lessons__lesson_id") + Count(
+                "course_id__sections__homeworks__homework_id"),
+            # progress=(Count("students__user_progresses__lesson__lesson_id"))
+            #          / Count("course_id__sections__lessons__lesson_id"),
         )
+        # Course.objects.filter(course_id=course.pk).values("course_id__sections__lessons_lesson_id",
+        #                                                   "course_id__sections__section_tests__section_id")
+        ## Выбрать все тесты, лессоны и хоумворки
+        ## Далее проверить, что из них есть в юзер прогресс
+        a = UserProgressLogs.objects.filter(lesson__section__course__course_id=course.pk,
+                                            homework__section__course__course_id=course.pk,
+                                            section_test__section__course__course_id=course.pk).aggregate(
+            count_steps=Count("lesson__section__course__course_id") + Count(
+                "homework__section__course__course_id") + Count("section_test__section__course__course_id"))
+        print(a)
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
