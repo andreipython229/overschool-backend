@@ -6,7 +6,7 @@ from lesson_tests.managers import LessonTestManager
 from model_clone import CloneMixin
 
 
-# TODO: переписать на SectionTest
+
 class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
