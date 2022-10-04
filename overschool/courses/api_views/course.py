@@ -35,7 +35,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk):
-        """ Данные по всем секция курса """
+        """ Данные по всем секциям курса """
 
         course = self.get_object()
         queryset = Course.objects.filter(course_id=course.pk)
