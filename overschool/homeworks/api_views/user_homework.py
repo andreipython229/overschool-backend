@@ -55,9 +55,9 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             user_homework=F("homework_id"),
             email=F("user__email"),
             avatar=F("user__profile__avatar"),
-            homework_name=F("homework__lesson__section__course__name"),
+            homework_name=F("homework__section__course__name"),
             homework_pk=F("homework__homework_id"),
-            lesson_name=F("homework__lesson__name"),
+            lesson_name=F("homework__name"),
             last_update=Window(
                 expression=Max("updated_at"), partition_by=[F("user__email"), F("homework__homework_id")]
             ),
