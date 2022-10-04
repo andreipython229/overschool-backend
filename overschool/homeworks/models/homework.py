@@ -30,11 +30,15 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
     text = RichTextField(
         verbose_name="Описание домашнего задания",
         help_text="HTML вариан описания домашки",
+        blank=True,
+        null=True
     )
     file = models.FileField(
         upload_to="media/homework/task/files",
         verbose_name="Файл домашнего задания",
         help_text="Файл, в котором хранится вся небходимая информация для домашнего задания",
+        blank=True,
+        null=True
     )
 
     objects = HomeworkManager()
