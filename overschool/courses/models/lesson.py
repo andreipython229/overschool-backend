@@ -29,7 +29,7 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         max_length=256,
         verbose_name="Название урока",
         help_text="Название урока",
-        default="",
+        default="Имя не придумано",
     )
     description = models.TextField(
         verbose_name="Описание",
@@ -62,9 +62,11 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         blank=True,
         null=True,
     )
-    balls = models.PositiveIntegerField(verbose_name="Кол-во баллов за урок",
-                                        help_text="Кол-во баллов за урок",
-                                        default=0, )
+    balls = models.PositiveIntegerField(
+        verbose_name="Кол-во баллов за урок",
+        help_text="Кол-во баллов за урок",
+        default=0,
+    )
 
     objects = LessonManager()
 
