@@ -30,7 +30,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             user.save()
 
             return super().update(instance=instance, validated_data=validated_data)
-        # if 'avatar' or "city" or "sex" or "description" in validated_data:
 
         instance.avatar = validated_data.get("avatar", instance.avatar)
         instance.city = validated_data.get("city", instance.city)
