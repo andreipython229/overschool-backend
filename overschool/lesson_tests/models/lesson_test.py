@@ -23,7 +23,12 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
         verbose_name="Секции",
         help_text="Секция, внутри которой находится этот тест",
     )
-    name = models.CharField(max_length=256, verbose_name="Название", help_text="Название теста")
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название",
+        help_text="Название теста",
+        default="Имя не придумано",
+        )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
@@ -31,6 +36,7 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
     random_questions = models.BooleanField(default=False, verbose_name="Перемешать вопросы")
     random_answers = models.BooleanField(default=False, verbose_name="Перемешать ответы")
     show_right_answers = models.BooleanField(default=False, verbose_name="Показать правильные ответы")
+
     _clone_m2o_or_o2m_fields = ["question_test_id_fk"]
 
     objects = LessonTestManager()
