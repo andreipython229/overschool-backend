@@ -28,7 +28,7 @@ DOCKER_TEST = docker-compose exec back python  overschool/manage.py
  test:
 	${DOCKER_TEST} loaddata initial_role_data.json
 	${DOCKER_TEST} loaddata test_document_data.json
-	${DOCKER_TEST} loaddata test_user_initial_data.json
+# 	${DOCKER_TEST} loaddata test_user_initial_data.json
 	#${DOCKER_TEST} loaddata test_profile_initial_data.json
 	${DOCKER_TEST} loaddata test_initial_course_data.json
 	${DOCKER_TEST} loaddata test_initial_section_data.json
