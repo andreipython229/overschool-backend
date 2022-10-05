@@ -74,7 +74,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "id": obj.pk,
                         }
                     )
-            result_data["sections"][index]["lessons"].sort(key=lambda x: x["order"])
+            result_data["sections"][index]["lessons"].sort(key=lambda x: x["order"] if x["order"] is not None else 0)
         return Response(result_data)
 
     @action(detail=True)

@@ -18,6 +18,7 @@ class CourseSerializer(serializers.ModelSerializer):
                   "price",
                   "description",
                   "photo",
+                  "order",
                   "photo_url"]
 
 

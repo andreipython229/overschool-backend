@@ -32,8 +32,6 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         help_text="HTML вариан описания домашки",
         blank=True,
         null=True
-        blank=True,
-        null=True,
     )
     file = models.FileField(
         upload_to="media/homework/task/files",
