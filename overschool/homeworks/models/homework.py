@@ -27,7 +27,7 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         help_text="Домашняя работа по уроку,теме..",
         default="Имя не придумано",
     )
-    text = RichTextField(
+    description = RichTextField(
         verbose_name="Описание домашнего задания",
         help_text="HTML вариан описания домашки",
         blank=True,
@@ -51,9 +51,9 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
                   "будет автоматически поставлен зачёт",
         default=False,
     )
-    time_accept = models.TimeField(
+    time_accept = models.DurationField(
         verbose_name="Поставить зачёт через",
-        help_text="Время через которое будет автоматически поставлен зачёт",
+        help_text="Время через которое будет автоматически поставлен зачёт, формат: [DD] [HH:[MM:]]ss[.uuuuuu]",
         blank=True,
         null=True,
     )
