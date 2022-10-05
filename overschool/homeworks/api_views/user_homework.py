@@ -11,7 +11,7 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 
 
-class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
     permission_classes = [permissions.DjangoModelPermissions]

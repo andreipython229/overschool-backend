@@ -31,7 +31,7 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         verbose_name="Описание домашнего задания",
         help_text="HTML вариан описания домашки",
         blank=True,
-        null=True
+        null=True,
     )
     file = models.FileField(
         upload_to="media/homework/task/files",
@@ -65,7 +65,7 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         return None
 
     def __str__(self):
-        return str(self.homework_id) + " Урок: " + str(self.lesson)
+        return str(self.homework_id)
 
     class Meta:
         verbose_name = "Домашнее задание"

@@ -57,6 +57,8 @@ class UserHomework(TimeStampedModel):
         upload_to="media/homework/task/answers",
         verbose_name="Файл ответа",
         help_text="Файл, в котором содержится ответ на домашнюю работу",
+        null=True,
+        blank=True,
     )
     mark = models.IntegerField(
         verbose_name="Отметка",
