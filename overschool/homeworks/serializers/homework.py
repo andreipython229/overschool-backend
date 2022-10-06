@@ -15,7 +15,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
                   "name",
                   "order",
                   "author_id",
-                  "text",
+                  "description",
                   "file",
                   "file_url",
                   "published",
