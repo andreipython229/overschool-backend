@@ -7,7 +7,15 @@ class HomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор моедли домашнего задания
     """
-
+    type = serializers.CharField(default="homework")
     class Meta:
         model = Homework
-        fields = "__all__"
+        fields = [
+            "homework_id",
+            "section",
+            "name",
+            "text",
+            "file",
+            "type"
+            "order"
+        ]
