@@ -25,19 +25,44 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         max_length=256,
         verbose_name="Название домашней работы",
         help_text="Домашняя работа по уроку,теме..",
-        default="",
+        default="Имя не придумано",
     )
     text = RichTextField(
         verbose_name="Описание домашнего задания",
         help_text="HTML вариан описания домашки",
+        blank=True,
+        null=True,
     )
     file = models.FileField(
         upload_to="media/homework/task/files",
         verbose_name="Файл домашнего задания",
         help_text="Файл, в котором хранится вся небходимая информация для домашнего задания",
+        blank=True,
+        null=True,
     )
-
+    balls = models.PositiveIntegerField(
+        verbose_name="Кол-во баллов за урок",
+        help_text="Кол-во баллов за урок",
+        default=0,
+    )
+    automate_accept = models.BooleanField(
+        verbose_name="Автоматически принимать работы спустя время",
+        help_text="После отправки учеником работы спустя указанное кол-во времени"
+                  "будет автоматически поставлен зачёт",
+        default=False,
+    )
+    time_accept = models.TimeField(
+        verbose_name="Поставить зачёт через",
+        help_text="Время через которое будет автоматически поставлен зачёт",
+        blank=True,
+        null=True,
+    )
     objects = HomeworkManager()
+
+    def file_url(self):
+        if self.file:
+            return "https://api.itdev.by" + self.file.url
+        return None
 
     def __str__(self):
         return str(self.homework_id) + " Урок: " + str(self.lesson)

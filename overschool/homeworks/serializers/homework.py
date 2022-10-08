@@ -10,12 +10,16 @@ class HomeworkSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="homework")
     class Meta:
         model = Homework
-        fields = [
-            "homework_id",
-            "section",
-            "name",
-            "text",
-            "file",
-            "type"
-            "order"
-        ]
+        fields = ["homework_id",
+                  "section",
+                  "name",
+                  "order",
+                  "author_id",
+                  "text",
+                  "file",
+                  "file_url",
+                  "published",
+                  "automate_accept",
+                  "time_accept",
+                  "balls",
+                  "type"]

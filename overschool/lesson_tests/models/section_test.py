@@ -23,7 +23,12 @@ class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin
         verbose_name="Секции",
         help_text="Секция, внутри которой находится этот тест",
     )
-    name = models.CharField(max_length=256, verbose_name="Название", help_text="Название теста")
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название",
+        help_text="Название теста",
+        default="Имя не придумано",
+        )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
