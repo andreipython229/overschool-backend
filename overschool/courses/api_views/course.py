@@ -14,10 +14,6 @@ from rest_framework.response import Response
 from courses.serializers import StudentsGroupSerializer
 
 
-## TODO: Проверить все вьюхи, которые используют эти типы данных
-## TODO: высчитывания баллов для конкретного юзера по курсу
-
-
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
