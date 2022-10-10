@@ -4,6 +4,7 @@ from common_services.models import AuthorPublishedModel, TimeStampedModel
 from django.db import models
 from homeworks.managers import HomeworkManager
 from courses.models import Section
+from oauthlib.common import urldecode
 
 
 class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
@@ -61,7 +62,8 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
 
     def file_url(self):
         if self.file:
-            return "https://api.itdev.by" + self.file.url
+            url = urldecode("https://api.itdev.by" + self.file.url)
+            return url[0][0]
         return None
 
     def __str__(self):

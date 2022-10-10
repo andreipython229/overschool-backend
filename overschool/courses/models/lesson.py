@@ -3,6 +3,7 @@ from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.managers import LessonManager
 from django.db import models
 from embed_video.fields import EmbedVideoField
+from oauthlib.common import urldecode
 
 from .section import Section
 from ckeditor.fields import RichTextField
@@ -72,12 +73,14 @@ class Lesson(TimeStampedModel, AuthorPublishedModel, OrderMixin):
 
     def file_url(self):
         if self.file:
-            return "https://api.itdev.by" + self.file.url
+            url = urldecode("https://api.itdev.by" + self.file.url)
+            return url[0][0]
         return None
 
     def audio_url(self):
         if self.audio:
-            return "https://api.itdev.by" + self.audio.url
+            url = urldecode("https://api.itdev.by" + self.audio.url)
+            return url[0][0]
         return None
 
     def __str__(self):

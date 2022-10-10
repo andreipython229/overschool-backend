@@ -25,11 +25,15 @@ DOCKER_TEST = docker-compose exec back python  overschool/manage.py
 	${MANAGE} migrate 
 	${MANAGE} runserver 0.0.0.0:8000
 
+ prod:
+	${MANAGE} makemigrations
+	${MANAGE} migrate
+	${MANAGE} runserver --settings=overschool.postgres_connection_settings
+
  test:
 	${DOCKER_TEST} loaddata initial_role_data.json
 	${DOCKER_TEST} loaddata test_document_data.json
-	#${DOCKER_TEST} loaddata test_user_initial_data.json
-	#${DOCKER_TEST} loaddata test_profile_initial_data.json
+	${DOCKER_TEST} loaddata test_user_initial_data.json
 	${DOCKER_TEST} loaddata test_initial_course_data.json
 	${DOCKER_TEST} loaddata test_initial_section_data.json
 	${DOCKER_TEST} loaddata test_initial_lesson_data.json
