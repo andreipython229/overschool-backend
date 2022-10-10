@@ -41,7 +41,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
-        )
+            section_order=F("sections__order")
+        ).order_by("sections__order")
         result_data = dict(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
