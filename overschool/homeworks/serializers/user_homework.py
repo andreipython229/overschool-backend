@@ -6,12 +6,48 @@ from rest_framework import serializers
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
     """
-    Сериализатор модели выполненной домашней работы
+    Сериализатор модели выполненной домашней работы со стороны ученика
     """
 
     class Meta:
         model = UserHomework
-        fields = "__all__"
+        fields = ["user_homework_id",
+                  "created_at",
+                  "updated_at",
+                  "user",
+                  "homework",
+                  "text",
+                  "status",
+                  "mark",
+                  "file",
+                  "file_url",
+                  "teacher",
+                  "teacher_message",
+                  ]
+        read_only_fields = "user", "status", "mark", "teacher_message", "teacher",
+
+
+class TeacherHomeworkSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели выполненной домашней работы со стороны преподавателя
+    """
+
+    class Meta:
+        model = UserHomework
+        fields = ["user_homework_id",
+                  "created_at",
+                  "updated_at",
+                  "user",
+                  "homework",
+                  "text",
+                  "status",
+                  "mark",
+                  "file",
+                  "file_url",
+                  "teacher",
+                  "teacher_message",
+                  ]
+        read_only_fields = "user", "file", "text", "teacher",
 
 
 class UserHomeworkStatisticsSerializer(serializers.Serializer):
@@ -38,5 +74,6 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
     homework_id = serializers.IntegerField(help_text="Id домашней работы",
                                            required=False,
                                            default=None)
+
     class Meta:
         fields = '__all__'

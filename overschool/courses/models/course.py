@@ -4,6 +4,7 @@ from common_services.models import AuthorPublishedModel, TimeStampedModel
 from courses.managers import CourseManager
 from django.db import models
 from model_clone import CloneMixin
+from oauthlib.common import urldecode
 
 
 class Public(models.TextChoices):
@@ -86,7 +87,8 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
 
     def photo_url(self):
         if self.photo:
-            return "https://api.itdev.by" + self.photo.url
+            url = urldecode("https://api.itdev.by" + self.photo.url)
+            return url[0][0]
         return None
 
     def __str__(self):
