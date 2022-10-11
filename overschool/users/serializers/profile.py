@@ -1,14 +1,21 @@
 from rest_framework import serializers
-from users.models import Profile
+from users.models import Profile, User
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "first_name", "last_name", "email", "phone_number", ]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для личного кабинета пользователя"""
 
+    user = ProfileSerializer()
+
     class Meta:
         model = Profile
         fields = ["profile_id", "avatar", "avatar_url", "city", "sex", "description", "user"]
-        depth = 1
 
     def update(self, instance, validated_data):
         if 'user' in validated_data:
@@ -23,7 +30,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             user.save()
 
             return super().update(instance=instance, validated_data=validated_data)
-        # if 'avatar' or "city" or "sex" or "description" in validated_data:
 
         instance.avatar = validated_data.get("avatar", instance.avatar)
         instance.city = validated_data.get("city", instance.city)

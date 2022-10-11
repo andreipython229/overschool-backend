@@ -1,3 +1,3 @@
 from .answer import AnswerAdmin
-from .lesson_test import LessonTestAdmin
+from .section_test import SectionTestAdmin
 from .question import QuestionAdmin

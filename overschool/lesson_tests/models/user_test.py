@@ -2,7 +2,7 @@ from common_services.models import TimeStampedModel
 from django.db import models
 from users.models import User
 
-from .lesson_test import LessonTest
+from .section_test import SectionTest
 
 
 class UserTestStatusChoices(models.TextChoices):
@@ -22,7 +22,7 @@ class UserTest(TimeStampedModel):
         help_text="Уникальный идентификатор сданного теста",
     )
     test = models.ForeignKey(
-        LessonTest,
+        SectionTest,
         on_delete=models.CASCADE,
         verbose_name="ID теста",
         related_name="tests",

@@ -6,8 +6,8 @@ from lesson_tests.managers import LessonTestManager
 from model_clone import CloneMixin
 
 
-# TODO: переписать на SectionTest
-class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
+
+class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
     test_id = models.AutoField(
@@ -23,7 +23,12 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
         verbose_name="Секции",
         help_text="Секция, внутри которой находится этот тест",
     )
-    name = models.CharField(max_length=256, verbose_name="Название", help_text="Название теста")
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Название",
+        help_text="Название теста",
+        default="Имя не придумано",
+        )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
@@ -31,6 +36,10 @@ class LessonTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin)
     random_questions = models.BooleanField(default=False, verbose_name="Перемешать вопросы")
     random_answers = models.BooleanField(default=False, verbose_name="Перемешать ответы")
     show_right_answers = models.BooleanField(default=False, verbose_name="Показать правильные ответы")
+    attempt_limit = models.BooleanField(default=False, verbose_name="Ограничить количество попыток")
+    attempt_count = models.PositiveIntegerField(default=0, verbose_name="Кол-во попыток (если 0, то бесконечно)")
+    balls_per_answer = models.PositiveIntegerField(default=1, verbose_name="Бал за каждый правильный ответ")
+    balls = models.PositiveIntegerField(default=0, verbose_name="Баллы за прохождение")
     _clone_m2o_or_o2m_fields = ["question_test_id_fk"]
 
     objects = LessonTestManager()

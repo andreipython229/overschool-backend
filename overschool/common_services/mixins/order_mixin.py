@@ -1,9 +1,8 @@
-from django.contrib.auth.models import User
 from django.db import models
 
 
 class OrderMixin(models.Model):
-    order = models.IntegerField(verbose_name="Порядок", null=True)
+    order = models.IntegerField(verbose_name="Порядок")
 
     class Meta:
         ordering = [models.F("order").desc(nulls_last=True)]

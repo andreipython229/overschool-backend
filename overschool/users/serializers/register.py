@@ -78,7 +78,7 @@ class LoginSerializer(_LoginSerializer):
 
         # Authentication through username
         if username and password:
-            return self._validate_username(email, password)
+            return self._validate_username(username, password)
 
         # Authentication through either username or email
         return self._validate_username_email(username, email, password)
@@ -95,7 +95,7 @@ class LoginSerializer(_LoginSerializer):
         user = self.get_auth_user(username, email, phone_number, password)
 
         if not user:
-            print("Ошибка")
+            raise ValidationError("Невозможно войти с предоставленными учетными данными")
 
         self.validate_auth_user_status(user)
 

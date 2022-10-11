@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Section, Lesson
 from homeworks.models import Homework
-from lesson_tests.models import LessonTest
+from lesson_tests.models import SectionTest
 from django.db.models import F
 from django.forms.models import model_to_dict
 from courses.serializers import SectionSerializer
@@ -20,6 +20,7 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def lessons(self, request, pk):
         section = self.get_object()
         queryset = Section.objects.filter(section_id=section.pk)
+
         data = queryset.values(
             section_name=F("name"),
             section=F("section_id"),
@@ -33,7 +34,7 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         for index, value in enumerate(data):
             a = Homework.objects.filter(section=value["section"])
             b = Lesson.objects.filter(section=value["section"])
-            c = LessonTest.objects.filter(section=value["section"])
+            c = SectionTest.objects.filter(section=value["section"])
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
                     dict_obj = model_to_dict(obj)

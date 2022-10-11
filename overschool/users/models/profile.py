@@ -1,5 +1,6 @@
 from common_services.models import TimeStampedModel
 from django.db import models
+from oauthlib.common import urldecode
 
 from .user import User
 
@@ -55,7 +56,8 @@ class Profile(TimeStampedModel):
 
     def avatar_url(self):
         if self.avatar:
-            return "https://api.itdev.by" + self.avatar.url
+            url = urldecode("https://api.itdev.by" + self.avatar.url)
+            return url[0][0]
         return None
 
     def __str__(self):

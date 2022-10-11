@@ -7,6 +7,7 @@ class LessonSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели урока
     """
+    type = serializers.CharField(default="lesson")
 
     class Meta:
         model = Lesson
@@ -20,4 +21,6 @@ class LessonSerializer(serializers.ModelSerializer):
                   "file",
                   "audio",
                   "file_url",
-                  "audio_url"]
+                  "audio_url",
+                  "balls",
+                  "type"]

@@ -1,5 +1,7 @@
+from datetime import datetime
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
+from courses.models import StudentsGroup, UserProgressLogs
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
@@ -8,9 +10,9 @@ from courses.serializers import (
 from django.db.models import Avg, Count, F, Sum
 from homeworks.paginators import UserHomeworkPagination
 from lesson_tests.models import UserTest
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.models import User
 from datetime import datetime
 
 
@@ -18,24 +20,13 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
     queryset = StudentsGroup.objects.all()
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.DjangoModelPermissions]
-
-
-class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
     pagination_class = UserHomeworkPagination
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(group_id=request.GET['group_id'])
-            paginator = self.pagination_class()
-            data = paginator.paginate_queryset(request=request, queryset=queryset)
-            return paginator.get_paginated_response(data=data)
-        except KeyError as e:
-            return Response(data={"status": "Error", "message": "No group_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_queryset(self, *args, **kwargs):
-        queryset = StudentsGroup.objects.filter(group_id=kwargs['group_id'])
+    @action(detail=True)
+    def stats(self, request, pk):
+        """ Статистика учеников группы """
+        group = self.get_object()
+        queryset = StudentsGroup.objects.filter(group_id=group.pk)
         data = queryset.values(course=F("course_id"),
                                email=F("students__email"),
                                student_name=F("students__first_name"),
@@ -50,6 +41,7 @@ class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
             progress=(F("students__user_progresses__lesson__order") * 100)
                      / Count("course_id__sections__lessons__lesson_id"),
         )
+
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
@@ -57,28 +49,29 @@ class UsersGroup(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
-        return data
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(data)
 
+    @action(detail=True)
+    def user_count_by_month(self, request, pk):
+        """ Кол-во новых пользователей группы за месяц, по дефолту стоит текущий месяц,
+        для конкретного месяца указываем параметр month_number= """
 
-class GroupUsersByMonthView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
-
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset(
-                month_number=request.GET['month_number'] if 'month_number' in request.GET else datetime.now().month,
-                group_id=request.GET['group_id'])
-            return Response(queryset, status=status.HTTP_200_OK)
-        except KeyError as e:
-            return Response(data={"status": "Error", "message": "No group_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_queryset(self, *args, **kwargs):
-        queryset = StudentsGroup.objects.filter(group_id=kwargs['group_id'],
-                                                students__date_joined__month=kwargs["month_number"])
-        datas = queryset.values(group=F("group_id")).annotate(students_sum=Count("students__id"))
+        group = self.get_object()
+        queryset = StudentsGroup.objects.filter(group_id=group.pk,
+                                                students__date_joined__month=request.GET["month_number"]
+                                                if "month_number" in request.GET
+                                                else datetime.now().month, )
+        datas = queryset.values(group=F("group_id")).annotate(
+            students_sum=Count("students__id")
+        )
         for data in datas:
             data["graphic_data"] = queryset.values(group=F("group_id"), date=F("students__date_joined__day")).annotate(
                 students_sum=Count("students__id")
             )
-        return datas
+        page = self.paginate_queryset(datas)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(datas)
