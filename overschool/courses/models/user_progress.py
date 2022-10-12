@@ -1,14 +1,13 @@
-from common_services.models import TimeStampedModel
+from common_services.mixins import TimeStampMixin
+from courses.models.base_lesson import BaseLesson
 from django.db import models
 from users.models import User
 
 from .course import Course
 from .lesson import Lesson
-from homeworks.models import Homework
-from lesson_tests.models import SectionTest
 
 
-class UserProgressLogs(TimeStampedModel):
+class UserProgressLogs(models.Model, TimeStampMixin):
     """Модель для отслеживания прогресса пользователя"""
 
     user_progress_id = models.AutoField(
@@ -25,31 +24,13 @@ class UserProgressLogs(TimeStampedModel):
         help_text="ID ученика по прогрессу на курсе",
     )
     lesson = models.ForeignKey(
-        Lesson,
+        BaseLesson,
         on_delete=models.CASCADE,
         related_name="user_progresses",
-        verbose_name="ID урока",
-        help_text="ID урока, который прошёл ученик",
+        verbose_name="ID урока/дз/теста",
+        help_text="ID урока/дз/теста, который был завершен",
         null=True,
-        blank=True
-    )
-    homework = models.ForeignKey(
-        Homework,
-        on_delete=models.CASCADE,
-        related_name="user_progresses_homework",
-        verbose_name="ID дз",
-        help_text="ID дз, который прошёл ученик",
-        null=True,
-        blank=True
-    )
-    section_test = models.ForeignKey(
-        SectionTest,
-        on_delete=models.CASCADE,
-        related_name="user_progresses_lesson_test",
-        verbose_name="ID теста",
-        help_text="ID теста, который прошёл ученик",
-        null=True,
-        blank=True
+        blank=True,
     )
 
     def __str__(self) -> str:
