@@ -1,7 +1,7 @@
 [
   {
     "model": "homeworks.HomeWork",
-    "homework_id": 1,
+    "pk": 1,
     "fields": {
       "section": 1,
       "author_id": 1,
@@ -19,7 +19,7 @@
   },
   {
     "model": "homeworks.HomeWork",
-    "homework_id": 2,
+    "pk": 2,
     "fields": {
       "section": 2,
       "author_id": 1,
@@ -37,7 +37,7 @@
   },
   {
     "model": "homeworks.HomeWork",
-    "homework_id": 3,
+    "pk": 3,
     "fields": {
       "section": 3,
       "name": "Домашняя работа по теме GIT",
@@ -55,7 +55,7 @@
   },
   {
     "model": "homeworks.HomeWork",
-    "homework_id": 4,
+    "pk": 4,
     "fields": {
       "section": 1,
       "name": "Домашняя работа по теме функции",
@@ -73,7 +73,7 @@
   },
   {
     "model": "homeworks.HomeWork",
-    "homework_id": 5,
+    "pk": 5,
     "fields": {
       "section": 1,
       "name": "Домашняя работа по 3 и 4 уроку",
