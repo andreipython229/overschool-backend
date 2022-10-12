@@ -7,9 +7,10 @@ class Homework(BaseLesson):
     """Модель домашнего задания"""
 
     automate_accept = models.BooleanField(
+
         verbose_name="Автоматически принимать работы спустя время",
         help_text="После отправки учеником работы спустя указанное кол-во времени"
-        "будет автоматически поставлен зачёт",
+                  "будет автоматически поставлен зачёт",
         default=False,
     )
     time_accept = models.DurationField(
