@@ -5,7 +5,6 @@
     "fields": {
       "user_id": 1,
       "avatar": "media/images/users/avatar_1.png",
-      "phone_number": "+375447606898",
       "city": "Минск",
       "sex": "М",
       "description": "Парень, 25 лет, холост-в активном поиске",

@@ -77,8 +77,8 @@
     "fields": {
       "section": 1,
       "name": "Домашняя работа по 3 и 4 уроку",
-      "text": "Сделайте так, чтобы число секунд отображалось в виде дни:часы:минуты:секунды.",
-      "description": "media/homework/task/files/homework_file_1.odt",
+      "description": "Сделайте так, чтобы число секунд отображалось в виде дни:часы:минуты:секунды.",
+      "file": "media/homework/task/files/homework_file_1.odt",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",
       "order": 5,
