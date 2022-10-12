@@ -1,5 +1,5 @@
+from courses.models import Homework
 from django.contrib import admin
-from homeworks.models import Homework
 
 
 @admin.register(Homework)

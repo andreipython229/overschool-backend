@@ -1,4 +1,3 @@
-from courses.managers import SectionTestManager
 from django.db import models
 from model_clone import CloneMixin
 
@@ -19,8 +18,6 @@ class SectionTest(BaseLesson, CloneMixin):
     attempt_count = models.PositiveIntegerField(default=0, verbose_name="Кол-во попыток (если 0, то бесконечно)")
     points_per_answer = models.PositiveIntegerField(default=1, verbose_name="Бал за каждый правильный ответ")
     _clone_m2o_or_o2m_fields = ["question_test_id_fk"]
-
-    objects = SectionTestManager()
 
     class Meta:
         verbose_name = "Тест"

@@ -1,4 +1,3 @@
-from courses.managers import HomeworkManager
 from django.db import models
 
 from .base_lesson import BaseLesson
@@ -19,7 +18,6 @@ class Homework(BaseLesson):
         blank=True,
         null=True,
     )
-    objects = HomeworkManager()
 
     class Meta:
         verbose_name = "Домашнее задание"

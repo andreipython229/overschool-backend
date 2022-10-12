@@ -35,12 +35,6 @@ class BaseLesson(models.Model, TimeStampMixin, AuthorMixin, OrderMixin):
         blank=True,
         null=True,
     )
-    # code = RichTextField(
-    #     verbose_name="Код",
-    #     help_text="Код для урока",
-    #     blank=True,
-    #     null=True,
-    # )
     points = models.PositiveIntegerField(
         verbose_name="Баллы за прохождение",
         help_text="Баллы за прохождение",
@@ -49,6 +43,3 @@ class BaseLesson(models.Model, TimeStampMixin, AuthorMixin, OrderMixin):
 
     def __str__(self):
         return f"{self.lesson_id}. {self.name}"
-
-    class Meta(OrderMixin.Meta):
-        abstract = True

@@ -1,6 +1,5 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from courses.managers import CourseManager
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
@@ -66,8 +65,6 @@ class Course(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
         null=True,
     )
     _clone_m2o_or_o2m_fields = ["sections"]
-
-    objects = CourseManager()
 
     def photo_url(self):
         if self.photo:

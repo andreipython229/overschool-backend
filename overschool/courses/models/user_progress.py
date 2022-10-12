@@ -1,8 +1,6 @@
 from common_services.mixins import TimeStampMixin
+from courses.models.base_lesson import BaseLesson
 from django.db import models
-from homeworks.models import Homework
-from lesson_tests.models import SectionTest
-from overschool.courses.models.base_lesson import BaseLesson
 from users.models import User
 
 from .course import Course

@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class OrderMixin:
+class OrderMixin(object):
     order = models.IntegerField(verbose_name="Порядок")
 
     class Meta:

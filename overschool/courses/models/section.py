@@ -1,5 +1,4 @@
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from courses.managers import SectionManager
 from django.db import models
 from model_clone import CloneMixin
 
@@ -28,8 +27,6 @@ class Section(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin)
         help_text="Название раздела курса",
     )
     _clone_m2o_or_o2m_fields = ["lessons", "homeworks", "tests"]
-
-    objects = SectionManager()
 
     def __str__(self):
         return str(self.section_id) + " " + str(self.name)
