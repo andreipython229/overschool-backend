@@ -1,6 +1,5 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import OrderMixin
-from common_services.models import AuthorPublishedModel, TimeStampedModel
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from courses.managers import CourseManager
 from django.db import models
 from model_clone import CloneMixin
@@ -20,7 +19,7 @@ class Format(models.TextChoices):
     ONLINE = "ОН", "Онлайн"
 
 
-class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
+class Course(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
     """Модель курсов"""
 
     course_id = models.AutoField(
@@ -36,14 +35,10 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         verbose_name="Формат публикации курса",
         help_text="Формат публикации курса, отображает статус (Опубликован, Не опубликован, Скрыт настройками курса)",
         blank=True,
-        null=True
+        null=True,
     )
     name = models.CharField(
-        max_length=256,
-        verbose_name="Название курса",
-        help_text="Главное название курса",
-        blank=True,
-        null=True
+        max_length=256, verbose_name="Название курса", help_text="Главное название курса", blank=True, null=True
     )
     format = models.CharField(
         max_length=256,
@@ -52,34 +47,23 @@ class Course(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         verbose_name="Формат курса",
         help_text="Формат курса, отображает формат обучения (Онлайн либо Оффлайн)",
         blank=True,
-        null=True
+        null=True,
     )
     duration_days = models.PositiveIntegerField(
-        verbose_name="Продолжительность курса",
-        help_text="Продолжительность курса в днях",
-        blank=True,
-        null=True
+        verbose_name="Продолжительность курса", help_text="Продолжительность курса в днях", blank=True, null=True
     )
     price = models.DecimalField(
-        max_digits=15,
-        decimal_places=2,
-        verbose_name="Цена",
-        help_text="Цена курса в BYN",
-        blank=True,
-        null=True
+        max_digits=15, decimal_places=2, verbose_name="Цена", help_text="Цена курса в BYN", blank=True, null=True
     )
     description = RichTextField(
-        verbose_name="Описание",
-        help_text="Описание курса для отображения, сохраняется в html",
-        blank=True,
-        null=True
+        verbose_name="Описание", help_text="Описание курса для отображения, сохраняется в html", blank=True, null=True
     )
     photo = models.ImageField(
         upload_to="images/courses/main/",
         verbose_name="Фотография",
         help_text="Главная фотография",
         blank=True,
-        null=True
+        null=True,
     )
     _clone_m2o_or_o2m_fields = ["sections"]
 

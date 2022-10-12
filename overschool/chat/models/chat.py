@@ -1,9 +1,9 @@
-from common_services.models import TimeStampedModel
+from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models import User
 
 
-class Chat(TimeStampedModel):
+class Chat(models.Model, TimeStampMixin):
     """
     Модель чата
     """

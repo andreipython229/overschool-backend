@@ -1,4 +1,4 @@
-from common_services.models import TimeStampedModel
+from common_services.mixins import TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 
@@ -12,7 +12,7 @@ class SexChoices(models.TextChoices):
     FEMALE = "Ж", "Женский"
 
 
-class Profile(TimeStampedModel):
+class Profile(TimeStampMixin):
     """Модель профиля пользователя, создается сигналом при создании пользователя"""
 
     profile_id = models.AutoField(
