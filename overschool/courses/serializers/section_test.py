@@ -19,9 +19,8 @@ class TestSerializer(serializers.ModelSerializer):
             "show_right_answers",
             "attempt_limit",
             "attempt_count",
-            "balls_per_answer",
-            "balls",
+            "points_per_answer",
+            "points",
             "order",
-            "published",
             "author_id",
         ]

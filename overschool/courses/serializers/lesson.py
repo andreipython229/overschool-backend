@@ -1,6 +1,5 @@
-from rest_framework import serializers
-
 from courses.models import Lesson
+from rest_framework import serializers
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -16,9 +15,4 @@ class LessonSerializer(serializers.ModelSerializer):
                   "order",
                   "description",
                   "video",
-                  "code",
-                  "file",
-                  "audio",
-                  "file_url",
-                  "audio_url",
-                  "balls"]
+                  "points"]
