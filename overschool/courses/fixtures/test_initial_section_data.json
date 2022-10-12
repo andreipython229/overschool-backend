@@ -1,7 +1,7 @@
 [
   {
     "model": "courses.Section",
-    "section_id": 1,
+    "pk": 1,
     "fields": {
       "course": 1,
       "order": 1,
@@ -14,7 +14,7 @@
   },
   {
     "model": "courses.Section",
-    "section_id": 2,
+    "pk": 2,
     "fields": {
       "course": 1,
       "order": 2,
@@ -27,7 +27,7 @@
   },
   {
     "model": "courses.Section",
-    "section_id": 3,
+    "pk": 3,
     "fields": {
       "course": 1,
       "order": 3,
@@ -53,7 +53,7 @@
   },
   {
     "model": "courses.Section",
-    "section_id": 5,
+    "pk": 5,
     "fields": {
       "course": 1,
       "order": 5,

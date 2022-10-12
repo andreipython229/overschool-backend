@@ -1,7 +1,7 @@
 [
   {
     "model": "lesson_tests.SectionTest",
-    "test_id": 1,
+    "pk": 1,
     "fields": {
       "section": 1,
       "name": "Типы данных",
@@ -22,7 +22,7 @@
   },
   {
     "model": "lesson_tests.SectionTest",
-    "test_id": 2,
+    "pk": 2,
     "fields": {
       "section": 2,
       "name": "Коллекции",
@@ -43,7 +43,7 @@
   },
   {
     "model": "lesson_tests.SectionTest",
-    "test_id": 3,
+    "pk": 3,
     "fields": {
       "section": 3,
       "name": "Функции",
@@ -64,7 +64,7 @@
   },
    {
     "model": "lesson_tests.SectionTest",
-    "test_id": 4,
+    "pk": 4,
     "fields": {
       "section": 1,
       "name": "Классы",
@@ -85,7 +85,7 @@
   },
   {
     "model": "lesson_tests.SectionTest",
-    "test_id": 5,
+    "pk": 5,
     "fields": {
       "section": 1,
       "name": "Git",
