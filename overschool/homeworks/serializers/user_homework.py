@@ -4,6 +4,16 @@ from homeworks.models import UserHomework
 from rest_framework import serializers
 
 
+class AllUserHomeworkSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели всех выполненных домашних работ
+    """
+
+    class Meta:
+        model = UserHomework
+        fields = "__all__"
+
+
 class UserHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели выполненной домашней работы со стороны ученика
@@ -76,4 +86,4 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
                                            default=None)
 
     class Meta:
-        fields = '__all__'
+        fields = "__all__"
