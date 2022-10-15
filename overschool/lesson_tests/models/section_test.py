@@ -6,7 +6,6 @@ from lesson_tests.managers import LessonTestManager
 from model_clone import CloneMixin
 
 
-
 class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
     """Модель теста"""
 
@@ -28,7 +27,7 @@ class SectionTest(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin
         verbose_name="Название",
         help_text="Название теста",
         default="Имя не придумано",
-        )
+    )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "chat.apps.ChatConfig",
     "courses.apps.CoursesConfig",
     "lesson_tests.apps.LessonTestsConfig",
+    "schools.apps.SchoolsConfig",
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
