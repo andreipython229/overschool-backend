@@ -1,7 +1,7 @@
 [
   {
     "model": "lesson_tests.Question",
-    "question_id": 1,
+    "pk": 1,
     "fields": {
       "test_id": 1,
       "body": "<p>Вопрос с подвохом 1<p>",
@@ -11,7 +11,7 @@
   },
   {
     "model": "lesson_tests.Question",
-    "question_id": 2,
+    "pk": 2,
     "fields": {
       "test_id": 1,
       "body": "<p>Вопрос с подвохом 2<p>",
@@ -21,7 +21,7 @@
   },
   {
     "model": "lesson_tests.Question",
-    "question_id": 3,
+    "pk": 3,
     "fields": {
       "test_id": 1,
       "body": "<p>Вопрос с подвохом 3<p>",
@@ -31,7 +31,7 @@
   },
   {
     "model": "lesson_tests.Question",
-    "question_id": 4,
+    "pk": 4,
     "fields": {
       "test_id": 1,
       "body": "<p>Вопрос с подвохом 4<p>",
@@ -41,7 +41,7 @@
   },
   {
     "model": "lesson_tests.Question",
-    "question_id": 5,
+    "pk": 5,
     "fields": {
       "test_id": 1,
       "body": "<p>Вопрос с подвохом 5<p>",

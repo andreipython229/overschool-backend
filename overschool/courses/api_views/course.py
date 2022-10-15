@@ -41,7 +41,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
-        )
+            section_order=F("sections__order")
+        ).order_by("sections__order")
         result_data = dict(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
@@ -135,7 +136,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 .values("user")
                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
-            row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
+            row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0
         page = self.paginate_queryset(data)
         if page is not None:
             return self.get_paginated_response(page)
