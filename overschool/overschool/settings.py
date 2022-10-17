@@ -13,7 +13,11 @@ import datetime
 import os
 from pathlib import Path
 
+
 from environ import Env
+
+# import django
+# django.setup()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,6 +63,8 @@ INSTALLED_APPS = [
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
     "corsheaders",
+    'chats.apps.ChatsConfig',
+    'channels',
 ]
 
 REDIS_HOST = "redis"
@@ -116,6 +122,15 @@ CORS_ALLOW_HEADERS = (
     "Pragma",
 )
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
+        },
+    },
+}
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -147,6 +162,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "overschool.wsgi.application"
 
+ASGI_APPLICATION = "overschool.asgi.application"
+
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
@@ -157,6 +174,7 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
 
 AUTH_USER_MODEL = "users.User"
 
