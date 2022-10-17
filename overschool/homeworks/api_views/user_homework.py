@@ -2,11 +2,14 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.db.models import F, Max, Q
 from django.db.models.expressions import Window
 from homeworks.models import UserHomework
+from users.models import User
 from homeworks.paginators import UserHomeworkPagination
 from homeworks.serializers import (
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
+    TeacherHomeworkSerializer,
 )
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 
@@ -15,6 +18,86 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
     # permission_classes = [permissions.DjangoModelPermissions]
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        if isinstance(user, AnonymousUser):
+            return Response(
+                {"status": "Error", "message": "Пользователь не авторизирован"},
+            )
+        teacher_group = user.students_group_fk.get()
+        teacher = User.objects.get(id=teacher_group.teacher_id_id)
+
+        serializer = UserHomeworkSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(user=user, teacher=teacher)
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            {'error': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def update(self, request, *args, **kwargs):
+        user_homework = self.get_object()
+        user = self.request.user
+
+        homeworks = UserHomework.objects.get(pk=user_homework.pk)
+        if homeworks.user != user:
+            return Response(
+                {"status": "Error", "message": "Пользователь может обновлять только свою домашнюю работу"},
+            )
+        else:
+            if request.data.get("text"):
+                homeworks.text = request.data.get("text")
+            if request.data.get("file"):
+                homeworks.file = request.data.get("file")
+
+            serializer = UserHomeworkSerializer(homeworks)
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+
+
+class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+    queryset = UserHomework.objects.all()
+    serializer_class = TeacherHomeworkSerializer
+    permission_classes = [permissions.DjangoModelPermissions]
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"status": "Error", "message": "Не доступно для учителя"},
+        )
+
+    def update(self, request, *args, **kwargs):
+        user_homework = self.get_object()
+        user = self.request.user
+        print(user)
+        homeworks = UserHomework.objects.get(pk=user_homework.pk)
+        if homeworks.teacher != user:
+            return Response(
+                {"status": "Error", "message": "Учитель может обновлять домашние работы только своей группы"},
+            )
+        else:
+            if request.data.get("teacher_message"):
+                homeworks.teacher_message = request.data.get("teacher_message")
+            if request.data.get("mark"):
+                homeworks.mark = request.data.get("mark")
+            if request.data.get("status"):
+                homeworks.status = request.data.get("status")
+
+            serializer = UserHomeworkSerializer(homeworks)
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
 
 
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):

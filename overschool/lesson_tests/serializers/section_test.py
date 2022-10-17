@@ -10,4 +10,19 @@ class TestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SectionTest
-        fields = "__all__"
+        fields = [
+            "test_id",
+            "section",
+            "name",
+            "success_percent",
+            "random_questions",
+            "random_answers",
+            "show_right_answers",
+            "attempt_limit",
+            "attempt_count",
+            "balls_per_answer",
+            "balls",
+            "order",
+            "published",
+            "author_id"
+        ]

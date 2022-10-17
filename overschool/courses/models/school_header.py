@@ -1,6 +1,7 @@
 from ckeditor.fields import RichTextField
 from common_services.models import TimeStampedModel
 from django.db import models
+from oauthlib.common import urldecode
 
 
 class SchoolHeader(TimeStampedModel):
@@ -57,22 +58,26 @@ class SchoolHeader(TimeStampedModel):
 
     def logo_school_url(self):
         if self.logo_school:
-            return "https://api.itdev.by" + self.logo_school.url
+            url = urldecode("https://api.itdev.by" + self.logo_school.url)
+            return url[0][0]
         return None
 
     def logo_header_url(self):
         if self.logo_header:
-            return "https://api.itdev.by" + self.logo_header.url
+            url = urldecode("https://api.itdev.by" + self.logo_header.url)
+            return url[0][0]
         return None
 
     def photo_background_url(self):
         if self.photo_background:
-            return "https://api.itdev.by" + self.photo_background.url
+            url = urldecode("https://api.itdev.by" + self.photo_background.url)
+            return url[0][0]
         return None
 
     def favicon_url(self):
         if self.favicon:
-            return "https://api.itdev.by" + self.favicon.url
+            url = urldecode("https://api.itdev.by" + self.favicon.url)
+            return url[0][0]
         return None
 
     def __str__(self):

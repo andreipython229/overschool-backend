@@ -25,21 +25,25 @@ DOCKER_TEST = docker-compose exec back python  overschool/manage.py
 	${MANAGE} migrate 
 	${MANAGE} runserver 0.0.0.0:8000
 
+ prod:
+	${MANAGE} makemigrations
+	${MANAGE} migrate
+	${MANAGE} runserver --settings=overschool.postgres_connection_settings
+
  test:
 	${DOCKER_TEST} loaddata initial_role_data.json
 	${DOCKER_TEST} loaddata test_document_data.json
-# 	${DOCKER_TEST} loaddata test_user_initial_data.json
-	#${DOCKER_TEST} loaddata test_profile_initial_data.json
+	${DOCKER_TEST} loaddata test_user_initial_data.json
 	${DOCKER_TEST} loaddata test_initial_course_data.json
 	${DOCKER_TEST} loaddata test_initial_section_data.json
 	${DOCKER_TEST} loaddata test_initial_lesson_data.json
-	${DOCKER_TEST} loaddata test_initial_user_progress_data.json
 	${DOCKER_TEST} loaddata test_initial_homework_data.json
 	${DOCKER_TEST} loaddata test_initial_user_homework_data.json
-	${DOCKER_TEST} loaddata test_initial_data_lesson_test.json
+	${DOCKER_TEST} loaddata test_initial_data_section_test.json
 	${DOCKER_TEST} loaddata test_initial_data_question.json
 	${DOCKER_TEST} loaddata test_initial_data_answer.json
 	${DOCKER_TEST} loaddata test_initial_data_user_test.json
+	${DOCKER_TEST} loaddata test_initial_user_progress_data.json
 	${DOCKER_TEST} loaddata test_initial_students_group_data.json
 
 

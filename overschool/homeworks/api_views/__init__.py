@@ -1,2 +1,2 @@
 from .homework import HomeworkViewSet
-from .user_homework import HomeworkStatisticsView, UserHomeworkViewSet
+from .user_homework import HomeworkStatisticsView, UserHomeworkViewSet, TeacherHomeworkViewSet

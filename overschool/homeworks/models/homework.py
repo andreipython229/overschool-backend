@@ -4,6 +4,7 @@ from common_services.models import AuthorPublishedModel, TimeStampedModel
 from django.db import models
 from homeworks.managers import HomeworkManager
 from courses.models import Section
+from oauthlib.common import urldecode
 
 
 class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
@@ -27,7 +28,7 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
         help_text="Домашняя работа по уроку,теме..",
         default="Имя не придумано",
     )
-    text = RichTextField(
+    description = RichTextField(
         verbose_name="Описание домашнего задания",
         help_text="HTML вариан описания домашки",
         blank=True,
@@ -51,9 +52,9 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
                   "будет автоматически поставлен зачёт",
         default=False,
     )
-    time_accept = models.TimeField(
+    time_accept = models.DurationField(
         verbose_name="Поставить зачёт через",
-        help_text="Время через которое будет автоматически поставлен зачёт",
+        help_text="Время через которое будет автоматически поставлен зачёт, формат: [DD] [HH:[MM:]]ss[.uuuuuu]",
         blank=True,
         null=True,
     )
@@ -61,7 +62,8 @@ class Homework(TimeStampedModel, AuthorPublishedModel, OrderMixin):
 
     def file_url(self):
         if self.file:
-            return "https://api.itdev.by" + self.file.url
+            url = urldecode("https://api.itdev.by" + self.file.url)
+            return url[0][0]
         return None
 
     def __str__(self):

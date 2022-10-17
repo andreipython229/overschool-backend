@@ -7,7 +7,6 @@ class HomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор моедли домашнего задания
     """
-
     class Meta:
         model = Homework
         fields = ["homework_id",
@@ -15,10 +14,10 @@ class HomeworkSerializer(serializers.ModelSerializer):
                   "name",
                   "order",
                   "author_id",
-                  "text",
+                  "description",
                   "file",
                   "file_url",
                   "published",
                   "automate_accept",
                   "time_accept",
-                  "balls", ]
+                  "balls"]
