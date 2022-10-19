@@ -15,6 +15,8 @@ from pathlib import Path
 
 from environ import Env
 
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env(DEBUG=(bool, False))
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
     "django_filters",
     'chats.apps.ChatsConfig',
     'channels',
+
 ]
 
 REDIS_HOST = "redis"
@@ -94,7 +97,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://api.itdev.by"]
+CSRF_TRUSTED_ORIGINS = ['https://api.itdev.by']
 
 CORS_ALLOW_METHODS = (
     "DELETE",
@@ -172,6 +175,7 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
 
 AUTH_USER_MODEL = "users.User"
 
@@ -257,17 +261,17 @@ SIMPLE_JWT = {
 }
 
 REST_USE_JWT = True
-JWT_AUTH_COOKIE = "jwt-auth"
+JWT_AUTH_COOKIE = 'jwt-auth'
 
 REST_AUTH_REGISTER_PERMISSION_CLASSES = (
-    "rest_framework.permissions.DjangoModelPermissions",
+    'rest_framework.permissions.DjangoModelPermissions',
 )
 REST_AUTH_REGISTER_SERIALIZERS = {
-    "REGISTER_SERIALIZER": "users.serializers.register.RegisterSerializer",
+    'REGISTER_SERIALIZER': 'users.serializers.register.RegisterSerializer',
 }
 REST_AUTH_SERIALIZERS = {
-    "LOGIN_SERIALIZER": "users.serializers.register.LoginSerializer",
-    "USER_DETAILS_SERIALIZER": "users.serializers.register.UserDetailsSerializer",
+    'LOGIN_SERIALIZER': 'users.serializers.register.LoginSerializer',
+    'USER_DETAILS_SERIALIZER': 'users.serializers.register.UserDetailsSerializer',
 }
 
 # ckeditor settings

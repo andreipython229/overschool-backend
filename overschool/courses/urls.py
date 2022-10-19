@@ -1,5 +1,3 @@
-from rest_framework import routers
-
 from courses.api_views import (
     CourseViewSet,
     AudioFileView,
@@ -8,8 +6,10 @@ from courses.api_views import (
     StudentsGroupViewSet,
     StudentsTableInfoViewSet,
 )
+from rest_framework import routers
 
 router = routers.DefaultRouter()
+
 router.register("courses", CourseViewSet, basename="courses")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
