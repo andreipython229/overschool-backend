@@ -8,10 +8,10 @@ from .homework import Homework
 class UserHomeworkStatusChoices(models.TextChoices):
     """Варианты статусов для ответа на домашнее задание"""
 
-    ARRIVE = "ПРИ", "Пришёл"
-    CHECKED = "ПРО", "Проверен"
-    FAILED = "НЕП", "Неправильно"
-    SUCCESS = "ПРА", "Правильно"
+    ARRIVE = "На доработке", "На доработке"
+    CHECKED = "Ждет проверки", "Ждет проверки"
+    FAILED = "Отклонено", "Отклонено"
+    SUCCESS = "Принято", "Принято"
 
 
 class UserHomework(TimeStampedModel):

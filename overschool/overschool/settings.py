@@ -16,8 +16,7 @@ from pathlib import Path
 
 from environ import Env
 
-# import django
-# django.setup()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -65,6 +64,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'chats.apps.ChatsConfig',
     'channels',
+    "django_filters",
 ]
 
 REDIS_HOST = "redis"
@@ -167,13 +167,13 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {"default": env.db_url("DB_URL_DEV")}
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
+# DATABASES = {"default": env.db_url("DB_URL_DEV")}
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
 
 AUTH_USER_MODEL = "users.User"
