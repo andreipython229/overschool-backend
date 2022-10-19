@@ -38,7 +38,7 @@ class SenderServiceMixin(RedisDataMixin):
         """
         return random.randint(1000, 10000)
 
-    def send_code_by_phone(self, phone: str, user_type: int, course: int) -> str | None:
+    def send_code_by_phone(self, phone: str, user_type: int, course: int = 0) -> str | None:
         """
         Отправка кода на телефон, пока поддерживаются только белорусские и русские номера
         """
@@ -70,7 +70,7 @@ class SenderServiceMixin(RedisDataMixin):
         else:
             return None
 
-    def send_code_by_email(self, email: str, user_type: int, course: int) -> bool:
+    def send_code_by_email(self, email: str, user_type: int, course: int = 0) -> bool:
         """
         Отправка ссылки на email
         """

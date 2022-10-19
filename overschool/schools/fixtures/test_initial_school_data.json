@@ -1,0 +1,57 @@
+[
+  {
+    "model": "schools.School",
+    "school_id": 1,
+    "fields": {
+      "name": "School_1",
+      "avatar": "images/school/main/school_file_1.odt",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 1
+    }
+  },
+  {
+    "model": "schools.School",
+    "school_id": 2,
+    "fields": {
+      "name": "School_2",
+      "avatar": "images/school/main/school_file_2.odt",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 2
+    }
+  },
+  {
+    "model": "schools.School",
+    "school_id": 3,
+    "fields": {
+      "name": "School_3",
+      "avatar": "images/school/main/school_file_3.odt",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 3
+    }
+  },
+  {
+    "model": "schools.School",
+    "school_id": 4,
+    "fields": {
+      "name": "School_4",
+      "avatar": "images/school/main/school_file_4.odt",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 4
+    }
+  },
+  {
+    "model": "schools.School",
+    "school_id": 5,
+    "fields": {
+      "name": "School_5",
+      "avatar": "images/school/main/school_file_5.odt",
+      "created_at": "2022-08-02 12:34:37.000000-03:00",
+      "updated_at": "2022-08-02 12:34:37.000000-03:00",
+      "order": 5
+    }
+  }
+]

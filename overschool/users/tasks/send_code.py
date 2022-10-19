@@ -20,8 +20,8 @@ def send_code_to_phone(url: str, params: dict, method: str):
 
 @app.task
 def send_email(recipient_mail: str, message: str):
-    message = get_template('email_notification_template.html').render({"register_url": message})
-    msg = EmailMessage('Registration overschool', message, settings.DEFAULT_FROM_EMAIL, (recipient_mail,))
+    message = get_template("email_notification_template.html").render({"register_url": message})
+    msg = EmailMessage("Registration overschool", message, settings.DEFAULT_FROM_EMAIL, (recipient_mail,))
     msg.content_subtype = "html"
     msg.send(
         fail_silently=True

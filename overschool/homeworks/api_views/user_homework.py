@@ -1,24 +1,41 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import F, Max
 from django.db.models.expressions import Window
-from django_filters.rest_framework import DjangoFilterBackend
 from homeworks.models import UserHomework
 from homeworks.paginators import UserHomeworkPagination
 from homeworks.serializers import (
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
     TeacherHomeworkSerializer,
+    AllUserHomeworkSerializer,
 )
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from users.models import User
 
 
+class AllUserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet, generics.ListAPIView):
+    """
+    Эндпоинт на получение всё домашних работ учеников с фильтрами по полям ("user", "teacher")
+    """
+    queryset = UserHomework.objects.all()
+    serializer_class = AllUserHomeworkSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["user", "teacher"]
+    http_method_names = ["get", "head"]
+    permission_classes = [permissions.DjangoModelPermissions]
+
+
 class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+    """
+    Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
+    (свои поля-"text", "file"), учитель подкидывается исходя из группы пользователя.
+    """
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
-
     # permission_classes = [permissions.DjangoModelPermissions]
 
     def create(self, request, *args, **kwargs):
@@ -40,7 +57,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             )
 
         return Response(
-            {'error': serializer.errors},
+            {"error": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -66,21 +83,32 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK
             )
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = self.request.user
+        homeworks = UserHomework.objects.get(pk=instance.pk)
+        if homeworks.user != user:
+            return Response(
+                {"status": "Error", "message": "Пользователь может удалить только свою домашнюю работу"},
+            )
+        else:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+    """
+    Учитель может редактировать и удалять только дз своих учеников
+    и свои поля ("status", "mark", "teacher_message“).
+    """
     queryset = UserHomework.objects.all()
     serializer_class = TeacherHomeworkSerializer
     permission_classes = [permissions.DjangoModelPermissions]
-
-    def create(self, request, *args, **kwargs):
-        return Response(
-            {"status": "Error", "message": "Не доступно для учителя"},
-        )
+    http_method_names = ["get", "patch", "put", "head", "delete"]
 
     def update(self, request, *args, **kwargs):
         user_homework = self.get_object()
         user = self.request.user
-        print(user)
         homeworks = UserHomework.objects.get(pk=user_homework.pk)
         if homeworks.teacher != user:
             return Response(
@@ -100,6 +128,18 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 serializer.data,
                 status=status.HTTP_200_OK
             )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = self.request.user
+        homeworks = UserHomework.objects.get(pk=instance.pk)
+        if homeworks.teacher != user:
+            return Response(
+                {"status": "Error", "message": "Учитель может удалять домашние работы только своей группы"},
+            )
+        else:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):

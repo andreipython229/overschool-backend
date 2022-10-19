@@ -13,7 +13,6 @@ import datetime
 import os
 from pathlib import Path
 
-
 from environ import Env
 
 
@@ -58,13 +57,15 @@ INSTALLED_APPS = [
     "chat.apps.ChatConfig",
     "courses.apps.CoursesConfig",
     "lesson_tests.apps.LessonTestsConfig",
+    "schools.apps.SchoolsConfig",
     "djoser",
     "dbbackup",
     "homeworks.apps.HomeworksConfig",
     "corsheaders",
+    "django_filters",
     'chats.apps.ChatsConfig',
     'channels',
-    "django_filters",
+
 ]
 
 REDIS_HOST = "redis"
@@ -147,7 +148,7 @@ ROOT_URLCONF = "overschool.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -239,14 +240,14 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
     ],
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
     ],
-    'EXCEPTION_HANDLER': 'users.exceptions.user_registration.core_exception_handler',
-    'NON_FIELD_ERRORS_KEY': 'error',
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
+    "NON_FIELD_ERRORS_KEY": "error",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
 }
 
@@ -254,9 +255,9 @@ SITE_ID = 1
 ACCOUNT_SESSION_REMEMBER = True
 
 SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer", "JWT"),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=7),
 }
 
 REST_USE_JWT = True
