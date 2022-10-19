@@ -1,4 +1,4 @@
-from courses.models import SchoolHeader
+from schools.models import SchoolHeader
 from rest_framework import serializers
 
 
