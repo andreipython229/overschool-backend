@@ -1,6 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from rest_framework import generics, permissions, status, viewsets
-from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +21,7 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
     """
 
     serializer_class = InviteSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request: Request):
         """
@@ -31,23 +30,42 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
         serializer = InviteSerializer(data=request.data)
         if serializer.is_valid():
             sender_type = serializer.data["sender_type"]
-            if sender_type == "email":
+            if sender_type == "email" and serializer.data["user_type"] == 1:
                 result = self.send_code_by_email(
                     serializer.data["recipient"],
                     serializer.data["user_type"],
                     serializer.data["course_id"],
                 )
-            else:
+            if sender_type == "email" and serializer.data["user_type"] != 1:
+                result = self.send_code_by_email(
+                    serializer.data["recipient"],
+                    serializer.data["user_type"],
+                )
+            if sender_type == "phone" and serializer.data["user_type"] == 1:
                 result = self.send_code_by_phone(
                     serializer.data["recipient"],
                     serializer.data["user_type"],
                     serializer.data["course_id"],
                 )
-            if result:
+            if sender_type == "phone" and serializer.data["user_type"] != 1:
+                result = self.send_code_by_phone(
+                    serializer.data["recipient"],
+                    serializer.data["user_type"],
+                )
+            if result and serializer.data["user_type"] == 1:
                 self._save_data_to_redis(
                     serializer.data["recipient"],
                     serializer.data["user_type"],
                     serializer.data["course_id"],
+                )
+                return Response(
+                    {"status": "OK", "message": "Url was sent"},
+                    status=status.HTTP_200_OK,
+                )
+            if result and serializer.data["user_type"] != 1:
+                self._save_data_to_redis(
+                    serializer.data["recipient"],
+                    serializer.data["user_type"],
                 )
                 return Response(
                     {"status": "OK", "message": "Url was sent"},
@@ -72,9 +90,9 @@ class ValidTokenView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin
 
     serializer_class = ValidTokenSerializer
     queryset = User.objects.all()
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
+    def post(self, request):
         """
         Отправка данных, которые оставил админ, при входе юзера на страницу регистрации
         """
@@ -103,7 +121,7 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
     """
 
     serializer_class = UserSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)

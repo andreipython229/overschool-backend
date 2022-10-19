@@ -35,7 +35,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
-    # permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     def create(self, request, *args, **kwargs):
         user = self.request.user
