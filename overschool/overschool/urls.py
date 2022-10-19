@@ -27,6 +27,7 @@ urlpatterns = [
                        name="password_reset_confirm"),
                   path("api/password_change/", PasswordChangeView.as_view(), name="password_change"),
                   path("api/", include(router.urls)),
+                  path('api/chats/', include('chats.urls')),
                   re_path(
                       r'^account-confirm-email/(?P<key>[-:\w]+)/$', TemplateView.as_view(),
                       name="account_confirm_email",

@@ -12,6 +12,9 @@ services:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_REPLICATION_MODE=master
+
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
   back:
     build: overschool
     image: back

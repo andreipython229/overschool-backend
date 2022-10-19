@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     "homeworks.apps.HomeworksConfig",
     "corsheaders",
     "django_filters",
+    'chats.apps.ChatsConfig',
+    'channels',
 ]
 
 REDIS_HOST = "redis"
@@ -118,6 +120,15 @@ CORS_ALLOW_HEADERS = (
     "Pragma",
 )
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
+        },
+    },
+}
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -148,6 +159,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "overschool.wsgi.application"
+
+ASGI_APPLICATION = "overschool.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
