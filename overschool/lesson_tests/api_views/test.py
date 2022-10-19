@@ -16,7 +16,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     @action(detail=True)
     def questions(self, request, pk):
         """ Данные по вопросам теста"""
-        test_obj = SectionTest.objects.get(test_id=pk).__dict__
+        test_obj = SectionTest.objects.get(pk=pk).__dict__
         test = {
             "test": test_obj['test_id'],
             "name": test_obj['test_id'],
