@@ -1,12 +1,12 @@
-from rest_framework import serializers
-
 from homeworks.models import Homework
+from rest_framework import serializers
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор моедли домашнего задания
     """
+
     class Meta:
         model = Homework
         fields = ["homework_id",
@@ -21,3 +21,6 @@ class HomeworkSerializer(serializers.ModelSerializer):
                   "automate_accept",
                   "time_accept",
                   "balls"]
+
+
+

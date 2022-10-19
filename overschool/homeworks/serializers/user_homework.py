@@ -77,3 +77,13 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
 
     class Meta:
         fields = '__all__'
+
+
+class AllUserHomeworkSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели всех выполненных домашних работ
+    """
+
+    class Meta:
+        model = UserHomework
+        fields = "__all__"

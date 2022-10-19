@@ -1,6 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import SchoolHeader
-from courses.serializers import SchoolHeaderSerializer
+from schools.models import SchoolHeader
+from schools.serializers import SchoolHeaderSerializer
 from rest_framework import permissions, viewsets
 
 

@@ -1,6 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import F, Max
 from django.db.models.expressions import Window
 from homeworks.models import UserHomework
@@ -162,20 +161,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
 
     def get_queryset(self, *args, **kwargs):
         queryset = UserHomework.objects.all()
-        #     Q(updated_at__gte=kwargs["start_date"]) & Q(updated_at__lte=kwargs["end_date"])
-        # )
-        # try:
-        #     queryset = queryset.filter(Q(mark__gte=kwargs["start_mark"]) & Q(mark__lte=kwargs["end_mark"]))
-        # except KeyError:
-        #     pass
-        # if kwargs["status"]:
-        #     queryset = queryset.filter(status=kwargs["status"])
-        # if kwargs["homework_id"]:
-        #     queryset = queryset.filter(homework_id__in=kwargs["homework_id"])
-        # if kwargs["course_id"]:
-        #     queryset = queryset.filter(homework__lesson__section__course__id=kwargs["course_id"])
-        # if kwargs["group_id"]:
-        #     queryset = queryset.filter(user__pk=kwargs["group_id"])
+
         return queryset.values(
             "mark",
             "status",
