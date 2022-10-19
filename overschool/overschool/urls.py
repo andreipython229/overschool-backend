@@ -15,23 +15,21 @@ from users.api_views.user import InviteView, ValidTokenView, UserRegistration
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
-                  path('api/register/', RegisterView.as_view(), name="register"),
-                  path('api/login/', LoginView.as_view(), name="login"),
-                  path('api/logout/', LogoutView.as_view(), name="logout"),
-                  path('api/token-refresh/', get_refresh_view().as_view(), name='token_refresh'),
-                  path('api/password_reset/', PasswordResetView.as_view(), name='password_reset'),
-
-                  path('api/invite', InviteView.as_view(), name='invite'),
-                  path('api/valid-token', ValidTokenView.as_view(), name='valid_token'),
-                  path('api/user-register', UserRegistration.as_view(), name='user_register'),
-
-                  path('api/password_reset/confirm/', PasswordResetConfirmView.as_view(),
-                       name='password_reset_confirm'),
-                  path('api/password_change/', PasswordChangeView.as_view(), name='password_change'),
+                  path("api/register/", RegisterView.as_view(), name="register"),
+                  path("api/login/", LoginView.as_view(), name="login"),
+                  path("api/logout/", LogoutView.as_view(), name="logout"),
+                  path("api/token-refresh/", get_refresh_view().as_view(), name="token_refresh"),
+                  path("api/password_reset/", PasswordResetView.as_view(), name="password_reset"),
+                  path("api/invite", InviteView.as_view(), name="invite"),
+                  path("api/valid-token", ValidTokenView.as_view(), name="valid_token"),
+                  path("api/user-register", UserRegistration.as_view(), name="user_register"),
+                  path("api/password_reset/confirm/", PasswordResetConfirmView.as_view(),
+                       name="password_reset_confirm"),
+                  path("api/password_change/", PasswordChangeView.as_view(), name="password_change"),
                   path("api/", include(router.urls)),
                   re_path(
                       r'^account-confirm-email/(?P<key>[-:\w]+)/$', TemplateView.as_view(),
-                      name='account_confirm_email',
+                      name="account_confirm_email",
                   ),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

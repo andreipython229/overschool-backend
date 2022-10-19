@@ -22,7 +22,6 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
 
     serializer_class = InviteSerializer
     permission_classes = [permissions.AllowAny]
-    http_method_names = ["post"]
 
     def post(self, request: Request):
         """
@@ -48,7 +47,7 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
                     serializer.data["user_type"],
                     serializer.data["course_id"],
                 )
-            else:
+            if sender_type == "phone" and serializer.data["user_type"] != 1:
                 result = self.send_code_by_phone(
                     serializer.data["recipient"],
                     serializer.data["user_type"],
@@ -93,7 +92,7 @@ class ValidTokenView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
+    def post(self, request):
         """
         Отправка данных, которые оставил админ, при входе юзера на страницу регистрации
         """
@@ -122,7 +121,7 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
     """
 
     serializer_class = UserSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)

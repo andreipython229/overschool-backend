@@ -35,11 +35,10 @@ class RedisDataMixin:
             data = {}
         return data
 
-    def _save_data_to_redis(self, recipient: str, user_type: int, course: int) -> str:
+    def _save_data_to_redis(self, recipient: str, user_type: int, course: int = 0) -> str:
         """
         Функция сохранения данных для регистрации, пока в redis (есть идея сохранять в бд)
         """
-        course = 0
         token = secrets.token_hex(16)
         RedisDataMixin.REDIS_INSTANCE.lpush(
             RedisDataMixin.REGISTRATION_DATA_KEY,

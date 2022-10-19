@@ -24,18 +24,18 @@ services:
       - redis
     volumes:
       - .:/code/
-#  celery:
-#    restart: always
-#    build:
-#      context: overschool
-#    command: celery -A overschool worker -l info
-#    volumes:
-#      - ./app:/app
-#  celery-beat:
-#    build:
-#      context: overschool
-#    command: celery -A overschool beat -l info
-#    volumes:
-#      - .app:/app_beat
-#    depends_on:
-#      - redis
+  celery:
+    restart: always
+    build:
+      context: overschool
+    command: celery -A overschool worker -l info
+    volumes:
+      - ./app:/app
+  celery-beat:
+    build:
+      context: overschool
+    command: celery -A overschool beat -l info
+    volumes:
+      - .app:/app_beat
+    depends_on:
+      - redis
