@@ -74,6 +74,10 @@ class UserHomeworkStatisticsSerializer(serializers.Serializer):
     homework_id = serializers.IntegerField(help_text="Id домашней работы",
                                            required=False,
                                            default=None)
+    course_name = serializers.CharField(max_length=50, help_text="Тема курса", required=False,
+                                        default=None)
+    homework_name = serializers.CharField(max_length=50, help_text="Тема дз", required=False,
+                                          default=None)
 
     class Meta:
         fields = '__all__'

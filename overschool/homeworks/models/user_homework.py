@@ -12,6 +12,7 @@ class UserHomeworkStatusChoices(models.TextChoices):
     CHECKED = "Ждет проверки", "Ждет проверки"
     FAILED = "Отклонено", "Отклонено"
     SUCCESS = "Принято", "Принято"
+    AUTO = "Автоматически", "Автоматически"
 
 
 class UserHomework(TimeStampedModel):
