@@ -1,7 +1,8 @@
-from django_filters.rest_framework import DjangoFilterBackend
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import F, Max
 from django.db.models.expressions import Window
+from django_filters.rest_framework import DjangoFilterBackend
 from homeworks.models import UserHomework
 from homeworks.paginators import UserHomeworkPagination
 from homeworks.serializers import (
@@ -10,7 +11,6 @@ from homeworks.serializers import (
     TeacherHomeworkSerializer,
     AllUserHomeworkSerializer,
 )
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from users.models import User
@@ -146,21 +146,35 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["mark", "status", "homework__section__course__name", "homework__name"]
 
-    def list(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            queryset = self.get_queryset(**serializer.data)
-            paginator = self.pagination_class()
-            data = paginator.paginate_queryset(request=request, queryset=queryset)
-            return paginator.get_paginated_response(data=data)
-        else:
-            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     def get_queryset(self, *args, **kwargs):
         queryset = UserHomework.objects.all()
+
+        if self.request.GET.get('status'):
+            queryset = queryset.filter(status=self.request.GET.get('status'))
+
+        if self.request.GET.get('start_mark'):
+            queryset = queryset.filter(mark__gte=self.request.GET.get('start_mark'))
+
+        if self.request.GET.get('end_mark'):
+            queryset = queryset.filter(mark__lte=self.request.GET.get('end_mark'))
+
+        if self.request.GET.get('mark'):
+            queryset = queryset.filter(mark=self.request.GET.get('mark'))
+
+        if self.request.GET.get('course_name'):
+            queryset = queryset.filter(homework__section__course__name=self.request.GET.get('course_name'))
+
+        if self.request.GET.get('homework_name'):
+            queryset = queryset.filter(homework__name=self.request.GET.get('homework_name'))
+
+        if self.request.GET.get('start_date'):
+            queryset = queryset.filter(updated_at__gte=self.request.GET.get('start_date'))
+
+        if self.request.GET.get('end_date'):
+            queryset = queryset.filter(updated_at__lte=self.request.GET.get('end_date'))
 
         return queryset.values(
             "mark",
@@ -178,4 +192,12 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             ),
         )
 
-
+    def list(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            queryset = self.get_queryset(**serializer.data)
+            paginator = self.pagination_class()
+            data = paginator.paginate_queryset(request=request, queryset=queryset)
+            return paginator.get_paginated_response(data=data)
+        else:
+            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
