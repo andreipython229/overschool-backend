@@ -1,10 +1,10 @@
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.response import Response
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Homework
 from courses.serializers import HomeworkSerializer
-from rest_framework import permissions, viewsets
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.response import Response
-from rest_framework import permissions, mixins, status
 
 
 class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -13,11 +13,14 @@ class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     permission_classes = [permissions.DjangoModelPermissions]
 
     def retrieve(self, request, *args, **kwargs):
-        homework_id = self.kwargs['pk']
+        homework_id = self.kwargs["pk"]
 
         try:
             instance = Homework.objects.get(homework_id=homework_id)
             serializer = self.get_serializer(instance)
-            return Response(serializer.data|{"type": "homework"})
+            return Response(serializer.data | {"type": "homework"})
         except ObjectDoesNotExist:
-            return Response({"status": "Error", "message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"status": "Error", "message": "Not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )

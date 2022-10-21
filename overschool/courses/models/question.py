@@ -1,11 +1,12 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import TimeStampMixin
 from django.db import models
+
+from common_services.mixins import TimeStampMixin
 
 from .section_test import SectionTest
 
 
-class Question(models.Model, TimeStampMixin):
+class Question(TimeStampMixin, models.Model):
     "Модель вопроса в тесте"
     question_id = models.AutoField(
         primary_key=True,

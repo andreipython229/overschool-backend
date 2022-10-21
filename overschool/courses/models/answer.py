@@ -1,6 +1,7 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import TimeStampMixin
 from django.db import models
+
+from common_services.mixins import TimeStampMixin
 
 from .question import Question
 
@@ -12,7 +13,7 @@ class AnswerStatusChoices(models.TextChoices):
     CORRECT = "Н", "Неправильный"
 
 
-class Answer(models.Model, TimeStampMixin):
+class Answer(TimeStampMixin, models.Model):
     """Модель ответа на вопрос"""
 
     answer_id = models.AutoField(

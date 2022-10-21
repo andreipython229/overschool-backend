@@ -1,5 +1,6 @@
-from courses.models import SectionTest
 from django.contrib import admin
+
+from courses.models import SectionTest
 
 
 @admin.register(SectionTest)

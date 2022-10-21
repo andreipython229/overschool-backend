@@ -6,7 +6,9 @@ from .base_lesson_file import BaseLessonFile
 
 class TextFile(BaseLessonFile):
     file = models.FileField(
-        upload_to="files/text", verbose_name="Ресурс", validators=[FileExtensionValidator(["pdf", "doc", "docx"])]
+        upload_to="files/text",
+        verbose_name="Ресурс",
+        validators=[FileExtensionValidator(["pdf", "doc", "docx"])],
     )
 
     class Meta:

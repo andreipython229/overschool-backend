@@ -1,5 +1,6 @@
-from courses.models import SectionTest
 from rest_framework import serializers
+
+from courses.models import SectionTest
 
 
 class TestSerializer(serializers.ModelSerializer):

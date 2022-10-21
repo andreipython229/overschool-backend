@@ -1,9 +1,10 @@
-from common_services.mixins import TimeStampMixin
 from django.db import models
+
+from common_services.mixins import TimeStampMixin
 from users.models import User
 
 
-class Chat(models.Model, TimeStampMixin):
+class Chat(TimeStampMixin, models.Model):
     """
     Модель чата
     """
@@ -21,7 +22,9 @@ class Chat(models.Model, TimeStampMixin):
         verbose_name="Админ",
         help_text="Пользователь, являющийся админом чата, по умолчанию - супер админ",
     )
-    participants = models.ManyToManyField(User, related_name="user_chat_mtm", verbose_name="Пользователи")
+    participants = models.ManyToManyField(
+        User, related_name="user_chat_mtm", verbose_name="Пользователи"
+    )
 
     class Meta:
         verbose_name = "Чат"

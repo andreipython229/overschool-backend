@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
+
 from users.managers import UserManager
 
 
@@ -34,11 +35,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=150,
         default="",
     )
-    email = models.EmailField(verbose_name="Почта", help_text="Почта", null=True, blank=True)
-    phone_number = PhoneNumberField(verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True)
+    email = models.EmailField(
+        verbose_name="Почта", help_text="Почта", null=True, blank=True
+    )
+    phone_number = PhoneNumberField(
+        verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
+    )
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
     is_active = models.BooleanField(verbose_name="Активный", default=True)
-    date_joined = models.DateTimeField(verbose_name="Дата регистрации", default=timezone.now)
+    date_joined = models.DateTimeField(
+        verbose_name="Дата регистрации", default=timezone.now
+    )
 
     USERNAME_FIELD = "username"
     EMAIL_FIELD = "email"

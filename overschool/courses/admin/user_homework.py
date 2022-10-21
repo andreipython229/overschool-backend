@@ -1,5 +1,6 @@
-from courses.models import UserHomework
 from django.contrib import admin
+
+from courses.models import UserHomework
 
 
 @admin.register(UserHomework)

@@ -1,5 +1,6 @@
-from courses.models import SchoolHeader
 from rest_framework import serializers
+
+from courses.models import SchoolHeader
 
 
 class SchoolHeaderSerializer(serializers.ModelSerializer):

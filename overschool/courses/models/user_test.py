@@ -1,6 +1,7 @@
-from common_services.mixins import TimeStampMixin
 from django.conf import settings
 from django.db import models
+
+from common_services.mixins import TimeStampMixin
 
 from .section_test import SectionTest
 
@@ -12,7 +13,7 @@ class UserTestStatusChoices(models.TextChoices):
     FAILED = "Н", "Не прошёл"
 
 
-class UserTest(models.Model, TimeStampMixin):
+class UserTest(TimeStampMixin, models.Model):
     """Модель сданнаго теста учеником"""
 
     user_test_id = models.AutoField(

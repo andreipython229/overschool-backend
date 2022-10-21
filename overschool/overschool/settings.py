@@ -239,7 +239,9 @@ SIMPLE_JWT = {
 REST_USE_JWT = True
 JWT_AUTH_COOKIE = "jwt-auth"
 
-REST_AUTH_REGISTER_PERMISSION_CLASSES = ("rest_framework.permissions.DjangoModelPermissions",)
+REST_AUTH_REGISTER_PERMISSION_CLASSES = (
+    "rest_framework.permissions.DjangoModelPermissions",
+)
 REST_AUTH_REGISTER_SERIALIZERS = {
     "REGISTER_SERIALIZER": "users.serializers.register.RegisterSerializer",
 }

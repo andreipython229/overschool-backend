@@ -1,11 +1,12 @@
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from model_clone import CloneMixin
+
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
 from .course import Course
 
 
-class Section(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
+class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     """Модель раздела курса"""
 
     section_id = models.AutoField(

@@ -1,11 +1,12 @@
-from common_services.mixins import TimeStampMixin
 from django.db import models
+
+from common_services.mixins import TimeStampMixin
 from users.models.user import User
 
 from .course import Course
 
 
-class StudentsGroup(models.Model, TimeStampMixin):
+class StudentsGroup(TimeStampMixin, models.Model):
     """
     Модель группы студентов
     """
@@ -37,7 +38,10 @@ class StudentsGroup(models.Model, TimeStampMixin):
         related_name="teacher_group_fk",
     )
     students = models.ManyToManyField(
-        User, verbose_name="Ученики", help_text="Ученики этой группы", related_name="students_group_fk"
+        User,
+        verbose_name="Ученики",
+        help_text="Ученики этой группы",
+        related_name="students_group_fk",
     )
 
     def __str__(self):

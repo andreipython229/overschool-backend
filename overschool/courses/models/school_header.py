@@ -1,10 +1,11 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 
+from common_services.mixins import TimeStampMixin
 
-class SchoolHeader(models.Model, TimeStampMixin):
+
+class SchoolHeader(TimeStampMixin, models.Model):
     """Модель шапки курсов"""
 
     school_id = models.AutoField(

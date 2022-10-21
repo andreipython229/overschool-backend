@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
+from rest_framework import permissions, viewsets
+
 from common_services.mixins import LoggingMixin
 from courses.models import Answer, Question, SectionTest, UserTest
-from courses.serializers import (
-    AnswerSerializer,
-    QuestionSerializer,
-    TestSerializer,
-    UserTestSerializer,
-)
-from rest_framework import permissions, viewsets
+from courses.serializers import (AnswerSerializer, QuestionSerializer,
+                                 TestSerializer, UserTestSerializer)
 
 
 class TestViewSet(LoggingMixin, viewsets.ModelViewSet):

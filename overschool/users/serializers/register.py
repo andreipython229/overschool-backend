@@ -1,11 +1,14 @@
-from rest_framework import serializers
-from django.contrib.auth.hashers import make_password
-from rest_framework.exceptions import ValidationError
-from users.models import User, Profile, UserRole
-from dj_rest_auth.registration.serializers import RegisterSerializer as _RegisterSerializer
-from dj_rest_auth.serializers import UserDetailsSerializer as _UserDetailsSerializer
+from dj_rest_auth.registration.serializers import \
+    RegisterSerializer as _RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer as _LoginSerializer
+from dj_rest_auth.serializers import \
+    UserDetailsSerializer as _UserDetailsSerializer
+from django.contrib.auth.hashers import make_password
 from phonenumber_field.serializerfields import PhoneNumberField
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from users.models import Profile, User, UserRole
 
 
 class RegisterSerializer(_RegisterSerializer):
@@ -16,22 +19,22 @@ class RegisterSerializer(_RegisterSerializer):
 
     def get_cleaned_data(self):
         data_dict = super().get_cleaned_data()
-        data_dict['group_name'] = self.validated_data.get('group_name', '')
-        data_dict['email'] = self.validated_data.get('email', '')
-        data_dict['phone_number'] = self.validated_data.get('phone_number', '')
-        if not data_dict['email'] and not data_dict['phone_number']:
+        data_dict["group_name"] = self.validated_data.get("group_name", "")
+        data_dict["email"] = self.validated_data.get("email", "")
+        data_dict["phone_number"] = self.validated_data.get("phone_number", "")
+        if not data_dict["email"] and not data_dict["phone_number"]:
             raise ValidationError("Укажи email либо номер телефона")
         else:
             return data_dict
 
     def save(self, request):
         cleaned_data = self.get_cleaned_data()
-        group_id = UserRole.objects.filter(name=cleaned_data['group_name']).first().pk
+        group_id = UserRole.objects.filter(name=cleaned_data["group_name"]).first().pk
         user = User.objects.create(
-            username=cleaned_data['username'],
-            password=make_password(cleaned_data['password1']),
-            email=cleaned_data['email'],
-            phone_number=cleaned_data['phone_number'],
+            username=cleaned_data["username"],
+            password=make_password(cleaned_data["password1"]),
+            email=cleaned_data["email"],
+            phone_number=cleaned_data["phone_number"],
         )
         user.groups.add(group_id)
         return user
@@ -46,7 +49,7 @@ class LoginSerializer(_LoginSerializer):
     username = serializers.CharField(max_length=255, required=False, allow_blank=True)
     email = serializers.CharField(max_length=255, required=False, allow_blank=True)
     phone_number = PhoneNumberField(required=False, allow_blank=True)
-    password = serializers.CharField(style={'input_type': 'password'})
+    password = serializers.CharField(style={"input_type": "password"})
 
     def _validate_phone_number(self, phone_number, password):
         if phone_number and password:
@@ -61,11 +64,13 @@ class LoginSerializer(_LoginSerializer):
                 pass
         if phone_number:
             try:
-                username = UserModel.objects.get(phone_number__iexact=phone_number).get_username()
+                username = UserModel.objects.get(
+                    phone_number__iexact=phone_number
+                ).get_username()
             except UserModel.DoesNotExist:
                 pass
         if username:
-            return self._validate_username_email(username, '', password)
+            return self._validate_username_email(username, "", password)
         return None
 
     def get_auth_user_using_allauth(self, username, email, phone_number, password):
@@ -87,36 +92,38 @@ class LoginSerializer(_LoginSerializer):
         return self.get_auth_user_using_orm(username, email, phone_number, password)
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        email = attrs.get('email')
-        password = attrs.get('password')
-        phone_number = attrs.get('phone_number')
+        username = attrs.get("username")
+        email = attrs.get("email")
+        password = attrs.get("password")
+        phone_number = attrs.get("phone_number")
 
         user = self.get_auth_user(username, email, phone_number, password)
 
         if not user:
-            raise ValidationError("Невозможно войти с предоставленными учетными данными")
+            raise ValidationError(
+                "Невозможно войти с предоставленными учетными данными"
+            )
 
         self.validate_auth_user_status(user)
 
-        attrs['user'] = user
+        attrs["user"] = user
         return attrs
 
 
 class UserDetailsSerializer(_UserDetailsSerializer):
     class Meta:
         extra_fields = []
-        if hasattr(UserModel, 'USERNAME_FIELD'):
+        if hasattr(UserModel, "USERNAME_FIELD"):
             extra_fields.append(UserModel.USERNAME_FIELD)
-        if hasattr(UserModel, 'EMAIL_FIELD'):
+        if hasattr(UserModel, "EMAIL_FIELD"):
             extra_fields.append(UserModel.EMAIL_FIELD)
-        if hasattr(UserModel, 'phone_number'):
-            extra_fields.append('phone_number')
-        if hasattr(UserModel, 'groups'):
-            extra_fields.append('groups')
+        if hasattr(UserModel, "phone_number"):
+            extra_fields.append("phone_number")
+        if hasattr(UserModel, "groups"):
+            extra_fields.append("groups")
         model = UserModel
-        fields = ('pk', *extra_fields)
-        read_only_fields = ('email',)
+        fields = ("pk", *extra_fields)
+        read_only_fields = ("email",)
 
 
 class InviteSerializer(serializers.Serializer):
@@ -150,6 +157,9 @@ class InviteSerializer(serializers.Serializer):
 
 
 class ValidTokenSerializer(serializers.Serializer):
-    token = serializers.CharField(max_length=256, required=True,
-                                  error_messages={"required": "No token"},
-                                  help_text="Токен, полученный при регистрации пользователя админом")
+    token = serializers.CharField(
+        max_length=256,
+        required=True,
+        error_messages={"required": "No token"},
+        help_text="Токен, полученный при регистрации пользователя админом",
+    )

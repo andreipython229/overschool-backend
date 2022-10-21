@@ -1,13 +1,14 @@
+from django.db import models
+
 from common_services.mixins import TimeStampMixin
 from courses.models.base_lesson import BaseLesson
-from django.db import models
 from users.models import User
 
 from .course import Course
 from .lesson import Lesson
 
 
-class UserProgressLogs(models.Model, TimeStampMixin):
+class UserProgressLogs(TimeStampMixin, models.Model):
     """Модель для отслеживания прогресса пользователя"""
 
     user_progress_id = models.AutoField(

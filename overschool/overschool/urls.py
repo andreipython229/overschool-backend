@@ -1,3 +1,6 @@
+from dj_rest_auth.jwt_auth import get_refresh_view
+from dj_rest_auth.views import (LoginView, LogoutView, PasswordChangeView,
+                                PasswordResetConfirmView, PasswordResetView)
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -7,26 +10,31 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from dj_rest_auth.views import LoginView, LogoutView, PasswordChangeView, PasswordResetConfirmView, PasswordResetView
-from .main_router import router
-from dj_rest_auth.jwt_auth import get_refresh_view
+
 from users.api_views.register import RegisterView
 
+from .main_router import router
+
 urlpatterns = [
-                  path("admin/", admin.site.urls),
-                  path('api/register/', RegisterView.as_view(), name="register"),
-                  path('api/login/', LoginView.as_view(), name="login"),
-                  path('api/logout/', LogoutView.as_view(), name="logout"),
-                  path('api/token-refresh/', get_refresh_view().as_view(), name='token_refresh'),
-                  path('api/password_reset/', PasswordResetView.as_view(), name='password_reset'),
-                  path('api/password_reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-                  path('api/password_change/', PasswordChangeView.as_view(), name='password_change'),
-                  path("api/", include(router.urls)),
-                  re_path(
-                      r'^account-confirm-email/(?P<key>[-:\w]+)/$', TemplateView.as_view(),
-                      name='account_confirm_email',
-                  ),
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("admin/", admin.site.urls),
+    path("api/register/", RegisterView.as_view(), name="register"),
+    path("api/login/", LoginView.as_view(), name="login"),
+    path("api/logout/", LogoutView.as_view(), name="logout"),
+    path("api/token-refresh/", get_refresh_view().as_view(), name="token_refresh"),
+    path("api/password_reset/", PasswordResetView.as_view(), name="password_reset"),
+    path(
+        "api/password_reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path("api/password_change/", PasswordChangeView.as_view(), name="password_change"),
+    path("api/", include(router.urls)),
+    re_path(
+        r"^account-confirm-email/(?P<key>[-:\w]+)/$",
+        TemplateView.as_view(),
+        name="account_confirm_email",
+    ),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 schema_view = get_schema_view(
     openapi.Info(

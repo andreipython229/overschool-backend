@@ -1,9 +1,9 @@
 from django.db import models
 
 
-class TimeStampMixin:
+class TimeStampMixin(models.Model):
     """
-    Миксин для дополнения полями created_at и updated_at
+    Миксин для дополнения остальных полями created_at и updated_at
     """
 
     created_at = models.DateTimeField(
@@ -16,3 +16,6 @@ class TimeStampMixin:
         verbose_name="Обновлено",
         help_text="Дата, когда запись была последний раз обновлена",
     )
+
+    class Meta:
+        abstract = True

@@ -1,11 +1,11 @@
-from common_services.mixins import TimeStampMixin
 from django.db import models
-from users.models import User
 
 from chat.models import Chat
+from common_services.mixins import TimeStampMixin
+from users.models import User
 
 
-class Message(models.Model, TimeStampMixin):
+class Message(TimeStampMixin, models.Model):
     message_id = models.AutoField(
         primary_key=True,
         editable=False,

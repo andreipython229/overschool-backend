@@ -1,12 +1,14 @@
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from users.models import User
 from users.permissions import OwnerUserPermissions
-from users.serializers import InviteSerializer, UserSerializer, ValidTokenSerializer
+from users.serializers import (InviteSerializer, UserSerializer,
+                               ValidTokenSerializer)
 from users.services import RedisDataMixin, SenderServiceMixin
 
 
@@ -119,4 +121,7 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response({"status": "Error", "message": "Bad credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "Error", "message": "Bad credentials"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

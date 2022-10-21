@@ -2,7 +2,6 @@ import os
 
 from celery import Celery
 
-
 redis_url = "redis://localhost"
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings")
 

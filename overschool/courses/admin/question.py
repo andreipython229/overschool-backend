@@ -1,5 +1,6 @@
-from courses.models import Question
 from django.contrib import admin
+
+from courses.models import Question
 
 
 @admin.register(Question)

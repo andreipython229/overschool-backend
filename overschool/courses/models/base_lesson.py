@@ -1,12 +1,13 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from embed_video.fields import EmbedVideoField
+
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
 from .section import Section
 
 
-class BaseLesson(models.Model, TimeStampMixin, AuthorMixin, OrderMixin):
+class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
     """Базовая модель урока в разделе"""
 
     lesson_id = models.AutoField(
@@ -28,7 +29,9 @@ class BaseLesson(models.Model, TimeStampMixin, AuthorMixin, OrderMixin):
         help_text="Название урока",
         default="Имя не придумано",
     )
-    description = RichTextField(verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True)
+    description = RichTextField(
+        verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
+    )
     video = EmbedVideoField(
         verbose_name="Видео",
         help_text="Сюда всталвяем ссылку на видос с ютуба, поэтому сначала его надо загрузить туда",

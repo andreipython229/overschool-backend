@@ -1,17 +1,16 @@
 from datetime import datetime
 
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup, UserProgressLogs, UserTest
-from courses.paginators import UserHomeworkPagination
-from courses.serializers import (
-    GroupStudentsSerializer,
-    GroupUsersByMonthSerializer,
-    StudentsGroupSerializer,
-)
 from django.db.models import Avg, Count, F, Sum
 from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import StudentsGroup, UserProgressLogs, UserTest
+from courses.paginators import UserHomeworkPagination
+from courses.serializers import (GroupStudentsSerializer,
+                                 GroupUsersByMonthSerializer,
+                                 StudentsGroupSerializer)
 
 
 class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -65,11 +64,13 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             if "month_number" in request.GET
             else datetime.now().month,
         )
-        datas = queryset.values(group=F("group_id")).annotate(students_sum=Count("students__id"))
+        datas = queryset.values(group=F("group_id")).annotate(
+            students_sum=Count("students__id")
+        )
         for data in datas:
-            data["graphic_data"] = queryset.values(group=F("group_id"), date=F("students__date_joined__day")).annotate(
-                students_sum=Count("students__id")
-            )
+            data["graphic_data"] = queryset.values(
+                group=F("group_id"), date=F("students__date_joined__day")
+            ).annotate(students_sum=Count("students__id"))
         page = self.paginate_queryset(datas)
         if page is not None:
             return self.get_paginated_response(page)

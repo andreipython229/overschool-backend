@@ -1,11 +1,18 @@
 from rest_framework import serializers
+
 from users.models import Profile, User
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "email", "phone_number", ]
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+        ]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -15,10 +22,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ["profile_id", "avatar", "avatar_url", "city", "sex", "description", "user"]
+        fields = [
+            "profile_id",
+            "avatar",
+            "avatar_url",
+            "city",
+            "sex",
+            "description",
+            "user",
+        ]
 
     def update(self, instance, validated_data):
-        if 'user' in validated_data:
+        if "user" in validated_data:
             user_data = validated_data.pop("user")
 
             user = instance.user

@@ -1,8 +1,9 @@
 from ckeditor.fields import RichTextField
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
+
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
 
 class Public(models.TextChoices):
@@ -18,7 +19,7 @@ class Format(models.TextChoices):
     ONLINE = "ОН", "Онлайн"
 
 
-class Course(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
+class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     """Модель курсов"""
 
     course_id = models.AutoField(
@@ -37,7 +38,11 @@ class Course(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
         null=True,
     )
     name = models.CharField(
-        max_length=256, verbose_name="Название курса", help_text="Главное название курса", blank=True, null=True
+        max_length=256,
+        verbose_name="Название курса",
+        help_text="Главное название курса",
+        blank=True,
+        null=True,
     )
     format = models.CharField(
         max_length=256,
@@ -49,13 +54,24 @@ class Course(models.Model, TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin):
         null=True,
     )
     duration_days = models.PositiveIntegerField(
-        verbose_name="Продолжительность курса", help_text="Продолжительность курса в днях", blank=True, null=True
+        verbose_name="Продолжительность курса",
+        help_text="Продолжительность курса в днях",
+        blank=True,
+        null=True,
     )
     price = models.DecimalField(
-        max_digits=15, decimal_places=2, verbose_name="Цена", help_text="Цена курса в BYN", blank=True, null=True
+        max_digits=15,
+        decimal_places=2,
+        verbose_name="Цена",
+        help_text="Цена курса в BYN",
+        blank=True,
+        null=True,
     )
     description = RichTextField(
-        verbose_name="Описание", help_text="Описание курса для отображения, сохраняется в html", blank=True, null=True
+        verbose_name="Описание",
+        help_text="Описание курса для отображения, сохраняется в html",
+        blank=True,
+        null=True,
     )
     photo = models.ImageField(
         upload_to="images/courses/main/",

@@ -1,6 +1,7 @@
-from common_services.mixins import TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
+
+from common_services.mixins import TimeStampMixin
 from users.models import User
 
 from .homework import Homework
@@ -15,7 +16,7 @@ class UserHomeworkStatusChoices(models.TextChoices):
     SUCCESS = "ПРА", "Правильно"
 
 
-class UserHomework(models.Model, TimeStampMixin):
+class UserHomework(TimeStampMixin, models.Model):
     """Модель выполненной домашки юзером, здесь будут храниться его ответы и комменты препода"""
 
     user_homework_id = models.AutoField(

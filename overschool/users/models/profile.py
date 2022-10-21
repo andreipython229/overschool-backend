@@ -1,7 +1,8 @@
-from common_services.mixins import TimeStampMixin
 from django.conf import settings
 from django.db import models
 from oauthlib.common import urldecode
+
+from common_services.mixins import TimeStampMixin
 
 
 class SexChoices(models.TextChoices):
@@ -11,7 +12,7 @@ class SexChoices(models.TextChoices):
     FEMALE = "Ж", "Женский"
 
 
-class Profile(models.Model, TimeStampMixin):
+class Profile(TimeStampMixin, models.Model):
     """Модель профиля пользователя, создается сигналом при создании пользователя"""
 
     profile_id = models.AutoField(

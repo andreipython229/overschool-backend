@@ -1,28 +1,18 @@
 from datetime import datetime
 
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import (
-    Course,
-    Homework,
-    Lesson,
-    Section,
-    SectionTest,
-    StudentsGroup,
-    UserProgressLogs,
-    UserTest,
-)
-from courses.paginators import UserHomeworkPagination
-from courses.serializers import (
-    CourseSerializer,
-    CourseStudentsSerializer,
-    StudentsGroupSerializer,
-    UserHomeworkSerializer,
-)
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import (Course, Homework, Lesson, Section, SectionTest,
+                            StudentsGroup, UserProgressLogs, UserTest)
+from courses.paginators import UserHomeworkPagination
+from courses.serializers import (CourseSerializer, CourseStudentsSerializer,
+                                 StudentsGroupSerializer,
+                                 UserHomeworkSerializer)
 
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -52,7 +42,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
-            section_order=F("sections__order")
+            section_order=F("sections__order"),
         ).order_by("sections__order")
         result_data = dict(
             course_name=data[0]["course_name"],
@@ -82,7 +72,9 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "id": obj.pk,
                         }
                     )
-            result_data["sections"][index]["lessons"].sort(key=lambda x: x["order"] if x["order"] is not None else 0)
+            result_data["sections"][index]["lessons"].sort(
+                key=lambda x: x["order"] if x["order"] is not None else 0
+            )
         return Response(result_data)
 
     @action(detail=True)
@@ -97,7 +89,9 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             if "month_number" in request.GET
             else datetime.now().month,
         )
-        datas = queryset.values(course=F("course_id")).annotate(students_sum=Count("students__id"))
+        datas = queryset.values(course=F("course_id")).annotate(
+            students_sum=Count("students__id")
+        )
         for data in datas:
             data["graphic_data"] = queryset.values(
                 course=F("course_id"), date=F("students__date_joined__day")
