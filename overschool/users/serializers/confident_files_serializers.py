@@ -9,6 +9,7 @@ class UploadSerializer(serializers.ModelSerializer):
         model = Documents
         fields = "__all__"
 
+
 # Serializer for multiple files upload.
 # class MultipleFilesUploadSerializer(Serializer):
 #     file_uploaded = ListField(FileField())

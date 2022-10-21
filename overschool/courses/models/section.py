@@ -1,13 +1,12 @@
-from common_services.mixins import OrderMixin
-from common_services.models import AuthorPublishedModel, TimeStampedModel
-from courses.managers import SectionManager
 from django.db import models
-
-from .course import Course
 from model_clone import CloneMixin
 
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
-class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
+from .course import Course
+
+
+class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     """Модель раздела курса"""
 
     section_id = models.AutoField(
@@ -29,8 +28,6 @@ class Section(TimeStampedModel, AuthorPublishedModel, OrderMixin, CloneMixin):
         help_text="Название раздела курса",
     )
     _clone_m2o_or_o2m_fields = ["lessons", "homeworks", "tests"]
-
-    objects = SectionManager()
 
     def __str__(self):
         return str(self.section_id) + " " + str(self.name)

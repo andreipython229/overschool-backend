@@ -7,4 +7,3 @@ from users.serializers import UploadSerializer
 class ConfidentFilesViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = UploadSerializer
-

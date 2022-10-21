@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 
 from environ import Env
-
 from handlers import CSVHandler, DBHandler
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,7 +119,9 @@ for student in students:
         )
 
         # Получаем текущий урок на курсе по прогрессу
-        lesson_id = course_with_lessons["lessons"][math.ceil(len(course_with_lessons["lessons"]) / 100.0 * progress)]
+        lesson_id = course_with_lessons["lessons"][
+            math.ceil(len(course_with_lessons["lessons"]) / 100.0 * progress)
+        ]
 
         # Добавляем юзеру текущий урок (восстанавливаем его прогресс)
         _ = db_handler.execute_query(

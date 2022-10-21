@@ -1,17 +1,18 @@
 from datetime import datetime
 
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, Lesson, Section, StudentsGroup, UserProgressLogs
-from courses.serializers import CourseSerializer, CourseStudentsSerializer
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
-from homeworks.models import Homework
-from homeworks.paginators import UserHomeworkPagination
-from lesson_tests.models import SectionTest, UserTest
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from courses.serializers import StudentsGroupSerializer
+
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import (Course, Homework, Lesson, Section, SectionTest,
+                            StudentsGroup, UserProgressLogs, UserTest)
+from courses.paginators import UserHomeworkPagination
+from courses.serializers import (CourseSerializer, CourseStudentsSerializer,
+                                 StudentsGroupSerializer,
+                                 UserHomeworkSerializer)
 
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -22,7 +23,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def clone(self, request, pk):
-        """ Клонирование курса """
+        """Клонирование курса"""
 
         course = self.get_object()
         course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
@@ -31,7 +32,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk):
-        """ Данные по всем секциям курса """
+        """Данные по всем секциям курса"""
 
         course = self.get_object()
         queryset = Course.objects.filter(course_id=course.pk)
@@ -41,7 +42,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
-            section_order=F("sections__order")
+            section_order=F("sections__order"),
         ).order_by("sections__order")
         result_data = dict(
             course_name=data[0]["course_name"],
@@ -71,19 +72,23 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "id": obj.pk,
                         }
                     )
-            result_data["sections"][index]["lessons"].sort(key=lambda x: x["order"] if x["order"] is not None else 0)
+            result_data["sections"][index]["lessons"].sort(
+                key=lambda x: x["order"] if x["order"] is not None else 0
+            )
         return Response(result_data)
 
     @action(detail=True)
     def user_count_by_month(self, request, pk):
-        """ Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
-        для конкретного месяца указываем параметр month_number= """
+        """Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
+        для конкретного месяца указываем параметр month_number="""
 
         course = self.get_object()
-        queryset = StudentsGroup.objects.filter(course_id=course.pk,
-                                                students__date_joined__month=request.GET["month_number"]
-                                                if "month_number" in request.GET
-                                                else datetime.now().month, )
+        queryset = StudentsGroup.objects.filter(
+            course_id=course.pk,
+            students__date_joined__month=request.GET["month_number"]
+            if "month_number" in request.GET
+            else datetime.now().month,
+        )
         datas = queryset.values(course=F("course_id")).annotate(
             students_sum=Count("students__id")
         )
@@ -99,7 +104,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk):
-        """ Статистика всех студентов курса """
+        """Статистика всех студентов курса"""
 
         course = self.get_object()
         queryset = StudentsGroup.objects.filter(course_id=course.pk)
@@ -115,8 +120,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         ).annotate(
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
-            chekau=Count("course_id__sections__lessons__lesson_id") + Count(
-                "course_id__sections__homeworks__homework_id"),
+            chekau=Count("course_id__sections__lessons__lesson_id")
+            + Count("course_id__sections__homeworks__homework_id"),
             # progress=(Count("students__user_progresses__lesson__lesson_id"))
             #          / Count("course_id__sections__lessons__lesson_id"),
         )
@@ -124,11 +129,15 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         #                                                   "course_id__sections__section_tests__section_id")
         ## Выбрать все тесты, лессоны и хоумворки
         ## Далее проверить, что из них есть в юзер прогресс
-        a = UserProgressLogs.objects.filter(lesson__section__course__course_id=course.pk,
-                                            homework__section__course__course_id=course.pk,
-                                            section_test__section__course__course_id=course.pk).aggregate(
-            count_steps=Count("lesson__section__course__course_id") + Count(
-                "homework__section__course__course_id") + Count("section_test__section__course__course_id"))
+        a = UserProgressLogs.objects.filter(
+            lesson__section__course__course_id=course.pk,
+            homework__section__course__course_id=course.pk,
+            section_test__section__course__course_id=course.pk,
+        ).aggregate(
+            count_steps=Count("lesson__section__course__course_id")
+            + Count("homework__section__course__course_id")
+            + Count("section_test__section__course__course_id")
+        )
         print(a)
         for row in data:
             mark_sum = (
@@ -144,7 +153,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def student_groups(self, request, pk):
-        """ Список всех групп курса """
+        """Список всех групп курса"""
 
         queryset = StudentsGroup.objects.filter(course_id=pk)
         page = self.paginate_queryset(queryset)

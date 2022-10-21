@@ -16,16 +16,24 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Уникальный идентификатор пользователя",
     )
     username = models.CharField(
-        verbose_name="Имя пользователя", max_length=150, unique=True,
+        verbose_name="Имя пользователя",
+        max_length=150,
+        unique=True,
     )
     first_name = models.CharField(
-        verbose_name="Имя", max_length=150, default="",
+        verbose_name="Имя",
+        max_length=150,
+        default="",
     )
     last_name = models.CharField(
-        verbose_name="Фамилия", max_length=150, default="",
+        verbose_name="Фамилия",
+        max_length=150,
+        default="",
     )
     patronymic = models.CharField(
-        verbose_name="Отчество", max_length=150, default="",
+        verbose_name="Отчество",
+        max_length=150,
+        default="",
     )
     email = models.EmailField(
         verbose_name="Почта", help_text="Почта", null=True, blank=True
@@ -47,3 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.username} ({self.email or self.phone_number})"
+
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
