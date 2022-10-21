@@ -3,9 +3,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import F, Max
 from django.db.models.expressions import Window
 from django_filters.rest_framework import DjangoFilterBackend
-from homeworks.models import UserHomework
-from homeworks.paginators import UserHomeworkPagination
-from homeworks.serializers import (
+from courses.models import UserHomework
+from courses.paginators import UserHomeworkPagination
+from courses.serializers import (
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
     TeacherHomeworkSerializer,

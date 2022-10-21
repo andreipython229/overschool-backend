@@ -3,7 +3,6 @@ from .course import CourseAdmin
 from .homework import HomeworkAdmin
 from .lesson import LessonAdmin
 from .question import QuestionAdmin
-from .school_header import SchoolHeaderAdmin
 from .section import SectionAdmin
 from .section_test import SectionTestAdmin
 from .students_group import StudentsGroupAdmin
