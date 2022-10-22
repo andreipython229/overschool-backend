@@ -1,4 +1,4 @@
-from .base_lesson import BaseLesson
+from ..common.base_lesson import BaseLesson
 
 
 ## TODO: как загружать бесконечное количество медиа в урок или тест, или дз

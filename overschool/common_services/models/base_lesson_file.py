@@ -1,7 +1,7 @@
 from django.db import models
 
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from overschool.courses.models.base_lesson import BaseLesson
+from overschool.courses.models.common.base_lesson import BaseLesson
 
 
 class BaseLessonFile(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):

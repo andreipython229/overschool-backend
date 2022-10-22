@@ -4,7 +4,7 @@ from embed_video.fields import EmbedVideoField
 
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
-from .section import Section
+from ..courses.section import Section
 
 
 class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
@@ -19,7 +19,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="lessons",
+        related_name="%(class)s_section",
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )

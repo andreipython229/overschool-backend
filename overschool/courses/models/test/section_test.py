@@ -1,7 +1,7 @@
 from django.db import models
 from model_clone import CloneMixin
 
-from .base_lesson import BaseLesson
+from ..common.base_lesson import BaseLesson
 
 
 class SectionTest(BaseLesson, CloneMixin):
