@@ -1,5 +1,6 @@
-from courses.models import StudentsGroup
 from django.contrib import admin
+
+from courses.models import StudentsGroup
 
 
 @admin.register(StudentsGroup)

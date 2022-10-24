@@ -1,7 +1,12 @@
-from .audio_file import *
+from .answer import AnswerViewSet
 from .course import CourseViewSet
+from .homework import HomeworkViewSet
 from .lesson import LessonViewSet
+from .question import QuestionViewSet
 from .section import SectionViewSet
-from .audio_file import AudioFileView
 from .students_group import StudentsGroupViewSet
 from .students_table_info import StudentsTableInfoViewSet
+from .test import TestViewSet
+from .tests_view import UserTestViewSet
+from .user_homework import (HomeworkStatisticsView, TeacherHomeworkViewSet,
+                            UserHomeworkViewSet)

@@ -1,8 +1,9 @@
-from rest_framework import viewsets
-from rest_framework import permissions
+from rest_framework import permissions, viewsets
+
 
 class WithHeadersViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.AllowAny]
+
     @property
     def default_response_headers(self):
         headers = super().default_response_headers

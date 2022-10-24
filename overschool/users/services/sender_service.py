@@ -6,6 +6,7 @@ import re
 
 import redis
 from django.conf import settings
+
 from users.tasks import send_code
 
 from .redis_data_mixin import RedisDataMixin

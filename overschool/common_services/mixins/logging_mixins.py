@@ -2,9 +2,10 @@ import ast
 import logging
 import traceback
 
-from common_services.models import APIRequestLog
 from django.db import connection
 from django.utils.timezone import now
+
+from common_services.models import APIRequestLog
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,9 @@ class BaseLoggingMixin(object):
     sensitive_fields = {}
 
     def __init__(self, *args, **kwargs):
-        assert isinstance(self.CLEANED_SUBSTITUTE, str), "CLEANED_SUBSTITUTE must be a string."
+        assert isinstance(
+            self.CLEANED_SUBSTITUTE, str
+        ), "CLEANED_SUBSTITUTE must be a string."
         super(BaseLoggingMixin, self).__init__(*args, **kwargs)
 
     def initial(self, request, *args, **kwargs):
@@ -45,10 +48,14 @@ class BaseLoggingMixin(object):
         return response
 
     def finalize_response(self, request, response, *args, **kwargs):
-        response = super(BaseLoggingMixin, self).finalize_response(request, response, *args, **kwargs)
+        response = super(BaseLoggingMixin, self).finalize_response(
+            request, response, *args, **kwargs
+        )
 
         # Ensure backward compatibility for those using _should_log hook
-        should_log = self._should_log if hasattr(self, "_should_log") else self.should_log
+        should_log = (
+            self._should_log if hasattr(self, "_should_log") else self.should_log
+        )
 
         if should_log(request, response):
             if response.streaming:
@@ -79,7 +86,10 @@ class BaseLoggingMixin(object):
                 if not connection.settings_dict.get("ATOMIC_REQUESTS"):
                     self.handle_log()
                 else:
-                    if getattr(response, "exception", None) and connection.in_atomic_block:
+                    if (
+                        getattr(response, "exception", None)
+                        and connection.in_atomic_block
+                    ):
                         # response with exception (HTTP status like: 401, 404, etc)
                         # pointwise disable atomic block for handle log (TransactionManagementError)
                         connection.set_rollback(True)
@@ -112,7 +122,11 @@ class BaseLoggingMixin(object):
         method = request.method.lower()
         try:
             attributes = getattr(self, method)
-            view_name = type(attributes.__self__).__module__ + "." + type(attributes.__self__).__name__
+            view_name = (
+                type(attributes.__self__).__module__
+                + "."
+                + type(attributes.__self__).__name__
+            )
             return view_name
         except AttributeError:
             return None
@@ -144,7 +158,9 @@ class BaseLoggingMixin(object):
         Method that should return a value that evaluated to True if the request should be logged.
         By default, check if the request method is in logging_methods.
         """
-        return self.logging_methods == "__all__" or request.method in self.logging_methods
+        return (
+            self.logging_methods == "__all__" or request.method in self.logging_methods
+        )
 
     def _clean_data(self, data):
         """
@@ -173,7 +189,9 @@ class BaseLoggingMixin(object):
 
             data = dict(data)
             if self.sensitive_fields:
-                SENSITIVE_FIELDS = SENSITIVE_FIELDS | {field.lower() for field in self.sensitive_fields}
+                SENSITIVE_FIELDS = SENSITIVE_FIELDS | {
+                    field.lower() for field in self.sensitive_fields
+                }
 
             for key, value in data.items():
                 try:

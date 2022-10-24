@@ -1,0 +1,72 @@
+[
+  {
+    "model": "courses.SectionTest",
+    "pk": 1,
+    "fields": {
+      "success_percent": 80,
+      "random_questions": true,
+      "random_answers": true,
+      "show_right_answers": true,
+      "attempt_limit": false,
+      "attempt_count": 0,
+      "points_per_answer": 1,
+      "baselesson_ptr_id": 11
+    }
+  },
+  {
+    "model": "courses.SectionTest",
+    "pk": 2,
+    "fields": {
+      "success_percent": 80,
+      "random_questions": true,
+      "random_answers": true,
+      "show_right_answers": true,
+      "attempt_limit": true,
+      "attempt_count": 10,
+      "points_per_answer": 1,
+      "baselesson_ptr_id": 12
+    }
+  },
+  {
+    "model": "courses.SectionTest",
+    "pk": 3,
+    "fields": {
+      "success_percent": 80,
+      "random_questions": true,
+      "random_answers": true,
+      "show_right_answers": true,
+      "attempt_limit": false,
+      "attempt_count": 0,
+      "points_per_answer": 20,
+      "baselesson_ptr_id": 13
+    }
+  },
+   {
+    "model": "courses.SectionTest",
+    "pk": 4,
+    "fields": {
+      "success_percent": 80,
+      "random_questions": true,
+      "random_answers": true,
+      "show_right_answers": true,
+      "attempt_limit": false,
+      "attempt_count": 0,
+      "points_per_answer": 1,
+      "baselesson_ptr_id": 14
+    }
+  },
+  {
+    "model": "courses.SectionTest",
+    "pk": 5,
+    "fields": {
+      "success_percent": 80,
+      "random_questions": true,
+      "random_answers": true,
+      "show_right_answers": true,
+      "attempt_limit": false,
+      "attempt_count": 0,
+      "points_per_answer": 1,
+      "baselesson_ptr_id": 15
+    }
+  }
+]

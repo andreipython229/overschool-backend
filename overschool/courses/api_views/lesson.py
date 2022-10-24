@@ -1,10 +1,10 @@
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.response import Response
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Lesson
 from courses.serializers import LessonSerializer
-from rest_framework import permissions, viewsets
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.response import Response
-from rest_framework import permissions, mixins, status
 
 
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -13,11 +13,14 @@ class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def retrieve(self, request, *args, **kwargs):
-        lesson_id = self.kwargs['pk']
+        lesson_id = self.kwargs["pk"]
 
         try:
             instance = Lesson.objects.get(lesson_id=lesson_id)
             serializer = self.get_serializer(instance)
-            return Response(serializer.data|{"type": "lesson"})
+            return Response(serializer.data | {"type": "lesson"})
         except ObjectDoesNotExist:
-            return Response({"status": "Error", "message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"status": "Error", "message": "Not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
