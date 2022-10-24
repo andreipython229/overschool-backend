@@ -13,7 +13,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
     class Meta:
         model = Homework
         fields = [
-            "lesson_id",
+            "homework_id",
             "section",
             "name",
             "order",

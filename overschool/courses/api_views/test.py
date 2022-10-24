@@ -11,7 +11,7 @@ from courses.serializers import TestSerializer
 class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     @action(detail=True)
     def questions(self, request, pk):
