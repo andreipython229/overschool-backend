@@ -27,59 +27,61 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
         """
         Функция для отправки регистрационной ссылки пользователю
         """
-        serializer = InviteSerializer(data=request.data)
-        if serializer.is_valid():
-            sender_type = serializer.data["sender_type"]
-            if sender_type == "email" and serializer.data["user_type"] == 1:
-                result = self.send_code_by_email(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-            if sender_type == "email" and serializer.data["user_type"] != 1:
-                result = self.send_code_by_email(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-            if sender_type == "phone" and serializer.data["user_type"] == 1:
-                result = self.send_code_by_phone(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-            if sender_type == "phone" and serializer.data["user_type"] != 1:
-                result = self.send_code_by_phone(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-            if result and serializer.data["user_type"] == 1:
-                self._save_data_to_redis(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-                return Response(
-                    {"status": "OK", "message": "Url was sent"},
-                    status=status.HTTP_200_OK,
-                )
-            if result and serializer.data["user_type"] != 1:
-                self._save_data_to_redis(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-                return Response(
-                    {"status": "OK", "message": "Url was sent"},
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                return Response(
-                    {"status": "Error", "message": "Some problems with send url"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        else:
+        users = request.data
+        try:
+            for user in users:
+                serializer = InviteSerializer(data=user)
+
+                if serializer.is_valid():
+                    sender_type = serializer.data["sender_type"]
+                    if sender_type == "email" and serializer.data["user_type"] == 1:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                        )
+                    if sender_type == "email" and serializer.data["user_type"] != 1:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] == 1:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] != 1:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    if result and serializer.data["user_type"] == 1:
+                        self._save_data_to_redis(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                        )
+
+                    if result and serializer.data["user_type"] != 1:
+                        self._save_data_to_redis(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                else:
+                    return Response(
+                        {"status": "Error", "message": f"{serializer.errors}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             return Response(
-                {"status": "Error", "message": f"{serializer.errors}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"status": "OK", "message": "Url was sent"},
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {"status": "Error", "message": "Some problems with send url"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
