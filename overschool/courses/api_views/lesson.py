@@ -10,7 +10,7 @@ from courses.serializers import LessonSerializer
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     def retrieve(self, request, *args, **kwargs):
         lesson_id = self.kwargs["pk"]

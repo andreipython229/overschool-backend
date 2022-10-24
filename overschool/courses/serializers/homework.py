@@ -8,12 +8,12 @@ class HomeworkSerializer(serializers.ModelSerializer):
     Сериализатор моедли домашнего задания
     """
 
-    type = serializers.CharField(default="homework")
+    # type = serializers.CharField(default="homework")
 
     class Meta:
         model = Homework
         fields = [
-            "lesson_id",
+            "homework_id",
             "section",
             "name",
             "order",
@@ -22,5 +22,4 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "automate_accept",
             "time_accept",
             "points",
-            "type",
         ]

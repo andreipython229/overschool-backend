@@ -9,4 +9,4 @@ from .students_table_info import StudentsTableInfoViewSet
 from .test import TestViewSet
 from .tests_view import UserTestViewSet
 from .user_homework import (HomeworkStatisticsView, TeacherHomeworkViewSet,
-                            UserHomeworkViewSet)
+                            UserHomeworkViewSet, AllUserHomeworkViewSet)

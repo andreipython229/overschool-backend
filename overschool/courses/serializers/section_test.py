@@ -11,7 +11,7 @@ class TestSerializer(serializers.ModelSerializer):
     class Meta:
         model = SectionTest
         fields = [
-            "lesson_id",
+            "test_id",
             "section",
             "name",
             "success_percent",
