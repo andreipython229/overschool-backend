@@ -1,6 +1,6 @@
 [
   {
-    "model": "homeworks.HomeWork",
+    "model": "courses.HomeWork",
     "pk": 1,
     "fields": {
       "baselesson_ptr_id": 6,
@@ -9,7 +9,7 @@
     }
   },
   {
-    "model": "homeworks.HomeWork",
+    "model": "courses.HomeWork",
     "pk": 2,
     "fields": {
       "baselesson_ptr_id": 7,
@@ -18,7 +18,7 @@
     }
   },
   {
-    "model": "homeworks.HomeWork",
+    "model": "courses.HomeWork",
     "pk": 3,
     "fields": {
       "baselesson_ptr_id": 8,
@@ -27,7 +27,7 @@
     }
   },
   {
-    "model": "homeworks.HomeWork",
+    "model": "courses.HomeWork",
     "pk": 4,
     "fields": {
       "baselesson_ptr_id": 9,
@@ -36,7 +36,7 @@
     }
   },
   {
-    "model": "homeworks.HomeWork",
+    "model": "courses.HomeWork",
     "pk": 5,
     "fields": {
       "baselesson_ptr_id": 10,

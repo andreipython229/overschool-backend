@@ -10,12 +10,6 @@ from ..courses.section import Section
 class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
     """Базовая модель урока в разделе"""
 
-    lesson_id = models.AutoField(
-        primary_key=True,
-        editable=False,
-        verbose_name="ID Урока",
-        help_text="Уникальный идентификатор урока",
-    )
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
