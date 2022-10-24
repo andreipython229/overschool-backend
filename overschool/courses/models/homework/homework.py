@@ -1,10 +1,16 @@
 from django.db import models
 
-from .base_lesson import BaseLesson
+from ..common.base_lesson import BaseLesson
 
 
 class Homework(BaseLesson):
     """Модель домашнего задания"""
+    homework_id = models.AutoField(
+        primary_key=True,
+        editable=True,
+        verbose_name="ID домашнего задания",
+        help_text="Уникальный идентификатор домашнего задания",
+    )
 
     automate_accept = models.BooleanField(
         verbose_name="Автоматически принимать работы спустя время",

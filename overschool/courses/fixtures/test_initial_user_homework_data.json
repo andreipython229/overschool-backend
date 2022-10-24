@@ -1,6 +1,6 @@
 [
   {
-    "model": "homeworks.UserHomework",
+    "model": "courses.UserHomework",
     "user_homework_id": 1,
     "fields": {
       "user": 1,
@@ -16,7 +16,7 @@
     }
   },
   {
-    "model": "homeworks.UserHomework",
+    "model": "courses.UserHomework",
     "homework_id": 2,
     "fields": {
       "user": 1,
@@ -30,7 +30,7 @@
     }
   },
    {
-    "model": "homeworks.UserHomework",
+    "model": "courses.UserHomework",
     "homework_id": 3,
     "fields": {
       "user": 1,
@@ -46,7 +46,7 @@
     }
   },
   {
-    "model": "homeworks.UserHomework",
+    "model": "courses.UserHomework",
     "homework_id": 4,
     "fields": {
       "user": 1,
@@ -62,7 +62,7 @@
     }
   },
   {
-    "model": "homeworks.UserHomework",
+    "model": "courses.UserHomework",
     "homework_id": 5,
     "fields": {
       "user": 1,

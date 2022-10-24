@@ -3,7 +3,7 @@ from django.db import models
 from common_services.mixins import TimeStampMixin
 from users.models.user import User
 
-from .course import Course
+from ..courses.course import Course
 
 
 class StudentsGroup(TimeStampMixin, models.Model):

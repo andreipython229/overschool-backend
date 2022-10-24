@@ -1,11 +1,8 @@
 from django.db import models
 
 from common_services.mixins import TimeStampMixin
-from courses.models.base_lesson import BaseLesson
+from ..common.base_lesson import BaseLesson
 from users.models import User
-
-from .course import Course
-from .lesson import Lesson
 
 
 class UserProgressLogs(TimeStampMixin, models.Model):

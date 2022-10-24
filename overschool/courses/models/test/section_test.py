@@ -1,11 +1,18 @@
 from django.db import models
 from model_clone import CloneMixin
 
-from .base_lesson import BaseLesson
+from ..common.base_lesson import BaseLesson
 
 
 class SectionTest(BaseLesson, CloneMixin):
     """Модель теста"""
+
+    test_id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID теста",
+        help_text="Уникальный идентификатор теста",
+    )
 
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
