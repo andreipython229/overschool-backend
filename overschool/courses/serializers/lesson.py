@@ -18,4 +18,5 @@ class LessonSerializer(serializers.ModelSerializer):
             "description",
             "video",
             "points",
+
         ]

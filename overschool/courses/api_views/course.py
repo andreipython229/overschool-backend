@@ -18,7 +18,7 @@ from courses.serializers import (CourseSerializer, CourseStudentsSerializer,
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
     pagination_class = UserHomeworkPagination
 
     @action(detail=True)

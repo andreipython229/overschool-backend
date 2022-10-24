@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     "ckeditor",
     "common_services.apps.CommonServicesConfig",
     "users.apps.UsersConfig",
-    "chat.apps.ChatConfig",
     "courses.apps.CoursesConfig",
     "djoser",
     "dbbackup",
