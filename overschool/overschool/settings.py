@@ -55,13 +55,13 @@ INSTALLED_APPS = [
     "common_services.apps.CommonServicesConfig",
     "users.apps.UsersConfig",
     "courses.apps.CoursesConfig",
+    "schools.apps.SchoolsConfig",
     "djoser",
     "dbbackup",
     "corsheaders",
     "django_filters",
     'chats.apps.ChatsConfig',
     'channels',
-
 ]
 
 REDIS_HOST = "redis"

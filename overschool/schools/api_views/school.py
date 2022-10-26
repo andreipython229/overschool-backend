@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from django.db.models import Avg, Count, F, Sum
 from courses.models import StudentsGroup
 
-from lesson_tests.models import UserTest
+from courses.models import UserTest
 from rest_framework.response import Response
 
 
