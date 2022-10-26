@@ -1,8 +1,4 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from django.contrib.auth.models import AnonymousUser
-from django.db.models import F, Max
-from django.db.models.expressions import Window
-from django_filters.rest_framework import DjangoFilterBackend
 from courses.models import UserHomework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -11,6 +7,10 @@ from courses.serializers import (
     TeacherHomeworkSerializer,
     AllUserHomeworkSerializer,
 )
+from django.contrib.auth.models import AnonymousUser
+from django.db.models import F, Max
+from django.db.models.expressions import Window
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from users.models import User
@@ -144,10 +144,8 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
     pagination_class = UserHomeworkPagination
-
-
 
     def get_queryset(self, *args, **kwargs):
         queryset = UserHomework.objects.all()

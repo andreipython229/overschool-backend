@@ -10,17 +10,6 @@ from courses.serializers import LessonSerializer
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
 
-    def retrieve(self, request, *args, **kwargs):
-        lesson_id = self.kwargs["pk"]
 
-        try:
-            instance = Lesson.objects.get(lesson_id=lesson_id)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data | {"type": "lesson"})
-        except ObjectDoesNotExist:
-            return Response(
-                {"status": "Error", "message": "Not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )

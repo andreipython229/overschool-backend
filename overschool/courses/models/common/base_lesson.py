@@ -39,4 +39,4 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
     )
 
     def __str__(self):
-        return f"{self.lesson_id}. {self.name}"
+        return f"{self.section}. {self.name}"

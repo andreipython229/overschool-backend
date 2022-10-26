@@ -7,6 +7,7 @@ class LessonSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели урока
     """
+    type = serializers.CharField(default="lesson", read_only=True)
 
     class Meta:
         model = Lesson
@@ -18,4 +19,6 @@ class LessonSerializer(serializers.ModelSerializer):
             "description",
             "video",
             "points",
+            "type"
         ]
+        read_only_fields = ["type"]

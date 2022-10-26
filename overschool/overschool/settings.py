@@ -54,15 +54,14 @@ INSTALLED_APPS = [
     "ckeditor",
     "common_services.apps.CommonServicesConfig",
     "users.apps.UsersConfig",
-    "chat.apps.ChatConfig",
     "courses.apps.CoursesConfig",
+    "schools.apps.SchoolsConfig",
     "djoser",
     "dbbackup",
     "corsheaders",
     "django_filters",
     'chats.apps.ChatsConfig',
     'channels',
-
 ]
 
 REDIS_HOST = "redis"

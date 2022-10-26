@@ -1,11 +1,11 @@
 from common_services.mixins import OrderMixin
-from common_services.models import TimeStampedModel
+from common_services.mixins import TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 from schools.managers import SchoolManager
 
 
-class School(TimeStampedModel, OrderMixin):
+class School(TimeStampMixin, OrderMixin):
     """Модель школы"""
 
     school_id = models.AutoField(
