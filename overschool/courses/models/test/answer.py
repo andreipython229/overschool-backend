@@ -37,6 +37,17 @@ class Answer(TimeStampMixin, models.Model):
         verbose_name="Тип ответа",
         help_text="Тип ответа: Правильный или неправильный или ещё какой",
     )
+    picture = models.ImageField(
+        upload_to="files/answers",
+        verbose_name="Картинка",
+        null=True,
+        blank=True)
+    answer_in_range = models.BooleanField(default=False, verbose_name="Правильный ответ в диапазоне",
+                                          help_text="Характерно для числовых вопросв (Numerical)")
+    from_digit = models.BigIntegerField(default=0, verbose_name="От",
+                                        help_text="В случае, если вопрос числовой (Numerical) и ответ в диапазоне")
+    to_digit = models.BigIntegerField(default=0, verbose_name="До",
+                                      help_text="В случае, если вопрос числовой (Numerical) и ответ в диапазоне")
 
     def __str__(self):
         return str(self.answer_id) + " " + str(self.body)
