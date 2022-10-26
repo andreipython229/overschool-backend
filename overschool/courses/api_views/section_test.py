@@ -9,7 +9,7 @@ from courses.serializers import TestSerializer
 class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
 
     @action(detail=True, methods=['GET'])
     def get_questions(self, request, pk):
@@ -50,16 +50,16 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         "Создать вопросы в тесте"
         try:
             test_obj = SectionTest.objects.get(test_id=pk)
-            questions = request.data['questions']
+            questions = request.data.get('questions')
             for question in questions:
                 q = Question(test=test_obj,
                              question_type=question['type'],
                              body=question['body'],
                              picture=question['picture'] if 'picture' in question else None,
                              is_any_answer_correct=question[
-                                 'is_any_answer_correct'] if 'is_any_answer_correct' in question else None,
+                                 'is_any_answer_correct'] if 'is_any_answer_correct' in question else False,
                              only_whole_numbers=question[
-                                 'only_whole_numbers'] if 'only_whole_numbers' in question else None)
+                                 'only_whole_numbers'] if 'only_whole_numbers' in question else False)
                 q.save()
                 for answer in question['answers']:
                     a = Answer(question=q,

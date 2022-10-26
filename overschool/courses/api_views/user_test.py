@@ -6,10 +6,10 @@ from courses.models import UserTest, Answer, Question, SectionTest
 from courses.serializers import UserTestSerializer
 
 
-class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = SectionTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.AllowAny]
 
-    def create(self, request, *args, **kwargs):
+
 
