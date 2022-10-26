@@ -16,14 +16,17 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         """Данные по вопросам теста"""
         test_obj = SectionTest.objects.get(test_id=pk).__dict__
         test = {
-            "test": test_obj["test_id"],
-            "name": test_obj["test_id"],
-            "show_right_answers": test_obj["test_id"],
+            "test": pk,
+            "name": test_obj["name"],
+            "show_right_answers": test_obj["show_right_answers"],
+            "attempt_limit": test_obj['attempt_limit'],
+            "attempt_count": test_obj['attempt_count']
         }
         questions = (
             Question.objects.filter(test=pk)
             .order_by("?")
-            .values("body", "question_id")
+            .values("body", "question_id", "question_type",
+                    "body", "picture")
         ) if test_obj["random_questions"] else Question.objects.filter(test=pk).values("body", "question_id")
         test["questions"] = list(questions)
         for index, question in enumerate(questions):
@@ -31,7 +34,9 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 answers = (
                     Answer.objects.filter(question=question["question_id"])
                     .order_by("?")
-                    .values("answer_id", "body")
+                    .values("answer_id", "body", "question",
+                            "picture", "answer_in_range", "from_digit",
+                            "to_digit")
                 )
             else:
                 answers = Answer.objects.filter(
