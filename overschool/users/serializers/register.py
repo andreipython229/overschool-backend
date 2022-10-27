@@ -1,11 +1,14 @@
-from rest_framework import serializers
-from django.contrib.auth.hashers import make_password
-from rest_framework.exceptions import ValidationError
-from users.models import User, Profile, UserRole
-from dj_rest_auth.registration.serializers import RegisterSerializer as _RegisterSerializer
-from dj_rest_auth.serializers import UserDetailsSerializer as _UserDetailsSerializer
+from dj_rest_auth.registration.serializers import \
+    RegisterSerializer as _RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer as _LoginSerializer
+from dj_rest_auth.serializers import \
+    UserDetailsSerializer as _UserDetailsSerializer
+from django.contrib.auth.hashers import make_password
 from phonenumber_field.serializerfields import PhoneNumberField
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from users.models import Profile, User, UserRole
 
 
 class RegisterSerializer(_RegisterSerializer):

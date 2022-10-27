@@ -54,18 +54,14 @@ INSTALLED_APPS = [
     "ckeditor",
     "common_services.apps.CommonServicesConfig",
     "users.apps.UsersConfig",
-    "chat.apps.ChatConfig",
     "courses.apps.CoursesConfig",
-    "lesson_tests.apps.LessonTestsConfig",
     "schools.apps.SchoolsConfig",
     "djoser",
     "dbbackup",
-    "homeworks.apps.HomeworksConfig",
     "corsheaders",
     "django_filters",
     'chats.apps.ChatsConfig',
     'channels',
-
 ]
 
 REDIS_HOST = "redis"
@@ -217,6 +213,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 MEDIA_URL = "/media/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
 
 DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
 DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}

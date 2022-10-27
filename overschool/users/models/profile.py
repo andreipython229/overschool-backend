@@ -1,8 +1,8 @@
-from common_services.models import TimeStampedModel
+from django.conf import settings
 from django.db import models
 from oauthlib.common import urldecode
 
-from .user import User
+from common_services.mixins import TimeStampMixin
 
 
 class SexChoices(models.TextChoices):
@@ -12,7 +12,7 @@ class SexChoices(models.TextChoices):
     FEMALE = "Ж", "Женский"
 
 
-class Profile(TimeStampedModel):
+class Profile(TimeStampMixin, models.Model):
     """Модель профиля пользователя, создается сигналом при создании пользователя"""
 
     profile_id = models.AutoField(
@@ -47,7 +47,7 @@ class Profile(TimeStampedModel):
         default="",
     )
     user = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         help_text="Пользователь",
         verbose_name="Пользователь",
         related_name="profile",
@@ -62,3 +62,7 @@ class Profile(TimeStampedModel):
 
     def __str__(self):
         return self.user.username
+
+    class Meta:
+        verbose_name = "Профиль"
+        verbose_name_plural = "Профили"

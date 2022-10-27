@@ -1,14 +1,12 @@
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Section, Lesson
-from homeworks.models import Homework
-from lesson_tests.models import SectionTest
 from django.db.models import F
 from django.forms.models import model_to_dict
-from courses.serializers import SectionSerializer
-
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import Homework, Lesson, Section, SectionTest
+from courses.serializers import SectionSerializer
 
 
 class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):

@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from users.forms import UserChangeForm, UserCreationForm
 from users.models import User
 
@@ -13,21 +14,39 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ("username", "email", "phone_number")
     fieldsets = (
         (None, {"fields": ("username", "email", "phone_number", "password")}),
-        ("Personal info", {"classes": ("collapse",), "fields": ("first_name", "last_name")}),
+        (
+            "Personal info",
+            {"classes": ("collapse",), "fields": ("first_name", "last_name")},
+        ),
         (
             "Permissions",
             {
                 "classes": ("collapse",),
-                "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions"),
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                ),
             },
         ),
-        ("Important dates", {"classes": ("collapse",), "fields": ("last_login", "date_joined")}),
+        (
+            "Important dates",
+            {"classes": ("collapse",), "fields": ("last_login", "date_joined")},
+        ),
     )
     add_fieldsets = (
         (
             None,
             {
-                "fields": ("username", "email", "phone_number", "password1", "password2"),
+                "fields": (
+                    "username",
+                    "email",
+                    "phone_number",
+                    "password1",
+                    "password2",
+                ),
             },
         ),
     )
