@@ -72,8 +72,6 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             if request.data.get("text"):
                 homeworks.text = request.data.get("text")
-            if request.data.get("file"):
-                homeworks.file = request.data.get("file")
 
             serializer = UserHomeworkSerializer(homeworks)
 

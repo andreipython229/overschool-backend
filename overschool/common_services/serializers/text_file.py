@@ -10,4 +10,19 @@ class TextFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TextFile
-        fields = "__all__"
+        fields = [
+            "id",
+            "order",
+            "description",
+            "file",
+            "author",
+            "base_lesson",
+            "user_homework",
+            "created_at",
+            "updated_at"
+        ]
+
+    def validate(self, attrs):
+        if not attrs.get("base_lesson") and not attrs.get("user_homework"):
+            raise serializers.ValidationError("Укажите base_lesson либо user_homework")
+        return attrs
