@@ -28,3 +28,4 @@ class Homework(BaseLesson):
     class Meta:
         verbose_name = "Домашнее задание"
         verbose_name_plural = "Домашние задания"
+        default_related_name = "homeworks"

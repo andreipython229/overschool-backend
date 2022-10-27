@@ -13,7 +13,6 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="%(class)s_section",
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )

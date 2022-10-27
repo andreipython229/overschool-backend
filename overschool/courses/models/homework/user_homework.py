@@ -60,13 +60,6 @@ class UserHomework(TimeStampMixin, models.Model):
         verbose_name="Статус",
         help_text="Статус отправленной домашки",
     )
-    file = models.FileField(
-        upload_to="media/homework/task/answers",
-        verbose_name="Файл ответа",
-        help_text="Файл, в котором содержится ответ на домашнюю работу",
-        null=True,
-        blank=True,
-    )
     mark = models.IntegerField(
         verbose_name="Отметка",
         help_text="Отметка за домашнюю работу",
@@ -79,12 +72,6 @@ class UserHomework(TimeStampMixin, models.Model):
         null=True,
         blank=True,
     )
-
-    def file_url(self):
-        if self.file:
-            url = urldecode("https://api.itdev.by" + self.file.url)
-            return url[0][0]
-        return None
 
     def __str__(self):
         return str(self.user_homework_id) + " " + str(self.user_id)

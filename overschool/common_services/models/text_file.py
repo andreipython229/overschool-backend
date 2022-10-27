@@ -8,9 +8,10 @@ class TextFile(BaseLessonFile):
     file = models.FileField(
         upload_to="files/text",
         verbose_name="Ресурс",
-        validators=[FileExtensionValidator(["pdf", "doc", "docx"])],
     )
 
     class Meta:
         verbose_name = "Текстовый файл"
         verbose_name_plural = "Текстовые файлы"
+        default_related_name = "text_files"
+
