@@ -48,7 +48,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
                 .values("user")
                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
-            row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
+            row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0
         page = self.paginate_queryset(data)
         if page is not None:
             return self.get_paginated_response(page)
