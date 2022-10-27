@@ -14,3 +14,4 @@ class Lesson(BaseLesson):
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
+        default_related_name = "lessons"

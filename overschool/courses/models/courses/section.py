@@ -27,7 +27,7 @@ class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model)
         verbose_name="Название курса",
         help_text="Название раздела курса",
     )
-    _clone_m2o_or_o2m_fields = ["%(class)s_section"]
+    _clone_m2o_or_o2m_fields = ["lessons", "tests", "homeworks"]
 
     def __str__(self):
         return str(self.section_id) + " " + str(self.name)
