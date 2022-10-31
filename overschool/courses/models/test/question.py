@@ -2,6 +2,7 @@ from ckeditor.fields import RichTextField
 from django.db import models
 
 from common_services.mixins import TimeStampMixin
+from model_clone import CloneMixin
 
 from .section_test import SectionTest
 
@@ -16,8 +17,9 @@ class QuestionTypesChoices(models.TextChoices):
     NUMERICAL = "Numerical", "Numerical"
 
 
-class Question(TimeStampMixin, models.Model):
+class Question(TimeStampMixin, CloneMixin, models.Model):
     "Модель вопроса в тесте"
+
     question_id = models.AutoField(
         primary_key=True,
         editable=False,
@@ -27,7 +29,7 @@ class Question(TimeStampMixin, models.Model):
     test = models.ForeignKey(
         SectionTest,
         on_delete=models.CASCADE,
-        related_name="question_test_id_fk",
+        related_name="questions",
         verbose_name="Тест",
         help_text="Тест, к которому привязан вопрос",
     )
@@ -48,6 +50,7 @@ class Question(TimeStampMixin, models.Model):
                                                 help_text="Характерно для вопросов с свободным ответом (FREE)")
     only_whole_numbers = models.BooleanField(default=False, verbose_name="Только для целых чисел",
                                              help_text="Характерно для числовых вопросов (Numerical)")
+    _clone_m2o_or_o2m_fields = ["answers"]
 
     def __str__(self):
         return str(self.question_id) + " " + str(self.body)

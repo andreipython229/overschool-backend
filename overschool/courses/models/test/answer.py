@@ -25,7 +25,7 @@ class Answer(TimeStampMixin, models.Model):
     question = models.ForeignKey(
         Question,
         on_delete=models.CASCADE,
-        related_name="question_answer_id_fk",
+        related_name="answers",
         verbose_name="ID Вопроса",
         help_text="Вопрос, к которому привязан ответ",
     )

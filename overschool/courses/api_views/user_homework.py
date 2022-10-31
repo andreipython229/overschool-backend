@@ -175,6 +175,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         return queryset.values(
             "mark",
             "status",
+            "homework",
 
             avatar=F("user__profile__avatar"),
             user_name=F("user__first_name"),
