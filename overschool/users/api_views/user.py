@@ -30,59 +30,103 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
         Функция для отправки регистрационной ссылки пользователю
         """
         users = request.data
-        try:
-            for user in users:
-                serializer = InviteSerializer(data=user)
+        exceptions = []
+        user_exceptions = []
 
-                if serializer.is_valid():
+        for user in users:
+
+            serializer = InviteSerializer(data=user)
+            if serializer.is_valid():
+                try:
                     sender_type = serializer.data["sender_type"]
-                    if sender_type == "email" and serializer.data["user_type"] == 1:
-                        result = self.send_code_by_email(
-                            serializer.data["recipient"],
-                            serializer.data["user_type"],
-                            serializer.data["course_id"],
-                        )
-                    if sender_type == "email" and serializer.data["user_type"] != 1:
-                        result = self.send_code_by_email(
-                            serializer.data["recipient"],
-                            serializer.data["user_type"],
-                        )
-                    if sender_type == "phone" and serializer.data["user_type"] == 1:
-                        result = self.send_code_by_phone(
-                            serializer.data["recipient"],
-                            serializer.data["user_type"],
-                            serializer.data["course_id"],
-                        )
-                    if sender_type == "phone" and serializer.data["user_type"] != 1:
-                        result = self.send_code_by_phone(
-                            serializer.data["recipient"],
-                            serializer.data["user_type"],
-                        )
-                    if result and serializer.data["user_type"] == 1:
-                        self._save_data_to_redis(
-                            serializer.data["recipient"],
-                            serializer.data["user_type"],
-                            serializer.data["course_id"],
-                        )
 
-                    if result and serializer.data["user_type"] != 1:
+                    if sender_type == "email" and serializer.data["user_type"] == 1 \
+                            or sender_type == "email" and serializer.data["user_type"] == 2 \
+                            or sender_type == "email" and serializer.data["user_type"] == 3 \
+                            or sender_type == "email" and serializer.data["user_type"] == 4:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if sender_type == "email" and serializer.data["user_type"] == 5 \
+                            or sender_type == "email" and serializer.data["user_type"] == 6:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] == 1 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 2 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 3 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 4:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] == 5 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 6:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    # except Exception as d:
+                    #     exceptions.append(str(d))
+                    #     user_exceptions.append(serializer.data["recipient"])
+                    #     print(d, "''''''")
+
+                    if result and serializer.data["user_type"] == 1 \
+                            or result and serializer.data["user_type"] == 2 \
+                            or result and serializer.data["user_type"] == 3 \
+                            or result and serializer.data["user_type"] == 4:
+                        self._save_data_to_redis(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if result and serializer.data["user_type"] == 5 \
+                            or result and serializer.data["user_type"] == 6:
                         self._save_data_to_redis(
                             serializer.data["recipient"],
                             serializer.data["user_type"],
                         )
+                # except Exception as e:
+                #     exceptions.append(str(e))
+                #     user_exceptions.append(serializer.data["recipient"])
+                #     print(e, "lll")
+
+                except Exception as e:
+                    assert True
+                    exceptions.append(str(e))
+                    user_exceptions.append(serializer.data["recipient"])
+                    continue
+                    pass
                 else:
-                    return Response(
-                        {"status": "Error", "message": f"{serializer.errors}"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    continue
+                finally:
+                    print(len(exceptions))
+                    # user_exceptions.append(serializer.data["recipient"])
+                    continue
 
+            else:
+                return Response(
+                    {"status": "Error", "message": f"{serializer.errors}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if not exceptions:
             return Response(
-                {"status": "OK", "message": "Url was sent"},
+                {"status": "OK", "message": "Url was sent", "exception": exceptions},
                 status=status.HTTP_200_OK,
+
             )
-        except Exception:
+        else:
             return Response(
-                {"status": "Error", "message": "Some problems with send url"},
+                {"status": "Error", "message": "Some problems with send url", "exception": exceptions,
+                 "users": user_exceptions},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

@@ -39,13 +39,13 @@ class SenderServiceMixin(RedisDataMixin):
         """
         return random.randint(1000, 10000)
 
-    def send_code_by_phone(self, phone: str, user_type: int, course: int = 0) -> str | None:
+    def send_code_by_phone(self, phone: str, user_type: int, group: int = 0, course: int = 0) -> str | None:
         """
         Отправка кода на телефон, пока поддерживаются только белорусские и русские номера
         """
         phone_data = self.check_num(phone)
         if phone_data:
-            token = self._save_data_to_redis(phone_data[0], user_type, course)
+            token = self._save_data_to_redis(phone_data[0], user_type, course, group)
             if phone_data[1] == "BY":
                 params = {
                     "token": SenderServiceMixin.BY_TOKEN,
@@ -71,12 +71,12 @@ class SenderServiceMixin(RedisDataMixin):
         else:
             return None
 
-    def send_code_by_email(self, email: str, user_type: int, course: int = 0) -> bool:
+    def send_code_by_email(self, email: str, user_type: int, group: int = 0, course: int = 0) -> bool:
         """
         Отправка ссылки на email
         """
         try:
-            token = self._save_data_to_redis(email, user_type, course)
+            token = self._save_data_to_redis(email, user_type, course, group)
             send_code.send_email.delay(
                 email, f"https://overschool/users/login/?token={token}"
             )

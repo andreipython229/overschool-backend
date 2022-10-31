@@ -140,15 +140,28 @@ class InviteSerializer(serializers.Serializer):
         error_messages={"required": "No user type sent"},
         help_text="Айди роли пользователя",
     )
-    course_id = serializers.IntegerField(
+    course_id = serializers.ListField(child=serializers.IntegerField(),
         required=False,
         error_messages={"required": "No course id sent"},
         help_text="Айди курса, на которого регистрируют пользователя",
     )
+    group_id = serializers.ListField(child=serializers.IntegerField(),
+        required=False,
+        error_messages={"required": "No group id sent"},
+        help_text="Айди группы, на которого регистрируют пользователя",
+    )
 
     def validate(self, attrs):
-        if attrs.get("user_type") == 1 and not attrs.get("course_id"):
+        if attrs.get("user_type") == 1 and not attrs.get("course_id") \
+                or attrs.get("user_type") == 2 and not attrs.get("course_id") \
+                or attrs.get("user_type") == 3 and not attrs.get("course_id") \
+                or attrs.get("user_type") == 4 and not attrs.get("course_id"):
             raise serializers.ValidationError("Для этой роли пользователя необходим id курса")
+        if attrs.get("user_type") == 1 and not attrs.get("group_id") \
+                or attrs.get("user_type") == 2 and not attrs.get("group_id") \
+                or attrs.get("user_type") == 3 and not attrs.get("group_id") \
+                or attrs.get("user_type") == 4 and not attrs.get("group_id"):
+            raise serializers.ValidationError("Для этой роли пользователя необходим id группы")
         return attrs
 
 
