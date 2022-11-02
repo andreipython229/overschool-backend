@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from users.models import User
 from users.permissions import OwnerUserPermissions
-from users.serializers import (InviteSerializer, UserSerializer,
-                               ValidTokenSerializer)
+from users.serializers import (InviteSerializer, UserSerializer, UserRegisterSerializer,
+                               ValidTokenSerializer, PasswordSerializer)
 from users.services import RedisDataMixin, SenderServiceMixin
 
 
@@ -15,6 +15,7 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [DjangoModelPermissions | OwnerUserPermissions]
+    http_method_names = ["get", "patch", "put", "head", "delete"]
 
 
 class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
@@ -72,11 +73,6 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
                             serializer.data["recipient"],
                             serializer.data["user_type"],
                         )
-                    # except Exception as d:
-                    #     exceptions.append(str(d))
-                    #     user_exceptions.append(serializer.data["recipient"])
-                    #     print(d, "''''''")
-
                     if result and serializer.data["user_type"] == 1 \
                             or result and serializer.data["user_type"] == 2 \
                             or result and serializer.data["user_type"] == 3 \
@@ -93,23 +89,11 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
                             serializer.data["recipient"],
                             serializer.data["user_type"],
                         )
-                # except Exception as e:
-                #     exceptions.append(str(e))
-                #     user_exceptions.append(serializer.data["recipient"])
-                #     print(e, "lll")
 
                 except Exception as e:
-                    assert True
+                    print(e)
                     exceptions.append(str(e))
                     user_exceptions.append(serializer.data["recipient"])
-                    continue
-                    pass
-                else:
-                    continue
-                finally:
-                    print(len(exceptions))
-                    # user_exceptions.append(serializer.data["recipient"])
-                    continue
 
             else:
                 return Response(
@@ -163,16 +147,46 @@ class ValidTokenView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin
             )
 
 
+class PasswordView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
+    """
+    Эндпоинт на проверку валидности токена, по которому хочет зарегистрироваться пользователь
+    """
+
+    serializer_class = PasswordSerializer
+    queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        """
+        Отправка паролей, которые оставил пользователь, на страницу регистрации
+        """
+        serializer = PasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(
+                {
+                    "status": "OK",
+                    "message": "User created successfully",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
     """
     Эндпоинт регистрации пользователя админом
     """
 
-    serializer_class = UserSerializer
+    serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             self._delete_data_from_redis()
@@ -186,6 +200,6 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
             )
         else:
             return Response(
-                {"status": "Error", "message": "Bad credentials"},
+                serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )

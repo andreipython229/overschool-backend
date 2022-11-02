@@ -11,7 +11,7 @@ from dj_rest_auth.views import LoginView, LogoutView, PasswordChangeView, Passwo
 from .main_router import router
 from dj_rest_auth.jwt_auth import get_refresh_view
 from users.api_views.register import RegisterView
-from users.api_views.user import InviteView, ValidTokenView, UserRegistration
+from users.api_views.user import InviteView, ValidTokenView, UserRegistration, PasswordView
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
@@ -22,6 +22,7 @@ urlpatterns = [
                   path("api/password_reset/", PasswordResetView.as_view(), name="password_reset"),
                   path("api/invite/", InviteView.as_view(), name="invite"),
                   path("api/valid-token/", ValidTokenView.as_view(), name="valid_token"),
+                  path("api/signup/", PasswordView.as_view(), name="signup"),
                   path("api/user-register/", UserRegistration.as_view(), name="user_register"),
                   path("api/password_reset/confirm/", PasswordResetConfirmView.as_view(),
                        name="password_reset_confirm/"),

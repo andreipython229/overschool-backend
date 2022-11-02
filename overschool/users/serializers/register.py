@@ -140,12 +140,14 @@ class InviteSerializer(serializers.Serializer):
         error_messages={"required": "No user type sent"},
         help_text="Айди роли пользователя",
     )
-    course_id = serializers.ListField(child=serializers.IntegerField(),
+    course_id = serializers.ListField(
+        child=serializers.IntegerField(),
         required=False,
         error_messages={"required": "No course id sent"},
         help_text="Айди курса, на которого регистрируют пользователя",
     )
-    group_id = serializers.ListField(child=serializers.IntegerField(),
+    group_id = serializers.ListField(
+        child=serializers.IntegerField(),
         required=False,
         error_messages={"required": "No group id sent"},
         help_text="Айди группы, на которого регистрируют пользователя",
@@ -169,3 +171,17 @@ class ValidTokenSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=256, required=True,
                                   error_messages={"required": "No token"},
                                   help_text="Токен, полученный при регистрации пользователя админом")
+
+
+class PasswordSerializer(serializers.Serializer):
+    password1 = serializers.CharField(max_length=256, required=True,
+                                      error_messages={"required": "Пароль слишком лёгкий"},
+                                      help_text="Пароль")
+    password2 = serializers.CharField(max_length=256, required=True,
+                                      error_messages={"required": "Пароли не совпали"},
+                                      help_text="Подтверждение пароля")
+
+    def validate(self, attrs):
+        if attrs.get("password1") != attrs.get("password2"):
+            raise ValidationError("Пароли не совпали")
+        return attrs
