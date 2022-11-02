@@ -59,6 +59,12 @@ class TeacherHomeworkSerializer(serializers.ModelSerializer):
     """
     audio_files = AudioFileSerializer(many=True, required=False)
     text_files = TextFileSerializer(many=True, required=False)
+    teacher_first_name = serializers.CharField(
+        source="teacher.first_name", read_only=True
+    )
+    teacher_last_name = serializers.CharField(
+        source="teacher.last_name", read_only=True
+    )
 
     class Meta:
         model = UserHomework
@@ -72,6 +78,8 @@ class TeacherHomeworkSerializer(serializers.ModelSerializer):
             "status",
             "mark",
             "teacher",
+            "teacher_first_name",
+            "teacher_last_name",
             "teacher_message",
             "text_files",
             "audio_files",

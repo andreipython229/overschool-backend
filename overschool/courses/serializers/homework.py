@@ -21,6 +21,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "order",
             "author_id",
             "description",
+            "video",
             "automate_accept",
             "time_accept",
             "points",

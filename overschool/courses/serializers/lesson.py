@@ -19,6 +19,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "section",
             "name",
             "order",
+            "author_id",
             "description",
             "video",
             "points",
