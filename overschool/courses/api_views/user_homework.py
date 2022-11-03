@@ -168,6 +168,9 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         if self.request.GET.get('homework_name'):
             queryset = queryset.filter(homework__name=self.request.GET.get('homework_name'))
 
+        if self.request.GET.get('group_name'):
+            queryset = queryset.filter(user__students_group_fk__name=self.request.GET.get('group_name'))
+
         if self.request.GET.get('start_date'):
             queryset = queryset.filter(updated_at__gte=self.request.GET.get('start_date'))
 
@@ -185,6 +188,8 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             course_name=F("homework__section__course__name"),
             homework_name=F("homework__name"),
             group_id=F("user__groups"),
+            group_name=F("user__students_group_fk__name"),
+            h_history=F("homework__user_homeworks__status"),
             last_update=Window(
                 expression=Max("updated_at"), partition_by=[F("user__email"), F("homework__homework_id")]
             ),

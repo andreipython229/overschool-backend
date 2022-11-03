@@ -252,9 +252,13 @@ ACCOUNT_SESSION_REMEMBER = True
 
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer", "JWT"),
-    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'SIGNING_KEY': SECRET_KEY,
 }
+
 
 REST_USE_JWT = True
 JWT_AUTH_COOKIE = 'jwt-auth'

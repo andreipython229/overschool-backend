@@ -10,3 +10,4 @@ from .test import TestViewSet
 from .tests_view import UserTestViewSet
 from .user_homework import (HomeworkStatisticsView, TeacherHomeworkViewSet,
                             UserHomeworkViewSet)
+from .user_history import UserHistoryViewSet

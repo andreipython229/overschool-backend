@@ -5,7 +5,7 @@ from courses.api_views import (AnswerViewSet, CourseViewSet,
                                LessonViewSet, QuestionViewSet, SectionViewSet,
                                StudentsGroupViewSet, StudentsTableInfoViewSet,
                                TeacherHomeworkViewSet, TestViewSet,
-                               UserHomeworkViewSet, UserTestViewSet)
+                               UserHomeworkViewSet, UserTestViewSet,UserHistoryViewSet)
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
@@ -17,6 +17,7 @@ router.register(
 )
 router.register("homeworks", HomeworkViewSet, basename="homeworks")
 router.register("homeworks_stats", HomeworkStatisticsView, basename="homeworks_stats")
+router.register("user_history", UserHistoryViewSet, basename="user_history")
 router.register("user_homeworks", UserHomeworkViewSet, basename="user_homeworks")
 router.register(
     "teacher_homeworks", TeacherHomeworkViewSet, basename="teacher_homeworks"
