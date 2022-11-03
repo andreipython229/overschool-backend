@@ -3,22 +3,28 @@ from datetime import date
 from rest_framework import serializers
 
 from courses.models import UserHomework
+from common_services.serializers import TextFileSerializer, AudioFileSerializer
 
 
 class AllUserHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели всех выполненных домашних работ
     """
+    audio_files = AudioFileSerializer(many=True, required=False)
+    text_files = TextFileSerializer(many=True, required=False)
 
     class Meta:
         model = UserHomework
         fields = "__all__"
+        read_only_fields = ["text_files", "audio_files"]
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели выполненной домашней работы со стороны ученика
     """
+    audio_files = AudioFileSerializer(many=True, required=False)
+    text_files = TextFileSerializer(many=True, required=False)
 
     class Meta:
         model = UserHomework
@@ -31,10 +37,10 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "text",
             "status",
             "mark",
-            "file",
-            "file_url",
             "teacher",
             "teacher_message",
+            "text_files",
+            "audio_files",
         ]
         read_only_fields = (
             "user",
@@ -42,6 +48,8 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "mark",
             "teacher_message",
             "teacher",
+            "text_files",
+            "audio_files",
         )
 
 
@@ -49,6 +57,14 @@ class TeacherHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели выполненной домашней работы со стороны преподавателя
     """
+    audio_files = AudioFileSerializer(many=True, required=False)
+    text_files = TextFileSerializer(many=True, required=False)
+    teacher_first_name = serializers.CharField(
+        source="teacher.first_name", read_only=True
+    )
+    teacher_last_name = serializers.CharField(
+        source="teacher.last_name", read_only=True
+    )
 
     class Meta:
         model = UserHomework
@@ -61,16 +77,19 @@ class TeacherHomeworkSerializer(serializers.ModelSerializer):
             "text",
             "status",
             "mark",
-            "file",
-            "file_url",
             "teacher",
+            "teacher_first_name",
+            "teacher_last_name",
             "teacher_message",
+            "text_files",
+            "audio_files",
         ]
         read_only_fields = (
             "user",
-            "file",
             "text",
             "teacher",
+            "text_files",
+            "audio_files",
         )
 
 

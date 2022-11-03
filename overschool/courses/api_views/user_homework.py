@@ -72,8 +72,6 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             if request.data.get("text"):
                 homeworks.text = request.data.get("text")
-            if request.data.get("file"):
-                homeworks.file = request.data.get("file")
 
             serializer = UserHomeworkSerializer(homeworks)
 
@@ -144,7 +142,7 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.DjangoModelPermissions]
     pagination_class = UserHomeworkPagination
 
     def get_queryset(self, *args, **kwargs):
@@ -180,6 +178,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         return queryset.values(
             "mark",
             "status",
+            "homework",
 
             avatar=F("user__profile__avatar"),
             user_name=F("user__first_name"),

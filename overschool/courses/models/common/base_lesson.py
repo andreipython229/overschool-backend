@@ -3,17 +3,18 @@ from django.db import models
 from embed_video.fields import EmbedVideoField
 
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
+from model_clone import CloneMixin
 
 from ..courses.section import Section
 
 
-class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
+class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     """Базовая модель урока в разделе"""
 
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="%(class)s_section",
+        related_name="all_lessons",
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )
@@ -37,6 +38,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, models.Model):
         help_text="Баллы за прохождение",
         default=0,
     )
+    _clone_o2o_fields = ["lessons", "homeworks", "tests"]
 
     def __str__(self):
-        return f"{self.lesson_id}. {self.name}"
+        return f"{self.section}. {self.name}"

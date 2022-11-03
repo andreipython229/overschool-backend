@@ -54,3 +54,4 @@ class UserTest(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Сданный тест"
         verbose_name_plural = "Сданные тесты"
+

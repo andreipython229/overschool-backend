@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from users.models import User
 from users.permissions import OwnerUserPermissions
-from users.serializers import (InviteSerializer, UserSerializer,
-                               ValidTokenSerializer)
+from users.serializers import (InviteSerializer, UserSerializer, UserRegisterSerializer,
+                               ValidTokenSerializer, PasswordSerializer)
 from users.services import RedisDataMixin, SenderServiceMixin
 
 
@@ -15,6 +15,7 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [DjangoModelPermissions | OwnerUserPermissions]
+    http_method_names = ["get", "patch", "put", "head", "delete"]
 
 
 class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
@@ -29,59 +30,88 @@ class InviteView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
         """
         Функция для отправки регистрационной ссылки пользователю
         """
-        serializer = InviteSerializer(data=request.data)
-        if serializer.is_valid():
-            sender_type = serializer.data["sender_type"]
-            if sender_type == "email" and serializer.data["user_type"] == 1:
-                result = self.send_code_by_email(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-            if sender_type == "email" and serializer.data["user_type"] != 1:
-                result = self.send_code_by_email(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-            if sender_type == "phone" and serializer.data["user_type"] == 1:
-                result = self.send_code_by_phone(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-            if sender_type == "phone" and serializer.data["user_type"] != 1:
-                result = self.send_code_by_phone(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-            if result and serializer.data["user_type"] == 1:
-                self._save_data_to_redis(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                    serializer.data["course_id"],
-                )
-                return Response(
-                    {"status": "OK", "message": "Url was sent"},
-                    status=status.HTTP_200_OK,
-                )
-            if result and serializer.data["user_type"] != 1:
-                self._save_data_to_redis(
-                    serializer.data["recipient"],
-                    serializer.data["user_type"],
-                )
-                return Response(
-                    {"status": "OK", "message": "Url was sent"},
-                    status=status.HTTP_200_OK,
-                )
+        users = request.data
+        exceptions = []
+        user_exceptions = []
+
+        for user in users:
+
+            serializer = InviteSerializer(data=user)
+            if serializer.is_valid():
+                try:
+                    sender_type = serializer.data["sender_type"]
+
+                    if sender_type == "email" and serializer.data["user_type"] == 1 \
+                            or sender_type == "email" and serializer.data["user_type"] == 2 \
+                            or sender_type == "email" and serializer.data["user_type"] == 3 \
+                            or sender_type == "email" and serializer.data["user_type"] == 4:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if sender_type == "email" and serializer.data["user_type"] == 5 \
+                            or sender_type == "email" and serializer.data["user_type"] == 6:
+                        result = self.send_code_by_email(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] == 1 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 2 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 3 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 4:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if sender_type == "phone" and serializer.data["user_type"] == 5 \
+                            or sender_type == "phone" and serializer.data["user_type"] == 6:
+                        result = self.send_code_by_phone(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+                    if result and serializer.data["user_type"] == 1 \
+                            or result and serializer.data["user_type"] == 2 \
+                            or result and serializer.data["user_type"] == 3 \
+                            or result and serializer.data["user_type"] == 4:
+                        self._save_data_to_redis(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                            serializer.data["course_id"],
+                            serializer.data["group_id"],
+                        )
+                    if result and serializer.data["user_type"] == 5 \
+                            or result and serializer.data["user_type"] == 6:
+                        self._save_data_to_redis(
+                            serializer.data["recipient"],
+                            serializer.data["user_type"],
+                        )
+
+                except Exception as e:
+                    print(e)
+                    exceptions.append(str(e))
+                    user_exceptions.append(serializer.data["recipient"])
+
             else:
                 return Response(
-                    {"status": "Error", "message": "Some problems with send url"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    {"status": "Error", "message": f"{serializer.errors}"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
+
+        if not exceptions:
+            return Response(
+                {"status": "OK", "message": "Url was sent", "exception": exceptions},
+                status=status.HTTP_200_OK,
+
+            )
         else:
             return Response(
-                {"status": "Error", "message": f"{serializer.errors}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"status": "Error", "message": "Some problems with send url", "exception": exceptions,
+                 "users": user_exceptions},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -117,16 +147,46 @@ class ValidTokenView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin
             )
 
 
+class PasswordView(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
+    """
+    Эндпоинт на проверку валидности токена, по которому хочет зарегистрироваться пользователь
+    """
+
+    serializer_class = PasswordSerializer
+    queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        """
+        Отправка паролей, которые оставил пользователь, на страницу регистрации
+        """
+        serializer = PasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(
+                {
+                    "status": "OK",
+                    "message": "User created successfully",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMixin):
     """
     Эндпоинт регистрации пользователя админом
     """
 
-    serializer_class = UserSerializer
+    serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             self._delete_data_from_redis()
@@ -140,6 +200,6 @@ class UserRegistration(generics.GenericAPIView, SenderServiceMixin, RedisDataMix
             )
         else:
             return Response(
-                {"status": "Error", "message": "Bad credentials"},
+                serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )

@@ -6,8 +6,9 @@ from .question import QuestionViewSet
 from .section import SectionViewSet
 from .students_group import StudentsGroupViewSet
 from .students_table_info import StudentsTableInfoViewSet
-from .test import TestViewSet
-from .tests_view import UserTestViewSet
+from .section_test import TestViewSet
+from .user_test import UserTestViewSet
 from .user_homework import (HomeworkStatisticsView, TeacherHomeworkViewSet,
-                            UserHomeworkViewSet)
+                            UserHomeworkViewSet, AllUserHomeworkViewSet)
 from .user_history import UserHistoryViewSet
+

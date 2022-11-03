@@ -7,6 +7,7 @@ class TestSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели теста
     """
+    type = serializers.CharField(default="test", read_only=True)
 
     class Meta:
         model = SectionTest
@@ -24,4 +25,6 @@ class TestSerializer(serializers.ModelSerializer):
             "points",
             "order",
             "author_id",
+            "type"
         ]
+        read_only_fields = ["type"]

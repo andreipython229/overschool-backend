@@ -36,8 +36,9 @@ class SectionTest(BaseLesson, CloneMixin):
     points_per_answer = models.PositiveIntegerField(
         default=1, verbose_name="Бал за каждый правильный ответ"
     )
-    _clone_m2o_or_o2m_fields = ["question_test_id_fk"]
+    _clone_m2o_or_o2m_fields = ["questions"]
 
     class Meta:
         verbose_name = "Тест"
         verbose_name_plural = "Тесты"
+        default_related_name = "tests"

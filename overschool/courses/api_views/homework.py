@@ -12,15 +12,4 @@ class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = HomeworkSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
-    def retrieve(self, request, *args, **kwargs):
-        homework_id = self.kwargs["pk"]
 
-        try:
-            instance = Homework.objects.get(homework_id=homework_id)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data | {"type": "homework"})
-        except ObjectDoesNotExist:
-            return Response(
-                {"status": "Error", "message": "Not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
