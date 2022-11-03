@@ -17,7 +17,7 @@ class UserHistoryViewSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView)
         queryset = UserHomework.objects.all()
 
         return queryset.values(
-            "mark",
+
             "status",
             check_homework_id=F("user__user_homeworks"),
             avatar=F("user__profile__avatar"),
