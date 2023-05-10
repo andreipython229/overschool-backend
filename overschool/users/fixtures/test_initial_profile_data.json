@@ -1,0 +1,436 @@
+[
+  {
+    "model": "users.Profile",
+    "pk": 1,
+    "fields": {
+      "profile_id": 1,
+      "user_id": 1,
+      "avatar": "media/images/users/avatar_1.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Admin Profile 1",
+      "created_at": "2023-05-09 12:03:28.623383+00",
+      "updated_at": "2023-05-09 12:03:28.630044+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 2,
+    "fields": {
+      "profile_id": 2,
+      "user_id": 2,
+      "avatar": "media/images/users/avatar_2.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description SuperAdmin Profile 1",
+      "created_at": "2023-05-09 12:16:03.153243+00",
+      "updated_at": "2023-05-09 12:16:03.190035+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 3,
+    "fields": {
+      "profile_id": 3,
+      "user_id": 3,
+      "avatar": "media/images/users/avatar_3.png",
+      "city": "Минск",
+      "sex": "Ж",
+      "description": "Description Editor Profile 1",
+      "created_at": "2023-05-09 12:29:30.114846+00",
+      "updated_at": "2023-05-09 12:29:30.126407+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 4,
+    "fields": {
+      "profile_id": 4,
+      "user_id": 4,
+      "avatar": "media/images/users/avatar_4.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Manager Profile 4",
+      "created_at": "2023-05-09 12:31:08.765856+00",
+      "updated_at": "2023-05-09 12:31:09.931445+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 5,
+    "fields": {
+      "profile_id": 5,
+      "user_id": 5,
+      "avatar": "media/images/users/avatar_5.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Teacher 1 Profile",
+      "created_at": "2023-05-10 15:59:37.358734+00",
+      "updated_at": "2023-05-10 15:59:37.367346+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 6,
+    "fields": {
+      "profile_id": 6,
+      "user_id": 6,
+      "avatar": "media/images/users/avatar_6.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Teacher 2 Profile",
+      "created_at": "2023-05-10 16:02:31.238821+00",
+      "updated_at": "2023-05-10 16:02:31.241703+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 7,
+    "fields": {
+      "profile_id": 7,
+      "user_id": 7,
+      "avatar": "media/images/users/avatar_7.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Teacher 3 Profile",
+      "created_at": "2023-05-10 16:05:02.792021+00",
+      "updated_at": "2023-05-10 16:05:02.795485+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 8,
+    "fields": {
+      "profile_id": 8,
+      "user_id": 8,
+      "avatar": "media/images/users/avatar_8.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Teacher 4 Profile",
+      "created_at": "2023-05-10 16:05:39.492245+00",
+      "updated_at": "2023-05-10 16:05:39.510338+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 9,
+    "fields": {
+      "profile_id": 9,
+      "user_id": 9,
+      "avatar": "media/images/users/avatar_9.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 1 Profile",
+      "created_at": "2023-05-10 16:05:48.760753+00",
+      "updated_at": "2023-05-10 16:05:48.782513+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 10,
+    "fields": {
+      "profile_id": 10,
+      "user_id": 10,
+      "avatar": "media/images/users/avatar_10.png",
+      "city": "Брест",
+      "sex": "М",
+      "description": "Description Student 2 Profile",
+      "created_at": "2023-05-10 16:05:56.155181+00",
+      "updated_at": "2023-05-10 16:05:56.218508+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 11,
+    "fields": {
+      "profile_id": 11,
+      "user_id": 11,
+      "avatar": "media/images/users/avatar_11.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 3 Profile",
+      "created_at": "2023-05-10 16:06:04.075778+00",
+      "updated_at": "2023-05-10 16:06:04.082067+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 12,
+    "fields": {
+      "profile_id": 12,
+      "user_id": 12,
+      "avatar": "media/images/users/avatar_12.png",
+      "city": "Могилёв",
+      "sex": "М",
+      "description": "Description Student 4 Profile",
+      "created_at": "22023-05-10 16:06:11.107118+00",
+      "updated_at": "2023-05-10 16:06:11.147066+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 13,
+    "fields": {
+      "profile_id": 13,
+      "user_id": 13,
+      "avatar": "media/images/users/avatar_13.png",
+      "city": "Витебск",
+      "sex": "М",
+      "description": "Description Student 5 Profile",
+      "created_at": "2023-05-10 16:06:21.444047+00",
+      "updated_at": "2023-05-10 16:06:21.446612+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 14,
+    "fields": {
+      "profile_id": 14,
+      "user_id": 14,
+      "avatar": "media/images/users/avatar_14.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 6 Profile",
+      "created_at": "2023-05-10 16:06:30.051121+00",
+      "updated_at": "2023-05-10 16:06:30.053617+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 15,
+    "fields": {
+      "profile_id": 15,
+      "user_id": 15,
+      "avatar": "media/images/users/avatar_15.png",
+      "city": "Брест",
+      "sex": "М",
+      "description": "Description Student 7 Profile",
+      "created_at": "2023-05-10 16:06:43.12242+00",
+      "updated_at": "2023-05-10 16:06:43.126903+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 16,
+    "fields": {
+      "profile_id": 16,
+      "user_id": 16,
+      "avatar": "media/images/users/avatar_16.png",
+      "city": "Гомель",
+      "sex": "М",
+      "description": "Description Student 8 Profile",
+      "created_at": "2023-05-10 16:06:50.79432+00",
+      "updated_at": "2023-05-10 16:06:50.797775+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 17,
+    "fields": {
+      "profile_id": 17,
+      "user_id": 17,
+      "avatar": "media/images/users/avatar_17.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 9 Profile",
+      "created_at": "2023-05-10 16:06:58.087958+00",
+      "updated_at": "2023-05-10 16:06:58.090874+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 18,
+    "fields": {
+      "profile_id": 18,
+      "user_id": 18,
+      "avatar": "media/images/users/avatar_18.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 10 Profile",
+      "created_at": "2023-05-10 16:07:04.4758+00",
+      "updated_at": "2023-05-10 16:07:04.479014+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 19,
+    "fields": {
+      "profile_id": 19,
+      "user_id": 19,
+      "avatar": "media/images/users/avatar_19.png",
+      "city": "Витебск",
+      "sex": "М",
+      "description": "Description Student 11 Profile",
+      "created_at": "2023-05-10 16:07:16.13443+00",
+      "updated_at": "2023-05-10 16:07:16.143041+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 20,
+    "fields": {
+      "profile_id": 20,
+      "user_id": 20,
+      "avatar": "media/images/users/avatar_20.png",
+      "city": "Гомель",
+      "sex": "М",
+      "description": "Description Student 12 Profile",
+      "created_at": "2023-05-10 16:07:50.734479+00",
+      "updated_at": "2023-05-10 16:07:50.738071+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 21,
+    "fields": {
+      "profile_id": 21,
+      "user_id": 21,
+      "avatar": "media/images/users/avatar_21.png",
+      "city": "Гомель",
+      "sex": "М",
+      "description": "Description Student 13 Profile",
+      "created_at": "2023-05-10 16:07:59.196707+00",
+      "updated_at": "2023-05-10 16:07:59.199612+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 22,
+    "fields": {
+      "profile_id": 22,
+      "user_id": 22,
+      "avatar": "media/images/users/avatar_22.png",
+      "city": "Лида",
+      "sex": "М",
+      "description": "Description Student 14 Profile",
+      "created_at": "2023-05-10 16:08:06.966334+00",
+      "updated_at": "2023-05-10 16:08:06.976968+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 23,
+    "fields": {
+      "profile_id": 23,
+      "user_id": 23,
+      "avatar": "media/images/users/avatar_23.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 15 Profile",
+      "created_at": "2023-05-10 16:08:13.32484+00",
+      "updated_at": "2023-05-10 16:08:13.330905+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 24,
+    "fields": {
+      "profile_id": 24,
+      "user_id": 24,
+      "avatar": "media/images/users/avatar_24.png",
+      "city": "Витебск",
+      "sex": "М",
+      "description": "Description Student 16 Profile",
+      "created_at": "2023-05-10 16:08:22.268182+00",
+      "updated_at": "2023-05-10 16:08:22.271252+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 25,
+    "fields": {
+      "profile_id": 25,
+      "user_id": 25,
+      "avatar": "media/images/users/avatar_25.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 17 Profile",
+      "created_at": "2023-05-10 16:08:29.65609+00",
+      "updated_at": "2023-05-10 16:08:29.722802+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 26,
+    "fields": {
+      "profile_id": 26,
+      "user_id": 26,
+      "avatar": "media/images/users/avatar_26.png",
+      "city": "Солигорск",
+      "sex": "М",
+      "description": "Description Student 18 Profile",
+      "created_at": "2023-05-10 16:08:37.458314+00",
+      "updated_at": "2023-05-10 16:08:37.462252+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 27,
+    "fields": {
+      "profile_id": 27,
+      "user_id": 27,
+      "avatar": "media/images/users/avatar_27.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 19 Profile",
+      "created_at": "2023-05-10 16:08:44.523699+00",
+      "updated_at": "2023-05-10 16:08:44.526692+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 28,
+    "fields": {
+      "profile_id": 28,
+      "user_id": 28,
+      "avatar": "media/images/users/avatar_28.png",
+      "city": "Минск",
+      "sex": "М",
+      "description": "Description Student 20 Profile",
+      "created_at": "2023-05-10 16:10:32.13393+00",
+      "updated_at": "2023-05-10 16:10:32.140879+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 29,
+    "fields": {
+      "profile_id": 29,
+      "user_id": 29,
+      "avatar": "media/images/users/avatar_29.png",
+      "city": "Гродно",
+      "sex": "М",
+      "description": "Description Student 21 Profile",
+      "created_at": "2023-05-10 16:10:50.795167+00",
+      "updated_at": "2023-05-10 16:10:50.803375+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 30,
+    "fields": {
+      "profile_id": 30,
+      "user_id": 30,
+      "avatar": "media/images/users/avatar_30.png",
+      "city": "Брест",
+      "sex": "М",
+      "description": "Description Student 22 Profile",
+      "created_at": "2023-05-10 16:10:58.070919+00",
+      "updated_at": "2023-05-10 16:10:58.07438+00"
+    }
+  },
+  {
+    "model": "users.Profile",
+    "pk": 31,
+    "fields": {
+      "profile_id": 31,
+      "user_id": 31,
+      "avatar": "media/images/users/avatar_31.png",
+      "city": "Минск",
+      "sex": "Ж",
+      "description": "Description Student 23 Profile",
+      "created_at": "2023-05-10 16:11:06.676981+00",
+      "updated_at": "2023-05-10 16:11:06.680102+00"
+    }
+  }
+]
