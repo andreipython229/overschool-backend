@@ -71,6 +71,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(
                 {"status": "Error", "message": "Удалять пройденные тесты могут только администраторы"},
             )
+
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
