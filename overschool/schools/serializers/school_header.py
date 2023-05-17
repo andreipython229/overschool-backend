@@ -21,4 +21,6 @@ class SchoolHeaderSerializer(serializers.ModelSerializer):
             "logo_header_url",
             "photo_background_url",
             "favicon_url",
+            "school_header",
+
         ]
