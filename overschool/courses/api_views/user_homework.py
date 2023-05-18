@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import UserHomework
+from courses.models import UserHomework, Homework, BaseLesson
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     UserHomeworkSerializer,
@@ -43,7 +43,9 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(
                 {"status": "Error", "message": "Пользователь не авторизирован"},
             )
-        teacher_group = user.students_group_fk.get()
+
+        baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+        teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
