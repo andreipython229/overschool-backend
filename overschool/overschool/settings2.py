@@ -9,10 +9,13 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+import datetime
 import os
 from pathlib import Path
 
 from environ import Env
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,8 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "allauth",
+    "allauth.account",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "phonenumber_field",
     "drf_yasg",
     "ckeditor",
@@ -52,8 +60,8 @@ INSTALLED_APPS = [
     "dbbackup",
     "corsheaders",
     "django_filters",
-    "chats.apps.ChatsConfig",
-    "channels",
+    'chats.apps.ChatsConfig',
+    'channels',
 ]
 
 REDIS_HOST = "redis"
@@ -80,7 +88,12 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ["http://127.0.0.1", "http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://localhost:3000"
+]
+
+CSRF_TRUSTED_ORIGINS = ['https://api.itdev.by']
 
 CORS_ALLOW_METHODS = (
     "DELETE",
@@ -121,7 +134,6 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "users.services.middleware.AuthOptionalMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -152,24 +164,14 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# For prod testing
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': env("POSTGRES_DB_NAME"),
-#         'USER': env("POSTGRES_USER"),
-#         'PASSWORD': env("POSTGRES_USER_PASSWORD"),
-#         'HOST': env("POSTGRES_HOST"),
-#         'PORT': int(env("POSTGRES_PORT")),
-#     }
-# }
-# For local testing
+# DATABASES = {"default": env.db_url("DB_URL_DEV")}
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
 
 AUTH_USER_MODEL = "users.User"
 
@@ -215,6 +217,12 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
 
 DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
 DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
+
+# DBBACKUP_STORAGE = "storages.backends.dropbox.DropBoxStorage"
+# DBBACKUP_STORAGE_OPTIONS = {
+#     "oauth2_access_token": "sl.BL4ztniJ3eNeWsP8FiA5LI0OKZTD4opm5QItWouN3_J0VrgiipY-avIeqnztK4ewzf26ubEEqfV89e72Rk2sxn0A0HOj55ByWfXX2s9A_LD5gtLIDG4SwGxYvuWpENhbcQTYVdYQ3eXd",
+#     "root_path": "/Backups Denka/",
+# }
 DBBACKUP_CLEANUP_KEEP = 2
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
@@ -235,19 +243,37 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
 }
 
-# jwt
-ALGORITHM: str = os.getenv("ALGORITHM")
-JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
-JWT_REFRESH_SECRET_KEY: str = os.getenv("JWT_REFRESH_SECRET_KEY")
-# время жизни jwt токенов
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
-# время жизни cookie с jwt токенами
-COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
-ACCESS: str = os.getenv("ACCESS")
-REFRESH: str = os.getenv("REFRESH")
+SITE_ID = 1
+ACCOUNT_SESSION_REMEMBER = True
+
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Bearer", "JWT"),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'SIGNING_KEY': SECRET_KEY,
+}
+
+
+REST_USE_JWT = True
+JWT_AUTH_COOKIE = 'jwt-auth'
+
+REST_AUTH_REGISTER_PERMISSION_CLASSES = (
+    'rest_framework.permissions.DjangoModelPermissions',
+)
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'users.serializers.register.RegisterSerializer',
+}
+REST_AUTH_SERIALIZERS = {
+    'LOGIN_SERIALIZER': 'users.serializers.register.LoginSerializer',
+    'USER_DETAILS_SERIALIZER': 'users.serializers.register.UserDetailsSerializer',
+}
 
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
@@ -366,6 +392,13 @@ CKEDITOR_CONFIGS = {
         ],
         "contentsCss": ["static/css/fonts.css"],
         "toolbar": "YourCustomToolbarConfig",  # put selected toolbar config here
+        # 'toolbarGroups': [{ 'name': 'document', 'groups': [ 'mode', 'document', 'doctools' ] }],
+        # 'height': 291,
+        # 'width': '100%',
+        # 'filebrowserWindowHeight': 725,
+        # 'filebrowserWindowWidth': 940,
+        # 'toolbarCanCollapse': True,
+        # 'mathJaxLib': '//cdn.mathjax.org/mathjax/2.2-latest/MathJax.js?config=TeX-AMS_HTML',
         "tabSpaces": 4,
         "extraPlugins": ",".join(
             [
@@ -376,6 +409,7 @@ CKEDITOR_CONFIGS = {
                 "autoembed",
                 "embedsemantic",
                 "autogrow",
+                # 'devtools',
                 "widget",
                 "lineutils",
                 "clipboard",

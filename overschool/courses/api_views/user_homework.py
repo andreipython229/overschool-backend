@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, UserHomework
+from courses.models import BaseLesson, Homework, UserHomework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     AllUserHomeworkSerializer,
@@ -26,7 +26,7 @@ class AllUserHomeworkViewSet(
     queryset = UserHomework.objects.all()
     serializer_class = AllUserHomeworkSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["user", "teacher"]
+    filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
     permission_classes = [permissions.DjangoModelPermissions]
 
@@ -59,13 +59,8 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(
                 {"status": "Error", "message": "Недостаточно прав доступа"},
             )
-        homework_id = request.data["homework"]
-        course_id = (
-            Course.objects.filter(sections__all_lessons__homeworks=homework_id)
-            .values("course_id")
-            .first()["course_id"]
-        )
-        teacher_group = user.students_group_fk.filter(course_id=course_id).first()
+        baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+        teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
@@ -160,7 +155,7 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.DjangoModelPermissions]
     pagination_class = UserHomeworkPagination
 
     def get_queryset(self, *args, **kwargs):
@@ -185,7 +180,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
 
         if self.request.GET.get("homework_name"):
             queryset = queryset.filter(
-                homework__name=self.request.GET.get("homework_name")
+                homework__name__icontains=self.request.GET.get("homework_name")
             )
 
         if self.request.GET.get("group_name"):

@@ -32,7 +32,7 @@ class School(TimeStampMixin, OrderMixin):
 
     def avatar_url(self):
         if self.avatar:
-            url = urldecode("https://api.itdev.by" + self.avatar.url)
+            url = urldecode(self.avatar.url)
             return url[0][0]
         return None
 

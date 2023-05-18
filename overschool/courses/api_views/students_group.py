@@ -37,7 +37,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-            / Count("course_id__sections__lessons__lesson_id"),
+            / Count("course_id__sections__lessons__lesson_id"), # бьет ошибку
         )
 
         for row in data:
@@ -46,7 +46,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
                 .values("user")
                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
-            row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0
+            row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0 # бьет ошибку
         page = self.paginate_queryset(data)
         if page is not None:
             return self.get_paginated_response(page)

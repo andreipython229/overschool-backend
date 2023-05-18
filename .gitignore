@@ -79,8 +79,8 @@ celerybeat-schedule
 *.sage.py
 
 # dotenv
+overschool/.env
 .env
-
 # virtualenv
 .venv
 venv/
