@@ -7,16 +7,17 @@ from common_services.serializers import TextFileSerializer, AudioFileSerializer
 
 
 class AllUserHomeworkSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор модели всех выполненных домашних работ
-    """
     audio_files = AudioFileSerializer(many=True, required=False)
     text_files = TextFileSerializer(many=True, required=False)
+    status = serializers.CharField(max_length=20, help_text="Статус работы", required=False)
+    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
+    profile_avatar = serializers.ImageField(source='user.avatar', read_only=True)
 
     class Meta:
         model = UserHomework
-        fields = "__all__"
-        read_only_fields = ["text_files", "audio_files"]
+        fields = ['audio_files', 'text_files', 'status', 'user_first_name', 'user_last_name', 'profile_avatar']
+
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):

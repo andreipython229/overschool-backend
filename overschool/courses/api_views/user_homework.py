@@ -23,7 +23,7 @@ class AllUserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet, generics
     queryset = UserHomework.objects.all()
     serializer_class = AllUserHomeworkSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["user", "teacher"]
+    filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
     permission_classes = [permissions.DjangoModelPermissions]
 
@@ -164,7 +164,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             queryset = queryset.filter(homework__section__course__name=self.request.GET.get('course_name'))
 
         if self.request.GET.get('homework_name'):
-            queryset = queryset.filter(homework__name=self.request.GET.get('homework_name'))
+            queryset = queryset.filter(homework__name__icontains=self.request.GET.get('homework_name'))
 
         if self.request.GET.get('group_name'):
             queryset = queryset.filter(user__students_group_fk__name=self.request.GET.get('group_name'))
