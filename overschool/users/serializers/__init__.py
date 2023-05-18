@@ -1,5 +1,6 @@
 from .confident_files_serializers import UploadSerializer
+from .login import LoginSerializer
 from .profile import UserProfileSerializer
-from .register import InviteSerializer, ValidTokenSerializer, PasswordSerializer
-from .user import UserSerializer, UserRegisterSerializer
+from .register import SignupSerializer
+from .user import UserSerializer
 from .user_role import UserRoleSerializer
