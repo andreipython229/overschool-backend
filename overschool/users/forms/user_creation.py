@@ -3,7 +3,6 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import UsernameField
 from django.core.exceptions import ValidationError
 from phonenumber_field.formfields import PhoneNumberField
-
 from users.models import User
 
 
@@ -15,13 +14,13 @@ class UserCreationForm(forms.ModelForm):
     )
     password2 = forms.CharField(
         label="Password confirmation",
-        help_text="Введите пароль вначале, для верификации.",
+        help_text="Enter the same password as before, for verification.",
         widget=forms.PasswordInput,
     )
 
     class Meta:
         model = User
-        fields = ("username",)
+        fields = ("username", "email", "phone_number")
         field_classes = {"username": UsernameField, "phone_number": PhoneNumberField}
 
     def __init__(self, *args, **kwargs):
@@ -33,9 +32,29 @@ class UserCreationForm(forms.ModelForm):
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
-        if self._meta.model.objects.filter(username__iexact=username).exists():
+        if (
+            username
+            and self._meta.model.objects.filter(username__iexact=username).exists()
+        ):
             raise forms.ValidationError("Username already exists")
         return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and self._meta.model.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Email already exists")
+        return email
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get("phone_number")
+        if (
+            phone_number
+            and self._meta.model.objects.filter(
+                phone_number__iexact=phone_number
+            ).exists()
+        ):
+            raise forms.ValidationError("Phone number already exists")
+        return phone_number
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")

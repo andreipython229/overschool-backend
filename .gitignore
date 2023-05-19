@@ -80,7 +80,6 @@ celerybeat-schedule
 
 # dotenv
 overschool/.env
-
 # virtualenv
 .venv
 venv/

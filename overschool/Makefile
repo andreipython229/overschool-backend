@@ -21,15 +21,11 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
  run:
 	sudo docker-compose up --build
 
- back:  
-	${MANAGE} makemigrations
-	${MANAGE} migrate 
-	${MANAGE} runserver 0.0.0.0:8000
-
- prod:
+ back:
 	${MANAGE} makemigrations
 	${MANAGE} migrate
-	${MANAGE} runserver --settings=overschool.postgres_connection_settings
+	${MANAGE} runserver 0.0.0.0:8000 --settings=overschool.settings2
+
 
  test:
 	${DOCKER_LOAD_DATA}  initial_role_data.json
@@ -47,8 +43,3 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${DOCKER_LOAD_DATA}  test_initial_data_user_test.json
 	${DOCKER_LOAD_DATA}  test_initial_user_progress_data.json
 	${DOCKER_LOAD_DATA}  test_initial_students_group_data.json
-
-
-
-
-

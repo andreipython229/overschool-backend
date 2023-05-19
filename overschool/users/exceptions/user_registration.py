@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from rest_framework.views import exception_handler
 
 
@@ -14,5 +15,4 @@ def core_exception_handler(exc, context):
 
 def _handle_generic_error(exc, context, response):
     response.data = {"errors": response.data}
-
-    return response
+    return JsonResponse(response.data, status=response.status_code)

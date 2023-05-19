@@ -1,29 +1,35 @@
 repos:
   # python import sorting - will amend files
   - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.7.0
+    rev: v5.10.1
     hooks:
       - id: isort
-        language_version: python3.10.4
-        args: ["--profile", "black"]
+        language_version: python3
+        args: [ "--profile", "black" ]
 
   # python code formatting - will amend files
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
       - id: black
-        language_version: python3.10.4
+        exclude: ^dist/
 
-  # Flake8 includes pyflakes, pycodestyle, mccabe, pydocstyle, bandit
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+  # removes unused imports and unused variables - will amend files
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.0.0
     hooks:
-      - id: flake8
-        language_version: python3.10.4
-        exclude: __init__.py
+      - id: autoflake
+        language_version: python3
+
+  # automatically upgrade syntax for newer versions of the language - will amend files
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        language_version: python3
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
       - id: check-ast
