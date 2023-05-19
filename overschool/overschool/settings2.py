@@ -152,7 +152,7 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# For prod
+# prod db
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
