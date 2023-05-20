@@ -21,15 +21,11 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
  run:
 	sudo docker-compose up --build
 
- back:  
-	${MANAGE} makemigrations
-	${MANAGE} migrate 
-	${MANAGE} runserver 0.0.0.0:8000
-
- prod:
+ back:
 	${MANAGE} makemigrations
 	${MANAGE} migrate
-	${MANAGE} runserver --settings=overschool.postgres_connection_settings
+	${MANAGE} runserver 0.0.0.0:8000 --settings=overschool.settings2
+
 
  test:
 #-----------------overschool-base/overschool/courses/fixtures------------------------------
@@ -43,6 +39,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${DOCKER_LOAD_DATA}  test_initial_lesson_data.json
 	${DOCKER_LOAD_DATA}  test_initial_section_data.json
 	${DOCKER_LOAD_DATA}  test_initial_students_group_data.json
+<<<<<<< HEAD
 	${DOCKER_LOAD_DATA}  test_initial_students_group_students_data.json # добавил
 	${DOCKER_LOAD_DATA}  test_initial_user_progress_data.json
 	${DOCKER_LOAD_DATA}  test_initial_user_homework_data.json
@@ -54,3 +51,5 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${DOCKER_LOAD_DATA}  test_initial_profile_data.json # добавил
 	${DOCKER_LOAD_DATA}  test_initial_role_data.json
 	${DOCKER_LOAD_DATA}  test_initial_user_data.json
+=======
+>>>>>>> 52a963b6e2680ca560c9b10df90ebaed4017893f

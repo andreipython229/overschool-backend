@@ -14,12 +14,10 @@ from pathlib import Path
 
 from environ import Env
 
-from .sentry import *
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env(DEBUG=(bool, False))
-Env.read_env(str(BASE_DIR / "config.env"))
+Env.read_env(str(BASE_DIR / ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -129,7 +127,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 ROOT_URLCONF = "overschool.urls"
 
 TEMPLATES = [
@@ -155,25 +152,17 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-
-
+# prod db
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env("POSTGRES_DB_NAME"),
-        'USER': env("POSTGRES_USER"),
-        'PASSWORD': env("POSTGRES_USER_PASSWORD"),
-        'HOST': env("POSTGRES_HOST"),
-        'PORT': int(env("POSTGRES_PORT")),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": env("POSTGRES_DB_NAME"),
+        "USER": env("POSTGRES_USER"),
+        "PASSWORD": env("POSTGRES_USER_PASSWORD"),
+        "HOST": env("POSTGRES_HOST"),
+        "PORT": int(env("POSTGRES_PORT")),
     }
 }
-# For local testing
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 
 AUTH_USER_MODEL = "users.User"
 

@@ -84,7 +84,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
 
     def photo_url(self):
         if self.photo:
-            url = urldecode("https://api.itdev.by" + self.photo.url)
+            url = urldecode(self.photo.url)
             return url[0][0]
         return None
 

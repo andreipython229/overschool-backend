@@ -1,6 +1,5 @@
-from rest_framework import serializers
-
 from common_services.models import AudioFile
+from rest_framework import serializers
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
@@ -15,11 +14,12 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "order",
             "description",
             "file",
+            "file_url",
             "author",
             "base_lesson",
             "user_homework",
             "created_at",
-            "updated_at"
+            "updated_at",
         ]
 
     def validate(self, attrs):

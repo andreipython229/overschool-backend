@@ -1,3 +1,6 @@
 from .confident_files_views import ConfidentFilesViewSet
+from .login import LoginView
+from .logout import LogoutView
 from .profile import ProfileViewSet
-from .user import *
+from .register import SignupView
+from .users import UserViewSet

@@ -1,11 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import UserHomework
+from courses.models import BaseLesson, Homework, UserHomework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
+    AllUserHomeworkSerializer,
+    TeacherHomeworkSerializer,
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
-    TeacherHomeworkSerializer,
-    AllUserHomeworkSerializer,
 )
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import F, Max
@@ -16,14 +16,17 @@ from rest_framework.response import Response
 from users.models import User
 
 
-class AllUserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet, generics.ListAPIView):
+class AllUserHomeworkViewSet(
+    WithHeadersViewSet, viewsets.ModelViewSet, generics.ListAPIView
+):
     """
     Эндпоинт на получение всё домашних работ учеников с фильтрами по полям ("user", "teacher")
     """
+
     queryset = UserHomework.objects.all()
     serializer_class = AllUserHomeworkSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["user", "teacher"]
+    filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
     permission_classes = [permissions.DjangoModelPermissions]
 
@@ -33,63 +36,76 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
     (свои поля-"text", "file"), учитель подкидывается исходя из группы пользователя.
     """
+
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
     permission_classes = [permissions.DjangoModelPermissions]
 
-    def create(self, request, *args, **kwargs):
+    def get_queryset(self):
         user = self.request.user
+        if user.is_anonymous:
+            return UserHomework.objects.none()
+        if user.groups.filter(name="Student").exists():
+            return UserHomework.objects.filter(user=user)
+        return UserHomework.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
         if isinstance(user, AnonymousUser):
             return Response(
-                {"status": "Error", "message": "Пользователь не авторизирован"},
+                {"status": "Error", "message": "Пользователь не авторизован"},
             )
-        teacher_group = user.students_group_fk.get()
+        if not user.groups.filter(name="Student").exists():
+            return Response(
+                {"status": "Error", "message": "Недостаточно прав доступа"},
+            )
+        baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+        teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
 
         if serializer.is_valid():
             serializer.save(user=user, teacher=teacher)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(
-            {"error": serializer.errors},
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
         )
 
     def update(self, request, *args, **kwargs):
         user_homework = self.get_object()
-        user = self.request.user
+        user = request.user
 
-        homeworks = UserHomework.objects.get(pk=user_homework.pk)
-        if homeworks.user != user:
+        if user_homework.user != user:
             return Response(
-                {"status": "Error", "message": "Пользователь может обновлять только свою домашнюю работу"},
+                {
+                    "status": "Error",
+                    "message": "Пользователь может обновлять только свою домашнюю работу",
+                },
             )
         else:
             if request.data.get("text"):
-                homeworks.text = request.data.get("text")
+                user_homework.text = request.data.get("text")
 
-            serializer = UserHomeworkSerializer(homeworks)
+            user_homework.save()
+            serializer = UserHomeworkSerializer(user_homework)
 
-            return Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user = self.request.user
-        homeworks = UserHomework.objects.get(pk=instance.pk)
-        if homeworks.user != user:
+        user_homework = self.get_object()
+        user = request.user
+
+        if user_homework.user != user:
             return Response(
-                {"status": "Error", "message": "Пользователь может удалить только свою домашнюю работу"},
+                {
+                    "status": "Error",
+                    "message": "Пользователь может удалить только свою домашнюю работу",
+                },
             )
         else:
-            self.perform_destroy(instance)
+            self.perform_destroy(user_homework)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -98,45 +114,42 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     Учитель может редактировать и удалять только дз своих учеников
     и свои поля ("status", "mark", "teacher_message“).
     """
+
     queryset = UserHomework.objects.all()
     serializer_class = TeacherHomeworkSerializer
     permission_classes = [permissions.DjangoModelPermissions]
-    http_method_names = ["get", "patch", "put", "head", "delete"]
+    http_method_names = ["get", "patch", "put", "head"]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_anonymous:
+            return UserHomework.objects.none()
+        if user.groups.filter(name="Teacher").exists():
+            return UserHomework.objects.filter(teacher=user)
+        return UserHomework.objects.none()
 
     def update(self, request, *args, **kwargs):
         user_homework = self.get_object()
-        user = self.request.user
-        homeworks = UserHomework.objects.get(pk=user_homework.pk)
-        if homeworks.teacher != user:
+        user = request.user
+        if user_homework.teacher != user:
             return Response(
-                {"status": "Error", "message": "Учитель может обновлять домашние работы только своей группы"},
+                {
+                    "status": "Error",
+                    "message": "Учитель может обновлять домашние работы только своей группы",
+                },
             )
         else:
             if request.data.get("teacher_message"):
-                homeworks.teacher_message = request.data.get("teacher_message")
+                user_homework.teacher_message = request.data.get("teacher_message")
             if request.data.get("mark"):
-                homeworks.mark = request.data.get("mark")
+                user_homework.mark = request.data.get("mark")
             if request.data.get("status"):
-                homeworks.status = request.data.get("status")
+                user_homework.status = request.data.get("status")
 
-            serializer = UserHomeworkSerializer(homeworks)
+            user_homework.save()
+            serializer = UserHomeworkSerializer(user_homework)
 
-            return Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user = self.request.user
-        homeworks = UserHomework.objects.get(pk=instance.pk)
-        if homeworks.teacher != user:
-            return Response(
-                {"status": "Error", "message": "Учитель может удалять домашние работы только своей группы"},
-            )
-        else:
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
@@ -148,38 +161,45 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
     def get_queryset(self, *args, **kwargs):
         queryset = UserHomework.objects.all()
 
-        if self.request.GET.get('status'):
-            queryset = queryset.filter(status=self.request.GET.get('status'))
+        if self.request.GET.get("status"):
+            queryset = queryset.filter(status=self.request.GET.get("status"))
 
-        if self.request.GET.get('start_mark'):
-            queryset = queryset.filter(mark__gte=self.request.GET.get('start_mark'))
+        if self.request.GET.get("start_mark"):
+            queryset = queryset.filter(mark__gte=self.request.GET.get("start_mark"))
 
-        if self.request.GET.get('end_mark'):
-            queryset = queryset.filter(mark__lte=self.request.GET.get('end_mark'))
+        if self.request.GET.get("end_mark"):
+            queryset = queryset.filter(mark__lte=self.request.GET.get("end_mark"))
 
-        if self.request.GET.get('mark'):
-            queryset = queryset.filter(mark=self.request.GET.get('mark'))
+        if self.request.GET.get("mark"):
+            queryset = queryset.filter(mark=self.request.GET.get("mark"))
 
-        if self.request.GET.get('course_name'):
-            queryset = queryset.filter(homework__section__course__name=self.request.GET.get('course_name'))
+        if self.request.GET.get("course_name"):
+            queryset = queryset.filter(
+                homework__section__course__name=self.request.GET.get("course_name")
+            )
 
-        if self.request.GET.get('homework_name'):
-            queryset = queryset.filter(homework__name=self.request.GET.get('homework_name'))
+        if self.request.GET.get("homework_name"):
+            queryset = queryset.filter(
+                homework__name__icontains=self.request.GET.get("homework_name")
+            )
 
-        if self.request.GET.get('group_name'):
-            queryset = queryset.filter(user__students_group_fk__name=self.request.GET.get('group_name'))
+        if self.request.GET.get("group_name"):
+            queryset = queryset.filter(
+                user__students_group_fk__name=self.request.GET.get("group_name")
+            )
 
-        if self.request.GET.get('start_date'):
-            queryset = queryset.filter(updated_at__gte=self.request.GET.get('start_date'))
+        if self.request.GET.get("start_date"):
+            queryset = queryset.filter(
+                updated_at__gte=self.request.GET.get("start_date")
+            )
 
-        if self.request.GET.get('end_date'):
-            queryset = queryset.filter(updated_at__lte=self.request.GET.get('end_date'))
+        if self.request.GET.get("end_date"):
+            queryset = queryset.filter(updated_at__lte=self.request.GET.get("end_date"))
 
         return queryset.values(
             "mark",
             "status",
             "homework",
-
             avatar=F("user__profile__avatar"),
             user_name=F("user__first_name"),
             user_lastname=F("user__last_name"),
@@ -190,7 +210,8 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             group_name=F("user__students_group_fk__name"),
             h_history=F("homework__user_homeworks__status"),
             last_update=Window(
-                expression=Max("updated_at"), partition_by=[F("user__email"), F("homework__homework_id")]
+                expression=Max("updated_at"),
+                partition_by=[F("user__email"), F("homework__homework_id")],
             ),
         )
 

@@ -66,25 +66,25 @@ class SchoolHeader(TimeStampMixin, models.Model):
 
     def logo_school_url(self):
         if self.logo_school:
-            url = urldecode("https://api.itdev.by" + self.logo_school.url)
+            url = urldecode(self.logo_school.url)
             return url[0][0]
         return None
 
     def logo_header_url(self):
         if self.logo_header:
-            url = urldecode("https://api.itdev.by" + self.logo_header.url)
+            url = urldecode(self.logo_header.url)
             return url[0][0]
         return None
 
     def photo_background_url(self):
         if self.photo_background:
-            url = urldecode("https://api.itdev.by" + self.photo_background.url)
+            url = urldecode(self.photo_background.url)
             return url[0][0]
         return None
 
     def favicon_url(self):
         if self.favicon:
-            url = urldecode("https://api.itdev.by" + self.favicon.url)
+            url = urldecode(self.favicon.url)
             return url[0][0]
         return None
 

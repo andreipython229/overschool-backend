@@ -1,35 +1,36 @@
-from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
-from rest_framework import generics, permissions
-from users.serializers import SignupSerializer
+from rest_framework import permissions, views
+from users.serializers import LoginSerializer
 from users.services import JWTHandler
 
 from overschool import settings
 
-User = get_user_model()
 jwt_handler = JWTHandler()
 
 
-class SignupView(generics.GenericAPIView):
+class LoginView(views.APIView):
     permission_classes = [permissions.AllowAny]
-    serializer_class = SignupSerializer
+    serializer_class = LoginSerializer
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
 
-        response = HttpResponseRedirect("/api/login/")
+        user = serializer.validated_data["user"]
+        access_token = jwt_handler.create_access_token(subject=user.id)
+        refresh_token = jwt_handler.create_refresh_token(subject=user.id)
+
+        response = HttpResponseRedirect("/api/")
         response.set_cookie(
             key=settings.ACCESS,
-            value="access_token_value",
+            value=access_token,
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
         )
         response.set_cookie(
             key=settings.REFRESH,
-            value="refresh_token_value",
+            value=refresh_token,
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
