@@ -11,6 +11,7 @@ from courses.serializers import (
 from django.db.models import Avg, Count, F, Sum
 from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 
@@ -19,6 +20,21 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра групп (любой пользователь)
+            return permissions
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+            user = self.request.user
+            if user.groups.filter(name="Admin").exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            return permissions
 
     @action(detail=True)
     def stats(self, request, pk):

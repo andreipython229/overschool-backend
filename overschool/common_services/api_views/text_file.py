@@ -1,8 +1,9 @@
-from rest_framework import permissions, viewsets
-
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import TextFile
 from common_services.serializers import TextFileSerializer
+from courses.models.homework.user_homework import UserHomework
+from rest_framework import permissions, status, viewsets
+from rest_framework.response import Response
 
 
 class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -12,4 +13,66 @@ class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = TextFile.objects.all()
     serializer_class = TextFileSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["post", "delete", "head"]
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+
+        # Проверяем, что пользователь студент
+        if user.groups.filter(name="Student").exists():
+            user_homework_id = request.data.get("user_homework")
+
+            if user_homework_id:
+                # Проверяем, что пользователь является автором указанной домашней работы
+                user_homework = UserHomework.objects.filter(
+                    user_homework_id=user_homework_id, user=user
+                ).first()
+                if not user_homework:
+                    return Response(
+                        {"error": "Объект не найден"}, status=status.HTTP_404_NOT_FOUND
+                    )
+                if user_homework:
+                    serializer = self.get_serializer(data=request.data)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(author=user)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(
+                        {
+                            "error": "Пользователь не является автором указанной домашней работы"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+            else:
+                return Response(
+                    {
+                        "error": "Не указан идентификатор домашней работы (user_homework) или базового урока ("
+                        "base_lesson)"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif user.groups.filter(name="Admin").exists():
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(author=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                {"error": "У вас нет прав для выполнения этого действия"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+
+        if user != instance.author and not user.groups.filter(name="Admin").exists():
+            return Response(
+                {"error": "Вы не являетесь автором этого файла"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
