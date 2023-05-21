@@ -1,7 +1,7 @@
 from ckeditor.fields import RichTextField
 from django.db import models
 from oauthlib.common import urldecode
-
+from schools.models import School
 from common_services.mixins import TimeStampMixin
 
 
@@ -55,6 +55,13 @@ class SchoolHeader(TimeStampMixin, models.Model):
         help_text="Значок веб-сайта",
         blank=True,
         null=True,
+    )
+    school_header = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="school",
+        verbose_name="ID школы",
+        help_text="ID школы,которой принадлежит школа"
     )
 
     def logo_school_url(self):

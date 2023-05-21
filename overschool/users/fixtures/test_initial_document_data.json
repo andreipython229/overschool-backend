@@ -1,0 +1,34 @@
+[
+  {
+    "model": "users.Documents",
+    "pk": 1,
+    "fields": {
+      "doc_name": "test_document_1",
+      "doc": "media/documents/document.odt"
+    }
+  },
+  {
+    "model": "users.Documents",
+    "pk": 2,
+    "fields": {
+      "doc_name": "test_document_2",
+      "doc": "media/documents/document_2.odt"
+    }
+  },
+  {
+    "model": "users.Documents",
+    "pk": 3,
+    "fields": {
+      "doc_name": "test_document_3",
+      "doc": "media/documents/document_3.odt"
+    }
+  },
+  {
+    "model": "users.Documents",
+    "pk": 4,
+    "fields": {
+      "doc_name": "test_document_4",
+      "doc": "media/documents/document_4.odt"
+    }
+  }
+]
