@@ -27,12 +27,18 @@ class LoginView(views.APIView):
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
+            samesite=None,
+            secure=False,
         )
+
         response.set_cookie(
             key=settings.REFRESH,
             value=refresh_token,
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
+            samesite=None,
+            secure=False,
         )
+
         return response

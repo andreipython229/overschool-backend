@@ -2,7 +2,6 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-
 from users.managers import UserManager
 
 
@@ -19,6 +18,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="Имя пользователя",
         max_length=150,
         unique=True,
+        null=True,
+        blank=True,
     )
     first_name = models.CharField(
         verbose_name="Имя",
