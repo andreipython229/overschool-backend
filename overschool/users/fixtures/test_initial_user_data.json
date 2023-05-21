@@ -1,0 +1,378 @@
+[
+  {
+    "model": "users.User",
+    "pk": 1,
+    "fields": {
+      "id": 1,
+      "email": "admin@gmail.com",
+      "password": "pbkdf2_sha256$390000$9Fxib3usLp97PBjJDIZoxv$88fdFLdMRNCxccaAyXYLQjKaRxxZF9cl46KXOE3UKVo=",
+      "phone_number": "+375337915744",
+      "username": "admin",
+      "is_superuser": true,
+      "is_staff": true,
+      "groups": "6"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 2,
+    "fields": {
+      "id": 2,
+      "email": "superadmin@gmail.com",
+      "password": "pbkdf2_sha256$390000$aAJ1ExkgiwYsHKmU8EaiM6$bvlcUMkMCNIlW6qY9GQs5rbu0rUXH9FnpFGYFNzCzTY=",
+      "phone_number": "+375337915896",
+      "username": "superadmin",
+      "is_superuser": true,
+      "is_staff": true,
+      "groups": "5"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 3,
+    "fields": {
+      "id": 3,
+      "email": "editor@gmail.com",
+      "password": "pbkdf2_sha256$390000$Jmg82QyigmFzLZx6rdhUu7$+tSRHq9TyVBCHIIy/H9Hwim+gNHNJTdHu+XphlgacLI=",
+      "phone_number": "+375337917695",
+      "username": "editor",
+      "groups": "4"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 4,
+    "fields": {
+      "id": 4,
+      "email": "manager@gmail.com",
+      "password": "pbkdf2_sha256$390000$zedSX7pnr2XjmiUMO1tol2$Pp7VqOFppKqgaFta2JaYcohMKKhc3t1oHhUJKYGrbv8=",
+      "phone_number": "+375337915574",
+      "username": "manager",
+      "groups": "3"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 5,
+    "fields": {
+      "id": 5,
+      "email": "teacher_1@gmail.com",
+      "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
+      "phone_number": "+375337005832",
+      "username": "teacher_1_username",
+      "groups": "2"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 6,
+    "fields": {
+      "id": 6,
+      "email": "teacher_2@gmail.com",
+      "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
+      "phone_number": "+3753370015832",
+      "username": "teacher_2_username",
+      "groups": "2"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 7,
+    "fields": {
+      "id": 7,
+      "email": "teacher_3@gmail.com",
+      "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
+      "phone_number": "+375337910832",
+      "username": "teacher_3_username",
+      "groups": "2"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 8,
+    "fields": {
+      "id": 8,
+      "email": "teacher_4@gmail.com",
+      "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
+      "phone_number": "+375337905832",
+      "username": "teacher_4_username",
+      "groups": "2"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 9,
+    "fields": {
+      "id": 9,
+      "email": "student_1@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375331115159",
+      "username": "student_1_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 10,
+    "fields": {
+      "id": 10,
+      "email": "student_2@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337915159",
+      "username": "student_2_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 11,
+    "fields": {
+      "id": 11,
+      "email": "student_3@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337915159",
+      "username": "student_3_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 12,
+    "fields": {
+      "id": 12,
+      "email": "student_4@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337115159",
+      "username": "student_4_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 13,
+    "fields": {
+      "id": 13,
+      "email": "student_5@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337915159",
+      "username": "student_5_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 14,
+    "fields": {
+      "id": 14,
+      "email": "student_6@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337935159",
+      "username": "student_6_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 15,
+    "fields": {
+      "id": 15,
+      "email": "student_7@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337415159",
+      "username": "student_7_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 16,
+    "fields": {
+      "id": 16,
+      "email": "student_8@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375333315159",
+      "username": "student_8_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 17,
+    "fields": {
+      "id": 17,
+      "email": "student_9@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_9_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 18,
+    "fields": {
+      "id": 18,
+      "email": "student_10@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_10_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 19,
+    "fields": {
+      "id": 19,
+      "email": "student_11@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_11_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 20,
+    "fields": {
+      "id": 20,
+      "email": "student_12@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_12_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 21,
+    "fields": {
+      "id": 21,
+      "email": "student_13@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_13_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 22,
+    "fields": {
+      "id": 22,
+      "email": "student_14@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_14_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 23,
+    "fields": {
+      "id": 23,
+      "email": "student_15@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_15_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 24,
+    "fields": {
+      "id": 24,
+      "email": "student_16@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_16_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 25,
+    "fields": {
+      "id": 25,
+      "email": "student_17@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_17_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 26,
+    "fields": {
+      "id": 26,
+      "email": "student_18@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_18_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 27,
+    "fields": {
+      "id": 27,
+      "email": "student_19@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_19_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 28,
+    "fields": {
+      "id": 28,
+      "email": "student_20@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_20_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 29,
+    "fields": {
+      "id": 29,
+      "email": "student_21@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_21_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 30,
+    "fields": {
+      "id": 30,
+      "email": "student_22@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_22_username",
+      "groups": "1"
+    }
+  },
+  {
+    "model": "users.User",
+    "pk": 31,
+    "fields": {
+      "id": 31,
+      "email": "student_23@gmail.com",
+      "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
+      "phone_number": "+375337235159",
+      "username": "student_23_username",
+      "groups": "1"
+    }
+  }
+]
