@@ -82,7 +82,11 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ["http://127.0.0.1", "http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    "http://85.209.148.157:3000",
+]
 
 CORS_ALLOW_METHODS = (
     "DELETE",
@@ -97,6 +101,7 @@ CORS_ALLOW_METHODS = (
 CORS_ALLOW_HEADERS = (
     "XMLHttpRequest",
     "X_FILENAME",
+    "accept",
     "accept-encoding",
     "authorization",
     "content-type",
