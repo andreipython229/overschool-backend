@@ -8,5 +8,5 @@ from users.serializers import UserSerializer
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.DjangoModelPermissions | OwnerUserPermissions]
+    permission_classes = [permissions.AllowAny | OwnerUserPermissions]
     http_method_names = ["get", "patch", "put", "head"]

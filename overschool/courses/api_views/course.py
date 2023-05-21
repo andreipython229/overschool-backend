@@ -1,24 +1,34 @@
 from datetime import datetime
 
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import (
+    Course,
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    UserProgressLogs,
+    UserTest,
+)
+from courses.paginators import UserHomeworkPagination
+from courses.serializers import (
+    CourseSerializer,
+    CourseStudentsSerializer,
+    StudentsGroupSerializer,
+    UserHomeworkSerializer,
+)
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import (Course, Homework, Lesson, Section, SectionTest,
-                            StudentsGroup, UserProgressLogs, UserTest)
-from courses.paginators import UserHomeworkPagination
-from courses.serializers import (CourseSerializer, CourseStudentsSerializer,
-                                 StudentsGroupSerializer,
-                                 UserHomeworkSerializer)
-
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
 
     @action(detail=True)

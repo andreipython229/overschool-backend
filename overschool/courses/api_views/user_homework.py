@@ -28,7 +28,7 @@ class AllUserHomeworkViewSet(
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
 
 class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
@@ -39,7 +39,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = UserHomework.objects.all()
     serializer_class = UserHomeworkSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         user = self.request.user
@@ -117,7 +117,7 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = UserHomework.objects.all()
     serializer_class = TeacherHomeworkSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.AllowAny]
     http_method_names = ["get", "patch", "put", "head"]
 
     def get_queryset(self):
