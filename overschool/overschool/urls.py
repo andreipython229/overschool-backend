@@ -13,9 +13,9 @@ from .main_router import router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/register/", SignupView.as_view(), name="register"),
-    path("api/login/", LoginView.as_view(), name="login"),
-    path("api/logout/", LogoutView.as_view(), name="logout"),
+    path("api/register/", SignupView.as_view(actions={"post": "post"}), name="register"),
+    path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
+    path("api/logout/", LogoutView.as_view(actions={"get": "get"}), name="logout"),
     path("api/", include(router.urls)),
     path("api/chats/", include("chats.urls")),
     re_path(

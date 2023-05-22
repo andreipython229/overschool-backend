@@ -108,6 +108,7 @@ CORS_ALLOW_HEADERS = (
     "x-csrftoken",
     "x-requested-with",
     "Pragma",
+    "Cookie",
 )
 
 CHANNEL_LAYERS = {

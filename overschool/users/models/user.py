@@ -19,6 +19,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="Имя пользователя",
         max_length=150,
         unique=True,
+        null=True,
+        blank=True,
     )
     first_name = models.CharField(
         verbose_name="Имя",
