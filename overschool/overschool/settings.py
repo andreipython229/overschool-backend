@@ -53,7 +53,28 @@ INSTALLED_APPS = [
     "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
+    'sentry_sdk'
+
 ]
+ADMINS = [
+    # ...
+]
+
+MANAGERS = ADMINS
+LOGGING = {
+    # ...
+    'handlers': {
+        'sentry': {
+            'level': 'ERROR',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
+        },
+    },
+    'root': {
+        'handlers': ['sentry'],
+        'level': 'ERROR',
+    },
+    # ...
+}
 
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
