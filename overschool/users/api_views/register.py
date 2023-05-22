@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
-from django.http import HttpResponseRedirect
+from common_services.mixins import WithHeadersViewSet
+from django.http import HttpResponse
 from rest_framework import generics, permissions
 from users.serializers import SignupSerializer
 from users.services import JWTHandler
@@ -10,7 +11,7 @@ User = get_user_model()
 jwt_handler = JWTHandler()
 
 
-class SignupView(generics.GenericAPIView):
+class SignupView(WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = SignupSerializer
 
@@ -19,7 +20,7 @@ class SignupView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        response = HttpResponseRedirect("/api/login/")
+        response = HttpResponse("Пользователь успешно зарегестрирован", status=201)
         response.set_cookie(
             key=settings.ACCESS,
             value="access_token_value",

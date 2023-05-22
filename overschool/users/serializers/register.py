@@ -4,7 +4,6 @@ from users.models import User
 
 
 class SignupSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
     email = serializers.EmailField(required=False)
     phone_number = PhoneNumberField(required=False)
     password = serializers.CharField(write_only=True)
@@ -21,12 +20,8 @@ class SignupSerializer(serializers.Serializer):
         if password and password != password_confirmation:
             raise serializers.ValidationError("Passwords do not match.")
 
-        username = attrs.get("username")
         email = attrs.get("email")
         phone_number = attrs.get("phone_number")
-
-        if username and User.objects.filter(username=username).exists():
-            raise serializers.ValidationError("Username already exists.")
 
         if email and User.objects.filter(email=email).exists():
             raise serializers.ValidationError("Email already exists.")
