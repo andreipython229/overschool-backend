@@ -33,6 +33,8 @@ class Profile(TimeStampMixin, models.Model):
         verbose_name="Город",
         max_length=256,
         default="",
+        blank=True,
+        null=True,
     )
     sex = models.CharField(
         max_length=64,
@@ -40,11 +42,15 @@ class Profile(TimeStampMixin, models.Model):
         verbose_name="Пол",
         help_text="Пол",
         default="",
+        blank=True,
+        null=True,
     )
     description = models.TextField(
         help_text="О себе",
         verbose_name="О себе",
         default="",
+        blank=True,
+        null=True,
     )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
