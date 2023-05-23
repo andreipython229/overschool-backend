@@ -6,13 +6,13 @@ from common_services.mixins import TimeStampMixin
 
 
 class SchoolHeader(TimeStampMixin, models.Model):
-    """Модель шапки курсов"""
+    """Модель шапки школы"""
 
-    school_id = models.AutoField(
+    header_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID школы",
-        help_text="Уникальный идентификатор школы",
+        help_text="Уникальный идентификатор шапки школы",
     )
     name = models.CharField(
         max_length=256,
@@ -59,7 +59,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
-        related_name="school",
+        related_name="schools",
         verbose_name="ID школы",
         help_text="ID школы,которой принадлежит школа"
     )

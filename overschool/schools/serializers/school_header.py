@@ -10,7 +10,7 @@ class SchoolHeaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolHeader
         fields = [
-            "school_id",
+            "header_id",
             "name",
             "description",
             "logo_school",
@@ -21,6 +21,6 @@ class SchoolHeaderSerializer(serializers.ModelSerializer):
             "logo_header_url",
             "photo_background_url",
             "favicon_url",
-            "school_header",
+            "school",
 
         ]
