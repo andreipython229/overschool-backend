@@ -56,7 +56,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
         blank=True,
         null=True,
     )
-    school_header = models.ForeignKey(
+    school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
         related_name="school",

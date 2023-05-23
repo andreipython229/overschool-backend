@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 from environ import Env
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env(DEBUG=(bool, False))
@@ -62,7 +63,6 @@ ADMINS = [
 
 MANAGERS = ADMINS
 
-
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 BROKER_BACKEND = "redis"
@@ -88,6 +88,11 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    "http://85.209.148.157:3000",
+]
+CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
     "http://localhost:3000",
     "http://85.209.148.157:3000",
@@ -253,7 +258,6 @@ ACCESS: str = os.getenv("ACCESS")
 REFRESH: str = os.getenv("REFRESH")
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
-
 
 CKEDITOR_CONFIGS = {
     "default": {
