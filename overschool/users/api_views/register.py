@@ -20,7 +20,7 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        response = HttpResponse("Пользователь успешно зарегестрирован", status=201)
+        response = HttpResponse("http://127.0.0.1:8000/api/users/", status=201)
         response.set_cookie(
             key=settings.ACCESS,
             value="access_token_value",

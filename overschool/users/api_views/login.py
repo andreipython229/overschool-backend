@@ -20,7 +20,7 @@ class LoginView(WithHeadersViewSet, views.APIView):
         access_token = jwt_handler.create_access_token(subject=user.id)
         refresh_token = jwt_handler.create_refresh_token(subject=user.id)
 
-        response = HttpResponse("Пользователь успешно авторизован", status=200)
+        response = HttpResponse("http://127.0.0.1:8000/api/users/", status=200)
         response.set_cookie(
             key=settings.ACCESS,
             value=access_token,
