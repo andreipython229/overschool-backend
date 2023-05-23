@@ -22,6 +22,7 @@ from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 
@@ -30,6 +31,21 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра курсов (любой пользователь)
+            return permissions
+        elif self.action in ["create", "update", "partial_update", "destroy", "clone"]:
+            # Разрешения для создания и изменения курсов (только пользователи с группой 'Admin')
+            user = self.request.user
+            if user.groups.filter(name="Admin").exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            return permissions
 
     @action(detail=True)
     def clone(self, request, pk):
@@ -89,19 +105,22 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def user_count_by_month(self, request, pk):
-        """Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
-        для конкретного месяца указываем параметр month_number="""
+        """
+        Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
+        для конкретного месяца указываем параметр month_number=""
+        """
 
         course = self.get_object()
+        month_number = request.GET.get("month_number", datetime.now().month)
+
         queryset = StudentsGroup.objects.filter(
-            course_id=course.pk,
-            students__date_joined__month=request.GET["month_number"]
-            if "month_number" in request.GET
-            else datetime.now().month,
+            course_id=course.pk, students__date_joined__month=month_number
         )
+
         datas = queryset.values(course=F("course_id")).annotate(
             students_sum=Count("students__id")
         )
+
         for data in datas:
             data["graphic_data"] = queryset.values(
                 course=F("course_id"), date=F("students__date_joined__day")

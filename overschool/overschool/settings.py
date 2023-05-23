@@ -251,9 +251,9 @@ REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
 ACCESS: str = os.getenv("ACCESS")
 REFRESH: str = os.getenv("REFRESH")
-
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
+
 
 CKEDITOR_CONFIGS = {
     "default": {

@@ -3,6 +3,7 @@ from courses.models import Answer, Question, SectionTest
 from courses.serializers import TestSerializer
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 
@@ -10,6 +11,27 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра текстов (любой пользователь)
+            return permissions
+        elif self.action in [
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+            "post_questions",
+        ]:
+            # Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')
+            user = self.request.user
+            if user.groups.filter(name="Admin").exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            return permissions
 
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk):

@@ -5,6 +5,7 @@ from django.db.models import F
 from django.forms.models import model_to_dict
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 
@@ -12,6 +13,21 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра секций (любой пользователь)
+            return permissions
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            # Разрешения для создания и изменения секций (только пользователи с группой 'Admin')
+            user = self.request.user
+            if user.groups.filter(name="Admin").exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            return permissions
 
     @action(detail=True)
     def lessons(self, request, pk):

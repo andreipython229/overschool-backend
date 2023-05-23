@@ -27,7 +27,6 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
-            samesite="None",
         )
         response.set_cookie(
             key=settings.REFRESH,
@@ -35,6 +34,5 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
             max_age=settings.COOKIE_EXPIRE_SECONDS,
             expires=settings.COOKIE_EXPIRE_SECONDS,
             httponly=True,
-            samesite="None",
         )
         return response
