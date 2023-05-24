@@ -252,6 +252,9 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "users.services.authentication.CustomAuthentication"
+    ]
 }
 
 # jwt
