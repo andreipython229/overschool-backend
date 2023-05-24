@@ -98,6 +98,11 @@ CSRF_TRUSTED_ORIGINS = [
     "http://85.209.148.157:3000",
 ]
 
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = None
+CSRF_COOKIE_SAMESITE = None
+
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",
@@ -118,7 +123,7 @@ CORS_ALLOW_HEADERS = (
     "dnt",
     "origin",
     "user-agent",
-    "x-csrftoken",
+    "X-CSRFToken",
     "x-requested-with",
     "Pragma",
     "Cookie",

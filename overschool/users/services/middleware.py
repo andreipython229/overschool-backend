@@ -45,6 +45,8 @@ class AuthOptionalMiddleware(MiddlewareMixin):
                     max_age=settings.COOKIE_EXPIRE_SECONDS,
                     expires=settings.COOKIE_EXPIRE_SECONDS,
                     httponly=True,
+                    samesite=None,
+                    secure=False,
                 )
                 return response
             except InvalidTokenError:
