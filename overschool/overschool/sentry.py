@@ -12,7 +12,6 @@ SENTRY_INIT_OPTIONS = {
         DjangoIntegration(
             transaction_style='url',
             middleware_spans=True,
-
         ),
     ],
     'send_default_pii': True,
