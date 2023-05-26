@@ -1,19 +1,12 @@
 from __future__ import annotations
-
 import os
 import random
 import re
-
 import redis
 from django.conf import settings
-
+from __future__ import annotations
 from users.tasks import send_code
-
 from .redis_data_mixin import RedisDataMixin
-
-
-import random
-import re
 
 
 
@@ -73,7 +66,7 @@ class SenderServiceMixin(RedisDataMixin):
         else:
             return None
 
-   
+
 
     def check_num(self, phone_number: str):
         """
