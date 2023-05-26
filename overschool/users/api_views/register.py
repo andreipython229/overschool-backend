@@ -1,11 +1,9 @@
-from django.contrib.auth import get_user_model
 from common_services.mixins import WithHeadersViewSet
+from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics, permissions
 from users.serializers import SignupSerializer
 from users.services import JWTHandler
-
-from overschool import settings
 
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -21,18 +19,4 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.save()
 
         response = HttpResponse("http://127.0.0.1:8000/api/users/", status=201)
-        response.set_cookie(
-            key=settings.ACCESS,
-            value="access_token_value",
-            max_age=settings.COOKIE_EXPIRE_SECONDS,
-            expires=settings.COOKIE_EXPIRE_SECONDS,
-            httponly=True,
-        )
-        response.set_cookie(
-            key=settings.REFRESH,
-            value="refresh_token_value",
-            max_age=settings.COOKIE_EXPIRE_SECONDS,
-            expires=settings.COOKIE_EXPIRE_SECONDS,
-            httponly=True,
-        )
         return response
