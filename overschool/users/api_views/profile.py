@@ -10,6 +10,10 @@ class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]
 
-    def get_queryset(self):
+
+def get_queryset(self):
+    if self.request.user.is_authenticated:
         user = self.request.user
         return Profile.objects.filter(user=user)
+    else:
+        return Profile.objects.none()
