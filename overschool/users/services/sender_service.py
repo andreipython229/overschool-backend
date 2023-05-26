@@ -4,7 +4,6 @@ import random
 import re
 import redis
 from django.conf import settings
-from __future__ import annotations
 from users.tasks import send_code
 from .redis_data_mixin import RedisDataMixin
 
