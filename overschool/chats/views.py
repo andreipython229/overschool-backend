@@ -42,7 +42,7 @@ class ChatListCreate(APIView):
     - Создание чата
     """
     parser_classes = (MultiPartParser,)
-    permission_classes = [permissions.AllowAny]
+    permission_classes = []
 
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
