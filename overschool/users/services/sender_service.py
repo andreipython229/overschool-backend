@@ -12,6 +12,11 @@ from users.tasks import send_code
 from .redis_data_mixin import RedisDataMixin
 
 
+import random
+import re
+
+
+
 class SenderServiceMixin(RedisDataMixin):
     """Функционал для отправки регистрационных сообщений ученикам, менеджерам"""
 
@@ -28,16 +33,12 @@ class SenderServiceMixin(RedisDataMixin):
         password="sOmE_sEcUrE_pAsS",
     )
 
-    def get_data_token(self, token):
+    def generate_confirmation_code(self) -> str:
         """
-        Используется для получения всей необходимой информации
+        Генерация кода подтверждения из 4 цифр
         """
-
-    def __random_integer_code_generator(self):
-        """
-        Хотел использовать для генерации кода, но мне не понадобилось, может кому-то надо будет
-        """
-        return random.randint(1000, 10000)
+        code = random.randint(1000, 9999)
+        return str(code)
 
     def send_code_by_phone(self, phone: str, user_type: int, group: int = 0, course: int = 0) -> str | None:
         """
@@ -46,10 +47,11 @@ class SenderServiceMixin(RedisDataMixin):
         phone_data = self.check_num(phone)
         if phone_data:
             token = self._save_data_to_redis(phone_data[0], user_type, course, group)
+            confirmation_code = self.generate_confirmation_code()
             if phone_data[1] == "BY":
                 params = {
                     "token": SenderServiceMixin.BY_TOKEN,
-                    "message": f"https://overschool/users/login/?token={token}",
+                    "message": f"Код подтверждения: {confirmation_code}",
                     "phone": phone_data[0],
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
@@ -61,32 +63,21 @@ class SenderServiceMixin(RedisDataMixin):
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
                     "psw": SenderServiceMixin.RUSSIAN_PASS,
                     "phones": [phone_data[0]],
-                    "mes": f"https://overschool/users/login/?token={token}",
+                    "mes": f"Код подтверждения: {confirmation_code}",
                     "fmt": 3,
                 }
                 send_code.send_code_to_phone.delay(
                     SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get"
                 )
-            return phone_data[0]
+            return confirmation_code
         else:
             return None
 
-    def send_code_by_email(self, email: str, user_type: int, group: int = 0, course: int = 0) -> bool:
-        """
-        Отправка ссылки на email
-        """
-        try:
-            token = self._save_data_to_redis(email, user_type, course, group)
-            send_code.send_email.delay(
-                email, f"https://overschool/users/login/?token={token}"
-            )
-            return True
-        except BaseException:
-            return False
+   
 
     def check_num(self, phone_number: str):
         """
-        Приведения номера в нормальный вид
+        Приведение номера в нормальный вид
         """
         if not phone_number:
             return None
