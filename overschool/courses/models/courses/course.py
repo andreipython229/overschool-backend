@@ -34,7 +34,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         on_delete=models.CASCADE,
         related_name="school",
         verbose_name="ID школы",
-        help_text="ID школы,которой принадлежит школа",
+        help_text="ID школы",
         blank=True,
         null=True,
     )
