@@ -54,8 +54,7 @@ INSTALLED_APPS = [
     "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
-    'sentry_sdk'
-
+    # 'sentry_sdk'
 ]
 ADMINS = [
     # ...
@@ -398,3 +397,7 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+YANDEX_TOKEN = env.str("YANDEX_TOKEN")
+CLIENT_ID = env.str("CLIENT_ID")
+YANDEX_SECRET = env.str("YANDEX_SECRET")
