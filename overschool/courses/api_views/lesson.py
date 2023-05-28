@@ -1,13 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Lesson
-from courses.serializers import LessonSerializer
+from courses.serializers import LessonDetailSerializer, LessonSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 
 
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
+    # serializer_class = LessonSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -24,3 +24,9 @@ class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return LessonDetailSerializer
+        else:
+            return LessonSerializer
