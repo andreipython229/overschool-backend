@@ -55,8 +55,7 @@ INSTALLED_APPS = [
     "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
-    'sentry_sdk'
-
+    # 'sentry_sdk'
 ]
 
 ADMINS = [
@@ -227,9 +226,9 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-MEDIA_URL = "/media/"
-
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+# MEDIA_URL = "/media/"
+#
+# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
 
 DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
@@ -408,3 +407,7 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+YANDEX_TOKEN = env.str("YANDEX_TOKEN")
+CLIENT_ID = env.str("CLIENT_ID")
+YANDEX_SECRET = env.str("YANDEX_SECRET")

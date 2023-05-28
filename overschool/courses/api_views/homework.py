@@ -1,6 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Homework
-from courses.serializers import HomeworkSerializer
+from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Homework.objects.all()
-    serializer_class = HomeworkSerializer
+    # serializer_class = HomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -25,3 +25,9 @@ class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return HomeworkDetailSerializer
+        else:
+            return HomeworkSerializer
