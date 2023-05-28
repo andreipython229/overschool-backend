@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from jwt import InvalidTokenError, decode
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import AuthenticationFailed
 from django.http import HttpResponseRedirect
 from django.conf import settings
 
@@ -57,5 +56,5 @@ class CustomAuthentication(BaseAuthentication):
                 )
                 return user, new_access_token
 
-            except InvalidTokenError:
-                raise AuthenticationFailed('Недействительный токен')
+            except:
+                return None

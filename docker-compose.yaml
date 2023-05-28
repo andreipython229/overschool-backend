@@ -12,7 +12,6 @@ services:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_REPLICATION_MODE=master
-
       - "REDIS_HOST=redis"
       - "REDIS_PORT=6379"
   back:
@@ -27,6 +26,18 @@ services:
       - redis
     volumes:
       - .:/code/
+  huey:
+    build:
+      context: .
+      dockerfile: huey_task.Dockerfile
+    image: huey
+    restart: always
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
+
+
 #  celery:
 #    restart: always
 #    build:

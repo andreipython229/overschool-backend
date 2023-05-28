@@ -49,6 +49,6 @@ class AuthOptionalMiddleware(MiddlewareMixin):
                     secure=False,
                 )
                 return response
-            except InvalidTokenError:
+            except:
                 request.user = None
         return None

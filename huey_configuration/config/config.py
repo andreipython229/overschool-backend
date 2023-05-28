@@ -1,0 +1,21 @@
+from environs import Env
+from huey import RedisHuey
+
+env = Env()
+env.read_env()
+
+REDIS_HOST = env("REDIS_HOST")
+REDIS_PORT = env("REDIS_PORT")
+
+huey = RedisHuey(url=f"redis://default:sOmE_sEcUrE_pAsS@{REDIS_HOST}:{REDIS_PORT}/0")
+
+YANDEX_TOKEN = env.str("YANDEX_TOKEN")
+CLIENT_ID = env.str("CLIENT_ID")
+YANDEX_SECRET = env.str("YANDEX_SECRET")
+YANDEX_DISK_UPLOAD_PATH = env.str("YANDEX_DISK_UPLOAD_PATH")
+
+POSTGRES_DB_NAME = env("POSTGRES_DB_NAME")
+POSTGRES_USER = env("POSTGRES_USER")
+POSTGRES_USER_PASSWORD = env("POSTGRES_USER_PASSWORD")
+POSTGRES_HOST = env("POSTGRES_HOST")
+POSTGRES_PORT = env("POSTGRES_PORT")
