@@ -7,23 +7,26 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from users.api_views import LoginView, LogoutView, SignupView
+from users.api_views import LoginView, LogoutView, SignupView,PasswordResetView, PasswordResetConfirmView
 
 from .main_router import router
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/register/", SignupView.as_view(actions={"post": "post"}), name="register"),
-    path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
-    path("api/logout/", LogoutView.as_view(actions={"get": "get"}), name="logout"),
-    path("api/", include(router.urls)),
-    path("api/chats/", include("chats.urls")),
-    re_path(
-        r"^account-confirm-email/(?P<key>[-:\w]+)/$",
-        TemplateView.as_view(),
-        name="account_confirm_email",
-    ),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+                  path("admin/", admin.site.urls),
+                  path("api/register/", SignupView.as_view(actions={"post": "post"}), name="register"),
+                  path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
+                  path("password/reset/", PasswordResetView.as_view(actions={"post": "post"}), name="password_reset"),
+                  path("password/reset/confirm/", PasswordResetConfirmView.as_view(actions={"post": "post"}),
+                       name="password_reset_confirm"),
+                  path("api/logout/", LogoutView.as_view(actions={"get": "get"}), name="logout"),
+                  path("api/", include(router.urls)),
+                  path("api/chats/", include("chats.urls")),
+                  re_path(
+                      r"^account-confirm-email/(?P<key>[-:\w]+)/$",
+                      TemplateView.as_view(),
+                      name="account_confirm_email",
+                  ),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 schema_view = get_schema_view(
     openapi.Info(
