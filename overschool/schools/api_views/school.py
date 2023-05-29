@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from rest_framework.exceptions import PermissionDenied
 
+
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
@@ -38,8 +39,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
-                    .values("user")
-                    .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
+                .values("user")
+                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
         page = self.paginate_queryset(data)
@@ -69,5 +70,5 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        school = school = serializer.save()
+        school = serializer.save()
         SchoolUser.objects.create(user=user, school=school)

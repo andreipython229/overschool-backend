@@ -32,11 +32,9 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
-        related_name="school",
+        related_name="course_school",
         verbose_name="ID школы",
         help_text="ID школы",
-        blank=True,
-        null=True,
     )
     public = models.CharField(
         max_length=256,

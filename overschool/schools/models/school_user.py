@@ -4,13 +4,13 @@ from users.models.user import User
 
 
 class SchoolUser(models.Model):
-    """Модель связующая модели юзера и школы"""
+    """Модель связующая модели юзера(владельца школы) и школы"""
 
     school_user_id = models.AutoField(
         primary_key=True,
         editable=False,
-        verbose_name="ID модели юзера и школы",
-        help_text="Уникальный идентификатор связуещей модели юзера и школы",
+        verbose_name="ID модели юзера(владельца школы) и школы",
+        help_text="Уникальный идентификатор связуещей модели юзера(владельца школы) и школы",
     )
     school = models.ForeignKey(
         School,
@@ -22,14 +22,14 @@ class SchoolUser(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="school_user",
+        related_name="user_school",
         verbose_name="ID владельца школы",
         help_text="ID юзера создавшего школу",
     )
 
     def __str__(self):
-        return str(self.user_id) + " " + str(self.school_id)
+        return str(self.user) + " " + str(self.school)
 
     class Meta:
-        verbose_name = "Связующая модель юзера и школы"
-        verbose_name_plural = "Связующие модели юзера и школы"
+        verbose_name = "Связующая модель юзера(владельца школы) и школы"
+        verbose_name_plural = "Связующие модели юзера(владельца школы) и школы"

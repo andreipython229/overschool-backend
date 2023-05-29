@@ -10,7 +10,7 @@ class SchoolHeaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolHeader
         fields = [
-            "header_id",
+            "school_header_id",
             "name",
             "description",
             "logo_school",

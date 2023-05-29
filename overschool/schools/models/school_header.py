@@ -8,7 +8,7 @@ from common_services.mixins import TimeStampMixin
 class SchoolHeader(TimeStampMixin, models.Model):
     """Модель шапки школы"""
 
-    header_id = models.AutoField(
+    school_header_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID школы",
@@ -59,7 +59,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
-        related_name="schools",
+        related_name="header_school",
         verbose_name="ID школы",
         help_text="ID школы,которой принадлежит школа"
     )
@@ -89,7 +89,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
         return None
 
     def __str__(self):
-        return str(self.school_id) + " " + str(self.name)
+        return str(self.school) + " " + str(self.name)
 
     class Meta:
         verbose_name = "Шапка школы"
