@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import random
 import re
+import requests
 
 import redis
 from django.conf import settings
@@ -69,9 +70,8 @@ class SenderServiceMixin(RedisDataMixin):
                     "phone": phone_data[0],
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
-                send_code.send_code_to_phone.delay(
-                    SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post"
-                )
+
+                send_code.send_code_to_phone(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post")
             elif phone_data[1] == "RU":
                 params = {
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
@@ -80,9 +80,8 @@ class SenderServiceMixin(RedisDataMixin):
                     "mes": f"Код подтверждения: {confirmation_code}",
                     "fmt": 3,
                 }
-                send_code.send_code_to_phone.delay(
-                    SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get"
-                )
+
+                send_code.send_code_to_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get")
             return confirmation_code
         else:
             return None
@@ -109,12 +108,23 @@ class SenderServiceMixin(RedisDataMixin):
         reset_code = self.generate_confirmation_code()
 
         # Отправляем код для сброса пароля на телефон
-        # Реализуйте отправку кода на телефон в соответствии с вашими требованиями
+        params = {
+            "token": SenderServiceMixin.BY_TOKEN,
+            "message": f"Your password reset code: {reset_code}",
+            "phone": phone,
+            "alphaname_id": SenderServiceMixin.ALFA_SMS,
+        }
+        response = requests.post(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params)
 
-        # Сохраняем код для сброса пароля в Redis или другое хранилище
-        self.save_reset_code(phone, reset_code)
+        if response.status_code == 200:
+            # Сохраняем код для сброса пароля в Redis или другое хранилище
+            self.save_reset_code(phone, reset_code)
+            return reset_code
+        else:
+            # Обработка ошибки при отправке SMS-сообщения
+            return None
 
-        return reset_code
+
     def check_num(self, phone_number: str):
         """
         Приведение номера в нормальный вид
