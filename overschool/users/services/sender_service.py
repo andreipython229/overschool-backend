@@ -1,13 +1,15 @@
 from __future__ import annotations
+
 import os
 import random
 import re
+
 import redis
 from django.conf import settings
 from django.core.mail import send_mail
 from users.tasks import send_code
-from .redis_data_mixin import RedisDataMixin
 
+from .redis_data_mixin import RedisDataMixin
 
 
 class SenderServiceMixin(RedisDataMixin):
@@ -33,7 +35,7 @@ class SenderServiceMixin(RedisDataMixin):
         code = random.randint(1000, 9999)
         return str(code)
 
-    def send_code_by_email(self, email: str, user_type: int, group: int = 0, course: int = 0) -> str | None:
+    def send_code_by_email(self, email: str) -> str | None:
         """
         Отправка кода по электронной почте
         """
@@ -85,8 +87,34 @@ class SenderServiceMixin(RedisDataMixin):
         else:
             return None
 
+    def send_code_for_password_reset_by_email(self, email):
+        # Генерируем код для сброса пароля
+        reset_code = self.generate_confirmation_code()
 
+        # Отправляем код для сброса пароля по электронной почте
+        subject = 'Password Reset Code'
+        message = f'Your password reset code is: {reset_code}'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [email]
 
+        send_mail(subject, message, from_email, recipient_list)
+
+        # Сохраняем код для сброса пароля в Redis или другое хранилище
+        self.save_reset_code(email, reset_code)
+
+        return reset_code
+
+    def send_code_for_password_reset_by_phone(self, phone, user_type):
+        # Генерируем код для сброса пароля
+        reset_code = self.generate_confirmation_code()
+
+        # Отправляем код для сброса пароля на телефон
+        # Реализуйте отправку кода на телефон в соответствии с вашими требованиями
+
+        # Сохраняем код для сброса пароля в Redis или другое хранилище
+        self.save_reset_code(phone, reset_code)
+
+        return reset_code
     def check_num(self, phone_number: str):
         """
         Приведение номера в нормальный вид

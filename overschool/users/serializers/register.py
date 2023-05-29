@@ -5,7 +5,7 @@ from users.models import User
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
-    phone_number = PhoneNumberField(required=False)
+    phone = PhoneNumberField(required=False)
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
@@ -37,3 +37,39 @@ class SignupSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField()
+    new_password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+    def validate(self, attrs):
+        new_password = attrs.get("new_password")
+        confirm_password = attrs.get("confirm_password")
+
+        if new_password and confirm_password and new_password != confirm_password:
+            raise serializers.ValidationError("New passwords do not match.")
+
+        return attrs
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    phone_number = serializers.CharField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    reset_code = serializers.CharField()
+    new_password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+    def validate(self, attrs):
+        new_password = attrs.get("new_password")
+        confirm_password = attrs.get("confirm_password")
+
+        if new_password and confirm_password and new_password != confirm_password:
+            raise serializers.ValidationError("New passwords do not match.")
+
+        return attrs

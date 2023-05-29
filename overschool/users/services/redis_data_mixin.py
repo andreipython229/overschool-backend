@@ -70,3 +70,13 @@ class RedisDataMixin:
         else:
             data = {}
         return data
+
+    def save_reset_code(self, email_or_phone, reset_code):
+        """
+        Сохраняет код для сброса пароля в Redis или другое хранилище
+        """
+        # Сохраняем код для сброса пароля в Redis
+        key = f"reset_code:{email_or_phone}"
+        RedisDataMixin.REDIS_INSTANCE.set(key, reset_code)
+        # Дополнительно можно установить время жизни ключа, например, на 24 часа
+        RedisDataMixin.REDIS_INSTANCE.expire(key, 24 * 60 * 60)
