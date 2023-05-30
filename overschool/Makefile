@@ -1,6 +1,5 @@
 MANAGE = python manage.py
-DOCKER_TEST = docker-compose exec back python  overschool/manage.py
-DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddata
+DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddata --settings=overschool.settings2
  # .PHONY defines parts of the makefile that are not dependant on any specific file
  .PHONY = run back test
 
@@ -29,22 +28,40 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 
  test:
 #-----------------overschool-base/overschool/courses/fixtures------------------------------
-	${DOCKER_LOAD_DATA}  test_initial_base_lesson_data.json
-	${DOCKER_LOAD_DATA}  test_initial_course_data.json
-	${DOCKER_LOAD_DATA}  test_initial_data_answer.json
-	${DOCKER_LOAD_DATA}  test_initial_data_question.json
-	${DOCKER_LOAD_DATA}  test_initial_data_section_test.json
-	${DOCKER_LOAD_DATA}  test_initial_data_user_test.json
-	${DOCKER_LOAD_DATA}  test_initial_homework_data.json
-	${DOCKER_LOAD_DATA}  test_initial_lesson_data.json
-	${DOCKER_LOAD_DATA}  test_initial_section_data.json
-	${DOCKER_LOAD_DATA}  test_initial_students_group_data.json
-	${DOCKER_LOAD_DATA}  test_initial_students_group_students_data.json
-	${DOCKER_LOAD_DATA}  test_initial_user_progress_data.json
-	${DOCKER_LOAD_DATA}  test_initial_user_homework_data.json
-	${DOCKER_LOAD_DATA}  test_initial_school_data.json
-	${DOCKER_LOAD_DATA}  test_initial_school_header.json
-	${DOCKER_LOAD_DATA}  test_initial_document_data.json
-	${DOCKER_LOAD_DATA}  test_initial_profile_data.json
 	${DOCKER_LOAD_DATA}  test_initial_role_data.json
 	${DOCKER_LOAD_DATA}  test_initial_user_data.json
+	${DOCKER_LOAD_DATA}  test_initial_school_data.json
+	${DOCKER_LOAD_DATA}  test_initial_school_header.json
+	${DOCKER_LOAD_DATA}  test_initial_course_data.json
+	${DOCKER_LOAD_DATA}  test_initial_document_data.json
+	${DOCKER_LOAD_DATA}  test_initial_section_data.json
+	${DOCKER_LOAD_DATA}  test_initial_base_lesson_data.json
+	${DOCKER_LOAD_DATA}  test_initial_students_group_data.json
+	${DOCKER_LOAD_DATA}  test_initial_students_group_students_data.json
+	${DOCKER_LOAD_DATA}  test_initial_lesson_data.json
+	${DOCKER_LOAD_DATA}  test_initial_homework_data.json
+	${DOCKER_LOAD_DATA}  test_initial_data_section_test.json
+	${DOCKER_LOAD_DATA}  test_initial_data_question.json
+	${DOCKER_LOAD_DATA}  test_initial_data_answer.json
+	${DOCKER_LOAD_DATA}  test_initial_user_homework_data.json
+	${DOCKER_LOAD_DATA}  test_initial_data_user_test.json
+	${DOCKER_LOAD_DATA}  test_initial_user_progress_data.json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

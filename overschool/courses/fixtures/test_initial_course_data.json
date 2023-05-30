@@ -4,6 +4,7 @@
     "pk": 1,
     "fields": {
       "course_id": 1,
+      "school_id": 1,
       "author_id": 1,
       "format": "ОН",
       "name": "Java",
@@ -21,6 +22,7 @@
     "pk": 2,
     "fields": {
       "course_id": 2,
+      "school_id": 1,
       "author_id": 1,
       "format": "ОН",
       "order": 2,
@@ -38,6 +40,7 @@
     "pk": 3,
     "fields": {
       "course_id": 3,
+      "school_id": 1,
       "author_id": 1,
       "format": "ОН",
       "order": 3,
@@ -55,6 +58,7 @@
     "pk": 4,
     "fields": {
       "course_id": 4,
+      "school_id": 2,
       "author_id": 1,
       "format": "ОФФ",
       "order": 4,
@@ -72,6 +76,7 @@
     "pk": 5,
     "fields": {
       "course_id": 5,
+      "school_id": 2,
       "author_id": 1,
       "format": "ОН",
       "order": 5,

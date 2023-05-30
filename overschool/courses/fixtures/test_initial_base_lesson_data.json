@@ -1,9 +1,9 @@
 [
   {
     "model": "courses.BaseLesson",
-    "pk": 1,
+    "id": 1,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "author_id": 1,
       "name": "Виды данных в Python",
       "order": 1,
@@ -16,9 +16,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 2,
+    "id": 2,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 2,
       "author_id": 1,
       "name": "Строки и числа",
@@ -31,9 +31,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 3,
+    "id": 3,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 3,
       "author_id": 1,
       "name": "Коллекции, их виды применение",
@@ -46,9 +46,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 4,
+    "id": 4,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 4,
       "author_id": 1,
       "name": "Функции",
@@ -61,9 +61,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 5,
+    "id": 5,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 5,
       "author_id": 1,
       "name": "Git",
@@ -76,9 +76,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 6,
+    "id": 6,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 6,
       "author_id": 1,
       "name": "Домашняя работа по теме виды данных",
@@ -91,9 +91,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 7,
+    "id": 7,
     "fields": {
-      "section": 2,
+      "section_id": 2,
       "order": 7,
       "author_id": 1,
       "name": "Домашняя работа по 2 уроку",
@@ -106,9 +106,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 8,
+    "id": 8,
     "fields": {
-      "section": 3,
+      "section_id": 3,
       "order": 8,
       "author_id": 1,
       "name": "Домашняя работа по теме GIT",
@@ -121,9 +121,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 9,
+    "id": 9,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 9,
       "author_id": 1,
       "name": "Домашняя работа по теме функции",
@@ -136,9 +136,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 10,
+    "id": 10,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 10,
       "author_id": 1,
       "name": "Домашняя работа по 3 и 4 уроку",
@@ -151,9 +151,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 11,
+    "id": 11,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 11,
       "author_id": 1,
       "name": "Типы данных",
@@ -166,9 +166,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 12,
+    "id": 12,
     "fields": {
-      "section": 2,
+      "section_id": 2,
       "order": 12,
       "author_id": 1,
       "name": "Коллекции",
@@ -181,9 +181,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 13,
+    "id": 13,
     "fields": {
-      "section": 3,
+      "section_id": 3,
       "order": 13,
       "author_id": 1,
       "name": "Функции",
@@ -196,9 +196,9 @@
   },
    {
     "model": "courses.BaseLesson",
-    "pk": 14,
+    "id": 14,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 14,
       "author_id": 1,
       "name": "Классы",
@@ -211,9 +211,9 @@
   },
   {
     "model": "courses.BaseLesson",
-    "pk": 15,
+    "id": 15,
     "fields": {
-      "section": 1,
+      "section_id": 1,
       "order": 15,
       "author_id": 1,
       "name": "Git",

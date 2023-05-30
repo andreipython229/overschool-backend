@@ -1,7 +1,7 @@
 [
   {
     "model": "schools.SchoolHeader",
-    "school_header_id": 1,
+    "header_id": 1,
     "fields": {
       "school_id": 1,
       "name": "School_Header_1",
@@ -16,7 +16,7 @@
   },
   {
     "model": "schools.SchoolHeader",
-    "school_header_id": 2,
+    "header_id": 2,
     "fields": {
       "school_id": 2,
       "name": "School_Header_2",
@@ -31,7 +31,7 @@
   },
   {
     "model": "schools.SchoolHeader",
-    "school_header_id": 3,
+    "header_id": 3,
     "fields": {
       "school_id": 3,
       "name": "School_Header_3",
@@ -46,7 +46,7 @@
   },
   {
     "model": "schools.SchoolHeader",
-    "school_header_id": 4,
+    "header_id": 4,
     "fields": {
       "school_id": 4,
       "name": "School_Header_4",
@@ -61,7 +61,7 @@
   },
   {
     "model": "schools.SchoolHeader",
-    "school_header_id": 5,
+    "header_id": 5,
     "fields": {
       "school_id": 5,
       "name": "School_Header_5",
