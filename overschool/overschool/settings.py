@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
-    # 'sentry_sdk'
+    "sentry_sdk",
 ]
 ADMINS = [
     # ...
