@@ -11,8 +11,8 @@ class OwnerUserPermissions(permissions.BasePermission):
                ) or request.method in permissions.SAFE_METHODS
 
 
-class IsCodeVerified(permissions.BasePermission):
-    message = 'Code verification is required.'
-
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.is_code_verified
+# class IsCodeVerified(permissions.BasePermission):
+#     message = 'Code verification is required.'
+#
+#     def has_permission(self, request, view):
+#         return request.user.is_authenticated and request.user.is_code_verified
