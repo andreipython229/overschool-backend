@@ -7,13 +7,14 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from users.api_views import LoginView, LogoutView, SignupView,PasswordResetView, PasswordResetConfirmView
+from users.api_views import LoginView, LogoutView, SignupView,PasswordResetView, PasswordResetConfirmView, SignupSchoolOwnerView
 
 from .main_router import router
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
                   path("api/register/", SignupView.as_view(actions={"post": "post"}), name="register"),
+                  path("api/register-school-owner/", SignupSchoolOwnerView.as_view(actions={"post": "post"}), name="register_school_owner"),
                   path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
                   path("api/password/reset/", PasswordResetView.as_view(actions={"post": "post"}), name="password_reset"),
                   path("api/password/reset/confirm/", PasswordResetConfirmView.as_view(actions={"post": "post"}),
