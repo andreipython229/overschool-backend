@@ -8,7 +8,7 @@ from common_services.mixins import TimeStampMixin
 class SchoolHeader(TimeStampMixin, models.Model):
     """Модель шапки школы"""
 
-    school_header_id = models.AutoField(
+    header_id = models.AutoField(
         primary_key=True,
         editable=False,
         verbose_name="ID школы",

@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "schools.apps.SchoolsConfig",
     "djoser",
-    "dbbackup",
     "corsheaders",
     "django_filters",
     "chats.apps.ChatsConfig",
@@ -227,10 +226,6 @@ MEDIA_URL = "/media/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
-
-DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
-DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
-DBBACKUP_CLEANUP_KEEP = 2
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 
