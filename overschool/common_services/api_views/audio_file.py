@@ -1,6 +1,8 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import AudioFile
 from common_services.serializers import AudioFileSerializer
+from common_services.yandex_client import remove_from_yandex, upload_file
+from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework import UserHomework
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
@@ -28,14 +30,18 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 user_homework = UserHomework.objects.filter(
                     user_homework_id=user_homework_id, user=user
                 ).first()
-                if not user_homework:
-                    return Response(
-                        {"error": "Объект не найден"}, status=status.HTTP_404_NOT_FOUND
-                    )
+
                 if user_homework:
                     serializer = self.get_serializer(data=request.data)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save(author=user)
+
+                    uploaded_file = request.FILES["file"]
+                    base_lesson = BaseLesson.objects.get(
+                        homeworks=user_homework.homework
+                    )
+                    # Загружаем файл на Яндекс.Диск и получаем путь к файлу на диске
+                    file_path = upload_file(uploaded_file, base_lesson)
+                    serializer.save(author=user, file=file_path)
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 else:
                     return Response(
@@ -53,11 +59,25 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+        # Проверяем, что пользователь админ
         elif user.groups.filter(name="Admin").exists():
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(author=user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            base_lesson_id = request.data.get("base_lesson")
+
+            if base_lesson_id:
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+
+                uploaded_file = request.FILES["file"]
+                base_lesson = BaseLesson.objects.get(id=base_lesson_id)
+                # Загружаем файл на Яндекс.Диск и получаем путь к файлу на диске
+                file_path = upload_file(uploaded_file, base_lesson)
+                serializer.save(author=user, file=file_path)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(
+                    {"error": "Не указан идентификатор базового урока ('base_lesson')"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         else:
             return Response(
                 {"error": "У вас нет прав для выполнения этого действия"},
@@ -75,4 +95,10 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
 
         self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if remove_from_yandex(str(instance.file)) == "Success":
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {"error": "Запрашиваемый путь на диске не существует"},
+                status=status.HTTP_204_NO_CONTENT,
+            )

@@ -1,31 +1,80 @@
 from datetime import date
 
-from rest_framework import serializers
-
+from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import UserHomework
-from common_services.serializers import TextFileSerializer, AudioFileSerializer
+from rest_framework import serializers
 
 
 class AllUserHomeworkSerializer(serializers.ModelSerializer):
-    audio_files = AudioFileSerializer(many=True, required=False)
-    text_files = TextFileSerializer(many=True, required=False)
-    status = serializers.CharField(max_length=20, help_text="Статус работы", required=False)
-    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
-    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
-    profile_avatar = serializers.ImageField(source='user.avatar', read_only=True)
+    status = serializers.CharField(
+        max_length=20, help_text="Статус работы", required=False
+    )
+    user_first_name = serializers.CharField(source="user.first_name", read_only=True)
+    user_last_name = serializers.CharField(source="user.last_name", read_only=True)
+    profile_avatar = serializers.ImageField(source="user.avatar", read_only=True)
 
     class Meta:
         model = UserHomework
-        fields = ['audio_files', 'text_files', 'status', 'user_first_name', 'user_last_name', 'profile_avatar']
+        fields = ["status", "user_first_name", "user_last_name", "profile_avatar"]
 
+
+class AllUserHomeworkDetailSerializer(serializers.ModelSerializer):
+    audio_files = AudioFileGetSerializer(many=True, required=False)
+    text_files = TextFileGetSerializer(many=True, required=False)
+    status = serializers.CharField(
+        max_length=20, help_text="Статус работы", required=False
+    )
+    user_first_name = serializers.CharField(source="user.first_name", read_only=True)
+    user_last_name = serializers.CharField(source="user.last_name", read_only=True)
+    profile_avatar = serializers.ImageField(source="user.avatar", read_only=True)
+
+    class Meta:
+        model = UserHomework
+        fields = [
+            "audio_files",
+            "text_files",
+            "status",
+            "user_first_name",
+            "user_last_name",
+            "profile_avatar",
+        ]
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели выполненной домашней работы со стороны ученика
     """
-    audio_files = AudioFileSerializer(many=True, required=False)
-    text_files = TextFileSerializer(many=True, required=False)
+
+    class Meta:
+        model = UserHomework
+        fields = [
+            "user_homework_id",
+            "created_at",
+            "updated_at",
+            "user",
+            "homework",
+            "text",
+            "status",
+            "mark",
+            "teacher",
+            "teacher_message",
+        ]
+        read_only_fields = (
+            "user",
+            "status",
+            "mark",
+            "teacher_message",
+            "teacher",
+        )
+
+
+class UserHomeworkDetailSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для просмотра конкретной выполненной домашней работы со стороны ученика
+    """
+
+    audio_files = AudioFileGetSerializer(many=True, required=False)
+    text_files = TextFileGetSerializer(many=True, required=False)
 
     class Meta:
         model = UserHomework
@@ -58,8 +107,44 @@ class TeacherHomeworkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели выполненной домашней работы со стороны преподавателя
     """
-    audio_files = AudioFileSerializer(many=True, required=False)
-    text_files = TextFileSerializer(many=True, required=False)
+
+    teacher_first_name = serializers.CharField(
+        source="teacher.first_name", read_only=True
+    )
+    teacher_last_name = serializers.CharField(
+        source="teacher.last_name", read_only=True
+    )
+
+    class Meta:
+        model = UserHomework
+        fields = [
+            "user_homework_id",
+            "created_at",
+            "updated_at",
+            "user",
+            "homework",
+            "text",
+            "status",
+            "mark",
+            "teacher",
+            "teacher_first_name",
+            "teacher_last_name",
+            "teacher_message",
+        ]
+        read_only_fields = (
+            "user",
+            "text",
+            "teacher",
+        )
+
+
+class TeacherHomeworkDetailSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для просмотра конкретной выполненной домашней работы со стороны преподавателя
+    """
+
+    audio_files = AudioFileGetSerializer(many=True, required=False)
+    text_files = TextFileGetSerializer(many=True, required=False)
     teacher_first_name = serializers.CharField(
         source="teacher.first_name", read_only=True
     )

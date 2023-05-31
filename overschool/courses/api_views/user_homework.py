@@ -1,9 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.yandex_client import remove_from_yandex
 from courses.models import BaseLesson, Homework, UserHomework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
+    AllUserHomeworkDetailSerializer,
     AllUserHomeworkSerializer,
+    TeacherHomeworkDetailSerializer,
     TeacherHomeworkSerializer,
+    UserHomeworkDetailSerializer,
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
 )
@@ -24,11 +28,17 @@ class AllUserHomeworkViewSet(
     """
 
     queryset = UserHomework.objects.all()
-    serializer_class = AllUserHomeworkSerializer
+    # serializer_class = AllUserHomeworkSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
     permission_classes = [permissions.AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return AllUserHomeworkDetailSerializer
+        else:
+            return AllUserHomeworkSerializer
 
 
 class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
@@ -38,7 +48,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-    serializer_class = UserHomeworkSerializer
+    # serializer_class = UserHomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
@@ -48,6 +58,12 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         if user.groups.filter(name="Student").exists():
             return UserHomework.objects.filter(user=user)
         return UserHomework.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return UserHomeworkDetailSerializer
+        else:
+            return UserHomeworkSerializer
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -105,8 +121,20 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 },
             )
         else:
+            remove_resp = None
+            for file_obj in list(user_homework.text_files.values("file")) + list(
+                user_homework.audio_files.values("file")
+            ):
+                if remove_from_yandex(str(file_obj["file"])) == "Error":
+                    remove_resp = "Error"
             self.perform_destroy(user_homework)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            if remove_resp == "Error":
+                return Response(
+                    {"error": "Запрашиваемый путь на диске не существует"},
+                    status=status.HTTP_204_NO_CONTENT,
+                )
+            else:
+                return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
@@ -116,7 +144,7 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-    serializer_class = TeacherHomeworkSerializer
+    # serializer_class = TeacherHomeworkSerializer
     permission_classes = [permissions.AllowAny]
     http_method_names = ["get", "patch", "put", "head"]
 
@@ -127,6 +155,12 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         if user.groups.filter(name="Teacher").exists():
             return UserHomework.objects.filter(teacher=user)
         return UserHomework.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return TeacherHomeworkDetailSerializer
+        else:
+            return TeacherHomeworkSerializer
 
     def update(self, request, *args, **kwargs):
         user_homework = self.get_object()

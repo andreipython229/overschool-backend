@@ -1,8 +1,8 @@
 from ckeditor.fields import RichTextField
+from common_services.mixins import TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 from schools.models import School
-from common_services.mixins import TimeStampMixin
 
 
 class SchoolHeader(TimeStampMixin, models.Model):
@@ -29,28 +29,28 @@ class SchoolHeader(TimeStampMixin, models.Model):
         null=True,
     )
     logo_school = models.ImageField(
-        upload_to="images/school/main/",
+        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография заголовка школы",
         blank=True,
         null=True,
     )
     logo_header = models.ImageField(
-        upload_to="images/school/main/",
+        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография заголовка",
         blank=True,
         null=True,
     )
     photo_background = models.ImageField(
-        upload_to="images/school/main/",
+        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография фона",
         blank=True,
         null=True,
     )
     favicon = models.ImageField(
-        upload_to="images/school/main/",
+        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Значок веб-сайта",
         blank=True,
@@ -61,7 +61,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
         on_delete=models.CASCADE,
         related_name="schools",
         verbose_name="ID школы",
-        help_text="ID школы,которой принадлежит школа"
+        help_text="ID школы,которой принадлежит школа",
     )
 
     def logo_school_url(self):
