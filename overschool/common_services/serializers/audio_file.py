@@ -1,10 +1,12 @@
+import yadisk
 from common_services.models import AudioFile
+from common_services.yandex_client import get_yandex_link
 from rest_framework import serializers
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
     """
-    Сериализатор моедли аудио файлов
+    Сериализатор для создания аудио файлов
     """
 
     class Meta:
@@ -26,3 +28,29 @@ class AudioFileSerializer(serializers.ModelSerializer):
         if not attrs.get("base_lesson") and not attrs.get("user_homework"):
             raise serializers.ValidationError("Укажите base_lesson либо user_homework")
         return attrs
+
+
+class AudioFileGetSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для получения аудио файлов
+    """
+
+    file = serializers.SerializerMethodField(method_name="get_file_link")
+
+    class Meta:
+        model = AudioFile
+        fields = [
+            "id",
+            "order",
+            "description",
+            "file",
+            "file_url",
+            "author",
+            "base_lesson",
+            "user_homework",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_file_link(self, obj):
+        return get_yandex_link(str(obj.file))
