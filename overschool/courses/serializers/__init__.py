@@ -12,8 +12,11 @@ from .students_group import (
 )
 from .students_table_info import StudentsTableInfoSerializer
 from .user_homework import (
+    AllUserHomeworkDetailSerializer,
     AllUserHomeworkSerializer,
+    TeacherHomeworkDetailSerializer,
     TeacherHomeworkSerializer,
+    UserHomeworkDetailSerializer,
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
 )

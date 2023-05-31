@@ -1,8 +1,7 @@
 import yadisk
 from common_services.models import TextFile
+from common_services.yandex_client import get_yandex_link
 from rest_framework import serializers
-
-from overschool import settings
 
 
 class TextFileSerializer(serializers.ModelSerializer):
@@ -54,6 +53,4 @@ class TextFileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_link(self, obj):
-        y = yadisk.YaDisk(token=settings.YANDEX_TOKEN)
-        link = y.get_download_link(str(obj.file))
-        return link
+        return get_yandex_link(str(obj.file))

@@ -1,4 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.yandex_client import remove_from_yandex
 from courses.models import Homework
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
@@ -31,3 +32,23 @@ class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return HomeworkDetailSerializer
         else:
             return HomeworkSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        homework = self.get_object()
+        remove_resp = None
+
+        for file_obj in list(homework.text_files.values("file")) + list(
+            homework.audio_files.values("file")
+        ):
+            if remove_from_yandex(str(file_obj["file"])) == "Error":
+                remove_resp = "Error"
+
+        self.perform_destroy(homework)
+
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Запрашиваемый путь на диске не существует"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
