@@ -1,9 +1,9 @@
 [
   {
     "model": "courses.Section",
-    "pk": 1,
+    "section_id": 1,
     "fields": {
-      "course": 1,
+      "course_id": 1,
       "order": 1,
       "name": "Типы данных",
       "author_id": 1,
@@ -13,9 +13,9 @@
   },
   {
     "model": "courses.Section",
-    "pk": 2,
+    "section_id": 2,
     "fields": {
-      "course": 1,
+      "course_id": 1,
       "order": 2,
       "name": "Коллекции",
       "author_id": 1,
@@ -25,9 +25,9 @@
   },
   {
     "model": "courses.Section",
-    "pk": 3,
+    "section_id": 3,
     "fields": {
-      "course": 1,
+      "course_id": 1,
       "order": 3,
       "name": "Функции",
       "author_id": 1,
@@ -39,7 +39,7 @@
     "model": "courses.Section",
     "section_id": 4,
     "fields": {
-      "course": 1,
+      "course_id": 2,
       "order": 4,
       "name": "Классы",
       "author_id": 1,
@@ -49,9 +49,9 @@
   },
   {
     "model": "courses.Section",
-    "pk": 5,
+    "section_id": 5,
     "fields": {
-      "course": 1,
+      "course_id": 2,
       "order": 5,
       "name": "Git",
       "author_id": 1,

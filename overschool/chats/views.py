@@ -1,6 +1,6 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,10 +10,12 @@ from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatSerializer, MessageSerializer
 
+User = get_user_model()
 
-def is_user_exist(username):
+
+def is_user_exist(user_id):
     try:
-        user = User.objects.get(username=username)
+        user = User.objects.get(id=user_id)
         return user
     except User.DoesNotExist:
         return False
@@ -42,7 +44,7 @@ class ChatListCreate(APIView):
     - Создание чата
     """
     parser_classes = (MultiPartParser,)
-    permission_classes = []
+    permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
@@ -66,7 +68,7 @@ class ChatListCreate(APIView):
     @swagger_auto_schema(
         responses=ChatSchemas.chat_uuid_schema,
         manual_parameters=[
-            UserParams.user
+            UserParams.user_id
         ],
         operation_description="Get or create chat with user",
         operation_summary='Get or create chat with user'
@@ -74,8 +76,8 @@ class ChatListCreate(APIView):
     def post(self, request, *args, **kwargs):
         chat_creator = self.request.user
 
-        chat_reciever_name = request.data.get('user')
-        chat_reciever = is_user_exist(chat_reciever_name)
+        chat_reciever_id = request.data.get('user_id')
+        chat_reciever = is_user_exist(chat_reciever_id)
         if chat_reciever is False:
             return Response(
                 {"error": "User does not exist"},
@@ -116,6 +118,7 @@ class ChatDetailDelete(APIView):
     - Удаление / восстановление чата
     """
     parser_classes = (MultiPartParser,)
+    permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.chat_schema,
@@ -188,6 +191,7 @@ class MessageList(APIView):
     - Сообщения чата
     """
     parser_classes = (MultiPartParser,)
+    permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.messages_schema,

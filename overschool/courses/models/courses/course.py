@@ -2,6 +2,7 @@ from ckeditor.fields import RichTextField
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
+from schools.models import School
 
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
@@ -27,6 +28,13 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         editable=False,
         verbose_name="Курс ID",
         help_text="Уникальный идентификатор курса",
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="course_school",
+        verbose_name="ID школы",
+        help_text="ID школы",
     )
     public = models.CharField(
         max_length=256,
