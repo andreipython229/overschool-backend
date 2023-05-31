@@ -8,9 +8,6 @@ from .question import Question
 class AnswerStatusChoices(models.TextChoices):
     """Варианты статусов для ответов"""
 
-    INCORRECT = "П", "Правильный"
-    CORRECT = "Н", "Неправильный"
-
 
 class Answer(TimeStampMixin, models.Model):
     """Модель ответа на вопрос"""
@@ -29,12 +26,10 @@ class Answer(TimeStampMixin, models.Model):
         help_text="Вопрос, к которому привязан ответ",
     )
     body = RichTextField(verbose_name="Тело ответа", help_text="HTML вариант ответа")
-    status = models.CharField(
-        max_length=256,
-        choices=AnswerStatusChoices.choices,
-        default=AnswerStatusChoices.INCORRECT,
+    is_correct = models.BooleanField(
+        default=False,
         verbose_name="Тип ответа",
-        help_text="Тип ответа: Правильный или неправильный или ещё какой",
+        help_text="Правильный-True или неправильный-False",
     )
     picture = models.ImageField(
         upload_to="files/answers", verbose_name="Картинка", null=True, blank=True

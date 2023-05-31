@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Answer, Question, SectionTest
 from courses.serializers import TestSerializer
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -62,6 +62,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     .values(
                         "answer_id",
                         "body",
+                        "is_correct",
                         "question",
                         "picture",
                         "answer_in_range",
@@ -100,7 +101,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     a = Answer(
                         question=q,
                         body=answer["body"],
-                        status=answer["status"],
+                        is_correct=answer["is_correct"],
                         picture=answer["picture"] if "picture" in answer else None,
                         answer_in_range=answer["answer_in_range"]
                         if "answer_in_range" in answer
@@ -122,7 +123,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         #               body=question['body'],
         #               picture=question['picture'] if 'picture' in question else None,
         #               is_any_answer_correct=question[
-        #                   'is_any_answer_correct'] if 'is_any_answer_correct' in question else None,
+        #        `           'is_any_answer_correct'] if 'is_any_answer_correct' in question else None,
         #               only_whole_numbers=question['only_whole_numbers'] if 'only_whole_numbers' in question else None)
         #      for question in questions]
         # )
