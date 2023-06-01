@@ -6,12 +6,12 @@ from users.services import SenderServiceMixin
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
-    phone = PhoneNumberField(required=False)
+    phone_number = PhoneNumberField(required=False)
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        if not any([attrs.get("email"), attrs.get("phone")]):
+        if not any([attrs.get("email"), attrs.get("phone_number")]):
             raise serializers.ValidationError(
                 "At least one of 'email' or 'phone' is required."
             )
@@ -22,12 +22,12 @@ class SignupSerializer(serializers.Serializer):
             raise serializers.ValidationError("Passwords do not match.")
 
         email = attrs.get("email")
-        phone = attrs.get("phone")
+        phone_number = attrs.get("phone_number")
 
         if email and User.objects.filter(email=email).exists():
             raise serializers.ValidationError("Email already exists.")
 
-        if phone and User.objects.filter(phone=phone).exists():
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
             raise serializers.ValidationError("Phone number already exists.")
         return attrs
 
@@ -42,51 +42,53 @@ class SignupSerializer(serializers.Serializer):
     def save(self, **kwargs):
         instance = super().save(**kwargs)
         email = instance.email
-        phone = instance.phone
+        phone_number = instance.phone_number
 
         if email:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_email(email)
+            sender_service.send_code_by_email(user=instance, email=email)  # Передайте объект пользователя как аргумент
 
-        if phone:
+        if phone_number:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_phone(phone, user_type=0)  # Provide the appropriate user_type
+            sender_service.send_code_by_phone_number(user=instance,
+                                                     phone_number=phone_number)  # Передайте объект пользователя как аргумент
 
-        return instance
+            return instance
 
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    phone = PhoneNumberField()
+    phone_number = PhoneNumberField()
 
     def validate(self, attrs):
         email = attrs.get("email")
-        phone = attrs.get("phone")
+        phone_number = attrs.get("phone_number")
 
-        if not email and not phone:
-            raise serializers.ValidationError("Either 'email' or 'phone' is required.")
+        if not email and not phone_number:
+            raise serializers.ValidationError("Either 'email' or 'phone_number' is required.")
 
         if email and not User.objects.filter(email=email).exists():
             raise serializers.ValidationError("Email does not exist.")
 
-        if phone and not User.objects.filter(phone=phone).exists():
+        if phone_number and not User.objects.filter(phone_number=phone_number).exists():
             raise serializers.ValidationError("Phone number does not exist.")
 
         return attrs
 
     def save(self, **kwargs):
         email = self.validated_data.get("email")
-        phone = self.validated_data.get("phone")
+        phone_number = self.validated_data.get("phone_number")
 
         if email:
             sender_service = SenderServiceMixin()
             sender_service.send_code_by_email(email)
 
-        if phone:
+        if phone_number:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_phone(phone, user_type=0)  # Provide the appropriate user_type
+            sender_service.send_code_by_phone_number(phone_number, user_type=0)  # Provide the appropriate user_type
 
         return super().save(**kwargs)
+
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
