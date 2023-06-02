@@ -1,28 +1,60 @@
+from django.db.models import Max
 from rest_framework import serializers
-
+from django.contrib.auth import get_user_model
 from .models import Chat, Message
+
+User = get_user_model()
+
+
+class UserChatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+        ]
 
 
 class ChatSerializer(serializers.ModelSerializer):
+    senders = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
-        fields = (
-            'id',
-            'is_deleted',
-            'created_at',
-        )
-        # для того, чтобы параметры были необязательным
-        read_only_fields = ['is_deleted',]
+        fields = [
+            "id",
+            "is_deleted",
+            "created_at",
+            "senders",
+            "last_message",
+        ]
+        read_only_fields = ['is_deleted']
+
+    def get_senders(self, obj):
+        user_chats = obj.userchat_set.all()
+        users = [user_chat.user for user_chat in user_chats]
+        serializer = UserChatSerializer(users, many=True)
+        return serializer.data
+
+    def get_last_message(self, obj):
+        last_message = obj.message_set.aggregate(max_sent_at=Max('sent_at'))['max_sent_at']
+        if last_message:
+            message = obj.message_set.filter(sent_at=last_message).first()
+            serializer = MessageSerializer(message)
+            return serializer.data
+        return None
 
 
 class MessageSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Message
-        fields = (
-            'id',
-            'sender',
-            'sent_at',
-            'content',
-        )
+        fields = [
+            "id",
+            "sender",
+            "sent_at",
+            "content",
+        ]

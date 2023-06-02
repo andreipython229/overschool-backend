@@ -1,4 +1,3 @@
-from django.core.validators import FileExtensionValidator
 from django.db import models
 from oauthlib.common import urldecode
 
@@ -7,7 +6,6 @@ from .base_lesson_file import BaseLessonFile
 
 class TextFile(BaseLessonFile):
     file = models.FileField(
-        # upload_to="files/text",
         verbose_name="Ресурс",
     )
 

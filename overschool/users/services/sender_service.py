@@ -59,11 +59,11 @@ class SenderServiceMixin(RedisDataMixin):
 
         return confirmation_code
 
-    def send_code_by_phone(self, phone: str, user: User) -> Optional[str]:
+    def send_code_by_phone(self, phone_number: str, user: User) -> Optional[str]:
         """
         Send code to a phone number (currently supports Belarusian and Russian numbers only)
         """
-        phone_data = self.check_num(phone)
+        phone_data = self.check_num(phone_number)
         confirmation_code: Optional[str] = None  # Initialize the variable
 
         if phone_data:
@@ -72,7 +72,7 @@ class SenderServiceMixin(RedisDataMixin):
                 params = {
                     "token": SenderServiceMixin.BY_TOKEN,
                     "message": f"Confirmation code: {confirmation_code}",
-                    "phone": phone_data[0],
+                    "phone_number": phone_data[0],
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
 
@@ -88,7 +88,7 @@ class SenderServiceMixin(RedisDataMixin):
 
                 send_code.send_code_to_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get")
 
-            self.save_confirmation_code(phone, confirmation_code)
+            self.save_confirmation_code(phone_number, confirmation_code)
 
         return confirmation_code
 
@@ -109,7 +109,7 @@ class SenderServiceMixin(RedisDataMixin):
 
         return reset_code
 
-    def send_code_for_password_reset_by_phone(self, phone, user_type):
+    def send_code_for_password_reset_by_phone(self, phone_number):
         # Generate password reset code
         reset_code = self.generate_confirmation_code()
 
@@ -117,14 +117,14 @@ class SenderServiceMixin(RedisDataMixin):
         params = {
             "token": SenderServiceMixin.BY_TOKEN,
             "message": f"Your password reset code: {reset_code}",
-            "phone": phone,
+            "phone_number": phone_number,
             "alphaname_id": SenderServiceMixin.ALFA_SMS,
         }
         response = requests.post(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params)
 
         if response.status_code == 200:
             # Save password reset code in Redis or other storage
-            self.save_reset_code(phone, reset_code)
+            self.save_reset_code(phone_number, reset_code)
             return reset_code
         else:
             # Error handling for SMS sending

@@ -5,7 +5,7 @@
     "fields": {
       "question_id": 1,
       "body": "Ответ с подвохом 5",
-      "status": "H",
+      "is_correct": true,
       "created_at": "2022-08-02 15:34:37+00",
       "updated_at": "2022-08-02 15:34:37+00"
     }
@@ -16,7 +16,7 @@
     "fields": {
       "question_id": 1,
       "body": "<p>Ответ с подвохом 2<p>",
-      "status": "Н",
+      "is_correct": false,
       "created_at": "2022-08-02 15:34:37+00",
       "updated_at": "2022-08-02 15:34:37+00"
     }
@@ -27,7 +27,7 @@
     "fields": {
       "question_id": 1,
       "body": "<p>Ответ с подвохом 3<p>",
-      "status": "Н",
+      "is_correct": false,
       "created_at": "2022-08-02 15:34:37+00",
       "updated_at": "2022-08-02 15:34:37+00"
     }
@@ -38,7 +38,7 @@
     "fields": {
       "question_id": 1,
       "body": "<p>Ответ с подвохом 4<p>",
-      "status": "Н",
+      "is_correct": true,
       "created_at": "2022-08-02 15:34:37+00",
       "updated_at": "2022-08-02 15:34:37+00"
     }
@@ -49,7 +49,7 @@
     "fields": {
       "question_id": 2,
       "body": "<p>Ответ с подвохом 2.1<p>",
-      "status": "П",
+      "is_correct": false,
       "created_at": "2022-08-02 15:34:37+00",
       "updated_at": "2022-08-02 15:34:37+00"
     }

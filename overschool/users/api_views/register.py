@@ -20,15 +20,15 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.save()
 
         email = serializer.validated_data['email']
-        phone_number = serializer.validated_data['phone']
+        phone_number = serializer.validated_data['phone_number']
 
         if email:
             # Отправляем код подтверждения по электронной почте
             confirmation_code = sender_service.send_code_by_email(email)
         elif phone_number:
             # Отправляем код подтверждения на телефон
-            user_type = 1  # Указать соответствующий тип пользователя
-            confirmation_code = sender_service.send_code_by_phone(phone_number, user_type)
+
+            confirmation_code = sender_service.send_code_by_phone(phone_number)
         else:
             return HttpResponse("Email or phone number is required.", status=400)
 
@@ -46,15 +46,15 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
-        phone_number = serializer.validated_data['phone']
+        phone_number = serializer.validated_data['phone_number']
 
         if email:
             # Отправляем код для сброса пароля по электронной почте
             reset_code = sender_service.send_code_for_password_reset_by_email(email)
         elif phone_number:
             # Отправляем код для сброса пароля на телефон
-            user_type = 1  # Указать соответствующий тип пользователя
-            reset_code = sender_service.send_code_for_password_reset_by_phone(phone_number, user_type)
+
+            reset_code = sender_service.send_code_for_password_reset_by_phone_number(phone_number)
         else:
             return HttpResponse("Email or phone number is required.", status=400)
 
