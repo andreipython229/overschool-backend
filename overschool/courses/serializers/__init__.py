@@ -1,5 +1,5 @@
 from .answer import AnswerSerializer
-from .course import CourseSerializer, CourseStudentsSerializer
+from .course import CourseGetSerializer, CourseSerializer, CourseStudentsSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import LessonDetailSerializer, LessonSerializer
 from .question import QuestionSerializer

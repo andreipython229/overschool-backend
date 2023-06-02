@@ -79,7 +79,10 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             school_header.favicon = upload_school_image(
                 request.FILES["favicon"], school_id
             )
-
+        school_header.description = request.data.get(
+            "description", school_header.description
+        )
+        school_header.name = request.data.get("name", school_header.name)
         school_header.save()
         serializer = SchoolHeaderDetailSerializer(school_header)
 

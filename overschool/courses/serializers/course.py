@@ -1,6 +1,6 @@
-from rest_framework import serializers
-
+from common_services.yandex_client import get_yandex_link
 from courses.models import Course
+from rest_framework import serializers
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -23,6 +23,33 @@ class CourseSerializer(serializers.ModelSerializer):
             "photo_url",
             "school",
         ]
+
+
+class CourseGetSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор просмотра курса
+    """
+
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = [
+            "course_id",
+            "public",
+            "name",
+            "format",
+            "duration_days",
+            "price",
+            "description",
+            "photo",
+            "order",
+            "photo_url",
+            "school",
+        ]
+
+    def get_photo(self, obj):
+        return get_yandex_link(str(obj.photo))
 
 
 class CourseStudentsSerializer(serializers.Serializer):

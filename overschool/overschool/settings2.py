@@ -50,12 +50,11 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "schools.apps.SchoolsConfig",
     "djoser",
-    "dbbackup",
     "corsheaders",
     "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
-    # 'sentry_sdk'
+    "sentry_sdk",
 ]
 
 ADMINS = [
@@ -149,7 +148,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
 ]
 
 ROOT_URLCONF = "overschool.urls"
@@ -226,14 +224,10 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-# MEDIA_URL = "/media/"
-#
-# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
+MEDIA_URL = "/media/"
 
-DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
-DBBACKUP_STORAGE_OPTIONS = {"location": BASE_DIR / "backup"}
-DBBACKUP_CLEANUP_KEEP = 2
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
 
@@ -255,7 +249,7 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "users.services.authentication.CustomAuthentication"
-    ]
+    ],
 }
 
 # jwt

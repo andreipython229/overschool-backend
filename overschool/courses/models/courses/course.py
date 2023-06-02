@@ -1,10 +1,9 @@
 from ckeditor.fields import RichTextField
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
 from schools.models import School
-
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
 
 class Public(models.TextChoices):
@@ -82,7 +81,6 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         null=True,
     )
     photo = models.ImageField(
-        upload_to="images/courses/main/",
         verbose_name="Фотография",
         help_text="Главная фотография",
         blank=True,
