@@ -1,4 +1,3 @@
-import operator
 import uuid
 
 from users.models.user import User
@@ -13,6 +12,10 @@ class Chat(models.Model):
         default=uuid.uuid4,
         editable=False
     )
+    name = models.CharField(
+        max_length=255,
+        default=""
+    )
     is_deleted = models.BooleanField(
         default=False
     )
@@ -22,12 +25,6 @@ class Chat(models.Model):
 
     def __str__(self):
         return str(self.id)
-
-    def restore_or_delete(self):
-        self.is_deleted = operator.not_(self.is_deleted)
-        self.save()
-
-        return self.is_deleted
 
     def get_absolute_url(self):
         return reverse('chat_detail', args=[str(self.id)])
@@ -41,7 +38,7 @@ class Message(models.Model):
     sender = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name = "masseges"
+        related_name="masseges"
     )
     sent_at = models.DateTimeField(
         auto_now_add=True
@@ -57,7 +54,7 @@ class UserChat(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name = "chats"
+        related_name="chats"
     )
     chat = models.ForeignKey(
         Chat,

@@ -19,3 +19,15 @@ class ChatParams:
         type=openapi.TYPE_STRING,
         required=True
     )
+    name = openapi.Parameter(
+        "name",
+        openapi.IN_FORM,
+        description="Chat name",
+        type=openapi.TYPE_STRING
+    )
+    is_deleted = openapi.Parameter(
+        "is_deleted",
+        openapi.IN_FORM,
+        description="Delete or restore chat",
+        type=openapi.TYPE_BOOLEAN
+    )

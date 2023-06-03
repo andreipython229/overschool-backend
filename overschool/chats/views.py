@@ -155,10 +155,12 @@ class ChatDetailDelete(APIView):
     @swagger_auto_schema(
         responses=ChatSchemas.chat_schema,
         manual_parameters=[
-            ChatParams.uuid
+            ChatParams.uuid,
+            ChatParams.name,
+            ChatParams.is_deleted
         ],
-        operation_description="Delete or restore chat by uuid",
-        operation_summary='Delete or restore chat by uuid'
+        operation_description="Delete or restore chat by uuid, change chat name",
+        operation_summary='Delete or restore chat by uuid, change chat name'
     )
     def patch(self, request, *args, **kwargs):
         pk = self.kwargs["chat_uuid"]
@@ -176,8 +178,13 @@ class ChatDetailDelete(APIView):
                 CustomResponses.no_permission,
                 status=status.HTTP_403_FORBIDDEN
             )
-
-        chat.restore_or_delete()
+        if request.data.get('name'):
+            chat.name = request.data.get('name')
+        if request.data.get('is_deleted') == "true":
+            chat.is_deleted = True
+        if request.data.get('is_deleted') == "false":
+            chat.is_deleted = False
+        chat.save()
         serializer = ChatSerializer(chat)
 
         return Response(

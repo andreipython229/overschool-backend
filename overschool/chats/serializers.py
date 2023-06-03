@@ -7,6 +7,8 @@ User = get_user_model()
 
 
 class UserChatSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -16,7 +18,11 @@ class UserChatSerializer(serializers.ModelSerializer):
             "last_name",
             "email",
             "phone_number",
+            "avatar",
         ]
+
+    def get_avatar(self, obj):
+        return obj.profile.avatar_url()
 
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -27,6 +33,7 @@ class ChatSerializer(serializers.ModelSerializer):
         model = Chat
         fields = [
             "id",
+            "name",
             "is_deleted",
             "created_at",
             "senders",
