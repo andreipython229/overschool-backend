@@ -1,15 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from schools.models import School, SchoolUser
-from schools.serializers import SchoolSerializer
-from rest_framework import permissions, viewsets
-from rest_framework.decorators import action
+from common_services.yandex_client import remove_from_yandex, upload_school_image
+from courses.models import StudentsGroup, UserTest
 from django.db.models import Avg, Count, F, Sum
-from courses.models import StudentsGroup
-
-from courses.models import UserTest
-from rest_framework.response import Response
-
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+from schools.models import School, SchoolUser
+from schools.serializers import SchoolGetSerializer, SchoolSerializer
 
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -17,23 +15,30 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = SchoolSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_serializer_class(self):
+        if self.action in ["list", "retrieve"]:
+            return SchoolGetSerializer
+        else:
+            return SchoolSerializer
+
     @action(detail=True)
     def stats(self, request, pk):
-        """ Статистика учеников школы"""
+        """Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
-        data = queryset.values(course=F("course_id"),
-                               email=F("students__email"),
-                               student_name=F("students__first_name"),
-                               student=F("students__id"),
-                               group=F("group_id"),
-                               last_active=F("students__date_joined"),
-                               update_date=F("students__date_joined"),
-                               ending_date=F("students__date_joined")
-                               ).annotate(
+        data = queryset.values(
+            course=F("course_id"),
+            email=F("students__email"),
+            student_name=F("students__first_name"),
+            student=F("students__id"),
+            group=F("group_id"),
+            last_active=F("students__date_joined"),
+            update_date=F("students__date_joined"),
+            ending_date=F("students__date_joined"),
+        ).annotate(
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-                     / Count("course_id__sections__lessons__lesson_id"),
+            / Count("course_id__sections__lessons__lesson_id"),
         )
 
         for row in data:
@@ -68,7 +73,46 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return permissions
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = SchoolSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        school = serializer.save(avatar=None)
         user = self.request.user
-        school = serializer.save()
         SchoolUser.objects.create(user=user, school=school)
+        school_id = school.school_id
+        if request.FILES.get("avatar"):
+            avatar = upload_school_image(request.FILES["avatar"], school_id)
+            school.avatar = avatar
+            school.save()
+            serializer = SchoolGetSerializer(school)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        school = self.get_object()
+        school_id = school.school_id
+
+        if request.FILES.get("avatar"):
+            if school.avatar:
+                remove_from_yandex(str(school.avatar))
+            school.avatar = upload_school_image(request.FILES["avatar"], school_id)
+        school.order = request.data.get("order", school.order)
+        school.name = request.data.get("name", school.name)
+
+        school.save()
+        serializer = SchoolGetSerializer(school)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        remove_resp = remove_from_yandex("/{}_school".format(instance.school_id))
+        self.perform_destroy(instance)
+
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Запрашиваемый путь на диске не существует"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)

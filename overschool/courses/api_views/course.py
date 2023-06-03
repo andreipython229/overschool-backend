@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.yandex_client import remove_from_yandex, upload_course_image
 from courses.models import (
     Course,
     Homework,
@@ -13,6 +14,7 @@ from courses.models import (
 )
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
+    CourseGetSerializer,
     CourseSerializer,
     CourseStudentsSerializer,
     StudentsGroupSerializer,
@@ -32,6 +34,12 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
 
+    def get_serializer_class(self):
+        if self.action in ["list", "retrieve"]:
+            return CourseGetSerializer
+        else:
+            return CourseSerializer
+
     def get_permissions(self):
         permissions = super().get_permissions()
         if self.action in ["list", "retrieve"]:
@@ -46,6 +54,56 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def create(self, request, *args, **kwargs):
+        serializer = CourseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        course = serializer.save(photo=None)
+
+        if request.FILES.get("photo"):
+            photo = upload_course_image(request.FILES["photo"], course)
+            course.photo = photo
+            course.save()
+            serializer = CourseGetSerializer(course)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = CourseSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if request.FILES.get("photo"):
+            if instance.photo:
+                remove_from_yandex(str(instance.photo))
+            serializer.validated_data["photo"] = upload_course_image(
+                request.FILES["photo"], instance
+            )
+        else:
+            serializer.validated_data["photo"] = instance.photo
+
+        self.perform_update(serializer)
+
+        course = Course.objects.filter(pk=instance.course_id).first()
+        serializer = CourseGetSerializer(course)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        school_id = instance.school.school_id
+        remove_resp = remove_from_yandex(
+            "/{}_school/{}_course".format(school_id, instance.course_id)
+        )
+        self.perform_destroy(instance)
+
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Запрашиваемый путь на диске не существует"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True)
     def clone(self, request, pk):
