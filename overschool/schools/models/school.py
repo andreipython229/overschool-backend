@@ -1,5 +1,4 @@
-from common_services.mixins import OrderMixin
-from common_services.mixins import TimeStampMixin
+from common_services.mixins import OrderMixin, TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 from schools.managers import SchoolManager
@@ -21,7 +20,7 @@ class School(TimeStampMixin, OrderMixin):
         default="Имя не придумано",
     )
     avatar = models.ImageField(
-        upload_to="images/school/main/",
+        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография школы",
         blank=True,
