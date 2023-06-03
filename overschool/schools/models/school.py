@@ -20,7 +20,6 @@ class School(TimeStampMixin, OrderMixin):
         default="Имя не придумано",
     )
     avatar = models.ImageField(
-        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография школы",
         blank=True,
