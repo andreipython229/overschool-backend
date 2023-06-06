@@ -1,5 +1,5 @@
+from common_services.yandex_client import get_yandex_link
 from rest_framework import serializers
-
 from users.models import Profile, User
 
 
@@ -16,7 +16,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Сериализатор для личного кабинета пользователя"""
+    """Сериализатор для изменения профиля в личном кабинете пользователя"""
 
     user = ProfileSerializer()
 
@@ -54,3 +54,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class UserProfileGetSerializer(serializers.ModelSerializer):
+    """Сериализатор для просмотра профиля пользователя"""
+
+    user = ProfileSerializer()
+    avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = [
+            "profile_id",
+            "avatar",
+            "avatar_url",
+            "city",
+            "sex",
+            "description",
+            "user",
+        ]
+
+    def get_avatar(self, obj):
+        return get_yandex_link(str(obj.avatar))
