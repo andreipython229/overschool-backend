@@ -2,6 +2,7 @@ from common_services.mixins import OrderMixin, TimeStampMixin
 from django.db import models
 from oauthlib.common import urldecode
 from schools.managers import SchoolManager
+from users.models.user import User
 
 
 class School(TimeStampMixin, OrderMixin):
@@ -20,11 +21,19 @@ class School(TimeStampMixin, OrderMixin):
         default="Имя не придумано",
     )
     avatar = models.ImageField(
-        # upload_to="images/school/main/",
         verbose_name="Фотография",
         help_text="Фотография школы",
         blank=True,
         null=True,
+    )
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="owner_school",
+        verbose_name="Владелец школы",
+        help_text="ID владельца школы",
     )
 
     objects = SchoolManager()

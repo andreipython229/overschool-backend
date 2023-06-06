@@ -76,9 +76,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        school = serializer.save(avatar=None)
-        user = self.request.user
-        SchoolUser.objects.create(user=user, school=school)
+        school = serializer.save(avatar=None, owner=request.user)
         school_id = school.school_id
         if request.FILES.get("avatar"):
             avatar = upload_school_image(request.FILES["avatar"], school_id)
