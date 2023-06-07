@@ -28,19 +28,32 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class HomeworkDetailSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор просмотра конкретного домашнего задания
-    """
-
-    last_check_status = serializers.CharField(source='last_check_status', read_only=True)
-    last_check_response = serializers.CharField(source='last_check_response', read_only=True)
-    last_check_time = serializers.DateTimeField(source='last_check_time', read_only=True)
-    last_check_teacher_avatar = serializers.ImageField(source='last_check_teacher_avatar', read_only=True)
-    last_check_teacher_name = serializers.CharField(source='last_check_teacher_name', read_only=True)
-    last_check_teacher_lastname = serializers.CharField(source='last_check_teacher_lastname', read_only=True)
+    audio_files = AudioFileGetSerializer(many=True, required=False)
+    text_files = TextFileGetSerializer(many=True, required=False)
+    type = serializers.CharField(default="homework", read_only=True)
 
     class Meta:
         model = Homework
+        fields = [
+            "homework_id",
+            "section",
+            "name",
+            "order",
+            "author_id",
+            "description",
+            "video",
+            "automate_accept",
+            "time_accept",
+            "points",
+            "text_files",
+            "audio_files",
+            "type",
+        ]
+        read_only_fields = ["type", "text_files", "audio_files"]
+
+
+class HomeworkHistorySerializer(serializers.Serializer):
+    class Meta:
         fields = [
             "homework_id",
             "section",
@@ -63,4 +76,3 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "last_check_teacher_lastname",
             "text_files"
         ]
-        read_only_fields = ["type", "audio_files", "text_files"]

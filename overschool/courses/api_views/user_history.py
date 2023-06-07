@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import UserHomework
 from courses.paginators import UserHomeworkPagination
-from courses.serializers import UserHomeworkStatisticsSerializer
+from courses.serializers import HomeworkHistorySerializer
 from django.db.models import F
 from django.db.models import Subquery, OuterRef
 from rest_framework import generics, permissions, status
@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 
 class UserHistoryViewSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    serializer_class = UserHomeworkStatisticsSerializer
+    serializer_class = HomeworkHistorySerializer
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.AllowAny]
     pagination_class = UserHomeworkPagination
