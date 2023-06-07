@@ -38,7 +38,6 @@ def upload_file(uploaded_file, base_lesson):
                     school_id, course_id, base_lesson.id
                 )
             )
-
         y.upload(uploaded_file, file_path)
     return file_path
 
@@ -77,6 +76,20 @@ def upload_course_image(uploaded_image, course):
         else:
             y.mkdir("/{}_school".format(school_id))
             y.mkdir("/{}_school/{}_course".format(school_id, course_id))
+        y.upload(uploaded_image, file_path)
+    return file_path
+
+
+def upload_user_avatar(uploaded_image, user_id):
+    file_path = "/users/avatars/{}_{}".format(user_id, uploaded_image.name)
+    try:
+        y.upload(uploaded_image, file_path)
+    except yadisk.exceptions.ConflictError:
+        if y.exists("/users"):
+            y.mkdir("/users/avatars")
+        else:
+            y.mkdir("/users")
+            y.mkdir("/users/avatars")
         y.upload(uploaded_image, file_path)
     return file_path
 

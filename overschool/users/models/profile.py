@@ -1,8 +1,7 @@
+from common_services.mixins import TimeStampMixin
 from django.conf import settings
 from django.db import models
 from oauthlib.common import urldecode
-
-from common_services.mixins import TimeStampMixin
 
 
 class SexChoices(models.TextChoices):
@@ -22,7 +21,6 @@ class Profile(TimeStampMixin, models.Model):
         help_text="Уникальный идентификатор профиля",
     )
     avatar = models.ImageField(
-        upload_to="images/users/avatar/",
         help_text="Аватар",
         verbose_name="Аватар",
         blank=True,
