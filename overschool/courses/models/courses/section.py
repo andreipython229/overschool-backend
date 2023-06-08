@@ -1,7 +1,6 @@
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from model_clone import CloneMixin
-
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 
 from .course import Course
 
@@ -35,3 +34,8 @@ class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model)
     class Meta:
         verbose_name = "Раздел"
         verbose_name_plural = "Разделы"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "order"], name="unique_course_section_order"
+            ),
+        ]

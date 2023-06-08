@@ -100,3 +100,8 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     class Meta:
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "order"], name="unique_school_course_order"
+            ),
+        ]
