@@ -8,11 +8,13 @@ from courses.serializers import (
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg, Count, F, Sum
-from rest_framework import generics, permissions, viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from schools.models import SchoolUser
 
 
 class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -35,6 +37,22 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def perform_create(self, serializer):
+        # Сохраняем группу студентов
+        students_group = serializer.save()
+        # Получаем всех студентов, которые были добавлены в группу
+        students = self.request.data.get("students")
+        for student_id in students:
+            # Создаем запись в модели SchoolUser для каждого студента
+            try:
+                SchoolUser.objects.get(
+                    user_id=student_id, school_id=students_group.course_id.school_id
+                )
+            except ObjectDoesNotExist:
+                SchoolUser.objects.create(
+                    user_id=student_id, school_id=students_group.course_id.school_id
+                )
 
     @action(detail=True)
     def stats(self, request, pk):

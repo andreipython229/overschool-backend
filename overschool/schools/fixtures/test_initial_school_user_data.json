@@ -1,0 +1,42 @@
+[
+  {
+    "model": "schools.SchoolUser",
+    "school_id": 1,
+    "fields": {
+      "school_id": 1,
+      "user_id": 1
+    }
+  },
+  {
+    "model": "schools.SchoolUser",
+    "school_id": 2,
+    "fields": {
+      "school_id": 2,
+      "user_id": 1
+    }
+  },
+  {
+    "model": "schools.SchoolUser",
+    "school_id": 3,
+    "fields": {
+      "school_id": 3,
+      "user_id": 1
+    }
+  },
+  {
+    "model": "schools.SchoolUser",
+    "school_id": 4,
+    "fields": {
+      "school_id": 4,
+      "user_id": 1
+    }
+  },
+  {
+    "model": "schools.SchoolUser",
+    "school_id": 5,
+    "fields": {
+      "school_id": 5,
+      "user_id": 1
+    }
+  }
+]

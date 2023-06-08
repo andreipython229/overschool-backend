@@ -1,6 +1,6 @@
 from .answer import AnswerSerializer
 from .course import CourseGetSerializer, CourseSerializer, CourseStudentsSerializer
-from .homework import HomeworkDetailSerializer, HomeworkSerializer
+from .homework import HomeworkDetailSerializer, HomeworkSerializer, HomeworkHistorySerializer
 from .lesson import LessonDetailSerializer, LessonSerializer
 from .question import QuestionSerializer
 from .section import SectionSerializer

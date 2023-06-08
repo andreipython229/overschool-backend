@@ -1,6 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
-from courses.models import BaseLesson, Homework, UserHomework
+from courses.models import BaseLesson, UserHomework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     AllUserHomeworkDetailSerializer,
@@ -12,8 +12,7 @@ from courses.serializers import (
     UserHomeworkStatisticsSerializer,
 )
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import F, Max
-from django.db.models.expressions import Window
+from django.db.models import F, Q, Max
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
@@ -28,7 +27,6 @@ class AllUserHomeworkViewSet(
     """
 
     queryset = UserHomework.objects.all()
-    # serializer_class = AllUserHomeworkSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["user", "teacher", "status"]
     http_method_names = ["get", "head"]
@@ -48,7 +46,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-    # serializer_class = UserHomeworkSerializer
+
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
@@ -123,7 +121,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             remove_resp = None
             for file_obj in list(user_homework.text_files.values("file")) + list(
-                user_homework.audio_files.values("file")
+                    user_homework.audio_files.values("file")
             ):
                 if remove_from_yandex(str(file_obj["file"])) == "Error":
                     remove_resp = "Error"
@@ -144,7 +142,7 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-    # serializer_class = TeacherHomeworkSerializer
+
     permission_classes = [permissions.AllowAny]
     http_method_names = ["get", "patch", "put", "head"]
 
@@ -230,10 +228,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         if self.request.GET.get("end_date"):
             queryset = queryset.filter(updated_at__lte=self.request.GET.get("end_date"))
 
-        return queryset.values(
-            "mark",
-            "status",
-            "homework",
+        queryset = queryset.annotate(
             avatar=F("user__profile__avatar"),
             user_name=F("user__first_name"),
             user_lastname=F("user__last_name"),
@@ -243,11 +238,26 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
             group_id=F("user__groups"),
             group_name=F("user__students_group_fk__name"),
             h_history=F("homework__user_homeworks__status"),
-            last_update=Window(
-                expression=Max("updated_at"),
-                partition_by=[F("user__email"), F("homework__homework_id")],
-            ),
-        )
+            last_update=Max("updated_at"),
+        ).filter(
+            Q(last_update=F("updated_at")) | Q(h_history=F("status"))
+        ).values(
+            "mark",
+            "status",
+            "homework",
+            "avatar",
+            "user_name",
+            "user_lastname",
+            "email",
+            "course_name",
+            "homework_name",
+            "group_id",
+            "group_name",
+            "h_history",
+            "last_update",
+        ).distinct()
+
+        return queryset
 
     def list(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
