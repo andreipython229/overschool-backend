@@ -6,6 +6,9 @@ from rest_framework.exceptions import PermissionDenied
 
 
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления вопросов \n
+        Получать курсы может любой пользователь. \n
+        Создавать, изменять, удалять - пользователь с правами группы Admin.'''
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
     permission_classes = [permissions.AllowAny]

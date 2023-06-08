@@ -7,6 +7,9 @@ from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerial
 
 
 class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления хедера школы.\n
+        Эндпоинт на получение, создания, изменения и удаления хедера школы
+          '''
     queryset = SchoolHeader.objects.all()
     serializer_class = SchoolHeaderSerializer
     permission_classes = [permissions.AllowAny]

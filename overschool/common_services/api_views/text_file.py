@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
+    Модель добавления текстовых к занятиям\n
     Модель добавления текстовых к занятиям
     """
 

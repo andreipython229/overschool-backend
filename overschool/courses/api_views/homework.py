@@ -8,6 +8,9 @@ from rest_framework.response import Response
 
 
 class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления домашних заданий.\n
+        Разрешения для просмотра домашних заданий (любой пользователь).\n
+        Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin').'''
     queryset = Homework.objects.all()
     # serializer_class = HomeworkSerializer
     permission_classes = [permissions.AllowAny]

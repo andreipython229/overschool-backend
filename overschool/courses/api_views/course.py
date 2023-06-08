@@ -27,8 +27,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт для просмотра, создания, изменения и удаления курсов \n
+        Получать курсы может любой пользователь. \n
+        Создавать, изменять, удалять - пользователь с правами группы Admin.'''
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.AllowAny]
@@ -54,6 +56,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
 
     def create(self, request, *args, **kwargs):
         serializer = CourseSerializer(data=request.data)
@@ -107,7 +110,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def clone(self, request, pk):
-        """Клонирование курса"""
+        """Клонирование курса\n
+        Клонирование курса"""
 
         course = self.get_object()
         course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
@@ -116,7 +120,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk):
-        """Данные по всем секциям курса"""
+        """Данные по всем секциям курс\n
+        Данные по всем секциям курса"""
 
         course = self.get_object()
         queryset = Course.objects.filter(course_id=course.pk)
@@ -163,7 +168,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def user_count_by_month(self, request, pk):
-        """
+        """Кол-во новых пользователей курса за месяц\n
         Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number=""
         """
@@ -191,7 +196,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk):
-        """Статистика всех студентов курса"""
+        """Статистика всех студентов курса\n
+        Статистика всех студентов курса"""
 
         course = self.get_object()
         queryset = StudentsGroup.objects.filter(course_id=course.pk)
@@ -240,7 +246,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def student_groups(self, request, pk):
-        """Список всех групп курса"""
+        """Список всех групп курса\n
+        Список всех групп курса"""
 
         queryset = StudentsGroup.objects.filter(course_id=pk)
         page = self.paginate_queryset(queryset)

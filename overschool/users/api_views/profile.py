@@ -8,6 +8,8 @@ from users.serializers import UserProfileGetSerializer, UserProfileSerializer
 
 
 class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+    """Эндпоинт просмотра и изменения Profiles\n
+        озвращаем только объекты пользователя, сделавшего запрос"""
     queryset = Profile.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]

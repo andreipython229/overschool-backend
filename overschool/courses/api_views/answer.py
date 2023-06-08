@@ -6,6 +6,12 @@ from rest_framework.exceptions import PermissionDenied
 
 
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления уроков.\n
+        Разрешения для просмотра ответов к тестам (любой пользователь).\n
+        Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin').
+    '''
+
+
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = [permissions.AllowAny]

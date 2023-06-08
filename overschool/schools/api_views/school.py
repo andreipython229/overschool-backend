@@ -11,6 +11,9 @@ from schools.serializers import SchoolGetSerializer, SchoolSerializer
 
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления школ \n
+        Разрешения для просмотра школ (любой пользователь)\n
+        Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number') '''
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
     permission_classes = [permissions.AllowAny]
@@ -23,7 +26,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk):
-        """Статистика учеников школы"""
+        """ Статистика учеников школы\n
+            Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
         data = queryset.values(
             course=F("course_id"),
