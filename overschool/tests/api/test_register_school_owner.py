@@ -7,7 +7,7 @@ from django.urls import reverse
 from users.models.user import User
 
 
-class UsersTestCase(APITestCase):
+class RegisterSchoolOwnerTestCase(APITestCase):
 
     def setUp(self):
         fixture_paths = [
@@ -38,12 +38,15 @@ class UsersTestCase(APITestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-    def test_users_get(self):
-        url = reverse('users-list')
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+    def test_register_school_owner_post(self):
+        url = reverse('register_school_owner')
 
-    def test_users_id_get(self):
-        url = reverse('users-detail', args=[self.user.pk])
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        post_data = {
+            "email": "admin@example.com",
+            "phone_number": "+375445769005",
+            "password": "admin",
+            "password_confirmation": "admin"
+        }
+
+        resp = self.client.post(url, post_data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)

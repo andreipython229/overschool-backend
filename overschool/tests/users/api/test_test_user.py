@@ -5,9 +5,11 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework.views import status
 from django.urls import reverse
 from users.models.user import User
+from courses.models.test.user_test import UserTest
 
 
-class UsersTestCase(APITestCase):
+class UserTestsTestCase(APITestCase):
+    """Пока не рабочий"""
 
     def setUp(self):
         fixture_paths = [
@@ -34,16 +36,43 @@ class UsersTestCase(APITestCase):
 
         call_command('loaddata', fixture_paths)
 
-        self.user = User.objects.get(pk=1)
+        self.user = User.objects.get(pk=10)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+        self.user_test = UserTest.objects.filter(user_test_id=2)
 
-    def test_users_get(self):
-        url = reverse('users-list')
+    def test_test_user_get(self):
+        url = reverse('test_user-list')
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-    def test_users_id_get(self):
-        url = reverse('users-detail', args=[self.user.pk])
+    def test_test_user_id_get(self):
+        url = reverse('test_user-list', args=[self.user_test.user_test_id])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_test_user_post(self):
+        url = reverse('test_user-list')
+
+        post_data = {
+            "success_percent": "string",
+            "status": "П",
+            "test": 2,
+            "user": 10
+        }
+
+        resp = self.client.post(url, post_data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+    def test_test_user_put(self):
+        url = reverse('test_user-detail', args=[self.user_test.pk])
+
+        put_data = {
+            "success_percent": "string",
+            "status": "П",
+            "test": 2,
+            "user": 3
+        }
+
+        resp = self.client.put(url, put_data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
