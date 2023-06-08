@@ -1,18 +1,18 @@
 [
   {
-    "model": "courses.StudentGroup",
+    "model": "courses.StudentsGroup",
     "pk": 1,
     "fields": {
-      "student_group_id": 1,
-      "user_id": 4
+      "studentsgroup_id": 1,
+      "user_id": 6
     }
   },
   {
-    "model": "courses.StudentGroup",
+    "model": "courses.StudentsGroup",
     "pk": 2,
     "fields": {
-      "student_group_id": 1,
-      "user_id": 5
+      "studentsgroup_id": 2,
+      "user_id": 6
     }
   }
 ]
