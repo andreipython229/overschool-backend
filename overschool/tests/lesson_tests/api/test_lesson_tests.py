@@ -4,9 +4,9 @@ from rest_framework.test import APITestCase
 
 
 class TestUsersList(APITestCase):
-    """Проверка API получения списка всех пользователей"""
+    """Проверка API получения списка всех тестов"""
 
-    url_name = "users-list"
+    url_name = "lesson_tests"
 
     def test_get_countries(self):
         response = self.client.get(reverse(self.url_name), format="json")
