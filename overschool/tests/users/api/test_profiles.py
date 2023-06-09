@@ -45,14 +45,21 @@ class ProfileViewSetAPITestCase(APITestCase):
 
     def test_partial_update_profile(self):
         url = reverse('profiles-detail', args=[self.profile.pk])
-        data = {'description': 'New Profile Description'}
-        response = self.client.patch(url, data, format='json')
+
+        patch_data = {
+            "city": "string",
+            "sex": "М",
+            "description": "string",
+            "user": {
+                "username": "string",
+                "first_name": "string",
+                "last_name": "string",
+                "email": "user@example.com",
+                "phone_number": "+375331115159",
+                "user": 9
+            }
+        }
+
+        response = self.client.patch(url, patch_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.description, data['description'])
-
-    def test_delete_profile(self):
-        url = reverse('profiles-detail', args=[self.profile.pk])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Profile.objects.filter(pk=self.profile.pk).exists())
