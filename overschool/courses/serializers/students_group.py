@@ -3,7 +3,8 @@ from datetime import datetime
 from rest_framework import serializers
 
 from courses.models import StudentsGroup
-
+# from users.models.user import User
+# from django.db import models
 
 class StudentsGroupSerializer(serializers.ModelSerializer):
     """
@@ -14,6 +15,22 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
         model = StudentsGroup
         fields = "__all__"
 
+    def validate_teacher_id(self, value):
+        if not value.groups.filter(name="Teacher").exists():
+            raise serializers.ValidationError(
+                "Пользователь указанный в поле 'teacher_id' не является учителем.")
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            if 'teacher_id' not in attrs:
+                raise serializers.ValidationError("Поле 'teacher_id' обязательно для заполнения.")
+            self.validate_teacher_id(attrs['teacher_id'])
+        elif request.method in ['PUT', 'PATCH']:
+            if 'teacher_id' in attrs:
+                self.validate_teacher_id(attrs['teacher_id'])
+        return attrs
 
 class GroupStudentsSerializer(serializers.Serializer):
     """

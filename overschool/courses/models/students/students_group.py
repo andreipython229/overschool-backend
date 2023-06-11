@@ -31,8 +31,7 @@ class StudentsGroup(TimeStampMixin, models.Model):
     )
     teacher_id = models.ForeignKey(
         User,
-        on_delete=models.SET_DEFAULT,
-        default=1,
+        on_delete=models.CASCADE,
         verbose_name="Преподаватель",
         help_text="Преподаватель, который ведёт эту группу",
         related_name="teacher_group_fk",
@@ -42,6 +41,16 @@ class StudentsGroup(TimeStampMixin, models.Model):
         verbose_name="Ученики",
         help_text="Ученики этой группы",
         related_name="students_group_fk",
+    )
+    strict_task_order = models.BooleanField(
+        default=False,
+        verbose_name="Строгая последовательность заданий",
+        help_text="При 'True' - ученики данной группы не могут открывать уроки не по порядку"
+    )
+    task_submission_lock = models.BooleanField(
+        default=False,
+        verbose_name="Блокировка отправки решений заданий",
+        help_text="При 'True' - ученики данной группы не могут отправлять домашки, они могут сделать его самостоятельно и перейти к следующему уроку"
     )
 
     def __str__(self):
