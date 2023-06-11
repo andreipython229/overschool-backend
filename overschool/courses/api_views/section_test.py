@@ -5,9 +5,10 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from courses.services import LessonProgressMixin
 
 
-class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class TestViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet):
     """Эндпоинт просмотра, создания, изменения и удаления тестов\n
     Разрешения для просмотра тестов (любой пользователь)
     Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')"""

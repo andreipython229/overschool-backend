@@ -5,9 +5,10 @@ from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
+from courses.services import LessonProgressMixin
 
 
-class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet):
     ''' Эндпоинт на получение, создания, изменения и удаления домашних заданий.\n
         Разрешения для просмотра домашних заданий (любой пользователь).\n
         Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin').'''
