@@ -1,5 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Answer, Question, SectionTest
+from common_services.yandex_client import remove_from_yandex
+from courses.models import Answer, BaseLesson, Question, SectionTest
 from courses.serializers import TestSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -127,3 +128,24 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         #               only_whole_numbers=question['only_whole_numbers'] if 'only_whole_numbers' in question else None)
         #      for question in questions]
         # )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        base_lesson = BaseLesson.objects.get(tests=instance)
+        course = base_lesson.section.course
+        school_id = course.school.school_id
+
+        remove_resp = remove_from_yandex(
+            "/{}_school/{}_course/{}_lesson".format(
+                school_id, course.course_id, base_lesson.id
+            )
+        )
+        self.perform_destroy(instance)
+
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Запрашиваемый путь на диске не существует"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)

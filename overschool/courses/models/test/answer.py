@@ -31,9 +31,7 @@ class Answer(TimeStampMixin, models.Model):
         verbose_name="Тип ответа",
         help_text="Правильный-True или неправильный-False",
     )
-    picture = models.ImageField(
-        upload_to="files/answers", verbose_name="Картинка", null=True, blank=True
-    )
+    picture = models.ImageField(verbose_name="Картинка", null=True, blank=True)
     answer_in_range = models.BooleanField(
         default=False,
         verbose_name="Правильный ответ в диапазоне",

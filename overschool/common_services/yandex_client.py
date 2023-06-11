@@ -103,5 +103,8 @@ def remove_from_yandex(file_path):
 
 
 def get_yandex_link(file_path):
-    link = y.get_download_link(file_path)
-    return link
+    try:
+        link = y.get_download_link(file_path)
+        return link
+    except yadisk.exceptions.PathNotFoundError:
+        return ""

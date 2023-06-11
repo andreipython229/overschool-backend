@@ -1,8 +1,7 @@
 from ckeditor.fields import RichTextField
+from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models
 from embed_video.fields import EmbedVideoField
-
-from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from model_clone import CloneMixin
 
 from ..courses.section import Section
@@ -42,3 +41,10 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
 
     def __str__(self):
         return f"{self.section}. {self.name}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["section", "order"], name="unique_section_lesson_order"
+            ),
+        ]

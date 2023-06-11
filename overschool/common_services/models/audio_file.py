@@ -19,3 +19,9 @@ class AudioFile(BaseLessonFile):
         verbose_name = "Аудиофайл"
         verbose_name_plural = "Аудиофайлы"
         default_related_name = "audio_files"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_lesson", "user_homework", "order"],
+                name="unique_audio_file_order",
+            ),
+        ]

@@ -50,3 +50,6 @@ class School(TimeStampMixin, OrderMixin):
     class Meta:
         verbose_name = "Школа"
         verbose_name_plural = "Школы"
+        constraints = [
+            models.UniqueConstraint(fields=["order"], name="unique_school_order"),
+        ]
