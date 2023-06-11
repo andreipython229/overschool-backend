@@ -9,6 +9,9 @@ from rest_framework.response import Response
 
 
 class UserHistoryViewSet(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
+    ''' Эндпоинт возвращает историю выполненных домашних работ\n
+        Возвращает историю выполненных домашних работ
+    '''
     serializer_class = HomeworkHistorySerializer
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.AllowAny]

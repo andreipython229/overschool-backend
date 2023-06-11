@@ -11,6 +11,8 @@ sender_service = SenderServiceMixin()  # Создаем экземпляр Sende
 
 
 class SignupView(WithHeadersViewSet, generics.GenericAPIView):
+    """Эндпоинт регистрации пользователя\n
+        Эндпоинт регистрации пользователя"""
     permission_classes = [permissions.AllowAny]
     serializer_class = SignupSerializer
 
@@ -39,6 +41,11 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
 
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
+    """Эндпоинт сброса пароля\n
+        <ul>
+            <li>Отправляем код для сброса пароля по электронной почте или Отправляем код для сброса пароля на телефон</li>
+            <li>Сохраняем код для сброса пароля и другие данные в Redis</li>
+        </ul>"""
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetSerializer
 
@@ -65,6 +72,11 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
 
 
 class PasswordResetConfirmView(WithHeadersViewSet, generics.GenericAPIView):
+    """Эндпоинт проверки кода для сброса пароля\n
+        <ul>
+            <li>Проверяем код для сброса пароля в Redis</li>
+            <li>Обновляем пароль</li>
+        </ul>"""
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetConfirmSerializer
 

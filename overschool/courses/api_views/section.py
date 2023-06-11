@@ -10,6 +10,10 @@ from rest_framework.response import Response
 
 
 class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт получения, создания, редактирования и удаления секций.\n
+        Разрешения для просмотра секций (любой пользователь)
+        Разрешения для создания и изменения секций (только пользователи с группой 'Admin')
+    '''
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.AllowAny]

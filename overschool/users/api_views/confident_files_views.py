@@ -5,5 +5,7 @@ from users.serializers import UploadSerializer
 
 
 class ConfidentFilesViewSet(viewsets.ModelViewSet):
+    """Эндпоинт для загрузкт документов\n
+    Эндпоинт для загрузкт документов"""
     queryset = Documents.objects.all()
     serializer_class = UploadSerializer

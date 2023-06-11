@@ -23,6 +23,7 @@ class AllUserHomeworkViewSet(
     WithHeadersViewSet, viewsets.ModelViewSet, generics.ListAPIView
 ):
     """
+    Эндпоинт на получение всё домашних работ учеников с фильтрами по полям ("user", "teacher")\n
     Эндпоинт на получение всё домашних работ учеников с фильтрами по полям ("user", "teacher")
     """
 
@@ -40,7 +41,7 @@ class AllUserHomeworkViewSet(
 
 
 class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
-    """
+    """ Эндпоинт домашних заданий ученика.\n
     Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
     (свои поля-"text", "file"), учитель подкидывается исходя из группы пользователя.
     """
@@ -136,9 +137,9 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
 
 class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
-    """
-    Учитель может редактировать и удалять только дз своих учеников
-    и свои поля ("status", "mark", "teacher_message“).
+    """ Эндпоинт учителя для редактирование дз своих учеников\n
+        Учитель может редактировать и удалять только дз своих учеников
+        и свои поля ("status", "mark", "teacher_message“).
     """
 
     queryset = UserHomework.objects.all()
@@ -185,6 +186,8 @@ class TeacherHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
 
 class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
+    ''' Эндпоинт возвращает стаитстику по домашним работам\n
+        Эндпоинт возвращает стаитстику по домашним работам'''
     serializer_class = UserHomeworkStatisticsSerializer
     queryset = UserHomework.objects.all()
     permission_classes = [permissions.DjangoModelPermissions]
