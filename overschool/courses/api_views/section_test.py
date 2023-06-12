@@ -9,6 +9,9 @@ from rest_framework.response import Response
 
 
 class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    """Эндпоинт просмотра, создания, изменения и удаления тестов\n
+    Разрешения для просмотра тестов (любой пользователь)
+    Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')"""
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.AllowAny]
@@ -16,7 +19,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def get_permissions(self):
         permissions = super().get_permissions()
         if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра текстов (любой пользователь)
+            # Разрешения для просмотра тестов (любой пользователь)
             return permissions
         elif self.action in [
             "create",
@@ -36,7 +39,8 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk):
-        """Данные по вопросам теста"""
+        """Возвращает вопросы к конкретному тесту\n
+        Возвращает вопросы к конкретному тесту"""
         test_obj = SectionTest.objects.get(test_id=pk).__dict__
         test = {
             "test": pk,
@@ -80,7 +84,8 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["POST"])
     def post_questions(self, request, pk):
-        "Создать вопросы в тесте"
+        """Создать вопросы в тесте\n
+        Создать вопросы в тесте"""
         try:
             test_obj = SectionTest.objects.get(test_id=pk)
             questions = request.data.get("questions")

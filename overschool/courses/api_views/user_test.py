@@ -6,6 +6,10 @@ from rest_framework.response import Response
 
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт тестирования учеников\n
+        Тесты проходить могут только ученики\n
+        Редактировать и удалять пройденные тесты могут только администраторы
+        '''
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.AllowAny]

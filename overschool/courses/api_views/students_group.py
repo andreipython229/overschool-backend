@@ -18,6 +18,10 @@ from schools.models import SchoolUser
 
 
 class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт получения, создания, изменения групп студентов\n
+        Разрешения для просмотра групп (любой пользователь)
+        Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+    '''
     queryset = StudentsGroup.objects.all()
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.AllowAny]
@@ -56,7 +60,8 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
 
     @action(detail=True)
     def stats(self, request, pk):
-        """Статистика учеников группы"""
+        """Статистика учеников группы\n
+        Статистика учеников группы"""
         group = self.get_object()
         queryset = StudentsGroup.objects.filter(group_id=group.pk)
         data = queryset.values(
@@ -91,8 +96,9 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
 
     @action(detail=True)
     def user_count_by_month(self, request, pk):
-        """Кол-во новых пользователей группы за месяц, по дефолту стоит текущий месяц,
-        для конкретного месяца указываем параметр month_number="""
+        """Кол-во новых пользователей группы за месяц\n
+         по дефолту стоит текущий месяц,
+         для конкретного месяца указываем параметр month_number="""
 
         group = self.get_object()
         queryset = StudentsGroup.objects.filter(

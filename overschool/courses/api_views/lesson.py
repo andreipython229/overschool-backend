@@ -6,8 +6,10 @@ from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
 
-
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    ''' Эндпоинт на получение, создания, изменения и удаления уроков\n
+        Разрешения для просмотра уроков (любой пользователь)\n
+        Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')'''
     queryset = Lesson.objects.all()
     # serializer_class = LessonSerializer
     permission_classes = [permissions.AllowAny]

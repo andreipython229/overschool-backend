@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
+    Модель добавления аудиофайлов к урокам и занятиям\n
     Модель добавления аудиофайлов к урокам и занятиям
     """
 

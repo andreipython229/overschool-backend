@@ -14,6 +14,9 @@ class StudentsTableInfoViewSet(
     mixins.ListModelMixin,
     GenericViewSet,
 ):
+    ''' Эндпоинт табличной информации о студентах\n
+        Табличная информация о студентах
+    '''
     queryset = StudentsTableInfo.objects.all()
     serializer_class = StudentsTableInfoSerializer
     permission_classes = [permissions.AllowAny]
