@@ -6,6 +6,7 @@ from .homework import (
     HomeworkSerializer,
 )
 from .lesson import LessonDetailSerializer, LessonSerializer
+from .lesson_components_order import LessonComponentsOrderSerializer
 from .question import QuestionGetSerializer, QuestionSerializer
 from .section import SectionSerializer
 from .section_test import TestSerializer
