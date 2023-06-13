@@ -4,6 +4,7 @@ from common_services.mixins import TimeStampMixin
 from users.models.user import User
 
 from ..courses.course import Course
+from .students_group_settings import StudentsGroupSettings
 
 
 class StudentsGroup(TimeStampMixin, models.Model):
@@ -42,15 +43,12 @@ class StudentsGroup(TimeStampMixin, models.Model):
         help_text="Ученики этой группы",
         related_name="students_group_fk",
     )
-    strict_task_order = models.BooleanField(
-        default=False,
-        verbose_name="Строгая последовательность заданий",
-        help_text="При 'True' - ученики данной группы не могут открывать уроки не по порядку"
-    )
-    task_submission_lock = models.BooleanField(
-        default=False,
-        verbose_name="Блокировка отправки решений заданий",
-        help_text="При 'True' - ученики данной группы не могут отправлять домашки, они могут сделать его самостоятельно и перейти к следующему уроку"
+    group_settings = models.OneToOneField(
+        StudentsGroupSettings,
+        on_delete=models.CASCADE,
+        related_name='students_group_settings_fk',
+        null=True,
+        blank=True
     )
 
     def __str__(self):

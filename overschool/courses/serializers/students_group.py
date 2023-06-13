@@ -2,14 +2,17 @@ from datetime import datetime
 
 from rest_framework import serializers
 
-from courses.models import StudentsGroup
+from courses.models import StudentsGroup, StudentsGroupSettings
 # from users.models.user import User
 # from django.db import models
+from .students_group_settings import StudentsGroupSettingsSerializer
+
 
 class StudentsGroupSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели группы студентов
     """
+    group_settings = StudentsGroupSettingsSerializer(required=False)
 
     class Meta:
         model = StudentsGroup
@@ -31,6 +34,18 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             if 'teacher_id' in attrs:
                 self.validate_teacher_id(attrs['teacher_id'])
         return attrs
+
+    def update(self, instance, validated_data):
+        group_settings_data = validated_data.pop('group_settings', None)
+        instance = super().update(instance, validated_data)
+
+        if group_settings_data:
+            group_settings = instance.group_settings
+            for key, value in group_settings_data.items():
+                setattr(group_settings, key, value)
+            group_settings.save()
+
+        return instance
 
 class GroupStudentsSerializer(serializers.Serializer):
     """

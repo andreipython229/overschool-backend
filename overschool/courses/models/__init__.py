@@ -11,3 +11,4 @@ from .students.students_table_info import StudentsTableInfo
 from .homework.user_homework import UserHomework
 from .students.user_progress import UserProgressLogs
 from .test.user_test import UserTest
+from .students.students_group_settings import StudentsGroupSettings

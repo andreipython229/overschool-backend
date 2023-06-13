@@ -4,10 +4,15 @@ from rest_framework.response import Response
 from courses.models.students.user_progress import UserProgressLogs
 
 class LessonProgressMixin:
+
+    def create_log(self, user, instance):
+        if type(instance) == Lesson:
+            UserProgressLogs.objects.create(user=user, lesson=instance)
+
     def check_lesson_progress(self, instance, user, baselesson):
         students_group = user.students_group_fk.get(course_id=baselesson.section.course)
 
-        if students_group.strict_task_order:
+        if students_group.group_settings.strict_task_order:
             try:
                 # Если есть запись в логе - то отдаём урок
                 UserProgressLogs.objects.get(user=user, lesson=instance)
@@ -16,7 +21,7 @@ class LessonProgressMixin:
 
                 # Если урок стоит первым в курсе - то отдаём урок
                 if baselesson == course_lessons.first():
-                    UserProgressLogs.objects.create(user=user, lesson=instance)
+                    self.create_log(user=user, instance=instance)
                     return None
                 # Проверяем является ли урок минимальным в секции
                 is_minimum_order = not BaseLesson.objects.filter(section=instance.section, order__lt=instance.order).exists()
@@ -29,7 +34,7 @@ class LessonProgressMixin:
                     try:
                         # Если запись есть то отдаем урок и делаем запись
                         UserProgressLogs.objects.get(user=user, lesson=last_lesson_previous_section.pk)
-                        UserProgressLogs.objects.create(user=user, lesson=instance)
+                        self.create_log(user=user, instance=instance)
                         return None
                     except UserProgressLogs.DoesNotExist:
                         return Response({"detail": "Необходимо проити предыдущие уроки."}, status=status.HTTP_403_FORBIDDEN)
@@ -39,7 +44,7 @@ class LessonProgressMixin:
                                                             order__lt=instance.order).order_by('-order').first()
                 try:
                     UserProgressLogs.objects.get(user=user, lesson=previous_lesson.pk)
-                    UserProgressLogs.objects.create(user=user, lesson=instance)
+                    self.create_log(user=user, instance=instance)
                 except UserProgressLogs.DoesNotExist:
                     return Response({"detail": "Необходимо проити предыдущие уроки."}, status=status.HTTP_403_FORBIDDEN)
         else:
@@ -48,7 +53,7 @@ class LessonProgressMixin:
                 UserProgressLogs.objects.get(user=user, lesson=instance)
             except UserProgressLogs.DoesNotExist:
                 # Если записи нет то создаём запись и отдаём урок
-                UserProgressLogs.objects.create(user=user, lesson=instance)
+                self.create_log(user=user, instance=instance)
 
         return None
 

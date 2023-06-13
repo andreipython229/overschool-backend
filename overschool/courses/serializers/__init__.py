@@ -10,6 +10,7 @@ from .students_group import (
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
+from .students_group_settings import StudentsGroupSettingsSerializer
 from .students_table_info import StudentsTableInfoSerializer
 from .user_homework import (
     AllUserHomeworkDetailSerializer,
