@@ -8,6 +8,8 @@ from courses.serializers import (
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
+from courses.models.students.students_group_settings import StudentsGroupSettings
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg, Count, F, Sum
 from rest_framework import permissions, viewsets
@@ -43,6 +45,13 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             return permissions
 
     def perform_create(self, serializer):
+        # Создаём модель настроек группы
+        group_settings_data = self.request.data.get('group_settings')
+        if not group_settings_data:
+            group_settings_data = {}
+        group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
+        serializer.save(group_settings=group_settings)
+
         # Сохраняем группу студентов
         students_group = serializer.save()
         # Получаем всех студентов, которые были добавлены в группу

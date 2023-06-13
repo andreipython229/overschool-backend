@@ -12,3 +12,4 @@ from .test.answer import Answer
 from .test.question import Question
 from .test.section_test import SectionTest
 from .test.user_test import UserTest
+from .students.students_group_settings import StudentsGroupSettings
