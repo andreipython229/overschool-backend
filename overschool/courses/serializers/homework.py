@@ -1,4 +1,5 @@
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
+from common_services.yandex_client import get_yandex_link
 from courses.models import BaseLesson, Homework, LessonComponentsOrder
 from rest_framework import serializers
 
@@ -31,13 +32,14 @@ class HomeworkSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        components_data = validated_data.pop("all_components")
+        components_data = validated_data.pop("all_components", None)
         homework = Homework.objects.create(**validated_data)
-        base_lesson = BaseLesson.objects.get(homeworks=homework)
-        for component_data in components_data:
-            LessonComponentsOrder.objects.create(
-                base_lesson=base_lesson, **component_data
-            )
+        if components_data:
+            base_lesson = BaseLesson.objects.get(homeworks=homework)
+            for component_data in components_data:
+                LessonComponentsOrder.objects.create(
+                    base_lesson=base_lesson, **component_data
+                )
         return homework
 
     def update(self, instance, validated_data):
@@ -69,6 +71,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class HomeworkDetailSerializer(serializers.ModelSerializer):
+    video = serializers.SerializerMethodField()
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="homework", read_only=True)
@@ -93,6 +96,9 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "all_components",
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
+
+    def get_video(self, obj):
+        return get_yandex_link(str(obj.video))
 
 
 class HomeworkHistorySerializer(serializers.Serializer):
