@@ -1,12 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
-from courses.models import Lesson
+from courses.models import Lesson, BaseLesson, Section
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
+from courses.services import LessonProgressMixin
 
-class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class LessonViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet):
     ''' Эндпоинт на получение, создания, изменения и удаления уроков\n
         Разрешения для просмотра уроков (любой пользователь)\n
         Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')'''

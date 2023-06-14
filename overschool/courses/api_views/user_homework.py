@@ -75,8 +75,16 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 {"status": "Error", "message": "Недостаточно прав доступа"},
             )
         baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
-        teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
-        teacher = User.objects.get(id=teacher_group.teacher_id_id)
+        # teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
+        # teacher = User.objects.get(id=teacher_group.teacher_id_id)
+        students_group = user.students_group_fk.get(course_id=baselesson.section.course)
+
+        if students_group.group_settings.task_submission_lock:
+            return Response(
+                {"status": "Error", "message": "Отправлять домашки запрещено в настройках группы студентов"},
+            )
+
+        teacher = User.objects.get(id=students_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
 

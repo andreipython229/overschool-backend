@@ -11,4 +11,5 @@ from .user_test import UserTestViewSet
 from .user_homework import (HomeworkStatisticsView, TeacherHomeworkViewSet,
                             UserHomeworkViewSet, AllUserHomeworkViewSet)
 from .user_history import UserHistoryViewSet
+from .students_group_settings import StudentsGroupSettingsViewSet
 
