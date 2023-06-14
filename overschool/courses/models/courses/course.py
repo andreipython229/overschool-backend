@@ -60,6 +60,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         blank=True,
         null=True,
     )
+
     duration_days = models.PositiveIntegerField(
         verbose_name="Продолжительность курса",
         help_text="Продолжительность курса в днях",

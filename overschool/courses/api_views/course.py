@@ -19,6 +19,7 @@ from courses.serializers import (
     CourseStudentsSerializer,
     StudentsGroupSerializer,
     UserHomeworkSerializer,
+    SectionSerializer,
 )
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
@@ -56,7 +57,6 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
-
 
     def create(self, request, *args, **kwargs):
         serializer = CourseSerializer(data=request.data)
@@ -108,151 +108,218 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True)
-    def clone(self, request, pk):
-        """Клонирование курса\n
-        Клонирование курса"""
+    @action(detail=True, methods=['GET'])
+    def get_students_for_course(self, request, pk=None):
+        """Все студенты одного курса"""
 
         course = self.get_object()
-        course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
-        queryset = Course.objects.filter(pk=course_copy.pk)
-        return Response(queryset.values())
+        groups = StudentsGroup.objects.filter(course_id=course.course_id)
+        students = []
 
-    @action(detail=True)
-    def sections(self, request, pk):
-        """Данные по всем секциям курс\n
-        Данные по всем секциям курса"""
+        for group in groups:
+            if group.students.exists():  # Проверяем наличие студентов в группе
+                students.extend(group.students.all())
 
-        course = self.get_object()
-        queryset = Course.objects.filter(course_id=course.pk)
+        student_data = []
+        for student in students:
+            # Получаем курс студента
+            try:
 
-        data = queryset.values(
-            course=F("course_id"),
-            course_name=F("name"),
-            section_name=F("sections__name"),
-            section=F("sections__section_id"),
-            section_order=F("sections__order"),
-        ).order_by("sections__order")
-        result_data = dict(
-            course_name=data[0]["course_name"],
-            course_id=data[0]["course"],
-            sections=[],
+                group = student.students_group_fk.first()  # Получаем первый объект группы студента
+                if group:
+                    course = group.course_id
+                else:
+                    course = None
+            except (StudentsGroup.DoesNotExist, Course.DoesNotExist):
+                course = None
+            if course:
+                # Получаем все разделы курса
+                sections = course.sections.all()
+
+                # Вычисляем суммарный балл для студента
+                total_points = 0
+                for section in sections:
+                    for lesson in section.lessons.all():
+                        total_points += lesson.points
+
+                student_data.append({
+                    'id': student.id,
+                    'username': student.username,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'email': student.email,
+                    'course_name': course.name,
+                    'course_updated_at': course.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
+                    'group_name': group.name,
+                    'last_activity': group.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
+                    'total_points': total_points,
+                    'section': SectionSerializer(course.sections.all(), many=True).data,
+
+                })
+            else:
+                # Курс не найден для студента
+                student_data.append({
+                    'id': student.id,
+                    'username': student.username,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'email': student.email,
+                    'course_name': course.name,
+                    'course_updated_at': course.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
+                    'group_name': group.name,
+                    'last_activity': group.last_activity.strftime("%Y-%m-%d %H:%M:%S") if group.last_activity else None,
+                    'total_points': 0,
+                    'section': SectionSerializer(course.sections.all(), many=True).data,
+                })
+        return Response(student_data)
+
+
+@action(detail=True)
+def clone(self, request, pk):
+    """Клонирование курса\n
+    Клонирование курса"""
+
+    course = self.get_object()
+    course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
+    queryset = Course.objects.filter(pk=course_copy.pk)
+    return Response(queryset.values())
+
+
+@action(detail=True)
+def sections(self, request, pk):
+    """Данные по всем секциям курс\n
+    Данные по всем секциям курса"""
+
+    course = self.get_object()
+    queryset = Course.objects.filter(course_id=course.pk)
+
+    data = queryset.values(
+        course=F("course_id"),
+        course_name=F("name"),
+        section_name=F("sections__name"),
+        section=F("sections__section_id"),
+        section_order=F("sections__order"),
+    ).order_by("sections__order")
+    result_data = dict(
+        course_name=data[0]["course_name"],
+        course_id=data[0]["course"],
+        sections=[],
+    )
+    types = {0: "homework", 1: "lesson", 2: "test"}
+    for index, value in enumerate(data):
+        result_data["sections"].append(
+            {
+                "section_name": value["section_name"],
+                "section": value["section"],
+                "lessons": [],
+            }
         )
-        types = {0: "homework", 1: "lesson", 2: "test"}
-        for index, value in enumerate(data):
-            result_data["sections"].append(
-                {
-                    "section_name": value["section_name"],
-                    "section": value["section"],
-                    "lessons": [],
-                }
-            )
-            a = Homework.objects.filter(section=value["section"])
-            b = Lesson.objects.filter(section=value["section"])
-            c = SectionTest.objects.filter(section=value["section"])
-            for i in enumerate((a, b, c)):
-                for obj in i[1]:
-                    dict_obj = model_to_dict(obj)
-                    result_data["sections"][index]["lessons"].append(
-                        {
-                            "type": types[i[0]],
-                            "order": dict_obj["order"],
-                            "name": dict_obj["name"],
-                            "id": obj.pk,
-                        }
-                    )
-            result_data["sections"][index]["lessons"].sort(
-                key=lambda x: x["order"] if x["order"] is not None else 0
-            )
-        return Response(result_data)
-
-    @action(detail=True)
-    def user_count_by_month(self, request, pk):
-        """Кол-во новых пользователей курса за месяц\n
-        Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
-        для конкретного месяца указываем параметр month_number=""
-        """
-
-        course = self.get_object()
-        month_number = request.GET.get("month_number", datetime.now().month)
-
-        queryset = StudentsGroup.objects.filter(
-            course_id=course.pk, students__date_joined__month=month_number
+        a = Homework.objects.filter(section=value["section"])
+        b = Lesson.objects.filter(section=value["section"])
+        c = SectionTest.objects.filter(section=value["section"])
+        for i in enumerate((a, b, c)):
+            for obj in i[1]:
+                dict_obj = model_to_dict(obj)
+                result_data["sections"][index]["lessons"].append(
+                    {
+                        "type": types[i[0]],
+                        "order": dict_obj["order"],
+                        "name": dict_obj["name"],
+                        "id": obj.pk,
+                    }
+                )
+        result_data["sections"][index]["lessons"].sort(
+            key=lambda x: x["order"] if x["order"] is not None else 0
         )
+    return Response(result_data)
 
-        datas = queryset.values(course=F("course_id")).annotate(
-            students_sum=Count("students__id")
-        )
 
-        for data in datas:
-            data["graphic_data"] = queryset.values(
-                course=F("course_id"), date=F("students__date_joined__day")
-            ).annotate(students_sum=Count("students__id"))
+@action(detail=True)
+def user_count_by_month(self, request, pk):
+    """Кол-во новых пользователей курса за месяц\n
+    Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
+    для конкретного месяца указываем параметр month_number=""
+    """
 
-        page = self.paginate_queryset(datas)
-        if page is not None:
-            return self.get_paginated_response(page)
-        return Response(datas)
+    course = self.get_object()
+    month_number = request.GET.get("month_number", datetime.now().month)
 
-    @action(detail=True)
-    def stats(self, request, pk):
-        """Статистика всех студентов курса\n
-        Статистика всех студентов курса"""
+    queryset = StudentsGroup.objects.filter(
+        course_id=course.pk, students__date_joined__month=month_number
+    )
 
-        course = self.get_object()
-        queryset = StudentsGroup.objects.filter(course_id=course.pk)
-        data = queryset.values(
-            course=F("course_id"),
-            email=F("students__email"),
-            student_name=F("students__first_name"),
-            student=F("students__id"),
-            group=F("group_id"),
-            last_active=F("students__date_joined"),
-            update_date=F("students__date_joined"),
-            ending_date=F("students__date_joined"),
-        ).annotate(
-            mark_sum=Sum("students__user_homeworks__mark"),
-            average_mark=Avg("students__user_homeworks__mark"),
-            chekau=Count("course_id__sections__lessons__lesson_id")
-            + Count("course_id__sections__homeworks__homework_id"),
-            # progress=(Count("students__user_progresses__lesson__lesson_id"))
-            #          / Count("course_id__sections__lessons__lesson_id"),
-        )
-        # Course.objects.filter(course_id=course.pk).values("course_id__sections__lessons_lesson_id",
-        #                                                   "course_id__sections__section_tests__section_id")
-        ## Выбрать все тесты, лессоны и хоумворки
-        ## Далее проверить, что из них есть в юзер прогресс
-        a = UserProgressLogs.objects.filter(
-            lesson__section__course__course_id=course.pk,
-            homework__section__course__course_id=course.pk,
-            section_test__section__course__course_id=course.pk,
-        ).aggregate(
-            count_steps=Count("lesson__section__course__course_id")
-            + Count("homework__section__course__course_id")
-            + Count("section_test__section__course__course_id")
-        )
-        print(a)
-        for row in data:
-            mark_sum = (
-                UserTest.objects.filter(user=row["student"])
-                .values("user")
-                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
-            )
-            row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0
-        page = self.paginate_queryset(data)
-        if page is not None:
-            return self.get_paginated_response(page)
-        return Response(data)
+    datas = queryset.values(course=F("course_id")).annotate(
+        students_sum=Count("students__id")
+    )
 
-    @action(detail=True)
-    def student_groups(self, request, pk):
-        """Список всех групп курса\n
-        Список всех групп курса"""
+    for data in datas:
+        data["graphic_data"] = queryset.values(
+            course=F("course_id"), date=F("students__date_joined__day")
+        ).annotate(students_sum=Count("students__id"))
 
-        queryset = StudentsGroup.objects.filter(course_id=pk)
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = StudentsGroupSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = StudentsGroupSerializer(queryset, many=True)
-        return Response(serializer.data)
+    page = self.paginate_queryset(datas)
+    if page is not None:
+        return self.get_paginated_response(page)
+    return Response(datas)
+
+
+# @action(detail=True)
+# def stats(self, request, pk):
+#     course = self.get_object()
+#     queryset = StudentsGroup.objects.filter(course_id=course.pk)
+#     data = queryset.values(
+#         course=F("course_id"),
+#         email=F("students__email"),
+#         student_name=F("students__first_name"),
+#         student=F("students__id"),
+#         group=F("group_id"),
+#         last_active=F("students__date_joined"),
+#         update_date=F("students__date_joined"),
+#         ending_date=F("students__date_joined"),
+#     ).annotate(
+#         mark_sum=Sum("students__user_homeworks__mark"),
+#         average_mark=Avg("students__user_homeworks__mark"),
+#         lesson_count=Count("course_id__sections__all_lessons", distinct=True),
+#         homework_count=Count("course_id__sections__all_lessons__homeworks", distinct=True),
+#     )
+#     # progress=(Count("students__user_progresses__lesson__lesson_id"))
+#     #          / Count("course_id__sections__lessons__lesson_id"),
+#
+#     # Course.objects.filter(course_id=course.pk).values("course_id__sections__lessons_lesson_id",
+#     #                                                   "course_id__sections__section_tests__section_id")
+#     ## Выбрать все тесты, лессоны и хоумворки
+#     ## Далее проверить, что из них есть в юзер прогресс
+#     a = UserProgressLogs.objects.filter(
+#         lesson__section__course__course_id=course.pk,
+#         homework__section__course__course_id=course.pk,
+#         section_test__section__course__course_id=course.pk,
+#     ).aggregate(
+#         count_steps=Count("lesson__section__course__course_id")
+#                     + Count("homework__section__course__course_id")
+#                     + Count("section_test__section__course__course_id")
+#     )
+#     print(a)
+#     for row in data:
+#         mark_sum = (
+#             UserTest.objects.filter(user=row["student"])
+#                 .values("user")
+#                 .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
+#         )
+#         row["mark_sum"] += mark_sum // 10 if mark_sum is not None else 0
+#     page = self.paginate_queryset(data)
+#     if page is not None:
+#         return self.get_paginated_response(page)
+#     return Response(data)
+
+@action(detail=True)
+def student_groups(self, request, pk):
+    """Список всех групп курса\n
+    Список всех групп курса"""
+
+    queryset = StudentsGroup.objects.filter(course_id=pk)
+    page = self.paginate_queryset(queryset)
+    if page is not None:
+        serializer = StudentsGroupSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
+    serializer = StudentsGroupSerializer(queryset, many=True)
+    return Response(serializer.data)

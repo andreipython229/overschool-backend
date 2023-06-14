@@ -13,7 +13,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="all_lessons",
+        related_name="lessons",
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )
@@ -48,3 +48,5 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
                 fields=["section", "order"], name="unique_section_lesson_order"
             ),
         ]
+
+

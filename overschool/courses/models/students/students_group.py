@@ -1,6 +1,5 @@
-from django.db import models
-
 from common_services.mixins import TimeStampMixin
+from django.db import models
 from users.models.user import User
 
 from ..courses.course import Course
