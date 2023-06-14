@@ -1,15 +1,17 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex
-from courses.models import Lesson
+from common_services.yandex_client import remove_from_yandex, upload_file
+from courses.models import BaseLesson, Lesson
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
 
+
 class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт на получение, создания, изменения и удаления уроков\n
-        Разрешения для просмотра уроков (любой пользователь)\n
-        Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')'''
+    """Эндпоинт на получение, создания, изменения и удаления уроков\n
+    Разрешения для просмотра уроков (любой пользователь)\n
+    Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')"""
+
     queryset = Lesson.objects.all()
     # serializer_class = LessonSerializer
     permission_classes = [permissions.AllowAny]
@@ -35,17 +37,55 @@ class LessonViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return LessonSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = LessonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lesson = serializer.save(video=None)
+
+        if request.FILES.get("video"):
+            base_lesson = BaseLesson.objects.get(lessons=lesson)
+            video = upload_file(
+                request.FILES["video"], base_lesson, timeout=(2000.0, 10000.0)
+            )
+            lesson.video = video
+            lesson.save()
+            serializer = LessonDetailSerializer(lesson)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = LessonSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if request.FILES.get("video"):
+            if instance.video:
+                remove_from_yandex(str(instance.video))
+            base_lesson = BaseLesson.objects.get(lessons=instance)
+            serializer.validated_data["video"] = upload_file(
+                request.FILES["video"], base_lesson, timeout=(2000.0, 10000.0)
+            )
+        else:
+            serializer.validated_data["video"] = instance.video
+
+        self.perform_update(serializer)
+
+        serializer = LessonDetailSerializer(instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def destroy(self, request, *args, **kwargs):
-        lesson = self.get_object()
-        remove_resp = None
+        instance = self.get_object()
+        base_lesson = BaseLesson.objects.get(lessons=instance)
+        course = base_lesson.section.course
+        school_id = course.school.school_id
 
-        for file_obj in list(lesson.text_files.values("file")) + list(
-            lesson.audio_files.values("file")
-        ):
-            if remove_from_yandex(str(file_obj["file"])) == "Error":
-                remove_resp = "Error"
-
-        self.perform_destroy(lesson)
+        remove_resp = remove_from_yandex(
+            "/{}_school/{}_course/{}_lesson".format(
+                school_id, course.course_id, base_lesson.id
+            )
+        )
+        self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
