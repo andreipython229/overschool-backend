@@ -4,6 +4,7 @@ from common_services.mixins import TimeStampMixin
 from users.models.user import User
 
 from ..courses.course import Course
+from .students_group_settings import StudentsGroupSettings
 
 
 class StudentsGroup(TimeStampMixin, models.Model):
@@ -31,8 +32,7 @@ class StudentsGroup(TimeStampMixin, models.Model):
     )
     teacher_id = models.ForeignKey(
         User,
-        on_delete=models.SET_DEFAULT,
-        default=1,
+        on_delete=models.CASCADE,
         verbose_name="Преподаватель",
         help_text="Преподаватель, который ведёт эту группу",
         related_name="teacher_group_fk",
@@ -42,6 +42,13 @@ class StudentsGroup(TimeStampMixin, models.Model):
         verbose_name="Ученики",
         help_text="Ученики этой группы",
         related_name="students_group_fk",
+    )
+    group_settings = models.OneToOneField(
+        StudentsGroupSettings,
+        on_delete=models.CASCADE,
+        related_name='students_group_settings_fk',
+        null=True,
+        blank=True
     )
 
     def __str__(self):
