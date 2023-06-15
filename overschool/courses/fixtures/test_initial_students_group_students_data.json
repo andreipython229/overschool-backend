@@ -4,7 +4,7 @@
     "pk": 1,
     "fields": {
       "student_group_id": 1,
-      "user_id": 4
+      "user_id": 9
     }
   },
   {
@@ -12,7 +12,87 @@
     "pk": 2,
     "fields": {
       "student_group_id": 1,
-      "user_id": 5
+      "user_id": 10
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk":3,
+    "fields": {
+      "student_group_id": 1,
+      "user_id": 11
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 4,
+    "fields": {
+      "student_group_id": 2,
+      "user_id": 12
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 5,
+    "fields": {
+      "student_group_id": 2,
+      "user_id": 13
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 6,
+    "fields": {
+      "student_group_id": 2,
+      "user_id": 14
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 5,
+    "fields": {
+      "student_group_id": 2,
+      "user_id": 15
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 6,
+    "fields": {
+      "student_group_id": 3,
+      "user_id": 16
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 7,
+    "fields": {
+      "student_group_id": 3,
+      "user_id": 17
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 8,
+    "fields": {
+      "student_group_id": 4,
+      "user_id": 18
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 9,
+    "fields": {
+      "student_group_id": 4,
+      "user_id": 19
+    }
+  },
+  {
+    "model": "courses.StudentGroup",
+    "pk": 10,
+    "fields": {
+      "student_group_id":4,
+      "user_id": 20
     }
   }
 ]
