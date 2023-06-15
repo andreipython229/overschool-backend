@@ -10,7 +10,10 @@ class LessonProgressMixin:
             UserProgressLogs.objects.create(user=user, lesson=instance)
 
     def check_lesson_progress(self, instance, user, baselesson):
-        students_group = user.students_group_fk.get(course_id=baselesson.section.course)
+        try:
+            students_group = user.students_group_fk.get(course_id=baselesson.section.course)
+        except Exception as e:
+            return Response({"detail": "Один и тот же пользователь - не может быть в нескольких группах на курсе."}, status=status.HTTP_403_FORBIDDEN)
 
         if students_group.group_settings.strict_task_order:
             try:

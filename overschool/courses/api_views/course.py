@@ -11,6 +11,7 @@ from courses.models import (
     StudentsGroup,
     UserProgressLogs,
     UserTest,
+    UserProgressLogs
 )
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -138,6 +139,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             course_id=data[0]["course"],
             sections=[],
         )
+        user = self.request.user
+        lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
             result_data["sections"].append(
@@ -159,6 +162,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
+                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id).exists()
                         }
                     )
             result_data["sections"][index]["lessons"].sort(
