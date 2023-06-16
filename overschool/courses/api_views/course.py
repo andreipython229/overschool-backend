@@ -151,6 +151,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     'last_name': student.last_name,
                     'email': student.email,
                     'course_name': course.name,
+                    'courses_avatar': CourseGetSerializer(course).data['photo_url'],
                     'course_updated_at': course.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
                     'group_name': group.name,
                     'last_activity': group.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
