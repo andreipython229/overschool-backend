@@ -1,0 +1,34 @@
+[
+  {
+    "model": "courses.StudentsGroupSettings",
+    "id": 1,
+    "fields": {
+      "strict_task_order": true,
+      "task_submission_lock": false
+    }
+  },
+   {
+    "model": "courses.StudentsGroupSettings",
+    "id": 2,
+    "fields": {
+      "strict_task_order": false,
+      "task_submission_lock": false
+    }
+  },
+  {
+    "model": "courses.StudentsGroupSettings",
+    "id": 3,
+    "fields": {
+      "strict_task_order": true,
+      "task_submission_lock": true
+    }
+  },
+   {
+    "model": "courses.StudentsGroupSettings",
+    "id": 4,
+    "fields": {
+      "strict_task_order": true,
+      "task_submission_lock": false
+    }
+  }
+]

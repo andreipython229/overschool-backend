@@ -13,7 +13,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     section = models.ForeignKey(
         Section,
         on_delete=models.CASCADE,
-        related_name="all_lessons",
+        related_name="lessons",
         verbose_name="ID раздела",
         help_text="ID раздела курса",
     )
@@ -26,9 +26,9 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     description = RichTextField(
         verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
     )
-    video = EmbedVideoField(
+    video = models.FileField(
         verbose_name="Видео",
-        help_text="Сюда всталвяем ссылку на видос с ютуба, поэтому сначала его надо загрузить туда",
+        help_text="Видеофайл размером до 2 ГБ",
         blank=True,
         null=True,
     )
@@ -48,3 +48,5 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
                 fields=["section", "order"], name="unique_section_lesson_order"
             ),
         ]
+
+

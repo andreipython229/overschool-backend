@@ -8,6 +8,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import School, SchoolUser
 from schools.serializers import SchoolGetSerializer, SchoolSerializer
+from users.serializers import UserProfileGetSerializer
+from users.models import Profile
 
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -34,6 +36,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             email=F("students__email"),
             student_name=F("students__first_name"),
             student=F("students__id"),
+            avatar=F("students__profile__avatar"),
             group=F("group_id"),
             last_active=F("students__date_joined"),
             update_date=F("students__date_joined"),
@@ -42,9 +45,28 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-            / Count("course_id__sections__lessons__lesson_id"),
+                     / Count("course_id__sections__lessons"),
         )
 
+        serialized_data = []
+        for item in data:
+            profile = Profile.objects.get(user_id=item['student'])
+            serializer = UserProfileGetSerializer(profile)
+            serialized_data.append({
+
+                'course': item['course'],
+                'email': item['email'],
+                'student_name': item['student_name'],
+                'student': item['student'],
+                'avatar': serializer.data['avatar_url'],
+                'group': item['group'],
+                'last_active': item['last_active'],
+                'update_date': item['update_date'],
+                'ending_date': item['ending_date'],
+                'mark_sum': item['mark_sum'],
+                'average_mark': item['average_mark'],
+                'progress': item['progress'],
+            })
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
