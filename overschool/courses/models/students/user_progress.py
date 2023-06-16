@@ -30,6 +30,16 @@ class UserProgressLogs(TimeStampMixin, models.Model):
         null=True,
         blank=True,
     )
+    viewed = models.BooleanField(
+        default=False,
+        verbose_name="Статус открытия и просмотра lesson, homework, test",
+        help_text="Статус открытия и просмотра lesson, homework, test"
+    )
+    completed = models.BooleanField(
+        default=False,
+        verbose_name="Статус выполнения ДЗ или Теста",
+        help_text="Статус выполнения ДЗ или Теста"
+    )
 
     def __str__(self) -> str:
         return str(self.user) + " " + str(self.lesson)

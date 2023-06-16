@@ -162,7 +162,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
-                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id).exists()
+                            "viewed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, viewed=True).exists(),
+                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, completed=True).exists()
                         }
                     )
             result_data["sections"][index]["lessons"].sort(
