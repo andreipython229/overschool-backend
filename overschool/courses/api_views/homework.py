@@ -3,8 +3,8 @@ from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Homework
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from rest_framework import mixins, permissions, status, viewsets
+from django.core.exceptions import PermissionDenied
+from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
 
@@ -16,7 +16,6 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     queryset = Homework.objects.all()
-    # serializer_class = HomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -33,6 +32,11 @@ class HomeworkViewSet(
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
 
     def get_serializer_class(self):
         if self.action == "retrieve":

@@ -21,7 +21,7 @@ class AudioFile(BaseLessonFile):
         default_related_name = "audio_files"
         constraints = [
             models.UniqueConstraint(
-                fields=["base_lesson", "user_homework", "order"],
+                fields=["base_lesson", "user_homework", "user_homework_check", "order"],
                 name="unique_audio_file_order",
             ),
         ]

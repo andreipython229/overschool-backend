@@ -1,26 +1,70 @@
 [
   {
     "model": "courses.StudentsGroup",
-    "group_id": 1,
+    "id": 1,
     "fields": {
-      "name": "Группа 1",
+      "name": "Группа 1 на курсе 1",
       "course_id": 1,
-      "teacher_id": 1,
-      "students": [1],
+      "teacher_id": 5,
+      "students": [
+        9,
+        10,
+        11
+      ],
       "created_at": "2022-08-02 15:34:37+00",
-      "updated_at": "2022-08-02 15:34:37+00"
+      "updated_at": "2022-08-02 15:34:37+00",
+      "group_settings_id": 1
     }
   },
-   {
+  {
     "model": "courses.StudentsGroup",
-    "group_id": 1,
+    "id": 2,
     "fields": {
-      "name": "Группа 2",
+      "name": "Группа 2 на курсе 1",
       "course_id": 1,
-      "teacher_id": 1,
-      "students": [1],
+      "teacher_id": 8,
+      "students": [
+        12,
+        13,
+        14
+      ],
       "created_at": "2022-08-02 15:35:37+00",
-      "updated_at": "2022-08-02 15:35:37+00"
+      "updated_at": "2022-08-02 15:35:37+00",
+      "group_settings_id": 2
+    }
+  },
+  {
+    "model": "courses.StudentsGroup",
+    "id": 3,
+    "fields": {
+      "name": "Группа 1 на курсе 2",
+      "course_id": 2,
+      "teacher_id": 6,
+      "students": [
+        15,
+        16,
+        17
+      ],
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "group_settings_id": 3
+    }
+  },
+  {
+    "model": "courses.StudentsGroup",
+    "id": 4,
+    "fields": {
+      "name": "Группа 2 на курсе 2",
+      "course_id": 2,
+      "teacher_id": 7,
+      "students": [
+        18,
+        19,
+        20
+      ],
+      "created_at": "2022-08-02 15:35:37+00",
+      "updated_at": "2022-08-02 15:35:37+00",
+      "group_settings_id": 4
     }
   }
 ]

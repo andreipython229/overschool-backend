@@ -6,10 +6,16 @@ class CoursesConfig(AppConfig):
     name = "courses"
 
     def ready(self):
+        from courses.models import UserHomework, UserHomeworkCheck, UserTest
+        from courses.signals import (
+            complete_homework,
+            complete_test,
+            create_user_homework_check,
+            update_user_homework_status,
+        )
         from django.db.models.signals import post_save
-
-        from courses.models import UserHomework, UserTest
-        from courses.signals import complete_homework, complete_test
 
         post_save.connect(complete_homework, sender=UserHomework)
         post_save.connect(complete_test, sender=UserTest)
+        post_save.connect(create_user_homework_check, sender=UserHomework)
+        post_save.connect(update_user_homework_status, sender=UserHomeworkCheck)

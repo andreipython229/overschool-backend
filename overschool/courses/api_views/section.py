@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Homework, Lesson, Section, SectionTest
+from courses.models import Homework, Lesson, Section, SectionTest, UserProgressLogs
 from courses.serializers import SectionSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
@@ -47,6 +47,8 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             section_id=data[0]["section"],
             lessons=[],
         )
+        user = self.request.user
+        lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
             a = Homework.objects.filter(section=value["section"])
@@ -61,6 +63,9 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
+                            "viewed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, viewed=True).exists(),
+                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id,
+                                                                completed=True).exists()
                         }
                     )
             result_data["lessons"].sort(key=lambda x: x["order"])

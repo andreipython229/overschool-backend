@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup, UserProgressLogs, UserTest
+from courses.models import StudentsGroup, UserTest
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     GroupStudentsSerializer,
@@ -67,6 +67,26 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
                     user_id=student_id, school_id=students_group.course_id.school_id
                 )
 
+    @action(detail=True, methods=['GET'])
+    def get_students_for_group(self, request, pk=None):
+        """Все студенты одной группы"""
+
+        group = self.get_object()
+        students = group.students.all()
+
+        student_data = []
+        for student in students:
+            student_data.append({
+                'id': student.id,
+                'username': student.username,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'email': student.email,
+                # Добавьте другие поля пользователя, которые вам нужны
+            })
+
+        return Response(student_data)
+
     @action(detail=True)
     def stats(self, request, pk):
         """Статистика учеников группы\n
@@ -86,14 +106,14 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-            / Count("course_id__sections__lessons__lesson_id"),  # бьет ошибку
+                     / Count("course_id__sections__lessons__lesson_id"),  # бьет ошибку
         )
 
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
-                .values("user")
-                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
+                    .values("user")
+                    .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += (
                 mark_sum // 10 if mark_sum is not None else 0
