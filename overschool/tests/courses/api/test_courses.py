@@ -21,7 +21,6 @@ class CoursesTestCase(APITestCase):
             "courses/fixtures/test_initial_lesson_data.json",
             "courses/fixtures/test_initial_section_data.json",
             "courses/fixtures/test_initial_students_group_data.json",
-            # 'courses/fixtures/test_initial_students_group_students_data.json',
             "courses/fixtures/test_initial_user_progress_data.json",
             "courses/fixtures/test_initial_user_homework_data.json",
             "schools/fixtures/test_initial_school_data.json",
