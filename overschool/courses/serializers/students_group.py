@@ -26,7 +26,10 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
         self.validate_teacher(self, request=request, teacher=teacher)
 
-        if course and students:
+        if not course:
+            raise serializers.ValidationError("Курс должен быть указан.")
+
+        if students:
             duplicate_count = StudentsGroup.objects.filter(course_id=course, students__in=students).count()
             if duplicate_count > 0:
                 raise serializers.ValidationError("Убедитесь, что каждый пользователь в группах курса уникален.")
