@@ -4,6 +4,7 @@ from .courses.course import Course
 from .courses.section import Section
 from .homework.homework import Homework
 from .homework.user_homework import UserHomework
+from .homework.user_homework_check import UserHomeworkCheck
 from .lesson.lesson import Lesson
 from .students.students_group import StudentsGroup
 from .students.students_table_info import StudentsTableInfo

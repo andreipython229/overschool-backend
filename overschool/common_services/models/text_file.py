@@ -21,7 +21,7 @@ class TextFile(BaseLessonFile):
         default_related_name = "text_files"
         constraints = [
             models.UniqueConstraint(
-                fields=["base_lesson", "user_homework", "order"],
+                fields=["base_lesson", "user_homework", "user_homework_check", "order"],
                 name="unique_text_file_order",
             ),
         ]

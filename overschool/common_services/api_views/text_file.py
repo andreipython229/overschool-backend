@@ -3,6 +3,7 @@ from common_services.models import TextFile
 from common_services.serializers import TextFileSerializer
 from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, UserHomework
+from courses.models.homework.user_homework_check import UserHomeworkCheck
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
@@ -24,6 +25,7 @@ class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         # Проверяем, что пользователь студент
         if user.groups.filter(name="Student").exists():
             user_homework_id = request.data.get("user_homework")
+            user_homework_check_id = request.data.get("user_homework_check")
 
             if user_homework_id:
                 # Проверяем, что пользователь является автором указанной домашней работы
@@ -51,12 +53,34 @@ class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         },
                         status=status.HTTP_403_FORBIDDEN,
                     )
+            if user_homework_check_id:
+                user_homework_check = UserHomeworkCheck.objects.filter(
+                    user_homework_check_id=user_homework_check_id, author=user
+                ).first()
 
+                if user_homework_check:
+                    serializer = self.get_serializer(data=request.data)
+                    serializer.is_valid(raise_exception=True)
+
+                    uploaded_file = request.FILES["file"]
+                    base_lesson = BaseLesson.objects.get(
+                        homeworks=user_homework_check.user_homework.homework
+                    )
+                    # Загружаем файл на Яндекс.Диск и получаем путь к файлу на диске
+                    file_path = upload_file(uploaded_file, base_lesson)
+                    serializer.save(author=user, file=file_path)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(
+                        {
+                            "error": "Пользователь не является автором указанной проверки домашней работы"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
             else:
                 return Response(
                     {
-                        "error": "Не указан идентификатор домашней работы (user_homework) или базового урока ("
-                        "base_lesson)"
+                        "error": "Не указан идентификатор домашней работы (user_homework) или проверки (user_homework_check)"
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )

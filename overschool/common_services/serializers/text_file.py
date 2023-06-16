@@ -20,13 +20,20 @@ class TextFileSerializer(serializers.ModelSerializer):
             "author",
             "base_lesson",
             "user_homework",
+            "user_homework_check",
             "created_at",
             "updated_at",
         ]
 
     def validate(self, attrs):
-        if not attrs.get("base_lesson") and not attrs.get("user_homework"):
-            raise serializers.ValidationError("Укажите base_lesson либо user_homework")
+        if (
+            not attrs.get("base_lesson")
+            and not attrs.get("user_homework")
+            and not attrs.get("user_homework_check")
+        ):
+            raise serializers.ValidationError(
+                "Укажите base_lesson либо user_homework либо user_homework_check"
+            )
         return attrs
 
 
@@ -48,6 +55,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
             "author",
             "base_lesson",
             "user_homework",
+            "user_homework_check",
             "created_at",
             "updated_at",
         ]

@@ -1,7 +1,5 @@
-from django.db import models
-from oauthlib.common import urldecode
-
 from common_services.mixins import TimeStampMixin
+from django.db import models
 from users.models import User
 
 from .homework import Homework
@@ -10,11 +8,9 @@ from .homework import Homework
 class UserHomeworkStatusChoices(models.TextChoices):
     """Варианты статусов для ответа на домашнее задание"""
 
-    ARRIVE = "На доработке", "На доработке"
     CHECKED = "Ждет проверки", "Ждет проверки"
     FAILED = "Отклонено", "Отклонено"
     SUCCESS = "Принято", "Принято"
-    AUTO = "Автопроверка", "Автопроверка"
 
 
 class UserHomework(TimeStampMixin, models.Model):
@@ -56,19 +52,13 @@ class UserHomework(TimeStampMixin, models.Model):
     status = models.CharField(
         max_length=256,
         choices=UserHomeworkStatusChoices.choices,
-        default=UserHomeworkStatusChoices.ARRIVE,
+        default=UserHomeworkStatusChoices.CHECKED,
         verbose_name="Статус",
         help_text="Статус отправленной домашки",
     )
     mark = models.IntegerField(
         verbose_name="Отметка",
         help_text="Отметка за домашнюю работу",
-        null=True,
-        blank=True,
-    )
-    teacher_message = models.TextField(
-        verbose_name="Комментарий",
-        help_text="Комментарий преподавателя по проделанной работе",
         null=True,
         blank=True,
     )

@@ -2,17 +2,17 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
 from courses.models import Homework
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from rest_framework import mixins, permissions, status, viewsets
+from django.core.exceptions import PermissionDenied
+from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
 
 class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт на получение, создания, изменения и удаления домашних заданий.\n
-        Разрешения для просмотра домашних заданий (любой пользователь).\n
-        Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin').'''
+    """Эндпоинт на получение, создания, изменения и удаления домашних заданий.\n
+    Разрешения для просмотра домашних заданий (любой пользователь).\n
+    Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
+
     queryset = Homework.objects.all()
-    # serializer_class = HomeworkSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
@@ -29,6 +29,11 @@ class HomeworkViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
 
     def get_serializer_class(self):
         if self.action == "retrieve":

@@ -1,10 +1,18 @@
-from courses.api_views import (AnswerViewSet, CourseViewSet,
-                               HomeworkStatisticsView, HomeworkViewSet,
-                               LessonViewSet, QuestionViewSet, SectionViewSet,
-                               StudentsGroupViewSet, StudentsTableInfoViewSet,
-                               TeacherHomeworkViewSet, TestViewSet,
-                               UserHomeworkViewSet, UserTestViewSet, UserHistoryViewSet,
-                               AllUserHomeworkViewSet)
+from courses.api_views import (
+    AnswerViewSet,
+    CourseViewSet,
+    HomeworkCheckViewSet,
+    HomeworkStatisticsView,
+    HomeworkViewSet,
+    LessonViewSet,
+    QuestionViewSet,
+    SectionViewSet,
+    StudentsGroupViewSet,
+    StudentsTableInfoViewSet,
+    TestViewSet,
+    UserHomeworkViewSet,
+    UserTestViewSet,
+)
 from rest_framework import routers
 
 router = routers.DefaultRouter()
@@ -17,14 +25,10 @@ router.register(
 )
 router.register("homeworks", HomeworkViewSet, basename="homeworks")
 router.register("homeworks_stats", HomeworkStatisticsView, basename="homeworks_stats")
-router.register("user_history", UserHistoryViewSet, basename="user_history")
+router.register(
+    "user_homework_checks", HomeworkCheckViewSet, basename="user_homework_checks"
+)
 router.register("user_homeworks", UserHomeworkViewSet, basename="user_homeworks")
-router.register(
-    "teacher_homeworks", TeacherHomeworkViewSet, basename="teacher_homeworks"
-)
-router.register(
-    "all_user_homework", AllUserHomeworkViewSet, basename="all_user_homework"
-)
 router.register("tests", TestViewSet, basename="tests")
 router.register("questions", QuestionViewSet, basename="questions")
 router.register("answers", AnswerViewSet, basename="answers")
