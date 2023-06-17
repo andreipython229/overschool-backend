@@ -8,6 +8,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from users.api_views import (
+    AccessDistributionView,
     LoginView,
     LogoutView,
     PasswordResetConfirmView,
@@ -29,6 +30,11 @@ urlpatterns = [
         "api/<str:school_name>/register-school-owner/",
         SignupSchoolOwnerView.as_view(actions={"post": "post"}),
         name="register_school_owner",
+    ),
+    path(
+        "api/<str:school_name>/access-distribution/",
+        AccessDistributionView.as_view(actions={"post": "post", "delete": "delete"}),
+        name="access_distribution",
     ),
     path(
         "api/<str:school_name>/login/",
