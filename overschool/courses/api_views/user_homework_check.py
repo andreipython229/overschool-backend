@@ -78,7 +78,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.ACCEPTED:
+            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",
@@ -102,9 +102,9 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                         "message": "Учитель не является преподавателем данного домашнего задания",
                     },
                 )
-
+            print(user_homework.status)
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.ACCEPTED:
+            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",

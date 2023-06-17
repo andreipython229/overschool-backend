@@ -22,7 +22,7 @@ from .main_router import router
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
-        "api/<str:school_name>/register/",
+        "api/register/",
         SignupView.as_view(actions={"post": "post"}),
         name="register",
     ),
@@ -37,7 +37,7 @@ urlpatterns = [
         name="access_distribution",
     ),
     path(
-        "api/<str:school_name>/login/",
+        "api/login/",
         LoginView.as_view(actions={"post": "post"}),
         name="login",
     ),
@@ -52,7 +52,7 @@ urlpatterns = [
         name="password_reset_confirm",
     ),
     path(
-        "api/<str:school_name>/logout/",
+        "api/logout/",
         LogoutView.as_view(actions={"get": "get"}),
         name="logout",
     ),
