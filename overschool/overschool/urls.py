@@ -7,27 +7,57 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from users.api_views import LoginView, LogoutView, SignupView,PasswordResetView, PasswordResetConfirmView, SignupSchoolOwnerView
+from users.api_views import (
+    LoginView,
+    LogoutView,
+    PasswordResetConfirmView,
+    PasswordResetView,
+    SignupSchoolOwnerView,
+    SignupView,
+)
 
 from .main_router import router
 
 urlpatterns = [
-                  path("admin/", admin.site.urls),
-                  path("api/register/", SignupView.as_view(actions={"post": "post"}), name="register"),
-                  path("api/register-school-owner/", SignupSchoolOwnerView.as_view(actions={"post": "post"}), name="register_school_owner"),
-                  path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
-                  path("api/password/reset/", PasswordResetView.as_view(actions={"post": "post"}), name="password_reset"),
-                  path("api/password/reset/confirm/", PasswordResetConfirmView.as_view(actions={"post": "post"}),
-                       name="password_reset_confirm"),
-                  path("api/logout/", LogoutView.as_view(actions={"get": "get"}), name="logout"),
-                  path("api/", include(router.urls)),
-                  path("api/chats/", include("chats.urls")),
-                  re_path(
-                      r"^account-confirm-email/(?P<key>[-:\w]+)/$",
-                      TemplateView.as_view(),
-                      name="account_confirm_email",
-                  ),
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("admin/", admin.site.urls),
+    path(
+        "api/<str:school_name>/register/",
+        SignupView.as_view(actions={"post": "post"}),
+        name="register",
+    ),
+    path(
+        "api/<str:school_name>/register-school-owner/",
+        SignupSchoolOwnerView.as_view(actions={"post": "post"}),
+        name="register_school_owner",
+    ),
+    path(
+        "api/<str:school_name>/login/",
+        LoginView.as_view(actions={"post": "post"}),
+        name="login",
+    ),
+    path(
+        "api/<str:school_name>/password/reset/",
+        PasswordResetView.as_view(actions={"post": "post"}),
+        name="password_reset",
+    ),
+    path(
+        "api/<str:school_name>/password/reset/confirm/",
+        PasswordResetConfirmView.as_view(actions={"post": "post"}),
+        name="password_reset_confirm",
+    ),
+    path(
+        "api/<str:school_name>/logout/",
+        LogoutView.as_view(actions={"get": "get"}),
+        name="logout",
+    ),
+    path("api/<str:school_name>/", include(router.urls)),
+    path("api/<str:school_name>/chats/", include("chats.urls")),
+    re_path(
+        r"^account-confirm-email/(?P<key>[-:\w]+)/$",
+        TemplateView.as_view(),
+        name="account_confirm_email",
+    ),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 schema_view = get_schema_view(
     openapi.Info(

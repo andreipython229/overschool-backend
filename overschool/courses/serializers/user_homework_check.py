@@ -13,7 +13,6 @@ class UserHomeworkCheckSerializer(serializers.ModelSerializer):
             "updated_at",
             "text",
             "status",
-            "teacher_message",
             "author",
         ]
         read_only_fields = ["author"]
@@ -39,7 +38,6 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "text",
             "status",
-            "teacher_message",
             "author",
             "author_first_name",
             "author_last_name",

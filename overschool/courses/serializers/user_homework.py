@@ -18,7 +18,6 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "updated_at",
             "user",
             "homework",
-            "text",
             "status",
             "mark",
             "teacher",
@@ -36,8 +35,6 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
     Сериализатор для просмотра конкретной выполненной домашней работы со стороны ученика
     """
 
-    audio_files = AudioFileGetSerializer(many=True, required=False)
-    text_files = TextFileGetSerializer(many=True, required=False)
     user_homework_checks = serializers.SerializerMethodField()
     homework_name = serializers.CharField(source="homework.name", read_only=True)
     last_reply = serializers.SerializerMethodField()
@@ -61,15 +58,12 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "homework",
             "homework_name",
             "last_reply",
-            "text",
             "status",
             "mark",
             "teacher",
             "teacher_first_name",
             "teacher_last_name",
             "teacher_avatar",
-            "text_files",
-            "audio_files",
             "user_homework_checks",
         ]
         read_only_fields = (
@@ -77,8 +71,6 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "status",
             "mark",
             "teacher",
-            "text_files",
-            "audio_files",
             "user_homework_checks",
             "homework_name",
             "last_reply",

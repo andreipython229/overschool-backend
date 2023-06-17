@@ -21,8 +21,8 @@ class UserHomeworkCheck(TimeStampMixin, AuthorMixin, models.Model):
         help_text="ID домашнего задания, ответ на который прислали",
     )
     text = models.TextField(
-        verbose_name="Ответ ученика",
-        help_text="Ответ ученика на домашнее задание",
+        verbose_name="Ответ ученика или учителя",
+        help_text="Ответ ученика или учителя на домашнее задание",
         blank=True,
         null=True,
     )
@@ -32,12 +32,6 @@ class UserHomeworkCheck(TimeStampMixin, AuthorMixin, models.Model):
         default=UserHomeworkStatusChoices.CHECKED,
         verbose_name="Статус",
         help_text="Статус отправленной домашки",
-    )
-    teacher_message = models.TextField(
-        verbose_name="Комментарий",
-        help_text="Комментарий преподавателя по проделанной работе",
-        null=True,
-        blank=True,
     )
 
     def __str__(self):
