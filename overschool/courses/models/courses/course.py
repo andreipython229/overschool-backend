@@ -1,5 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
+from common_services.services import limit_size
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
@@ -84,6 +85,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     photo = models.ImageField(
         verbose_name="Фотография",
         help_text="Главная фотография",
+        validators=[limit_size],
         blank=True,
         null=True,
     )
