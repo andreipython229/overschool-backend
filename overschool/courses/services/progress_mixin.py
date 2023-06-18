@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from courses.models.students.user_progress import UserProgressLogs
 
 class LessonProgressMixin:
-    @staticmethod
+
     def create_log(self, user, instance):
         UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 

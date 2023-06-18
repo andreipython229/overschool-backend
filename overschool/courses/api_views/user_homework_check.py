@@ -1,5 +1,4 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex
 from courses.models.homework.user_homework import (
     UserHomework,
     UserHomeworkStatusChoices,
@@ -79,7 +78,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.ACCEPTED:
+            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",
@@ -89,7 +88,6 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
             serializer.save(
                 status=UserHomeworkStatusChoices.CHECKED,
-                teacher_message=None,
                 author=user,
             )
 
@@ -104,9 +102,9 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                         "message": "Учитель не является преподавателем данного домашнего задания",
                     },
                 )
-
+            print(user_homework.status)
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.ACCEPTED:
+            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",
@@ -114,7 +112,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                     },
                 )
 
-            serializer.save(text=None, author=user)
+            serializer.save(author=user)
 
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -128,28 +126,20 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         user_homework_check = self.get_object()
         user = request.user
 
-        if (
-            user_homework_check.user_homework.user != user
-            or user_homework_check.user_homework.teacher != user
-        ):
+        if user_homework_check.author != user:
             return Response(
                 {
                     "status": "Error",
                     "message": "Пользователь может обновлять только свою историю",
                 },
             )
-        if request.data.get("text") and user_homework_check.user_homework.user == user:
+        if request.data.get("text"):
             user_homework_check.text = request.data.get("text")
         if (
             request.data.get("status")
             and user_homework_check.user_homework.teacher == user
         ):
-            user_homework_check.status = request.data.get("text")
-        if (
-            request.data.get("teacher_message")
-            and user_homework_check.user_homework.teacher == user
-        ):
-            user_homework_check.teacher_message = request.data.get("teacher_message")
+            user_homework_check.status = request.data.get("status")
 
             user_homework_check.save()
             serializer = UserHomeworkCheckSerializer(user_homework_check)

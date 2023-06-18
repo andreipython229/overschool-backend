@@ -22,32 +22,42 @@ from .main_router import router
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
-        "api/register/", SignupView.as_view(actions={"post": "post"}), name="register"
+        "api/register/",
+        SignupView.as_view(actions={"post": "post"}),
+        name="register",
     ),
     path(
-        "api/register-school-owner/",
+        "api/<str:school_name>/register-school-owner/",
         SignupSchoolOwnerView.as_view(actions={"post": "post"}),
         name="register_school_owner",
     ),
     path(
-        "api/access-distribution/",
+        "api/<str:school_name>/access-distribution/",
         AccessDistributionView.as_view(actions={"post": "post", "delete": "delete"}),
         name="access_distribution",
     ),
-    path("api/login/", LoginView.as_view(actions={"post": "post"}), name="login"),
     path(
-        "api/password/reset/",
+        "api/login/",
+        LoginView.as_view(actions={"post": "post"}),
+        name="login",
+    ),
+    path(
+        "api/<str:school_name>/password/reset/",
         PasswordResetView.as_view(actions={"post": "post"}),
         name="password_reset",
     ),
     path(
-        "api/password/reset/confirm/",
+        "api/<str:school_name>/password/reset/confirm/",
         PasswordResetConfirmView.as_view(actions={"post": "post"}),
         name="password_reset_confirm",
     ),
-    path("api/logout/", LogoutView.as_view(actions={"get": "get"}), name="logout"),
-    path("api/", include(router.urls)),
-    path("api/chats/", include("chats.urls")),
+    path(
+        "api/logout/",
+        LogoutView.as_view(actions={"get": "get"}),
+        name="logout",
+    ),
+    path("api/<str:school_name>/", include(router.urls)),
+    path("api/<str:school_name>/chats/", include("chats.urls")),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),
