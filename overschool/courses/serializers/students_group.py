@@ -2,7 +2,7 @@ from datetime import datetime
 from django.db.models import Count
 from rest_framework import serializers
 
-from courses.models import StudentsGroup, StudentsGroupSettings
+from courses.models import StudentsGroup, StudentsGroupSettings, Course
 # from users.models.user import User
 # from django.db import models
 from .students_group_settings import StudentsGroupSettingsSerializer
@@ -30,9 +30,13 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Курс должен быть указан.")
 
         if students:
-            duplicate_count = StudentsGroup.objects.filter(course_id=course, students__in=students).count()
-            if duplicate_count > 0:
-                raise serializers.ValidationError("Убедитесь, что каждый пользователь в группах курса уникален.")
+            school = course.school
+            school_courses = Course.objects.filter(school_id=school.pk)
+            if school_courses:
+                for course in school_courses:
+                    duplicate_count = StudentsGroup.objects.filter(course_id=course, students__in=students).count()
+                    if duplicate_count > 0:
+                        raise serializers.ValidationError("Убедитесь, что каждый пользователь в группах курса уникален.")
 
         for student in students:
             if not student.groups.filter(name="Student").exists():
