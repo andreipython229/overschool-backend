@@ -21,8 +21,8 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-
     permission_classes = [permissions.AllowAny]
+    http_method_names = ["get", "post", "delete", "head"]
 
     def get_queryset(self):
         user = self.request.user
