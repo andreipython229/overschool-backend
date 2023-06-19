@@ -1,5 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
+from common_services.services import limit_size
 from django.db import models
 
 from .question import Question
@@ -31,7 +32,9 @@ class Answer(TimeStampMixin, models.Model):
         verbose_name="Тип ответа",
         help_text="Правильный-True или неправильный-False",
     )
-    picture = models.ImageField(verbose_name="Картинка", null=True, blank=True)
+    picture = models.ImageField(
+        verbose_name="Картинка", validators=[limit_size], null=True, blank=True
+    )
     answer_in_range = models.BooleanField(
         default=False,
         verbose_name="Правильный ответ в диапазоне",

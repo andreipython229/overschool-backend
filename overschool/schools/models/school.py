@@ -1,4 +1,5 @@
 from common_services.mixins import OrderMixin, TimeStampMixin
+from common_services.services import limit_size
 from django.db import models
 from oauthlib.common import urldecode
 from schools.managers import SchoolManager
@@ -23,6 +24,7 @@ class School(TimeStampMixin, OrderMixin):
     avatar = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография школы",
+        validators=[limit_size],
         blank=True,
         null=True,
     )

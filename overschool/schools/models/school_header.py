@@ -1,5 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
+from common_services.services import limit_size
 from django.db import models
 from oauthlib.common import urldecode
 from schools.models import School
@@ -31,24 +32,28 @@ class SchoolHeader(TimeStampMixin, models.Model):
     logo_school = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография заголовка школы",
+        validators=[limit_size],
         blank=True,
         null=True,
     )
     logo_header = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография заголовка",
+        validators=[limit_size],
         blank=True,
         null=True,
     )
     photo_background = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография фона",
+        validators=[limit_size],
         blank=True,
         null=True,
     )
     favicon = models.ImageField(
         verbose_name="Фотография",
         help_text="Значок веб-сайта",
+        validators=[limit_size],
         blank=True,
         null=True,
     )
