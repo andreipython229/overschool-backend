@@ -61,19 +61,17 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
-        # teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
-        # teacher = User.objects.get(id=teacher_group.teacher_id_id)
-        students_group = user.students_group_fk.get(course_id=baselesson.section.course)
-
-        if students_group.group_settings.task_submission_lock:
+        teacher_group = user.students_group_fk.filter(
+            course_id=baselesson.section.course
+        ).first()
+        teacher = User.objects.get(id=teacher_group.teacher_id_id)
+        if teacher_group.group_settings.task_submission_lock:
             return Response(
                 {
                     "status": "Error",
                     "message": "Отправлять домашки запрещено в настройках группы студентов",
                 },
             )
-
-        teacher = User.objects.get(id=students_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
 
@@ -84,26 +82,6 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
         )
-
-    def update(self, request, *args, **kwargs):
-        user_homework = self.get_object()
-        user = request.user
-
-        if user_homework.user != user:
-            return Response(
-                {
-                    "status": "Error",
-                    "message": "Пользователь может обновлять только свою домашнюю работу",
-                },
-            )
-        else:
-            if request.data.get("text"):
-                user_homework.text = request.data.get("text")
-
-            user_homework.save()
-            serializer = UserHomeworkSerializer(user_homework)
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         user_homework = self.get_object()

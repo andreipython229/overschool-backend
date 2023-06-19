@@ -17,6 +17,7 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "user",
+            "text",
             "homework",
             "status",
             "mark",
@@ -59,7 +60,6 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "homework_name",
             "last_reply",
             "status",
-            "mark",
             "teacher",
             "teacher_first_name",
             "teacher_last_name",
@@ -140,9 +140,9 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         return None
 
     def get_group_id(self, obj):
-        group = obj.user.students_group_fk.get(
+        group = obj.user.students_group_fk.filter(
             course_id=obj.homework.section.course.course_id
-        )
+        ).first()
         if group:
             return group.group_id
         return None

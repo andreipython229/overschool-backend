@@ -34,7 +34,15 @@ def update_user_homework_status(sender, instance, **kwargs):
         .values_list("status", flat=True)
         .first()
     )
+    last_check_mark = (
+        UserHomeworkCheck.objects.filter(user_homework=user_homework)
+        .order_by("-created_at")
+        .values_list("mark", flat=True)
+        .first()
+    )
 
     if last_check_status:
         user_homework.status = last_check_status
-        user_homework.save()
+    if last_check_mark:
+        user_homework.mark = last_check_mark
+    user_homework.save()

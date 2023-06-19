@@ -33,6 +33,12 @@ class UserHomeworkCheck(TimeStampMixin, AuthorMixin, models.Model):
         verbose_name="Статус",
         help_text="Статус отправленной домашки",
     )
+    mark = models.IntegerField(
+        verbose_name="Отметка",
+        help_text="Отметка за домашнюю работу",
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return str(self.user_homework) + " " + str(self.status)

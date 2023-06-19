@@ -102,7 +102,6 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                         "message": "Учитель не является преподавателем данного домашнего задания",
                     },
                 )
-            print(user_homework.status)
             # Проверка, что статус user_homework не равен "Принято"
             if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
@@ -140,8 +139,13 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             and user_homework_check.user_homework.teacher == user
         ):
             user_homework_check.status = request.data.get("status")
+        if (
+            request.data.get("mark")
+            and user_homework_check.user_homework.teacher == user
+        ):
+            user_homework_check.mark = request.data.get("mark")
 
-            user_homework_check.save()
-            serializer = UserHomeworkCheckSerializer(user_homework_check)
+        user_homework_check.save()
+        serializer = UserHomeworkCheckSerializer(user_homework_check)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
