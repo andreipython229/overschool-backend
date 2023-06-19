@@ -11,16 +11,15 @@ from courses.models import (
     StudentsGroup,
     UserProgressLogs,
     UserTest,
-    UserProgressLogs
 )
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
     CourseStudentsSerializer,
+    SectionSerializer,
     StudentsGroupSerializer,
     UserHomeworkSerializer,
-    SectionSerializer,
 )
 from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
@@ -31,9 +30,10 @@ from rest_framework.response import Response
 
 
 class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт для просмотра, создания, изменения и удаления курсов \n
-        Получать курсы может любой пользователь. \n
-        Создавать, изменять, удалять - пользователь с правами группы Admin.'''
+    """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
+    Получать курсы может любой пользователь. \n
+    Создавать, изменять, удалять - пользователь с правами группы Admin."""
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.AllowAny]
@@ -110,8 +110,8 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['GET'])
-    def get_students_for_course(self, request, pk=None):
+    @action(detail=True, methods=["GET"])
+    def get_students_for_course(self, request, pk=None, *args, **kwargs):
         """Все студенты одного курса"""
 
         course = self.get_object()
@@ -127,7 +127,9 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             # Получаем курс студента
             try:
 
-                group = student.students_group_fk.first()  # Получаем первый объект группы студента
+                group = (
+                    student.students_group_fk.first()
+                )  # Получаем первый объект группы студента
                 if group:
                     course = group.course_id
                 else:
@@ -144,40 +146,61 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     for lesson in section.lessons.all():
                         total_points += lesson.points
 
-                student_data.append({
-                    'id': student.id,
-                    'username': student.username,
-                    'first_name': student.first_name,
-                    'last_name': student.last_name,
-                    'email': student.email,
-                    'course_name': course.name,
-                    'courses_avatar': CourseGetSerializer(course).data['photo_url'],
-                    'course_updated_at': course.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
-                    'group_name': group.name,
-                    'last_activity': group.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
-                    'total_points': total_points,
-                    'section': SectionSerializer(course.sections.all(), many=True).data,
-
-                })
+                student_data.append(
+                    {
+                        "id": student.id,
+                        "username": student.username,
+                        "first_name": student.first_name,
+                        "last_name": student.last_name,
+                        "email": student.email,
+                        "course_name": course.name,
+                        "courses_avatar": CourseGetSerializer(course).data["photo_url"],
+                        "course_updated_at": course.updated_at.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        if course.updated_at
+                        else None,
+                        "group_name": group.name,
+                        "last_activity": group.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                        if course.updated_at
+                        else None,
+                        "total_points": total_points,
+                        "section": SectionSerializer(
+                            course.sections.all(), many=True
+                        ).data,
+                    }
+                )
             else:
                 # Курс не найден для студента
-                student_data.append({
-                    'id': student.id,
-                    'username': student.username,
-                    'first_name': student.first_name,
-                    'last_name': student.last_name,
-                    'email': student.email,
-                    'course_name': course.name,
-                    'course_updated_at': course.updated_at.strftime("%Y-%m-%d %H:%M:%S") if course.updated_at else None,
-                    'group_name': group.name,
-                    'last_activity': group.last_activity.strftime("%Y-%m-%d %H:%M:%S") if group.last_activity else None,
-                    'total_points': 0,
-                    'section': SectionSerializer(course.sections.all(), many=True).data,
-                })
+                student_data.append(
+                    {
+                        "id": student.id,
+                        "username": student.username,
+                        "first_name": student.first_name,
+                        "last_name": student.last_name,
+                        "email": student.email,
+                        "course_name": course.name,
+                        "course_updated_at": course.updated_at.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        if course.updated_at
+                        else None,
+                        "group_name": group.name,
+                        "last_activity": group.last_activity.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        if group.last_activity
+                        else None,
+                        "total_points": 0,
+                        "section": SectionSerializer(
+                            course.sections.all(), many=True
+                        ).data,
+                    }
+                )
         return Response(student_data)
 
     @action(detail=True)
-    def clone(self, request, pk):
+    def clone(self, request, pk, *args, **kwargs):
         """Клонирование курса\n
         Клонирование курса"""
 
@@ -187,7 +210,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(queryset.values())
 
     @action(detail=True)
-    def sections(self, request, pk):
+    def sections(self, request, pk, *args, **kwargs):
         """Данные по всем секциям курс\n
         Данные по всем секциям курса"""
 
@@ -229,8 +252,12 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
-                            "viewed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, viewed=True).exists(),
-                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, completed=True).exists()
+                            "viewed": lesson_progress.filter(
+                                lesson_id=obj.baselesson_ptr_id, viewed=True
+                            ).exists(),
+                            "completed": lesson_progress.filter(
+                                lesson_id=obj.baselesson_ptr_id, completed=True
+                            ).exists(),
                         }
                     )
             result_data["sections"][index]["lessons"].sort(
@@ -239,7 +266,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(result_data)
 
     @action(detail=True)
-    def user_count_by_month(self, request, pk):
+    def user_count_by_month(self, request, pk, *args, **kwargs):
         """Кол-во новых пользователей курса за месяц\n
         Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number=""
@@ -315,7 +342,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     #     return Response(data)
 
     @action(detail=True)
-    def student_groups(self, request, pk):
+    def student_groups(self, request, pk, *args, **kwargs):
         """Список всех групп курса\n
         Список всех групп курса"""
 

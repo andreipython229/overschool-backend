@@ -10,10 +10,11 @@ from rest_framework.response import Response
 
 
 class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт получения, создания, редактирования и удаления секций.\n
-        Разрешения для просмотра секций (любой пользователь)
-        Разрешения для создания и изменения секций (только пользователи с группой 'Admin')
-    '''
+    """Эндпоинт получения, создания, редактирования и удаления секций.\n
+    Разрешения для просмотра секций (любой пользователь)
+    Разрешения для создания и изменения секций (только пользователи с группой 'Admin')
+    """
+
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.AllowAny]
@@ -34,7 +35,7 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return permissions
 
     @action(detail=True)
-    def lessons(self, request, pk):
+    def lessons(self, request, pk, *args, **kwargs):
         section = self.get_object()
         queryset = Section.objects.filter(section_id=section.pk)
 
@@ -63,9 +64,12 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
-                            "viewed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id, viewed=True).exists(),
-                            "completed": lesson_progress.filter(lesson_id=obj.baselesson_ptr_id,
-                                                                completed=True).exists()
+                            "viewed": lesson_progress.filter(
+                                lesson_id=obj.baselesson_ptr_id, viewed=True
+                            ).exists(),
+                            "completed": lesson_progress.filter(
+                                lesson_id=obj.baselesson_ptr_id, completed=True
+                            ).exists(),
                         }
                     )
             result_data["lessons"].sort(key=lambda x: x["order"])
