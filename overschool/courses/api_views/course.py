@@ -6,37 +6,33 @@ from courses.models import (
     Course,
     Homework,
     Lesson,
-    Section,
     SectionTest,
     StudentsGroup,
     UserProgressLogs,
-    UserTest,
 )
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
-    CourseStudentsSerializer,
     SectionSerializer,
     StudentsGroupSerializer,
-    UserHomeworkSerializer,
 )
-from django.db.models import Avg, Count, F, Sum
+from django.db.models import Count, F
 from django.forms.models import model_to_dict
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from schools.school_mixin import SchoolMixin
 
 
-class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class CourseViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
     Получать курсы может любой пользователь. \n
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
-    queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
     def get_serializer_class(self):
@@ -59,6 +55,11 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             return permissions
+
+    def get_queryset(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        queryset = Course.objects.filter(school__name=school_name)
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = CourseSerializer(data=request.data)
