@@ -5,23 +5,33 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from rest_framework import generics, permissions
+from schools.models import School, SchoolUser
+from schools.school_mixin import SchoolMixin
 from users.serializers import AccessDistributionSerializer
 
 User = get_user_model()
 
 
-class AccessDistributionView(WithHeadersViewSet, generics.GenericAPIView):
+class AccessDistributionView(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     """Ендпоинт распределения ролей и доступов\n
     Ендпоинт распределения ролей и доступов к группам
     в зависимости от роли пользователя"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
+
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
 
     def get_permissions(self):
         permissions = super().get_permissions()
         user = self.request.user
-        if user.groups.filter(name="Admin").exists():
+        if (
+            user.groups.filter(name="Admin").exists()
+            and user.user_school.filter(school=self.get_school().school_id).exists()
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")

@@ -2,51 +2,69 @@ from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup, UserTest
+from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
-from courses.models.students.students_group_settings import StudentsGroupSettings
-
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg, Count, F, Sum
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from schools.models import SchoolUser
+from schools.models import School, SchoolUser
+from schools.school_mixin import SchoolMixin
 
 
-class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт получения, создания, изменения групп студентов\n
-        Разрешения для просмотра групп (любой пользователь)
-        Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-    '''
-    queryset = StudentsGroup.objects.all()
+class StudentsGroupViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
+    """Эндпоинт получения, создания, изменения групп студентов\n
+    Разрешения для просмотра групп (любой пользователь)
+    Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+    """
+
     serializer_class = StudentsGroupSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
+    def get_queryset(self):
+        return StudentsGroup.objects.filter(
+            course_id__school__school_id=self.get_school().school_id
+        )
 
     def get_permissions(self):
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра групп (любой пользователь)
-            return permissions
-        elif self.action in ["create", "update", "partial_update", "destroy"]:
-            # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+        user = self.request.user
+        # Разрешения только для пользователей данной школы
+        if user.user_school.filter(school=self.get_school().school_id).exists():
+            if self.action in ["list", "retrieve"]:
+                # Разрешения для просмотра групп (любой пользователь школы)
                 return permissions
+            elif self.action in ["create", "update", "partial_update", "destroy"]:
+                # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+                if user.groups.filter(name="Admin").exists():
+                    return permissions
+                else:
+                    raise PermissionDenied(
+                        "У вас нет прав для выполнения этого действия."
+                    )
             else:
-                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                return permissions
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def perform_create(self, serializer):
         # Создаём модель настроек группы
-        group_settings_data = self.request.data.get('group_settings')
+        group_settings_data = self.request.data.get("group_settings")
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
@@ -67,7 +85,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
                     user_id=student_id, school_id=students_group.course_id.school_id
                 )
 
-    @action(detail=True, methods=['GET'])
+    @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None):
         """Все студенты одной группы"""
 
@@ -76,14 +94,16 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
 
         student_data = []
         for student in students:
-            student_data.append({
-                'id': student.id,
-                'username': student.username,
-                'first_name': student.first_name,
-                'last_name': student.last_name,
-                'email': student.email,
-                # Добавьте другие поля пользователя, которые вам нужны
-            })
+            student_data.append(
+                {
+                    "id": student.id,
+                    "username": student.username,
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "email": student.email,
+                    # Добавьте другие поля пользователя, которые вам нужны
+                }
+            )
 
         return Response(student_data)
 
@@ -106,14 +126,14 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-                     / Count("course_id__sections__lessons__lesson_id"),  # бьет ошибку
+            / Count("course_id__sections__lessons__lesson_id"),  # бьет ошибку
         )
 
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])
-                    .values("user")
-                    .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
+                .values("user")
+                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
             )
             row["mark_sum"] += (
                 mark_sum // 10 if mark_sum is not None else 0
@@ -126,8 +146,8 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
     @action(detail=True)
     def user_count_by_month(self, request, pk):
         """Кол-во новых пользователей группы за месяц\n
-         по дефолту стоит текущий месяц,
-         для конкретного месяца указываем параметр month_number="""
+        по дефолту стоит текущий месяц,
+        для конкретного месяца указываем параметр month_number="""
 
         group = self.get_object()
         queryset = StudentsGroup.objects.filter(

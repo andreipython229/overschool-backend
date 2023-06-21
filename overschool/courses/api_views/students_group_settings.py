@@ -1,34 +1,51 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.students.students_group_settings import StudentsGroupSettings
-from courses.serializers import (
-    StudentsGroupSettingsSerializer
-)
+from courses.serializers import StudentsGroupSettingsSerializer
 from rest_framework import permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
+from schools.models import School, SchoolUser
+from schools.school_mixin import SchoolMixin
 
-class StudentsGroupSettingsViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт для получения и изменения настроек группы\n
-    Эндпоинт для получения и изменения настроек группы '''
-    queryset = StudentsGroupSettings.objects.all()
+
+class StudentsGroupSettingsViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
+    """Эндпоинт для получения и изменения настроек группы\n
+    Эндпоинт для получения и изменения настроек группы"""
+
     serializer_class = StudentsGroupSettingsSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
+    def get_queryset(self):
+        return StudentsGroupSettings.objects.filter(
+            students_group_settings_fk__course_id__school__school_id=self.get_school().school_id
+        )
 
     def get_permissions(self):
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра групп (любой пользователь)
-            return permissions
-        elif self.action in ["create", "update", "partial_update", "destroy"]:
-            # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+        user = self.request.user
+        # Разрешения только для пользователей данной школы
+        if user.user_school.filter(school=self.get_school().school_id).exists():
+            if self.action in ["list", "retrieve"]:
+                # Разрешения для просмотра групп (любой пользователь школы)
                 return permissions
+            elif self.action in ["create", "update", "partial_update", "destroy"]:
+                # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+                if user.groups.filter(name="Admin").exists():
+                    return permissions
+                else:
+                    raise PermissionDenied(
+                        "У вас нет прав для выполнения этого действия."
+                    )
             else:
-                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                return permissions
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def create(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
