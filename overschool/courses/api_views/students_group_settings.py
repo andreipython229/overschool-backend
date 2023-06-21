@@ -13,7 +13,7 @@ class StudentsGroupSettingsViewSet(
 
     queryset = StudentsGroupSettings.objects.all()
     serializer_class = StudentsGroupSettingsSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
         permissions = super().get_permissions()

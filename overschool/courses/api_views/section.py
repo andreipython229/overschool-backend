@@ -17,7 +17,7 @@ class SectionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
         permissions = super().get_permissions()

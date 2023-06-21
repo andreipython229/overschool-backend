@@ -21,7 +21,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "delete", "head"]
 
     def get_queryset(self):
@@ -130,7 +130,7 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
     Эндпоинт возвращает стаитстику по домашним работам"""
 
     serializer_class = UserHomeworkStatisticsSerializer
-    permission_classes = [permissions.DjangoModelPermissions]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
     def get_queryset(self, *args, **kwargs):

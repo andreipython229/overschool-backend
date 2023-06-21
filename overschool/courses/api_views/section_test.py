@@ -18,7 +18,7 @@ class TestViewSet(
 
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
         permissions = super().get_permissions()

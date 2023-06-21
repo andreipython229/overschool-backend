@@ -13,7 +13,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
     queryset = Question.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve", "update", "partial_update"]:

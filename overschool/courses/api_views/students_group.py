@@ -9,7 +9,6 @@ from courses.serializers import (
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
 )
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg, Count, F, Sum
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -25,7 +24,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
 
     queryset = StudentsGroup.objects.all()
     serializer_class = StudentsGroupSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
     def get_permissions(self):

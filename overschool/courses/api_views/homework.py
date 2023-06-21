@@ -16,7 +16,7 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     queryset = Homework.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
         permissions = super().get_permissions()

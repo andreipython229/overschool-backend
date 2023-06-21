@@ -15,7 +15,7 @@ class AccessDistributionView(WithHeadersViewSet, generics.GenericAPIView):
     Ендпоинт распределения ролей и доступов к группам
     в зависимости от роли пользователя"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
 
     def get_permissions(self):

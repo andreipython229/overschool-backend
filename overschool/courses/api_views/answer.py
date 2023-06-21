@@ -15,7 +15,7 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:

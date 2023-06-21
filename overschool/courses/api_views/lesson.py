@@ -3,8 +3,8 @@ from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Lesson, Section
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from courses.services import LessonProgressMixin
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from rest_framework import mixins, permissions, status, viewsets
+from django.core.exceptions import PermissionDenied
+from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
 
@@ -16,8 +16,7 @@ class LessonViewSet(
     Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')"""
 
     queryset = Lesson.objects.all()
-    # serializer_class = LessonSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
         permissions = super().get_permissions()
