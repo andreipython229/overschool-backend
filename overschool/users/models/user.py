@@ -44,7 +44,6 @@ class User(AbstractBaseUser):
     )
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
     is_active = models.BooleanField(verbose_name="Активный", default=False)
-    is_active = models.BooleanField(verbose_name="Активный", default=True)
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)
     date_joined = models.DateTimeField(
         verbose_name="Дата регистрации", default=timezone.now
