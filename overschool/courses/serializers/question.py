@@ -23,6 +23,7 @@ class QuestionGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = "__all__"
+        read_only_fields = ("test",)
 
     def get_picture(self, obj):
         return get_yandex_link(str(obj.picture))
