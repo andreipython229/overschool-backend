@@ -1,19 +1,19 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.students.students_group_settings import StudentsGroupSettings
-from courses.serializers import (
-    StudentsGroupSettingsSerializer
-)
+from courses.serializers import StudentsGroupSettingsSerializer
 from rest_framework import permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 
-class StudentsGroupSettingsViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт для получения и изменения настроек группы\n
-    Эндпоинт для получения и изменения настроек группы '''
+
+class StudentsGroupSettingsViewSet(
+    LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet
+):
+    """Эндпоинт для получения и изменения настроек группы\n
+    Эндпоинт для получения и изменения настроек группы"""
+
     queryset = StudentsGroupSettings.objects.all()
     serializer_class = StudentsGroupSettingsSerializer
     permission_classes = [permissions.AllowAny]
-
 
     def get_permissions(self):
         permissions = super().get_permissions()
@@ -23,7 +23,7 @@ class StudentsGroupSettingsViewSet(LoggingMixin, WithHeadersViewSet, viewsets.Mo
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

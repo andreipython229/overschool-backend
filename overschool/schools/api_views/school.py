@@ -6,7 +6,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from schools.models import School, SchoolUser
+from schools.models import School
 from schools.serializers import SchoolGetSerializer, SchoolSerializer
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer

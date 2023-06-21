@@ -18,9 +18,3 @@ class TextFile(BaseLessonFile):
         verbose_name = "Текстовый файл"
         verbose_name_plural = "Текстовые файлы"
         default_related_name = "text_files"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["base_lesson", "user_homework", "user_homework_check", "order"],
-                name="unique_text_file_order",
-            ),
-        ]

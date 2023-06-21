@@ -6,10 +6,11 @@ from rest_framework.response import Response
 
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт тестирования учеников\n
-        Тесты проходить могут только ученики\n
-        Редактировать и удалять пройденные тесты могут только администраторы
-        '''
+    """Эндпоинт тестирования учеников\n
+    Тесты проходить могут только ученики\n
+    Редактировать и удалять пройденные тесты могут только администраторы
+    """
+
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.AllowAny]
@@ -17,7 +18,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
 
         user = self.request.user
-        if not user.groups.filter(name="Student").exists():
+        if not user.groups.filter(group__name="Student").exists():
             return Response(
                 {"status": "Error", "message": "Тесты проходить могут только ученики"},
             )
@@ -50,7 +51,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
 
         user = self.request.user
-        if not user.groups.filter(name__in=["SuperAdmin", "Admin"]).exists():
+        if not user.groups.filter(group__name__in=["SuperAdmin", "Admin"]).exists():
             return Response(
                 {
                     "status": "Error",
@@ -72,7 +73,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
 
         user = self.request.user
-        if not user.groups.filter(name__in=["SuperAdmin", "Admin"]).exists():
+        if not user.groups.filter(group__name__in=["SuperAdmin", "Admin"]).exists():
             return Response(
                 {
                     "status": "Error",

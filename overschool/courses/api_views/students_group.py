@@ -15,7 +15,6 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from schools.models import SchoolUser
 
 
 class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -37,7 +36,7 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -53,19 +52,12 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
         serializer.save(group_settings=group_settings)
 
         # Сохраняем группу студентов
-        students_group = serializer.save()
+        serializer.save()
         # Получаем всех студентов, которые были добавлены в группу
         students = self.request.data.get("students")
         for student_id in students:
-            # Создаем запись в модели SchoolUser для каждого студента
-            try:
-                SchoolUser.objects.get(
-                    user_id=student_id, school_id=students_group.course_id.school_id
-                )
-            except ObjectDoesNotExist:
-                SchoolUser.objects.create(
-                    user_id=student_id, school_id=students_group.course_id.school_id
-                )
+            # Создаем роли студентов для конкретной школы
+            pass
 
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
