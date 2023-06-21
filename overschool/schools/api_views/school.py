@@ -6,16 +6,17 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from schools.models import School, SchoolUser
+from schools.models import School
 from schools.serializers import SchoolGetSerializer, SchoolSerializer
-from users.serializers import UserProfileGetSerializer
 from users.models import Profile
+from users.serializers import UserProfileGetSerializer
 
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт на получение, создания, изменения и удаления школ \n
-        Разрешения для просмотра школ (любой пользователь)\n
-        Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number') '''
+    """Эндпоинт на получение, создания, изменения и удаления школ \n
+    Разрешения для просмотра школ (любой пользователь)\n
+    Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number')"""
+
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
     permission_classes = [permissions.AllowAny]
@@ -27,9 +28,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return SchoolSerializer
 
     @action(detail=True)
-    def stats(self, request, pk):
-        """ Статистика учеников школы\n
-            Статистика учеников школы"""
+    def stats(self, request, pk, *args, **kwargs):
+        """Статистика учеников школы\n
+        Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
         data = queryset.values(
             course=F("course_id"),
@@ -45,28 +46,29 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             mark_sum=Sum("students__user_homeworks__mark"),
             average_mark=Avg("students__user_homeworks__mark"),
             progress=(F("students__user_progresses__lesson__order") * 100)
-                     / Count("course_id__sections__lessons"),
+            / Count("course_id__sections__lessons"),
         )
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item['student'])
+            profile = Profile.objects.get(user_id=item["student"])
             serializer = UserProfileGetSerializer(profile)
-            serialized_data.append({
-
-                'course': item['course'],
-                'email': item['email'],
-                'student_name': item['student_name'],
-                'student': item['student'],
-                'avatar': serializer.data['avatar_url'],
-                'group': item['group'],
-                'last_active': item['last_active'],
-                'update_date': item['update_date'],
-                'ending_date': item['ending_date'],
-                'mark_sum': item['mark_sum'],
-                'average_mark': item['average_mark'],
-                'progress': item['progress'],
-            })
+            serialized_data.append(
+                {
+                    "course": item["course"],
+                    "email": item["email"],
+                    "student_name": item["student_name"],
+                    "student": item["student"],
+                    "avatar": serializer.data["avatar_url"],
+                    "group": item["group"],
+                    "last_active": item["last_active"],
+                    "update_date": item["update_date"],
+                    "ending_date": item["ending_date"],
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
+                    "progress": item["progress"],
+                }
+            )
         for row in data:
             mark_sum = (
                 UserTest.objects.filter(user=row["student"])

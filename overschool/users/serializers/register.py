@@ -55,6 +55,19 @@ class SignupSerializer(serializers.Serializer):
 
             return instance
 
+class ConfirmationSerializer(serializers.Serializer):
+    code = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        code = attrs.get("code")
+
+        if not code:
+            raise serializers.ValidationError("Code is required.")
+
+
+
+        return attrs
+
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()

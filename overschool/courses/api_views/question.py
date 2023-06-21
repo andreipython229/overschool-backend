@@ -8,9 +8,10 @@ from rest_framework.response import Response
 
 
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт на получение, создания, изменения и удаления вопросов \n
-        Получать курсы может любой пользователь. \n
-        Создавать, изменять, удалять - пользователь с правами группы Admin.'''
+    """Эндпоинт на получение, создания, изменения и удаления вопросов \n
+    Получать курсы может любой пользователь. \n
+    Создавать, изменять, удалять - пользователь с правами группы Admin."""
+
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
     permission_classes = [permissions.AllowAny]
@@ -29,7 +30,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения вопросов (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

@@ -34,15 +34,15 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         user = self.request.user
         if user.is_anonymous:
             return UserHomeworkCheck.objects.none()
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             return UserHomeworkCheck.objects.filter(user_homework__user=user).order_by(
                 "-created_at"
             )
-        if user.groups.filter(name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher").exists():
             return UserHomeworkCheck.objects.filter(
                 user_homework__teacher=user
             ).order_by("-created_at")
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             return UserHomeworkCheck.objects.all().order_by("-created_at")
         return UserHomeworkCheck.objects.none()
 
@@ -53,8 +53,8 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 {"status": "Error", "message": "Пользователь не авторизован"},
             )
         if (
-            not user.groups.filter(name="Student").exists()
-            and not user.groups.filter(name="Teacher").exists()
+            not user.groups.filter(group__name="Student").exists()
+            and not user.groups.filter(group__name="Teacher").exists()
         ):
             return Response(
                 {"status": "Error", "message": "Недостаточно прав доступа"},
@@ -65,7 +65,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         user_homework_id = serializer.validated_data["user_homework"].pk
         user_homework = UserHomework.objects.get(pk=user_homework_id)
 
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             # Логика для студента
 
             # Проверка, что студент является автором user_homework.user
@@ -91,7 +91,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 author=user,
             )
 
-        elif user.groups.filter(name="Teacher").exists():
+        elif user.groups.filter(group__name="Teacher").exists():
             # Логика для учителя
 
             # Проверка, что учитель является преподавателем user_homework.teacher
@@ -102,7 +102,6 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                         "message": "Учитель не является преподавателем данного домашнего задания",
                     },
                 )
-            print(user_homework.status)
             # Проверка, что статус user_homework не равен "Принято"
             if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
@@ -140,8 +139,13 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             and user_homework_check.user_homework.teacher == user
         ):
             user_homework_check.status = request.data.get("status")
+        if (
+            request.data.get("mark")
+            and user_homework_check.user_homework.teacher == user
+        ):
+            user_homework_check.mark = request.data.get("mark")
 
-            user_homework_check.save()
-            serializer = UserHomeworkCheckSerializer(user_homework_check)
+        user_homework_check.save()
+        serializer = UserHomeworkCheckSerializer(user_homework_check)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)

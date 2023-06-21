@@ -23,10 +23,10 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user = request.user
 
-        # Проверяем, что пользователь студент
+        # Проверяем, что пользователь студент или учитель
         if (
-            user.groups.filter(name="Student").exists()
-            or user.groups.filter(name="Teacher").exists()
+            user.groups.filter(group__name="Student").exists()
+            or user.groups.filter(group__name="Teacher").exists()
         ):
             user_homework_id = request.data.get("user_homework")
             user_homework_check_id = request.data.get("user_homework_check")
@@ -90,7 +90,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
         # Проверяем, что пользователь админ
-        elif user.groups.filter(name="Admin").exists():
+        elif user.groups.filter(group__name="Admin").exists():
             base_lesson_id = request.data.get("base_lesson")
 
             if base_lesson_id:
@@ -118,7 +118,10 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         instance = self.get_object()
         user = request.user
 
-        if user != instance.author and not user.groups.filter(name="Admin").exists():
+        if (
+            user != instance.author
+            and not user.groups.filter(group__name="Admin").exists()
+        ):
             return Response(
                 {"error": "Вы не являетесь автором этого файла"},
                 status=status.HTTP_403_FORBIDDEN,

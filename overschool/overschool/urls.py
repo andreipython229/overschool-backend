@@ -15,6 +15,7 @@ from users.api_views import (
     PasswordResetView,
     SignupSchoolOwnerView,
     SignupView,
+    ConfirmationView,
 )
 
 from .main_router import router
@@ -40,6 +41,11 @@ urlpatterns = [
         "api/login/",
         LoginView.as_view(actions={"post": "post"}),
         name="login",
+    ),
+    path(
+        "api/<str:school_name>/code/confirm/",
+        ConfirmationView.as_view(actions={"post": "post"}),
+        name="code",
     ),
     path(
         "api/<str:school_name>/password/reset/",

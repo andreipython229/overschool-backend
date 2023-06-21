@@ -21,18 +21,18 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomework.objects.all()
-
     permission_classes = [permissions.AllowAny]
+    http_method_names = ["get", "post", "delete", "head"]
 
     def get_queryset(self):
         user = self.request.user
         if user.is_anonymous:
             return UserHomework.objects.none()
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             return UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher").exists():
             return UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             return UserHomework.objects.all().order_by("-created_at")
         return UserHomework.objects.none()
 
@@ -48,7 +48,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(
                 {"status": "Error", "message": "Пользователь не авторизован"},
             )
-        if not user.groups.filter(name="Student").exists():
+        if not user.groups.filter(group__name="Student").exists():
             return Response(
                 {"status": "Error", "message": "Недостаточно прав доступа"},
             )
@@ -61,19 +61,17 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
-        # teacher_group = user.students_group_fk.get(course_id=baselesson.section.course)
-        # teacher = User.objects.get(id=teacher_group.teacher_id_id)
-        students_group = user.students_group_fk.get(course_id=baselesson.section.course)
-
-        if students_group.group_settings.task_submission_lock:
+        teacher_group = user.students_group_fk.filter(
+            course_id=baselesson.section.course
+        ).first()
+        teacher = User.objects.get(id=teacher_group.teacher_id_id)
+        if teacher_group.group_settings.task_submission_lock:
             return Response(
                 {
                     "status": "Error",
                     "message": "Отправлять домашки запрещено в настройках группы студентов",
                 },
             )
-
-        teacher = User.objects.get(id=students_group.teacher_id_id)
 
         serializer = UserHomeworkSerializer(data=request.data)
 
@@ -84,26 +82,6 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
         )
-
-    def update(self, request, *args, **kwargs):
-        user_homework = self.get_object()
-        user = request.user
-
-        if user_homework.user != user:
-            return Response(
-                {
-                    "status": "Error",
-                    "message": "Пользователь может обновлять только свою домашнюю работу",
-                },
-            )
-        else:
-            if request.data.get("text"):
-                user_homework.text = request.data.get("text")
-
-            user_homework.save()
-            serializer = UserHomeworkSerializer(user_homework)
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         user_homework = self.get_object()
@@ -160,11 +138,11 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         queryset = UserHomework.objects.none()
         if user.is_anonymous:
             return queryset
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             queryset = UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher").exists():
             queryset = UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             queryset = UserHomework.objects.all().order_by("-created_at")
 
         if self.request.GET.get("status"):

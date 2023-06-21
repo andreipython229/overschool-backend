@@ -13,8 +13,6 @@ class AudioFileSerializer(serializers.ModelSerializer):
         model = AudioFile
         fields = [
             "id",
-            "order",
-            "description",
             "file",
             "file_url",
             "author",
@@ -24,6 +22,7 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["author"]
 
     def validate(self, attrs):
         if (
@@ -48,8 +47,6 @@ class AudioFileGetSerializer(serializers.ModelSerializer):
         model = AudioFile
         fields = [
             "id",
-            "order",
-            "description",
             "file",
             "file_url",
             "author",

@@ -2,17 +2,20 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
 from courses.models import Answer, BaseLesson, Question, SectionTest
 from courses.serializers import TestSerializer
+from courses.services import LessonProgressMixin
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from courses.services import LessonProgressMixin
 
 
-class TestViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet):
+class TestViewSet(
+    LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet
+):
     """Эндпоинт просмотра, создания, изменения и удаления тестов\n
     Разрешения для просмотра тестов (любой пользователь)
     Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')"""
+
     queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.AllowAny]
@@ -31,7 +34,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewset
         ]:
             # Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -39,7 +42,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewset
             return permissions
 
     @action(detail=True, methods=["GET"])
-    def get_questions(self, request, pk):
+    def get_questions(self, request, pk, *args, **kwargs):
         """Возвращает вопросы к конкретному тесту\n
         Возвращает вопросы к конкретному тесту"""
         test_obj = SectionTest.objects.get(test_id=pk).__dict__
@@ -84,7 +87,7 @@ class TestViewSet(LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewset
         return Response(test)
 
     @action(detail=True, methods=["POST"])
-    def post_questions(self, request, pk):
+    def post_questions(self, request, pk, *args, **kwargs):
         """Создать вопросы в тесте\n
         Создать вопросы в тесте"""
         try:

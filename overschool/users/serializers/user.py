@@ -19,5 +19,4 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
             "groups",
-            "user_permissions",
         ]

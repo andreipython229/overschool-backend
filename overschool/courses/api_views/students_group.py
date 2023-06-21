@@ -71,22 +71,15 @@ class StudentsGroupViewSet(
         serializer.save(group_settings=group_settings)
 
         # Сохраняем группу студентов
-        students_group = serializer.save()
+        serializer.save()
         # Получаем всех студентов, которые были добавлены в группу
         students = self.request.data.get("students")
         for student_id in students:
-            # Создаем запись в модели SchoolUser для каждого студента
-            try:
-                SchoolUser.objects.get(
-                    user_id=student_id, school_id=students_group.course_id.school_id
-                )
-            except ObjectDoesNotExist:
-                SchoolUser.objects.create(
-                    user_id=student_id, school_id=students_group.course_id.school_id
-                )
+            # Создаем роли студентов для конкретной школы
+            pass
 
     @action(detail=True, methods=["GET"])
-    def get_students_for_group(self, request, pk=None):
+    def get_students_for_group(self, request, pk=None, *args, **kwargs):
         """Все студенты одной группы"""
 
         group = self.get_object()
@@ -108,7 +101,7 @@ class StudentsGroupViewSet(
         return Response(student_data)
 
     @action(detail=True)
-    def stats(self, request, pk):
+    def stats(self, request, pk, *args, **kwargs):
         """Статистика учеников группы\n
         Статистика учеников группы"""
         group = self.get_object()
@@ -144,7 +137,7 @@ class StudentsGroupViewSet(
         return Response(data)
 
     @action(detail=True)
-    def user_count_by_month(self, request, pk):
+    def user_count_by_month(self, request, pk, *args, **kwargs):
         """Кол-во новых пользователей группы за месяц\n
         по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number="""
