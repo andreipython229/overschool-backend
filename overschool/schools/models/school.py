@@ -1,9 +1,11 @@
 from common_services.mixins import OrderMixin, TimeStampMixin
 from common_services.services import limit_size
+from django.contrib.auth import get_user_model
 from django.db import models
 from oauthlib.common import urldecode
 from schools.managers import SchoolManager
-from users.models.user import User
+
+User = get_user_model()
 
 
 class School(TimeStampMixin, OrderMixin):

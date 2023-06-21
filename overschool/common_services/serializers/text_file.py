@@ -13,8 +13,6 @@ class TextFileSerializer(serializers.ModelSerializer):
         model = TextFile
         fields = [
             "id",
-            "order",
-            "description",
             "file",
             "file_url",
             "author",
@@ -24,6 +22,7 @@ class TextFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["author"]
 
     def validate(self, attrs):
         if (
@@ -48,8 +47,6 @@ class TextFileGetSerializer(serializers.ModelSerializer):
         model = TextFile
         fields = [
             "id",
-            "order",
-            "description",
             "file",
             "file_url",
             "author",

@@ -1,6 +1,6 @@
 from common_services.yandex_client import get_yandex_link
 from rest_framework import serializers
-from schools.models import School, SchoolUser
+from schools.models import School
 
 
 class SchoolSerializer(serializers.ModelSerializer):

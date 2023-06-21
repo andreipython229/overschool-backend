@@ -21,7 +21,7 @@ class AccessDistributionView(WithHeadersViewSet, generics.GenericAPIView):
     def get_permissions(self):
         permissions = super().get_permissions()
         user = self.request.user
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")

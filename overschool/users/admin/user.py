@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from users.forms import UserChangeForm, UserCreationForm
 from users.models import User
 
@@ -27,7 +26,6 @@ class UserAdmin(admin.ModelAdmin):
                     "is_staff",
                     "is_superuser",
                     "groups",
-                    "user_permissions",
                 ),
             },
         ),

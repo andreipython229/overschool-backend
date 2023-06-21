@@ -53,7 +53,7 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         elif self.action in ["create", "update", "partial_update", "destroy", "clone"]:
             # Разрешения для создания и изменения курсов (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

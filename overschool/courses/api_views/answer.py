@@ -8,11 +8,10 @@ from rest_framework.response import Response
 
 
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    ''' Эндпоинт на получение, создания, изменения и удаления уроков.\n
-        Разрешения для просмотра ответов к тестам (любой пользователь).\n
-        Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin').
-    '''
-
+    """Эндпоинт на получение, создания, изменения и удаления уроков.\n
+    Разрешения для просмотра ответов к тестам (любой пользователь).\n
+    Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin').
+    """
 
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
@@ -32,7 +31,7 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin')
             user = self.request.user
-            if user.groups.filter(name="Admin").exists():
+            if user.groups.filter(group__name="Admin").exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

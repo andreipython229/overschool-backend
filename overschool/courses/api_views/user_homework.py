@@ -28,11 +28,11 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         user = self.request.user
         if user.is_anonymous:
             return UserHomework.objects.none()
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             return UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher").exists():
             return UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             return UserHomework.objects.all().order_by("-created_at")
         return UserHomework.objects.none()
 
@@ -48,7 +48,7 @@ class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(
                 {"status": "Error", "message": "Пользователь не авторизован"},
             )
-        if not user.groups.filter(name="Student").exists():
+        if not user.groups.filter(group__name="Student").exists():
             return Response(
                 {"status": "Error", "message": "Недостаточно прав доступа"},
             )
@@ -138,11 +138,11 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
         queryset = UserHomework.objects.none()
         if user.is_anonymous:
             return queryset
-        if user.groups.filter(name="Student").exists():
+        if user.groups.filter(group__name="Student").exists():
             queryset = UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher").exists():
             queryset = UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(name="Admin").exists():
+        if user.groups.filter(group__name="Admin").exists():
             queryset = UserHomework.objects.all().order_by("-created_at")
 
         if self.request.GET.get("status"):
