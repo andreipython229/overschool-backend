@@ -6,6 +6,7 @@ from .register import (
     PasswordResetConfirmSerializer,
     PasswordResetSerializer,
     SignupSerializer,
+    ConfirmationSerializer,
 )
 from .register_school_owner import SignupSchoolOwnerSerializer
 from .user import UserSerializer
