@@ -2,7 +2,8 @@ from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics, permissions
-from users.serializers import SignupSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer
+from users.serializers import SignupSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer, \
+    ConfirmationSerializer
 from users.services import JWTHandler, SenderServiceMixin
 
 User = get_user_model()
@@ -39,6 +40,31 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         response = HttpResponse("http://127.0.0.1:8000/api/users/", status=201)
         return response
 
+
+class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ConfirmationSerializer
+
+    def post(self, request, school_name=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        code = serializer.validated_data['code']  # Получаем введенный пользователем код подтверждения
+
+
+        saved_code = sender_service.REDIS_INSTANCE.get(code)
+
+        if saved_code and code == saved_code.decode():
+            # Код подтверждения совпадает, выполняем аутентификацию пользователя
+
+            user = self.get_user_from_request()  # Получаем пользователя из запроса
+
+            user.is_active = True  # Устанавливаем статус активации пользователя
+            user.save()
+
+            return HttpResponse("Confirmation code is valid. User authenticated successfully.")
+        else:
+            # Код подтверждения не совпадает
+            return HttpResponse("Invalid confirmation code.", status=400)
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт сброса пароля\n

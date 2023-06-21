@@ -43,7 +43,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
-    is_active = models.BooleanField(verbose_name="Активный", default=True)
+    is_active = models.BooleanField(verbose_name="Активный", default=False)
     date_joined = models.DateTimeField(
         verbose_name="Дата регистрации", default=timezone.now
     )
