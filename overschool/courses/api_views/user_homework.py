@@ -11,16 +11,18 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import OuterRef, Subquery
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
+from schools.school_mixin import SchoolMixin
 from users.models import User
 
 
-class UserHomeworkViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+class UserHomeworkViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт домашних заданий ученика.\n
     Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
     (свои поля-"text", "file"), учитель подкидывается исходя из группы пользователя.
     """
 
-    queryset = UserHomework.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "delete", "head"]
 

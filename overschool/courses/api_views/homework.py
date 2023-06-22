@@ -1,37 +1,50 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Homework
+from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 
 class HomeworkViewSet(
-    LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet
+    LoggingMixin,
+    WithHeadersViewSet,
+    LessonProgressMixin,
+    SchoolMixin,
+    viewsets.ModelViewSet,
 ):
     """Эндпоинт на получение, создания, изменения и удаления домашних заданий.\n
     Разрешения для просмотра домашних заданий (любой пользователь).\n
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
-    queryset = Homework.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user = self.request.user
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра домашних заданий (любой пользователь)
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
-        elif self.action in ["create", "update", "partial_update", "destroy"]:
-            # Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра домашних заданий (любой пользователь школы)
+            if (
+                user.groups.filter(group__name="Student", school=school_id).exists()
+                or user.groups.filter(group__name="Teacher", school=school_id).exists()
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -44,7 +57,44 @@ class HomeworkViewSet(
         else:
             return HomeworkSerializer
 
+    def get_queryset(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        user = self.request.user
+        if user.is_anonymous:
+            return Homework.objects.none()
+        if user.groups.filter(group__name="Student").exists():
+            students_group = user.students_group_fk.all().values_list(
+                "course_id", flat=True
+            )
+            return Homework.objects.filter(
+                baselesson_ptr_id__section__course__school__name=school_name,
+                baselesson_ptr_id__section__course__in=students_group,
+            )
+        if user.groups.filter(group__name="Teacher").exists():
+            teacher_group = user.teacher_group_fk.all().values_list(
+                "course_id", flat=True
+            )
+            return Homework.objects.filter(
+                baselesson_ptr_id__section__course__school__name=school_name,
+                baselesson_ptr_id__section__course__in=teacher_group,
+            )
+        if user.groups.filter(group__name="Admin").exists():
+            return Homework.objects.filter(
+                baselesson_ptr_id__section__course__school__name=school_name
+            )
+        return Homework.objects.none()
+
     def create(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        section = self.request.data.get("section")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная секция не относится не к одному курсу этой школы."
+                )
         serializer = HomeworkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         homework = serializer.save(video=None)
@@ -61,6 +111,16 @@ class HomeworkViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        section = self.request.data.get("section")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная секция не относится не к одному курсу этой школы."
+                )
         instance = self.get_object()
         serializer = HomeworkSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
