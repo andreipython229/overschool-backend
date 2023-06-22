@@ -1,14 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_file
-from courses.models import BaseLesson, Lesson, Section, Course
+from courses.models import BaseLesson, Lesson, Section, Course, StudentsGroup
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from schools.school_mixin import SchoolMixin
-from schools.models import School, SchoolUser
 from rest_framework.exceptions import NotFound
+from schools.models import School
 
 class LessonViewSet(
     LoggingMixin, WithHeadersViewSet, LessonProgressMixin, SchoolMixin, viewsets.ModelViewSet
@@ -20,15 +20,21 @@ class LessonViewSet(
     queryset = Lesson.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
         permissions = super().get_permissions()
+        user = self.request.user
         if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра уроков (любой пользователь)
-            return permissions
+            # Разрешения для просмотра уроков (любой пользователь школы)
+            if user.groups.filter(group__name__in=["Student", "Teacher"], school=school_id).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+            if user.groups.filter(group__name="Admin", school=school_id).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -42,32 +48,45 @@ class LessonViewSet(
             return LessonSerializer
 
     def get_queryset(self):
-        school_name = self.kwargs.get('school_name')
+        user = self.request.user
+
+        school_name = self.kwargs.get("school_name")
         if not school_name:
             return Lesson.objects.none()
-        return Lesson.objects.filter(section__course__school__name=school_name)
+
+        if user.groups.filter(group__name="Admin"):
+            return Lesson.objects.filter(section__course__school__name=school_name)
+
+        if user.groups.filter(group__name="Student"):
+            course_ids = StudentsGroup.objects.filter(course_id__school__name=school_name,
+                                                      students=user).values_list("course_id", flat=True)
+            return Lesson.objects.filter(section__course_id__in=course_ids)
+
+        if user.groups.filter(group__name="Teacher"):
+            course_ids = StudentsGroup.objects.filter(course_id_id__school__name=school_name,
+                                                      teacher_id=user.pk).values_list("course_id", flat=True)
+            return Lesson.objects.filter(section__course_id__in=course_ids)
+
+        return Lesson.objects.none()
 
     def retrieve(self, request, pk=None, school_name=None):
         queryset = self.get_queryset()
         lesson = queryset.filter(pk=pk).first()
         if not lesson:
-            return Response('Урок не найден')
+            return Response("Урок не найден.")
         serializer = LessonDetailSerializer(lesson)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        school = School.objects.get(name=self.kwargs.get('school_name'))
-        school_user = SchoolUser.objects.filter(school_id=school.pk, user_id=self.request.user)
-        if not school_user:
-            return Response('Вы не можете создавать уроки в данной школе')
+        school_name = self.kwargs.get("school_name")
 
-        section = self.request.data['section']
-        sections = Section.objects.filter(course__school=school.pk)
-
-        try:
-            sections.get(pk=section)
-        except sections.model.DoesNotExist:
-            raise NotFound("Указанная секция не относится не к одному курсу этой школы.")
+        section = self.request.data.get("section")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound("Указанная секция не относится не к одному курсу этой школы.")
 
         serializer = LessonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -85,18 +104,16 @@ class LessonViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        school = School.objects.get(name=self.kwargs.get('school_name'))
-        school_user = SchoolUser.objects.filter(school_id=school.pk, user_id=self.request.user)
-        if not school_user:
-            return Response('Вы не можете изменять уроки в данной школе')
+        school_name = self.kwargs.get("school_name")
 
-        section = self.request.data['section']
-        sections = Section.objects.filter(course__school=school.pk)
+        section = self.request.data.get("section")
 
-        try:
-            sections.get(pk=section)
-        except sections.model.DoesNotExist:
-            raise NotFound("Указанная секция не относится не к одному курсу этой школы.")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound("Указанная секция не относится не к одному курсу этой школы.")
 
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
@@ -119,11 +136,6 @@ class LessonViewSet(
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        school = School.objects.get(name=self.kwargs.get('school_name'))
-        school_user = SchoolUser.objects.filter(school_id=school.pk, user_id=self.request.user)
-        if not school_user:
-            return Response('Вы не можете удалять уроки в данной школе')
-
         instance = self.get_object()
         base_lesson = BaseLesson.objects.get(lessons=instance)
         course = base_lesson.section.course
