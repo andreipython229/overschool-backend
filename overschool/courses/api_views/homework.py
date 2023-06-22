@@ -28,18 +28,18 @@ class HomeworkViewSet(
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
-        user = self.request.user
+
         permissions = super().get_permissions()
+        user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
-            if (
-                user.groups.filter(group__name="Student", school=school_id).exists()
-                or user.groups.filter(group__name="Teacher", school=school_id).exists()
-            ):
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -59,29 +59,27 @@ class HomeworkViewSet(
 
     def get_queryset(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
-        if user.is_anonymous:
-            return Homework.objects.none()
-        if user.groups.filter(group__name="Student").exists():
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
             students_group = user.students_group_fk.all().values_list(
                 "course_id", flat=True
             )
             return Homework.objects.filter(
-                baselesson_ptr_id__section__course__school__name=school_name,
-                baselesson_ptr_id__section__course__in=students_group,
+                section__course__school__name=school_name,
+                section__course__in=students_group,
             )
-        if user.groups.filter(group__name="Teacher").exists():
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
             teacher_group = user.teacher_group_fk.all().values_list(
                 "course_id", flat=True
             )
             return Homework.objects.filter(
-                baselesson_ptr_id__section__course__school__name=school_name,
-                baselesson_ptr_id__section__course__in=teacher_group,
+                section__course__school__name=school_name,
+                section__course__in=teacher_group,
             )
-        if user.groups.filter(group__name="Admin").exists():
-            return Homework.objects.filter(
-                baselesson_ptr_id__section__course__school__name=school_name
-            )
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return Homework.objects.filter(section__course__school__name=school_name)
         return Homework.objects.none()
 
     def create(self, request, *args, **kwargs):
