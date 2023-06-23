@@ -9,8 +9,7 @@
       "phone_number": "+375337915744",
       "username": "admin",
       "is_superuser": true,
-      "is_staff": true,
-      "groups": "6"
+      "is_staff": true
     }
   },
   {
@@ -23,8 +22,7 @@
       "phone_number": "+375337915896",
       "username": "superadmin",
       "is_superuser": true,
-      "is_staff": true,
-      "groups": "5"
+      "is_staff": true
     }
   },
   {
@@ -35,8 +33,7 @@
       "email": "editor@gmail.com",
       "password": "pbkdf2_sha256$390000$Jmg82QyigmFzLZx6rdhUu7$+tSRHq9TyVBCHIIy/H9Hwim+gNHNJTdHu+XphlgacLI=",
       "phone_number": "+375337917695",
-      "username": "editor",
-      "groups": "4"
+      "username": "editor"
     }
   },
   {
@@ -47,8 +44,7 @@
       "email": "manager@gmail.com",
       "password": "pbkdf2_sha256$390000$zedSX7pnr2XjmiUMO1tol2$Pp7VqOFppKqgaFta2JaYcohMKKhc3t1oHhUJKYGrbv8=",
       "phone_number": "+375337915574",
-      "username": "manager",
-      "groups": "3"
+      "username": "manager"
     }
   },
   {
@@ -59,8 +55,7 @@
       "email": "teacher_1@gmail.com",
       "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
       "phone_number": "+375337005832",
-      "username": "teacher_1_username",
-      "groups": "2"
+      "username": "teacher_1_username"
     }
   },
   {
@@ -71,8 +66,7 @@
       "email": "teacher_2@gmail.com",
       "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
       "phone_number": "+3753370015832",
-      "username": "teacher_2_username",
-      "groups": "2"
+      "username": "teacher_2_username"
     }
   },
   {
@@ -83,8 +77,7 @@
       "email": "teacher_3@gmail.com",
       "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
       "phone_number": "+375337910832",
-      "username": "teacher_3_username",
-      "groups": "2"
+      "username": "teacher_3_username"
     }
   },
   {
@@ -95,8 +88,7 @@
       "email": "teacher_4@gmail.com",
       "password": "pbkdf2_sha256$390000$vsVXsoUby09ACCxGkmhOWV$LEfimuUq+cOARWXVKmVHPP5JuqCBDBXkGjuNG/V0qZ8=",
       "phone_number": "+375337905832",
-      "username": "teacher_4_username",
-      "groups": "2"
+      "username": "teacher_4_username"
     }
   },
   {
@@ -107,8 +99,7 @@
       "email": "student_1@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375331115159",
-      "username": "student_1_username",
-      "groups": "1"
+      "username": "student_1_username"
     }
   },
   {
@@ -119,8 +110,7 @@
       "email": "student_2@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337915159",
-      "username": "student_2_username",
-      "groups": "1"
+      "username": "student_2_username"
     }
   },
   {
@@ -131,8 +121,7 @@
       "email": "student_3@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337915159",
-      "username": "student_3_username",
-      "groups": "1"
+      "username": "student_3_username"
     }
   },
   {
@@ -143,8 +132,7 @@
       "email": "student_4@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337115159",
-      "username": "student_4_username",
-      "groups": "1"
+      "username": "student_4_username"
     }
   },
   {
@@ -155,8 +143,7 @@
       "email": "student_5@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337915159",
-      "username": "student_5_username",
-      "groups": "1"
+      "username": "student_5_username"
     }
   },
   {
@@ -167,8 +154,7 @@
       "email": "student_6@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337935159",
-      "username": "student_6_username",
-      "groups": "1"
+      "username": "student_6_username"
     }
   },
   {
@@ -179,8 +165,7 @@
       "email": "student_7@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337415159",
-      "username": "student_7_username",
-      "groups": "1"
+      "username": "student_7_username"
     }
   },
   {
@@ -191,8 +176,7 @@
       "email": "student_8@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375333315159",
-      "username": "student_8_username",
-      "groups": "1"
+      "username": "student_8_username"
     }
   },
   {
@@ -203,8 +187,7 @@
       "email": "student_9@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_9_username",
-      "groups": "1"
+      "username": "student_9_username"
     }
   },
   {
@@ -215,8 +198,7 @@
       "email": "student_10@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_10_username",
-      "groups": "1"
+      "username": "student_10_username"
     }
   },
   {
@@ -227,8 +209,7 @@
       "email": "student_11@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_11_username",
-      "groups": "1"
+      "username": "student_11_username"
     }
   },
   {
@@ -239,8 +220,7 @@
       "email": "student_12@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_12_username",
-      "groups": "1"
+      "username": "student_12_username"
     }
   },
   {
@@ -251,8 +231,7 @@
       "email": "student_13@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_13_username",
-      "groups": "1"
+      "username": "student_13_username"
     }
   },
   {
@@ -263,8 +242,7 @@
       "email": "student_14@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_14_username",
-      "groups": "1"
+      "username": "student_14_username"
     }
   },
   {
@@ -275,8 +253,7 @@
       "email": "student_15@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_15_username",
-      "groups": "1"
+      "username": "student_15_username"
     }
   },
   {
@@ -287,8 +264,7 @@
       "email": "student_16@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_16_username",
-      "groups": "1"
+      "username": "student_16_username"
     }
   },
   {
@@ -299,8 +275,7 @@
       "email": "student_17@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_17_username",
-      "groups": "1"
+      "username": "student_17_username"
     }
   },
   {
@@ -311,8 +286,7 @@
       "email": "student_18@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_18_username",
-      "groups": "1"
+      "username": "student_18_username"
     }
   },
   {
@@ -323,8 +297,7 @@
       "email": "student_19@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_19_username",
-      "groups": "1"
+      "username": "student_19_username"
     }
   },
   {
@@ -335,8 +308,7 @@
       "email": "student_20@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_20_username",
-      "groups": "1"
+      "username": "student_20_username"
     }
   },
   {
@@ -347,8 +319,7 @@
       "email": "student_21@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_21_username",
-      "groups": "1"
+      "username": "student_21_username"
     }
   },
   {
@@ -359,8 +330,7 @@
       "email": "student_22@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_22_username",
-      "groups": "1"
+      "username": "student_22_username"
     }
   },
   {
@@ -371,8 +341,7 @@
       "email": "student_23@gmail.com",
       "password": "pbkdf2_sha256$390000$uxbfgKL3jHx146U3VwuhK1$FwVcjSuo1MzfDIsJ5VxeVAw/FFQTmu0DPCEMLGdneb8=",
       "phone_number": "+375337235159",
-      "username": "student_23_username",
-      "groups": "1"
+      "username": "student_23_username"
     }
   }
 ]
