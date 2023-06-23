@@ -9,13 +9,14 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from users.api_views import (
     AccessDistributionView,
+    ConfirmationView,
     LoginView,
     LogoutView,
     PasswordResetConfirmView,
     PasswordResetView,
     SignupSchoolOwnerView,
     SignupView,
-    ConfirmationView,
+    UserSchoolsView,
 )
 
 from .main_router import router
@@ -41,6 +42,11 @@ urlpatterns = [
         "api/login/",
         LoginView.as_view(actions={"post": "post"}),
         name="login",
+    ),
+    path(
+        "api/user-schools/",
+        UserSchoolsView.as_view(actions={"get": "list"}),
+        name="user_schools",
     ),
     path(
         "api/<str:school_name>/code/confirm/",

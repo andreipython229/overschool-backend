@@ -3,7 +3,7 @@ from courses.models.students.students_group_settings import StudentsGroupSetting
 from courses.serializers import StudentsGroupSettingsSerializer
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
-from schools.models import School, SchoolUser
+from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
@@ -29,14 +29,15 @@ class StudentsGroupSettingsViewSet(
     def get_permissions(self):
         permissions = super().get_permissions()
         user = self.request.user
+        school = self.get_school()
         # Разрешения только для пользователей данной школы
-        if user.user_school.filter(school=self.get_school().school_id).exists():
+        if user.groups.filter(school=school).exists():
             if self.action in ["list", "retrieve"]:
                 # Разрешения для просмотра групп (любой пользователь школы)
                 return permissions
             elif self.action in ["create", "update", "partial_update", "destroy"]:
                 # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-                if user.groups.filter(name="Admin").exists():
+                if user.groups.filter(school=school, group__name="Admin").exists():
                     return permissions
                 else:
                     raise PermissionDenied(
