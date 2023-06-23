@@ -58,6 +58,8 @@ class HomeworkViewSet(
             return HomeworkSerializer
 
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, 'swagger_fake_view', False):
+            return Homework.objects.none()  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
