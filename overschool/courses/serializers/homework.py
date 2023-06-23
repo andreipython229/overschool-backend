@@ -21,6 +21,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
         model = Homework
         fields = [
             "homework_id",
+            "baselesson_ptr_id",
             "section",
             "name",
             "order",
@@ -86,6 +87,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
         model = Homework
         fields = [
             "homework_id",
+            "baselesson_ptr_id",
             "section",
             "name",
             "order",
