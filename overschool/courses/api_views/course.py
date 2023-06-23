@@ -23,10 +23,13 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class CourseViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
+class CourseViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
     Получать курсы может любой пользователь. \n
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
@@ -41,27 +44,59 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.Mode
         else:
             return CourseSerializer
 
-    def get_permissions(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра курсов (любой пользователь)
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
-        elif self.action in ["create", "update", "partial_update", "destroy", "clone"]:
-            # Разрешения для создания и изменения курсов (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+        if self.action in ["list", "retrieve", "sections"]:
+            # Разрешения для просмотра курсов (любой пользователь школы)
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
+        user = self.request.user
         school_name = self.kwargs.get("school_name")
-        queryset = Course.objects.filter(school__name=school_name)
-        return queryset
+        school_id = School.objects.get(name=school_name).school_id
+
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return Course.objects.filter(school__name=school_name)
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, students=user
+            ).values_list("course_id", flat=True)
+            return Course.objects.filter(course_id__in=course_ids)
+
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, teacher_id=user.pk
+            ).values_list("course_id", flat=True)
+            return Course.objects.filter(course_id__in=course_ids)
+
+        return Course.objects.none()
 
     def create(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        school = self.request.data.get("school")
+        if school != school_id:
+            return Response(
+                "Указанный id школы не соответствует id текущей школы.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         course = serializer.save(photo=None)
@@ -75,6 +110,15 @@ class CourseViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.Mode
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        school = self.request.data.get("school")
+        if school != school_id:
+            return Response(
+                "Указанный id школы не соответствует id текущей школы.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         instance = self.get_object()
         serializer = CourseSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
