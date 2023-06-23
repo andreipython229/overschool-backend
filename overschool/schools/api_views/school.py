@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_school_image
-from courses.models import StudentsGroup, UserTest
-from django.db.models import Avg, Count, F, Sum
+from courses.models import StudentsGroup, UserHomework
+from django.db.models import Sum, Avg, Subquery, OuterRef
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -19,7 +19,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -32,57 +32,61 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         """Статистика учеников школы\n
         Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
-        data = queryset.values(
-            course=F("course_id"),
-            email=F("students__email"),
-            student_name=F("students__first_name"),
-            student=F("students__id"),
-            avatar=F("students__profile__avatar"),
-            group=F("group_id"),
-            last_active=F("students__date_joined"),
-            update_date=F("students__date_joined"),
-            ending_date=F("students__date_joined"),
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            queryset = queryset.filter(students__date_joined=last_active).distinct()
+
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            queryset = queryset.filter(students__user_homeworks__mark__gte=mark_sum).distinct()
+
+        subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
+            mark_sum=Sum("mark")
+        ).values("mark_sum")
+
+        subquery_average_mark = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
+            "user_id").annotate(avg=Avg("mark")).values("avg")
+
+        data = queryset.values_list(
+            'course_id',
+            'group_id',
+            'students__date_joined',
+            'students__email',
+            'students__first_name',
+            'students__id',
+            'students__profile__avatar'
+
         ).annotate(
-            mark_sum=Sum("students__user_homeworks__mark"),
-            average_mark=Avg("students__user_homeworks__mark"),
-            progress=(F("students__user_progresses__lesson__order") * 100)
-            / Count("course_id__sections__lessons"),
+            mark_sum=Subquery(subquery_mark_sum),
+            average_mark=Subquery(subquery_average_mark),
+
         )
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item["student"])
+            profile = Profile.objects.get(user_id=item[5])
             serializer = UserProfileGetSerializer(profile)
+
             serialized_data.append(
                 {
-                    "course": item["course"],
-                    "email": item["email"],
-                    "student_name": item["student_name"],
-                    "student": item["student"],
+                    "course_id": item[0],
+                    "group_id": item[1],
+                    "date_joined": item[2],
+                    "email": item[3],
+                    "first_name": item[4],
+                    "student_id": item[5],
                     "avatar": serializer.data["avatar_url"],
-                    "group": item["group"],
-                    "last_active": item["last_active"],
-                    "update_date": item["update_date"],
-                    "ending_date": item["ending_date"],
-                    "mark_sum": item["mark_sum"],
-                    "average_mark": item["average_mark"],
-                    "progress": item["progress"],
+                    "mark_sum": item[7],
+                    "average_mark": item[8],
                 }
             )
-        for row in data:
-            mark_sum = (
-                UserTest.objects.filter(user=row["student"])
-                .values("user")
-                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
-            )
-            row["mark_sum"] += mark_sum // 10 if bool(mark_sum) else 0
-        page = self.paginate_queryset(data)
-        if page is not None:
-            return self.get_paginated_response(page)
-        return Response(data)
+
+        return Response(serialized_data)
 
     def get_permissions(self):
+
         permissions = super().get_permissions()
+
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра школ (любой пользователь)
             return permissions

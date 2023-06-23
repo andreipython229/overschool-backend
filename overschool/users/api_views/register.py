@@ -2,8 +2,12 @@ from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics, permissions
-from users.serializers import SignupSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer, \
-    ConfirmationSerializer
+from users.serializers import (
+    ConfirmationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetSerializer,
+    SignupSerializer,
+)
 from users.services import JWTHandler, SenderServiceMixin
 
 User = get_user_model()
@@ -13,7 +17,8 @@ sender_service = SenderServiceMixin()  # Создаем экземпляр Sende
 
 class SignupView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт регистрации пользователя\n
-        Эндпоинт регистрации пользователя"""
+    Эндпоинт регистрации пользователя"""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = SignupSerializer
 
@@ -22,22 +27,22 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        email = serializer.validated_data['email']
-        phone_number = serializer.validated_data['phone_number']
+        email = serializer.validated_data["email"]
+        phone_number = serializer.validated_data["phone_number"]
 
         if email:
             # Отправляем код подтверждения по электронной почте
-            confirmation_code = sender_service.send_code_by_email(email)
+            sender_service.send_code_by_email(email)
         elif phone_number:
             # Отправляем код подтверждения на телефон
 
-            confirmation_code = sender_service.send_code_by_phone(phone_number)
+            sender_service.send_code_by_phone(phone_number)
         else:
             return HttpResponse("Email or phone number is required.", status=400)
 
         # Сохраняем код подтверждения и другие данные в Redis
 
-        response = HttpResponse("http://127.0.0.1:8000/api/users/", status=201)
+        response = HttpResponse("/api/user/", status=201)
         return response
 
 
@@ -48,8 +53,9 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
     def post(self, request, school_name=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data['code']  # Получаем введенный пользователем код подтверждения
-
+        code = serializer.validated_data[
+            "code"
+        ]  # Получаем введенный пользователем код подтверждения
 
         saved_code = sender_service.REDIS_INSTANCE.get(code)
 
@@ -61,25 +67,29 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
             user.is_active = True  # Устанавливаем статус активации пользователя
             user.save()
 
-            return HttpResponse("Confirmation code is valid. User authenticated successfully.")
+            return HttpResponse(
+                "Confirmation code is valid. User authenticated successfully."
+            )
         else:
             # Код подтверждения не совпадает
             return HttpResponse("Invalid confirmation code.", status=400)
 
+
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт сброса пароля\n
-        <ul>
-            <li>Отправляем код для сброса пароля по электронной почте или Отправляем код для сброса пароля на телефон</li>
-            <li>Сохраняем код для сброса пароля и другие данные в Redis</li>
-        </ul>"""
+    <ul>
+        <li>Отправляем код для сброса пароля по электронной почте или Отправляем код для сброса пароля на телефон</li>
+        <li>Сохраняем код для сброса пароля и другие данные в Redis</li>
+    </ul>"""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetSerializer
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        phone_number = serializer.validated_data['phone_number']
+        email = serializer.validated_data["email"]
+        phone_number = serializer.validated_data["phone_number"]
 
         if email:
             # Отправляем код для сброса пароля по электронной почте
@@ -87,7 +97,9 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
         elif phone_number:
             # Отправляем код для сброса пароля на телефон
 
-            reset_code = sender_service.send_code_for_password_reset_by_phone_number(phone_number)
+            reset_code = sender_service.send_code_for_password_reset_by_phone_number(
+                phone_number
+            )
         else:
             return HttpResponse("Email or phone number is required.", status=400)
 
@@ -99,19 +111,20 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
 
 class PasswordResetConfirmView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт проверки кода для сброса пароля\n
-        <ul>
-            <li>Проверяем код для сброса пароля в Redis</li>
-            <li>Обновляем пароль</li>
-        </ul>"""
+    <ul>
+        <li>Проверяем код для сброса пароля в Redis</li>
+        <li>Обновляем пароль</li>
+    </ul>"""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetConfirmSerializer
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        reset_code = serializer.validated_data['reset_code']
-        new_password = serializer.validated_data['new_password']
+        serializer.validated_data["email"]
+        serializer.validated_data["reset_code"]
+        serializer.validated_data["new_password"]
 
         # Проверяем код для сброса пароля в Redis
 

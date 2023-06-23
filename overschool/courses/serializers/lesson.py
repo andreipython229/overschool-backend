@@ -18,6 +18,7 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = [
             "lesson_id",
+            "baselesson_ptr_id",
             "section",
             "name",
             "order",
@@ -79,6 +80,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = [
             "lesson_id",
+            "baselesson_ptr_id",
             "section",
             "name",
             "order",

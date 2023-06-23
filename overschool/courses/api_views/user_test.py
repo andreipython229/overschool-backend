@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Answer, Question, SectionTest, UserTest
 from courses.serializers import UserTestSerializer
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
 
@@ -13,7 +13,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
 

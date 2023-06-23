@@ -3,6 +3,9 @@ from users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    groups = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -19,4 +22,11 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
             "groups",
+            "schools",
         ]
+
+    def get_groups(self, obj):
+        return obj.groups.values_list("group_id", flat=True)
+
+    def get_schools(self, obj):
+        return obj.groups.values_list("school_id", flat=True)

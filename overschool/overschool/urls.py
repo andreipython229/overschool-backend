@@ -19,7 +19,7 @@ from users.api_views import (
     UserSchoolsView,
 )
 
-from .main_router import router
+from .main_router import router, user_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -49,17 +49,17 @@ urlpatterns = [
         name="user_schools",
     ),
     path(
-        "api/<str:school_name>/code/confirm/",
+        "api/code/confirm/",
         ConfirmationView.as_view(actions={"post": "post"}),
         name="code",
     ),
     path(
-        "api/<str:school_name>/password/reset/",
+        "api/password/reset/",
         PasswordResetView.as_view(actions={"post": "post"}),
         name="password_reset",
     ),
     path(
-        "api/<str:school_name>/password/reset/confirm/",
+        "api/password/reset/confirm/",
         PasswordResetConfirmView.as_view(actions={"post": "post"}),
         name="password_reset_confirm",
     ),
@@ -68,6 +68,7 @@ urlpatterns = [
         LogoutView.as_view(actions={"get": "get"}),
         name="logout",
     ),
+    path("api/", include(user_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
     path("api/<str:school_name>/chats/", include("chats.urls")),
     re_path(

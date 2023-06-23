@@ -1,10 +1,9 @@
+from courses.models import StudentsTableInfo
+from courses.serializers import StudentsTableInfoSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import mixins, permissions, status
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-
-from courses.models import StudentsTableInfo
-from courses.serializers import StudentsTableInfoSerializer
 
 
 class StudentsTableInfoViewSet(
@@ -14,12 +13,13 @@ class StudentsTableInfoViewSet(
     mixins.ListModelMixin,
     GenericViewSet,
 ):
-    ''' Эндпоинт табличной информации о студентах\n
-        Табличная информация о студентах
-    '''
+    """Эндпоинт табличной информации о студентах\n
+    Табличная информация о студентах
+    """
+
     queryset = StudentsTableInfo.objects.all()
     serializer_class = StudentsTableInfoSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         user_id = self.kwargs["pk"]

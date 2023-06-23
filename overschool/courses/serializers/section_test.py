@@ -13,6 +13,7 @@ class TestSerializer(serializers.ModelSerializer):
         model = SectionTest
         fields = [
             "test_id",
+            "baselesson_ptr_id",
             "section",
             "name",
             "success_percent",

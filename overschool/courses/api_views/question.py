@@ -13,11 +13,10 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
     queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action in ["list", "retrieve"]:
+        if self.action in ["list", "retrieve", "update", "partial_update"]:
             return QuestionGetSerializer
         else:
             return QuestionSerializer
@@ -54,7 +53,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = QuestionSerializer(instance, data=request.data)
+        serializer = QuestionGetSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("picture"):

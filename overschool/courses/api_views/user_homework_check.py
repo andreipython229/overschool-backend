@@ -20,7 +20,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
 
     queryset = UserHomeworkCheck.objects.all()
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
     http_method_names = ["get", "post", "patch", "put", "head"]
 
