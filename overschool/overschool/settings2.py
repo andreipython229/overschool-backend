@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     "schools.apps.SchoolsConfig",
     "djoser",
     "corsheaders",
-    "django_filters",
     "chats.apps.ChatsConfig",
     "channels",
     "sentry_sdk",
