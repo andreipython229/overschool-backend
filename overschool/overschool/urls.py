@@ -16,6 +16,7 @@ from users.api_views import (
     PasswordResetView,
     SignupSchoolOwnerView,
     SignupView,
+    UserSchoolsView,
 )
 
 from .main_router import router, user_router
@@ -33,9 +34,19 @@ urlpatterns = [
         name="register_school_owner",
     ),
     path(
+        "api/<str:school_name>/access-distribution/",
+        AccessDistributionView.as_view(actions={"post": "post", "delete": "delete"}),
+        name="access_distribution",
+    ),
+    path(
         "api/login/",
         LoginView.as_view(actions={"post": "post"}),
         name="login",
+    ),
+    path(
+        "api/user-schools/",
+        UserSchoolsView.as_view(actions={"get": "list"}),
+        name="user_schools",
     ),
     path(
         "api/code/confirm/",
@@ -59,11 +70,6 @@ urlpatterns = [
     ),
     path("api/", include(user_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
-    path(
-        "api/<str:school_name>/access-distribution/",
-        AccessDistributionView.as_view(actions={"post": "post", "delete": "delete"}),
-        name="access_distribution",
-    ),
     path("api/<str:school_name>/chats/", include("chats.urls")),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",

@@ -3,6 +3,12 @@ from .confident_files_views import ConfidentFilesViewSet
 from .login import LoginView
 from .logout import LogoutView
 from .profile import ProfileViewSet
-from .register import PasswordResetConfirmView, PasswordResetView, SignupView, ConfirmationView
+from .register import (
+    ConfirmationView,
+    PasswordResetConfirmView,
+    PasswordResetView,
+    SignupView,
+)
 from .register_school_owner import SignupSchoolOwnerView
+from .user_schools import UserSchoolsView
 from .users import UserViewSet
