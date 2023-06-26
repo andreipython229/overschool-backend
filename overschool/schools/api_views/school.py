@@ -1,6 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_school_image
-from courses.models import StudentsGroup, UserHomework
+from courses.models import StudentsGroup, UserHomework, Course, Section
+from courses.serializers import SectionSerializer
 from django.db.models import Sum, Avg, Subquery, OuterRef
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -29,9 +30,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk, *args, **kwargs):
-        """Статистика учеников школы\n
-        Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
+        school = self.get_object()
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
@@ -54,7 +54,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             'students__email',
             'students__first_name',
             'students__id',
-            'students__profile__avatar'
+            'students__profile__avatar',
+            'students__last_name',
 
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
@@ -66,18 +67,22 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         for item in data:
             profile = Profile.objects.get(user_id=item[5])
             serializer = UserProfileGetSerializer(profile)
-
+            courses = Course.objects.filter(school=school)
+            sections = Section.objects.filter(course__in=courses)
+            section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
                 {
                     "course_id": item[0],
                     "group_id": item[1],
-                    "date_joined": item[2],
+                    "last_active": item[2],
                     "email": item[3],
                     "first_name": item[4],
                     "student_id": item[5],
                     "avatar": serializer.data["avatar_url"],
-                    "mark_sum": item[7],
-                    "average_mark": item[8],
+                    "last_name": item[7],
+                    "mark_sum": item[8],
+                    "average_mark": item[9],
+                    "sections": section_data,
                 }
             )
 

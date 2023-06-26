@@ -50,10 +50,10 @@ class SignupSerializer(serializers.Serializer):
 
         if phone_number:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_phone_number(user=instance,
-                                                     phone_number=phone_number)  # Передайте объект пользователя как аргумент
+            sender_service.send_code_by_phone(phone_number=phone_number, user=instance)
 
             return instance
+
 
 class ConfirmationSerializer(serializers.Serializer):
     code = serializers.CharField(required=True)
@@ -63,8 +63,6 @@ class ConfirmationSerializer(serializers.Serializer):
 
         if not code:
             raise serializers.ValidationError("Code is required.")
-
-
 
         return attrs
 

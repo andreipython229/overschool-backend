@@ -76,7 +76,7 @@ class SenderServiceMixin(RedisDataMixin):
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
 
-                send_code.send_code_to_phone(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post")
+                send_code.send_code_by_phone(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post")
             elif phone_data[1] == "RU":
                 params = {
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
@@ -86,7 +86,7 @@ class SenderServiceMixin(RedisDataMixin):
                     "fmt": 3,
                 }
 
-                send_code.send_code_to_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get")
+                send_code.send_code_by_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get")
 
             self.save_confirmation_code(phone_number, confirmation_code)
 
