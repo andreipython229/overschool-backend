@@ -8,7 +8,6 @@ from users.models import User
 import redis
 from django.conf import settings
 from django.core.mail import send_mail
-from users.tasks import send_code
 from typing import Optional
 
 from .redis_data_mixin import RedisDataMixin
@@ -76,7 +75,7 @@ class SenderServiceMixin(RedisDataMixin):
                     "alphaname_id": SenderServiceMixin.ALFA_SMS,
                 }
 
-                send_code.send_code_by_phone(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "post")
+                self.send_code_to_phone(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params, "POST")
             elif phone_data[1] == "RU":
                 params = {
                     "login": SenderServiceMixin.RUSSIAN_LOGIN,
@@ -86,12 +85,24 @@ class SenderServiceMixin(RedisDataMixin):
                     "fmt": 3,
                 }
 
-                send_code.send_code_by_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "get")
+                self.send_code_to_phone(SenderServiceMixin.RUSSIAN_SERVICE_ENDPOINT, params, "GET")
 
             self.save_confirmation_code(phone_number, confirmation_code)
 
         return confirmation_code
 
+    def send_code_to_phone(self, url: str, params: dict, method: str):
+        """
+        Send code to a phone number using the specified URL, parameters, and method
+        """
+        response = requests.request(
+            method,
+            url,
+            params=params,
+            headers
+            ={"content-type": "application/json"},
+        )
+        print(response)
     def send_code_for_password_reset_by_email(self, email):
         # Generate password reset code
         reset_code = self.generate_confirmation_code()
