@@ -53,26 +53,33 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
     def post(self, request, school_name=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data[
-            "code"
-        ]  # Получаем введенный пользователем код подтверждения
+        code = serializer.validated_data["code"]
+        email = serializer.validated_data.get("email")
+        phone_number = serializer.validated_data.get("phone_number")
+
+        # Проверка кода подтверждения и остальных данных
 
         saved_code = sender_service.REDIS_INSTANCE.get(code)
 
         if saved_code and code == saved_code.decode():
-            # Код подтверждения совпадает, выполняем аутентификацию пользователя
+            # Код подтверждения совпадает, выполняем дополнительные проверки
 
-            user = self.get_user_from_request()  # Получаем пользователя из запроса
+            is_valid_email = User.objects.filter(email=email).exists() if email else False
+            is_valid_phone_number = User.objects.filter(phone_number=phone_number).exists() if phone_number else False
 
-            user.is_active = True  # Устанавливаем статус активации пользователя
-            user.save()
+            if (email and is_valid_email) or (phone_number and is_valid_phone_number):
+                # Почта или номер телефона совпадают с данными в базе
 
-            return HttpResponse(
-                "Confirmation code is valid. User authenticated successfully."
-            )
+                user = self.get_user_from_request()  # Получаем пользователя из запроса
+
+                user.is_active = True  # Устанавливаем статус активации пользователя
+                user.save()
+
+                return HttpResponse("Confirmation code is valid. User authenticated successfully and activated.")
+            else:
+                return HttpResponse("Invalid email or phone number.", status=400)
         else:
-            # Код подтверждения не совпадает
-            return HttpResponse("Invalid confirmation code.", status=400)
+            return HttpResponse("Invalid confirmation code. Please check the code or request a new one.", status=400)
 
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):

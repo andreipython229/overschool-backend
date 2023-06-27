@@ -46,7 +46,7 @@ class SignupSerializer(serializers.Serializer):
 
         if email:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_email(user=instance, email=email)  # Передайте объект пользователя как аргумент
+            sender_service.send_code_by_email(user=instance, email=email)
 
         if phone_number:
             sender_service = SenderServiceMixin()
@@ -57,12 +57,25 @@ class SignupSerializer(serializers.Serializer):
 
 class ConfirmationSerializer(serializers.Serializer):
     code = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    phone_number = serializers.CharField(required=True)
 
     def validate(self, attrs):
         code = attrs.get("code")
+        email = attrs.get("email")
+        phone_number = attrs.get("phone_number")
 
         if not code:
             raise serializers.ValidationError("Code is required.")
+
+        # Дополнительные проверки для почты и номера телефона
+        if not email:
+            raise serializers.ValidationError("Email is required.")
+
+        if not phone_number:
+            raise serializers.ValidationError("Phone number is required.")
+
+        # Вы можете добавить дополнительные проверки на формат почты или номера телефона
 
         return attrs
 
