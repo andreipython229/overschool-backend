@@ -1,47 +1,83 @@
 from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
+from courses.models import Course, StudentsGroup, UserTest
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
+    GroupStudentsSerializer,
+    GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
     SectionSerializer,
 )
+from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
+from users.models import UserGroup
 
 
-class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class StudentsGroupViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт получения, создания, изменения групп студентов\n
     Разрешения для просмотра групп (любой пользователь)
     Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
     """
 
-    queryset = StudentsGroup.objects.all()
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
+    def get_queryset(self):
+        return StudentsGroup.objects.filter(
+            course_id__school__school_id=self.get_school().school_id
+        )
+
     def get_permissions(self):
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра групп (любой пользователь)
-            return permissions
-        elif self.action in ["create", "update", "partial_update", "destroy"]:
-            # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+        user = self.request.user
+        school = self.get_school()
+        # Разрешения только для пользователей данной школы
+        if user.groups.filter(school=school).exists():
+            if self.action in ["list", "retrieve"]:
+                # Разрешения для просмотра групп (любой пользователь школы)
                 return permissions
+            elif self.action in ["create", "update", "partial_update", "destroy"]:
+                # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
+                if user.groups.filter(school=school, group__name="Admin").exists():
+                    return permissions
+                else:
+                    raise PermissionDenied(
+                        "У вас нет прав для выполнения этого действия."
+                    )
             else:
-                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                return permissions
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def perform_create(self, serializer):
+        serializer.is_valid()
+        course = serializer.validated_data["course_id"]
+        school = self.get_school()
+        teacher = serializer.validated_data["teacher_id"]
+
+        if course.school != school:
+            raise serializers.ValidationError("Курс не относится к вашей школе.")
+        if not teacher.groups.filter(school=school, group__name="Teacher").exists():
+            raise serializers.ValidationError(
+                "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
+            )
+
         # Создаём модель настроек группы
         group_settings_data = self.request.data.get("group_settings")
         if not group_settings_data:
@@ -52,10 +88,38 @@ class StudentsGroupViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewS
         # Сохраняем группу студентов
         serializer.save()
         # Получаем всех студентов, которые были добавлены в группу
-        students = self.request.data.get("students")
-        for student_id in students:
+        students = serializer.validated_data.get("students")
+        group = Group.objects.get(name="Student")
+        for student in students:
             # Создаем роли студентов для конкретной школы
-            pass
+            if not UserGroup.objects.filter(
+                user=student, group=group, school=school
+            ).exists():
+                UserGroup.objects.create(user=student, group=group, school=school)
+
+    def perform_update(self, serializer):
+        course = serializer.validated_data["course_id"]
+        school = self.get_school()
+        teacher = serializer.validated_data["teacher_id"]
+
+        if course.school != school:
+            raise serializers.ValidationError("Курс не относится к вашей школе.")
+        if not teacher.groups.filter(school=school, group__name="Teacher").exists():
+            raise serializers.ValidationError(
+                "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
+            )
+
+        students = serializer.validated_data.get("students")
+        group = Group.objects.get(name="Student")
+        for student in students:
+            # Создаем роли вновь добавленных студентов для конкретной школы
+            if not student.students_group_fk.filter(pk=self.get_object().pk).exists():
+                if not UserGroup.objects.filter(
+                    user=student, group=group, school=school
+                ).exists():
+                    UserGroup.objects.create(user=student, group=group, school=school)
+
+        serializer.save()
 
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
