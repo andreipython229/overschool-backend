@@ -11,7 +11,6 @@ def copy_text_file_to_homework_check(sender, instance, created, **kwargs):
         if user_homework_check:
             TextFile.objects.create(
                 file=instance.file,
-                description=instance.description,
                 user_homework_check=user_homework_check,
                 order=instance.order + 1,
             )
@@ -25,7 +24,6 @@ def copy_audio_file_to_homework_check(sender, instance, created, **kwargs):
         if user_homework_check:
             AudioFile.objects.create(
                 file=instance.file,
-                description=instance.description,
                 user_homework_check=user_homework_check,
                 order=instance.order + 1,
             )
