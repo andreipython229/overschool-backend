@@ -33,27 +33,35 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         queryset = StudentsGroup.objects.all()
         school = self.get_object()
 
-        last_active = self.request.GET.get("last_active")
-        if last_active:
-            queryset = queryset.filter(students__date_joined=last_active).distinct()
-        mark_sum = self.request.GET.get("mark_sum")
-        if mark_sum:
-            queryset = queryset.filter(students__user_homeworks__mark__gte=mark_sum).distinct()
         first_name = self.request.GET.get("first_name")
         if first_name:
             queryset = queryset.filter(students__first_name=first_name).distinct()
-        last_name = self.request.GET.get("first_name")
+        last_name = self.request.GET.get("last_name")
         if last_name:
             queryset = queryset.filter(students__last_name=last_name).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
-        average_mark = self.request.GET.get("average_mark")
-        if average_mark:
-            queryset = queryset.filter(students__user_homeworks__average_mark__gte=average_mark).distinct()
+
         school_name = self.request.GET.get("school_name")
         if school_name:
             queryset = queryset.filter(school_name=school_name).distinct()
+        last_active_min = self.request.GET.get("last_active_min")
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_min and last_active_max:
+            queryset = queryset.filter(students__date_joined__range=[last_active_min, last_active_max]).distinct()
+
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_min and mark_sum_max:
+            queryset = queryset.filter(
+                students__user_homeworks__mark__range=[mark_sum_min, mark_sum_max]).distinct()
+
+        average_mark_min = self.request.GET.get("average_mark_min")
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_min and average_mark_max:
+            queryset = queryset.filter(
+                students__user_homeworks__average_mark__range=[average_mark_min, average_mark_max]).distinct()
 
         subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
             mark_sum=Sum("mark")
