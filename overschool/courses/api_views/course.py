@@ -17,7 +17,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Count, F
+from django.db.models import Avg, Count, F, Sum
 from django.forms.models import model_to_dict
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -57,7 +57,7 @@ class CourseViewSet(
         if self.action in ["list", "retrieve", "sections"]:
             # Разрешения для просмотра курсов (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -187,18 +187,22 @@ class CourseViewSet(
 
                 # Вычисляем суммарный балл для студента
                 total_points = 0
+
                 for section in sections:
                     for lesson in section.lessons.all():
                         total_points += lesson.points
 
                 student_data.append(
                     {
+                        "course_id": course.course_id,
                         "id": student.id,
                         "username": student.username,
                         "first_name": student.first_name,
                         "last_name": student.last_name,
                         "email": student.email,
                         "course_name": course.name,
+                        "average_mark": student.user_homeworks.aggregate(average_mark=Avg("mark"))['average_mark'],
+                        "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))['mark_sum'],
                         "courses_avatar": CourseGetSerializer(course).data["photo_url"],
                         "course_updated_at": course.updated_at.strftime(
                             "%Y-%m-%d %H:%M:%S"
@@ -206,10 +210,9 @@ class CourseViewSet(
                         if course.updated_at
                         else None,
                         "group_name": group.name,
-                        "last_activity": group.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                        "last_active": student.date_joined
                         if course.updated_at
                         else None,
-                        "total_points": total_points,
                         "section": SectionSerializer(
                             course.sections.all(), many=True
                         ).data,

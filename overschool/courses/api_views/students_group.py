@@ -130,8 +130,11 @@ class StudentsGroupViewSet(
 
         student_data = []
         for student in students:
+
             student_data.append(
                 {
+                    "group_id": group.group_id,
+                    "group_name": group.name,
                     "id": student.id,
                     "username": student.username,
                     "first_name": student.first_name,

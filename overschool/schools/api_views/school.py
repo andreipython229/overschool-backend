@@ -32,13 +32,28 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def stats(self, request, pk, *args, **kwargs):
         queryset = StudentsGroup.objects.all()
         school = self.get_object()
+
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
-
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
             queryset = queryset.filter(students__user_homeworks__mark__gte=mark_sum).distinct()
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            queryset = queryset.filter(students__first_name=first_name).distinct()
+        last_name = self.request.GET.get("first_name")
+        if last_name:
+            queryset = queryset.filter(students__last_name=last_name).distinct()
+        group_name = self.request.GET.get("group_name")
+        if group_name:
+            queryset = queryset.filter(name=group_name).distinct()
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            queryset = queryset.filter(students__user_homeworks__average_mark__gte=average_mark).distinct()
+        school_name = self.request.GET.get("school_name")
+        if school_name:
+            queryset = queryset.filter(school_name=school_name).distinct()
 
         subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
             mark_sum=Sum("mark")
@@ -56,6 +71,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             'students__id',
             'students__profile__avatar',
             'students__last_name',
+            'name',
 
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
@@ -80,8 +96,10 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "student_id": item[5],
                     "avatar": serializer.data["avatar_url"],
                     "last_name": item[7],
-                    "mark_sum": item[8],
-                    "average_mark": item[9],
+                    "group_name": item[8],
+                    "school_name": school.name,
+                    "mark_sum": item[9],
+                    "average_mark": item[10],
                     "sections": section_data,
                 }
             )
