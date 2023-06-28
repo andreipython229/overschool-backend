@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_user_avatar
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
@@ -7,9 +7,10 @@ from users.permissions import OwnerProfilePermissions
 from users.serializers import UserProfileGetSerializer, UserProfileSerializer
 
 
-class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт просмотра и изменения Profiles\n
-        озвращаем только объекты пользователя, сделавшего запрос"""
+    озвращаем только объекты пользователя, сделавшего запрос"""
+
     queryset = Profile.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]

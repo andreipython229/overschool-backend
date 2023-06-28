@@ -1,9 +1,9 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import logout
 from django.http import HttpResponse
 from django.views import View
-from rest_framework import permissions
-from rest_framework import serializers
+from rest_framework import permissions, serializers
+
 from overschool import settings
 
 
@@ -11,7 +11,7 @@ class EmptySerializer(serializers.Serializer):
     pass
 
 
-class LogoutView(WithHeadersViewSet, View):
+class LogoutView(LoggingMixin, WithHeadersViewSet, View):
     permission_classes = [permissions.AllowAny]
     serializer_class = EmptySerializer
 

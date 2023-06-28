@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -12,7 +12,9 @@ from users.serializers import AccessDistributionSerializer
 User = get_user_model()
 
 
-class AccessDistributionView(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
+class AccessDistributionView(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
+):
     """Ендпоинт распределения ролей и доступов\n
     Ендпоинт распределения ролей и доступов к группам
     в зависимости от роли пользователя"""

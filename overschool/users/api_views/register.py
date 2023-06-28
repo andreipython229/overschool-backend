@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics, permissions
@@ -15,7 +15,7 @@ jwt_handler = JWTHandler()
 sender_service = SenderServiceMixin()  # Создаем экземпляр SenderServiceMixin
 
 
-class SignupView(WithHeadersViewSet, generics.GenericAPIView):
+class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт регистрации пользователя\n
     Эндпоинт регистрации пользователя"""
 
@@ -46,7 +46,7 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         return response
 
 
-class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
+class ConfirmationView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ConfirmationSerializer
 
@@ -64,8 +64,14 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
         if saved_code and code == saved_code.decode():
             # Код подтверждения совпадает, выполняем дополнительные проверки
 
-            is_valid_email = User.objects.filter(email=email).exists() if email else False
-            is_valid_phone_number = User.objects.filter(phone_number=phone_number).exists() if phone_number else False
+            is_valid_email = (
+                User.objects.filter(email=email).exists() if email else False
+            )
+            is_valid_phone_number = (
+                User.objects.filter(phone_number=phone_number).exists()
+                if phone_number
+                else False
+            )
 
             if (email and is_valid_email) or (phone_number and is_valid_phone_number):
                 # Почта или номер телефона совпадают с данными в базе
@@ -75,14 +81,19 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
                 user.is_active = True  # Устанавливаем статус активации пользователя
                 user.save()
 
-                return HttpResponse("Confirmation code is valid. User authenticated successfully and activated.")
+                return HttpResponse(
+                    "Confirmation code is valid. User authenticated successfully and activated."
+                )
             else:
                 return HttpResponse("Invalid email or phone number.", status=400)
         else:
-            return HttpResponse("Invalid confirmation code. Please check the code or request a new one.", status=400)
+            return HttpResponse(
+                "Invalid confirmation code. Please check the code or request a new one.",
+                status=400,
+            )
 
 
-class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
+class PasswordResetView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт сброса пароля\n
     <ul>
         <li>Отправляем код для сброса пароля по электронной почте или Отправляем код для сброса пароля на телефон</li>
@@ -116,7 +127,9 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
         return response
 
 
-class PasswordResetConfirmView(WithHeadersViewSet, generics.GenericAPIView):
+class PasswordResetConfirmView(
+    LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
+):
     """Эндпоинт проверки кода для сброса пароля\n
     <ul>
         <li>Проверяем код для сброса пароля в Redis</li>

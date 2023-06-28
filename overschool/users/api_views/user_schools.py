@@ -1,11 +1,11 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.http import HttpResponse
 from rest_framework import generics, permissions
 from schools.models import School
 from schools.serializers import SchoolSerializer
 
 
-class UserSchoolsView(WithHeadersViewSet, generics.GenericAPIView):
+class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт получения доступных школ\n
     Ендпоинт получения названий школ, доступных
     пользователю"""

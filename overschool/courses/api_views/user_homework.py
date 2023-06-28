@@ -1,16 +1,19 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
 from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
+from courses.models.homework.homework import Homework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     UserHomeworkDetailSerializer,
     UserHomeworkSerializer,
     UserHomeworkStatisticsSerializer,
 )
-from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import PermissionDenied
 from django.db.models import OuterRef, Subquery
 from rest_framework import generics, permissions, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
 
@@ -26,16 +29,48 @@ class UserHomeworkViewSet(
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "delete", "head"]
 
-    def get_queryset(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
         user = self.request.user
         if user.is_anonymous:
-            return UserHomework.objects.none()
-        if user.groups.filter(group__name="Student").exists():
-            return UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(group__name="Teacher").exists():
-            return UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(group__name="Admin").exists():
-            return UserHomework.objects.all().order_by("-created_at")
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            return permissions
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра домашних заданий (любой пользователь школы)
+            if user.groups.filter(
+                group__name__in=["Teacher", "Admin"], school=school_id
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                UserHomework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user = self.request.user
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            return UserHomework.objects.filter(
+                user=user, homework__section__course__school__name=school_name
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            return UserHomework.objects.filter(
+                teacher=user, homework__section__course__school__name=school_name
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return UserHomework.objects.filter(
+                homework__section__course__school__name=school_name
+            ).order_by("-created_at")
         return UserHomework.objects.none()
 
     def get_serializer_class(self):
@@ -46,14 +81,18 @@ class UserHomeworkViewSet(
 
     def create(self, request, *args, **kwargs):
         user = request.user
-        if isinstance(user, AnonymousUser):
-            return Response(
-                {"status": "Error", "message": "Пользователь не авторизован"},
+        school_name = self.kwargs.get("school_name")
+        homework = self.request.data.get("homework")
+        if homework is not None:
+            homeworks = Homework.objects.filter(
+                section__course__school__name=school_name
             )
-        if not user.groups.filter(group__name="Student").exists():
-            return Response(
-                {"status": "Error", "message": "Недостаточно прав доступа"},
-            )
+            try:
+                homeworks.get(pk=homework)
+            except homeworks.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная домашняя работа не относится не к одному курсу этой школы."
+                )
         existing_user_homework = UserHomework.objects.filter(
             user=user, homework=request.data.get("homework")
         ).first()
@@ -127,7 +166,9 @@ class UserHomeworkViewSet(
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
+class HomeworkStatisticsView(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.ListAPIView
+):
     """Эндпоинт возвращает стаитстику по домашним работам\n
     Эндпоинт возвращает стаитстику по домашним работам"""
 
@@ -135,17 +176,42 @@ class HomeworkStatisticsView(LoggingMixin, WithHeadersViewSet, generics.ListAPIV
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(
+            group__name__in=["Student", "Teacher", "Admin"], school=school_id
+        ).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                UserHomework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
         queryset = UserHomework.objects.none()
-        if user.is_anonymous:
-            return queryset
-        if user.groups.filter(group__name="Student").exists():
-            queryset = UserHomework.objects.filter(user=user).order_by("-created_at")
-        if user.groups.filter(group__name="Teacher").exists():
-            queryset = UserHomework.objects.filter(teacher=user).order_by("-created_at")
-        if user.groups.filter(group__name="Admin").exists():
-            queryset = UserHomework.objects.all().order_by("-created_at")
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            queryset = UserHomework.objects.filter(
+                user=user, homework__section__course__school__name=school_name
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            queryset = UserHomework.objects.filter(
+                teacher=user, homework__section__course__school__name=school_name
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            queryset = UserHomework.objects.filter(
+                homework__section__course__school__name=school_name
+            ).order_by("-created_at")
 
         if self.request.GET.get("status"):
             queryset = queryset.filter(status=self.request.GET.get("status"))
