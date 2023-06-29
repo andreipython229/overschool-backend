@@ -37,9 +37,9 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if serializer.is_valid():
             test_status = (
-                "П"
+                True
                 if int(request.data.get("success_percent")) >= test.success_percent
-                else "Н"
+                else False
             )
             serializer.save(user=user, status=test_status)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

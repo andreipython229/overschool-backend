@@ -35,7 +35,7 @@ class CourseViewSet(
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
     serializer_class = CourseSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
     def get_serializer_class(self):
