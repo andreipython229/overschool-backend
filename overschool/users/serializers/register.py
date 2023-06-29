@@ -6,7 +6,7 @@ from users.services import SenderServiceMixin
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
-    phone_number = PhoneNumberField(required=False)
+
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
@@ -35,24 +35,24 @@ class SignupSerializer(serializers.Serializer):
         validated_data.pop("password_confirmation")
         password = validated_data.pop("password")
         user = User(**validated_data)
-        user.set_password(password)
+        user.set_password(password)  # Установка пароля с помощью set_password
         user.save()
         return user
 
     def save(self, **kwargs):
         instance = super().save(**kwargs)
         email = instance.email
-        phone_number = instance.phone_number
+
 
         if email:
             sender_service = SenderServiceMixin()
-            sender_service.send_code_by_email(user=instance, email=email)
+            confirmation_code = sender_service.send_code_by_email(email=email)
+            instance.confirmation_code = confirmation_code
 
-        if phone_number:
-            sender_service = SenderServiceMixin()
-            sender_service.send_code_by_phone(phone_number=phone_number, user=instance)
 
-            return instance
+
+        instance.save()
+        return instance
 
 
 class ConfirmationSerializer(serializers.Serializer):
