@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
 from django.http import HttpResponse
@@ -10,7 +10,7 @@ User = get_user_model()
 jwt_handler = JWTHandler()
 
 
-class SignupSchoolOwnerView(WithHeadersViewSet, generics.GenericAPIView):
+class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт регистрации владельца школы\n
     Ендпоинт регистрации владельца школы,
     или же дополнение или изменения
@@ -20,7 +20,7 @@ class SignupSchoolOwnerView(WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = SignupSchoolOwnerSerializer
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
 
@@ -55,4 +55,4 @@ class SignupSchoolOwnerView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return HttpResponse("http://127.0.0.1:8000/api/users/", status=201)
+        return HttpResponse("/api/user/", status=201)

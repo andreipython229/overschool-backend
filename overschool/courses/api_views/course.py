@@ -57,7 +57,7 @@ class CourseViewSet(
         if self.action in ["list", "retrieve", "sections"]:
             # Разрешения для просмотра курсов (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -66,6 +66,10 @@ class CourseViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Homework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -201,8 +205,12 @@ class CourseViewSet(
                         "last_name": student.last_name,
                         "email": student.email,
                         "course_name": course.name,
-                        "average_mark": student.user_homeworks.aggregate(average_mark=Avg("mark"))['average_mark'],
-                        "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))['mark_sum'],
+                        "average_mark": student.user_homeworks.aggregate(
+                            average_mark=Avg("mark")
+                        )["average_mark"],
+                        "mark_sum": student.user_homeworks.aggregate(
+                            mark_sum=Sum("mark")
+                        )["mark_sum"],
                         "courses_avatar": CourseGetSerializer(course).data["photo_url"],
                         "course_updated_at": course.updated_at.strftime(
                             "%Y-%m-%d %H:%M:%S"

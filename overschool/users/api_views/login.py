@@ -1,4 +1,4 @@
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.http import HttpResponse
 from rest_framework import permissions, views
 from users.serializers import LoginSerializer
@@ -9,7 +9,7 @@ from overschool import settings
 jwt_handler = JWTHandler()
 
 
-class LoginView(WithHeadersViewSet, views.APIView):
+class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
 

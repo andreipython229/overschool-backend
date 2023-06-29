@@ -53,6 +53,10 @@ class SectionViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Section.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id

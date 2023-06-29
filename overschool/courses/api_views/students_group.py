@@ -7,12 +7,12 @@ from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
-    StudentsGroupSerializer,
     SectionSerializer,
+    StudentsGroupSerializer,
 )
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
-from rest_framework import permissions, serializers, status, viewsets
+from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -39,6 +39,10 @@ class StudentsGroupViewSet(
         return school
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsGroup.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         return StudentsGroup.objects.filter(
             course_id__school__school_id=self.get_school().school_id
         )
@@ -144,11 +148,16 @@ class StudentsGroupViewSet(
                     "last_active": student.date_joined,
                     "update_date": student.date_joined,
                     "ending_date": student.date_joined,
-                    "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))['mark_sum'],
-                    "average_mark": student.user_homeworks.aggregate(average_mark=Avg("mark"))['average_mark'],
-                    "section": SectionSerializer(course.course_id.sections.all(), many=True).data
+                    "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
+                        "mark_sum"
+                    ],
+                    "average_mark": student.user_homeworks.aggregate(
+                        average_mark=Avg("mark")
+                    )["average_mark"],
+                    "section": SectionSerializer(
+                        course.course_id.sections.all(), many=True
+                    ).data,
                 }
-
             )
         return Response(student_data)
 

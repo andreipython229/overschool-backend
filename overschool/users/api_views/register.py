@@ -1,8 +1,8 @@
-from common_services.mixins import WithHeadersViewSet
 from django.utils import timezone
 from datetime import timedelta
-from django.http import HttpResponse
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from rest_framework import generics, permissions
 from users.serializers import (
     ConfirmationSerializer,

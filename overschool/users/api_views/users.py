@@ -9,7 +9,6 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Возвращаем только объекты пользователя, сделавшего запрос\n
     Возвращаем только объекты пользователя, сделавшего запрос"""
 
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [OwnerUserPermissions]
     http_method_names = ["get", "head"]

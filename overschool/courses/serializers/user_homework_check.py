@@ -48,6 +48,7 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             "audio_files",
         ]
         read_only_fields = [
+            "user_homework",
             "text_files",
             "audio_files",
             "author_first_name",
