@@ -1,51 +1,129 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
-from courses.models import Answer, BaseLesson, Question, SectionTest
+from courses.models import (
+    Answer,
+    BaseLesson,
+    Question,
+    Section,
+    SectionTest,
+    StudentsGroup,
+)
 from courses.serializers import TestSerializer
 from courses.services import LessonProgressMixin
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 
 class TestViewSet(
-    LoggingMixin, WithHeadersViewSet, LessonProgressMixin, viewsets.ModelViewSet
+    LoggingMixin,
+    WithHeadersViewSet,
+    LessonProgressMixin,
+    SchoolMixin,
+    viewsets.ModelViewSet,
 ):
     """Эндпоинт просмотра, создания, изменения и удаления тестов\n
     Разрешения для просмотра тестов (любой пользователь)
     Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')"""
 
-    queryset = SectionTest.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
         permissions = super().get_permissions()
-        if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра тестов (любой пользователь)
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
-        elif self.action in [
-            "create",
-            "update",
-            "partial_update",
-            "destroy",
-            "post_questions",
+        if self.action in [
+            "list",
+            "retrieve",
+            "get_questions",
         ]:
-            # Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+            # Разрешения для просмотра тестов (любой пользователь школы)
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                SectionTest.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return SectionTest.objects.filter(section__course__school__name=school_name)
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, students=user
+            ).values_list("course_id", flat=True)
+            return SectionTest.objects.filter(section__course_id__in=course_ids)
+
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id_id__school__name=school_name, teacher_id=user.pk
+            ).values_list("course_id", flat=True)
+            return SectionTest.objects.filter(section__course_id__in=course_ids)
+
+        return SectionTest.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        section = self.request.data.get("section")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная секция не относится не к одному курсу этой школы."
+                )
+        serializer = TestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        section = self.request.data.get("section")
+        if section is not None:
+            sections = Section.objects.filter(course__school__name=school_name)
+            try:
+                sections.get(pk=section)
+            except sections.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная секция не относится не к одному курсу этой школы."
+                )
+        instance = self.get_object()
+        serializer = TestSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk, *args, **kwargs):
         """Возвращает вопросы к конкретному тесту\n
         Возвращает вопросы к конкретному тесту"""
-        test_obj = SectionTest.objects.get(test_id=pk).__dict__
+        queryset = self.get_queryset()
+        test_obj = queryset.get(test_id=pk).__dict__
         test = {
             "test": pk,
             "name": test_obj["name"],
@@ -91,12 +169,13 @@ class TestViewSet(
         """Создать вопросы в тесте\n
         Создать вопросы в тесте"""
         try:
-            test_obj = SectionTest.objects.get(test_id=pk)
+            queryset = self.get_queryset()
+            test_obj = queryset.get(test_id=pk)
             questions = request.data.get("questions")
             for question in questions:
                 q = Question(
                     test=test_obj,
-                    question_type=question["type"],
+                    question_type=question["question_type"],
                     body=question["body"],
                     picture=question["picture"] if "picture" in question else None,
                     is_any_answer_correct=question["is_any_answer_correct"]
@@ -123,9 +202,9 @@ class TestViewSet(
                     )
                     a.save()
             return Response(data={"status": "OK"}, status=status.HTTP_201_CREATED)
-        except Exception:
+        except Exception as e:
             return Response(
-                data={"status": "Error"}, status=status.HTTP_400_BAD_REQUEST
+                data={"status": f"Error: {e}"}, status=status.HTTP_400_BAD_REQUEST
             )
         # Question.objects.bulk_create(
         #     [Question(test=test_obj,
