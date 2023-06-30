@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex
+from common_services.selectel_client import bulk_remove_from_selectel
 from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -97,30 +97,32 @@ class UserHomeworkViewSet(
                 },
             )
         else:
-            remove_resp = None
-
-            # Удаление файлов текста и аудио связанных с user_homework
-            for file_obj in list(user_homework.text_files.values("file")) + list(
+            # Файлы текста и аудио, связанные с user_homework
+            user_homework_files = list(user_homework.text_files.values("file")) + list(
                 user_homework.audio_files.values("file")
-            ):
-                if remove_from_yandex(str(file_obj["file"])) == "Error":
-                    remove_resp = "Error"
-
-            # Удаление связанных user_homework_check и их файлов
+            )
+            # Файлы текста и аудио, связанные с user_homework_check
+            user_homework_checks_files = []
             user_homework_checks = user_homework.user_homework_checks.all()
             for user_homework_check in user_homework_checks:
-                for file_obj in list(
+                user_homework_checks_files += list(
                     user_homework_check.text_files.values("file")
-                ) + list(user_homework_check.audio_files.values("file")):
-                    if remove_from_yandex(str(file_obj["file"])) == "Error":
-                        remove_resp = "Error"
-                user_homework_check.delete()
+                ) + list(user_homework_check.audio_files.values("file"))
+
+            files_to_delete = list(
+                map(
+                    lambda el: str(el["file"]),
+                    user_homework_files + user_homework_checks_files,
+                )
+            )
+            # Удаляем сразу все файлы, связанные с домашней работой пользователя и ее доработками
+            remove_resp = bulk_remove_from_selectel(files_to_delete)
 
             self.perform_destroy(user_homework)
 
             if remove_resp == "Error":
                 return Response(
-                    {"error": "Запрашиваемый путь на диске не существует"},
+                    {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                     status=status.HTTP_204_NO_CONTENT,
                 )
             else:
