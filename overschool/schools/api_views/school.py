@@ -1,6 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_school_image
-from courses.models import StudentsGroup, UserHomework
+from courses.models import StudentsGroup, UserHomework, Course, Section
+from courses.serializers import SectionSerializer
 from django.db.models import Sum, Avg, Subquery, OuterRef
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -29,16 +30,38 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk, *args, **kwargs):
-        """Статистика учеников школы\n
-        Статистика учеников школы"""
         queryset = StudentsGroup.objects.all()
-        last_active = self.request.GET.get("last_active")
-        if last_active:
-            queryset = queryset.filter(students__date_joined=last_active).distinct()
+        school = self.get_object()
 
-        mark_sum = self.request.GET.get("mark_sum")
-        if mark_sum:
-            queryset = queryset.filter(students__user_homeworks__mark__gte=mark_sum).distinct()
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            queryset = queryset.filter(students__first_name=first_name).distinct()
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            queryset = queryset.filter(students__last_name=last_name).distinct()
+        group_name = self.request.GET.get("group_name")
+        if group_name:
+            queryset = queryset.filter(name=group_name).distinct()
+
+        school_name = self.request.GET.get("school_name")
+        if school_name:
+            queryset = queryset.filter(school_name=school_name).distinct()
+        last_active_min = self.request.GET.get("last_active_min")
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_min and last_active_max:
+            queryset = queryset.filter(students__date_joined__range=[last_active_min, last_active_max]).distinct()
+
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_min and mark_sum_max:
+            queryset = queryset.filter(
+                students__user_homeworks__mark__range=[mark_sum_min, mark_sum_max]).distinct()
+
+        average_mark_min = self.request.GET.get("average_mark_min")
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_min and average_mark_max:
+            queryset = queryset.filter(
+                students__user_homeworks__average_mark__range=[average_mark_min, average_mark_max]).distinct()
 
         subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
             mark_sum=Sum("mark")
@@ -54,7 +77,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             'students__email',
             'students__first_name',
             'students__id',
-            'students__profile__avatar'
+            'students__profile__avatar',
+            'students__last_name',
+            'name',
 
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
@@ -66,18 +91,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         for item in data:
             profile = Profile.objects.get(user_id=item[5])
             serializer = UserProfileGetSerializer(profile)
-
+            courses = Course.objects.filter(school=school)
+            sections = Section.objects.filter(course__in=courses)
+            section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
                 {
                     "course_id": item[0],
                     "group_id": item[1],
-                    "date_joined": item[2],
+                    "last_active": item[2],
                     "email": item[3],
                     "first_name": item[4],
                     "student_id": item[5],
                     "avatar": serializer.data["avatar_url"],
-                    "mark_sum": item[7],
-                    "average_mark": item[8],
+                    "last_name": item[7],
+                    "group_name": item[8],
+                    "school_name": school.name,
+                    "mark_sum": item[9],
+                    "average_mark": item[10],
+                    "sections": section_data,
                 }
             )
 

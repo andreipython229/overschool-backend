@@ -3,7 +3,9 @@ from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 from users.managers import UserManager
-
+from datetime import datetime, timedelta
+from django.conf import settings
+from rest_framework import serializers
 
 class User(AbstractBaseUser):
     """Модель пользователя"""
@@ -36,6 +38,19 @@ class User(AbstractBaseUser):
         max_length=150,
         default="",
     )
+    confirmation_code = models.CharField(
+        verbose_name="Код подтверждения",
+        max_length=4,
+        null=True,
+        blank=True,
+
+    )
+    confirmation_code_created_at = models.DateTimeField(
+        verbose_name="Дата создания кода подтверждения",
+        null=True,
+        blank=True,
+        default=timezone.now
+    )
     email = models.EmailField(
         verbose_name="Почта", help_text="Почта", null=True, blank=True
     )
@@ -55,6 +70,8 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
 
+
+
     def has_perm(self, perm, obj=None):
         if self.is_active and self.is_superuser:
             return True
@@ -69,3 +86,18 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
+
+    CONFIRMATION_CODE_EXPIRY_MINUTES = settings.CONFIRMATION_CODE_EXPIRY_MINUTES
+
+    def validate_confirmation_code(self, code):
+        # Проверяем время создания кода подтверждения
+        expiry_time = datetime.now() - timedelta(minutes=self.CONFIRMATION_CODE_EXPIRY_MINUTES)
+        if self.confirmation_code_created_at < expiry_time:
+            # Если код просрочен, удаляем его и возвращаем ошибку
+            self.confirmation_code = None
+            self.confirmation_code_created_at = None
+            self.save(update_fields=['confirmation_code', 'confirmation_code_created_at'])
+            raise serializers.ValidationError("Confirmation code has expired.")
+        else:
+            self.confirmation_code_created_at = datetime.now()
+            self.save(update_fields=['confirmation_code_created_at'])

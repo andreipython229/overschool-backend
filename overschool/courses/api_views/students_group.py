@@ -7,11 +7,12 @@ from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
+    SectionSerializer,
     StudentsGroupSerializer,
 )
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
-from rest_framework import permissions, serializers, status, viewsets
+from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -38,6 +39,10 @@ class StudentsGroupViewSet(
         return school
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsGroup.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         return StudentsGroup.objects.filter(
             course_id__school__school_id=self.get_school().school_id
         )
@@ -123,60 +128,38 @@ class StudentsGroupViewSet(
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
         """Все студенты одной группы"""
-
+        course = self.get_object()
         group = self.get_object()
         students = group.students.all()
 
         student_data = []
         for student in students:
+
             student_data.append(
                 {
+                    "group_id": group.group_id,
+                    "group_name": group.name,
                     "id": student.id,
                     "username": student.username,
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
-                    # Добавьте другие поля пользователя, которые вам нужны
+                    "course_name": course.name,
+                    "last_active": student.date_joined,
+                    "update_date": student.date_joined,
+                    "ending_date": student.date_joined,
+                    "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
+                        "mark_sum"
+                    ],
+                    "average_mark": student.user_homeworks.aggregate(
+                        average_mark=Avg("mark")
+                    )["average_mark"],
+                    "section": SectionSerializer(
+                        course.course_id.sections.all(), many=True
+                    ).data,
                 }
             )
-
         return Response(student_data)
-
-    @action(detail=True)
-    def stats(self, request, pk, *args, **kwargs):
-        """Статистика учеников группы\n
-        Статистика учеников группы"""
-        group = self.get_object()
-        queryset = StudentsGroup.objects.filter(group_id=group.pk)
-        data = queryset.values(
-            course=F("course_id"),
-            email=F("students__email"),
-            student_name=F("students__first_name"),
-            student=F("students__id"),
-            group=F("group_id"),
-            last_active=F("students__date_joined"),
-            update_date=F("students__date_joined"),
-            ending_date=F("students__date_joined"),
-        ).annotate(
-            mark_sum=Sum("students__user_homeworks__mark"),
-            average_mark=Avg("students__user_homeworks__mark"),
-            progress=(F("students__user_progresses__lesson__order") * 100)
-            / Count("course_id__sections__lessons__lesson_id"),  # бьет ошибку
-        )
-
-        for row in data:
-            mark_sum = (
-                UserTest.objects.filter(user=row["student"])
-                .values("user")
-                .aggregate(mark_sum=Sum("success_percent"))["mark_sum"]
-            )
-            row["mark_sum"] += (
-                mark_sum // 10 if mark_sum is not None else 0
-            )  # бьет ошибку
-        page = self.paginate_queryset(data)
-        if page is not None:
-            return self.get_paginated_response(page)
-        return Response(data)
 
     @action(detail=True)
     def user_count_by_month(self, request, pk, *args, **kwargs):

@@ -22,6 +22,10 @@ class StudentsGroupSettingsViewSet(
         return school
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsGroupSettings.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         return StudentsGroupSettings.objects.filter(
             students_group_settings_fk__course_id__school__school_id=self.get_school().school_id
         )

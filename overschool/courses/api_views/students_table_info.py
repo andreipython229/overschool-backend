@@ -1,3 +1,4 @@
+from common_services.mixins import LoggingMixin
 from courses.models import StudentsTableInfo
 from courses.serializers import StudentsTableInfoSerializer
 from django.core.exceptions import ObjectDoesNotExist
@@ -7,6 +8,7 @@ from rest_framework.viewsets import GenericViewSet
 
 
 class StudentsTableInfoViewSet(
+    LoggingMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,

@@ -1,4 +1,6 @@
-from common_services.mixins import WithHeadersViewSet
+from django.utils import timezone
+from datetime import timedelta
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics, permissions
@@ -9,6 +11,8 @@ from users.serializers import (
     SignupSerializer,
 )
 from users.services import JWTHandler, SenderServiceMixin
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -28,17 +32,12 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.save()
 
         email = serializer.validated_data["email"]
-        phone_number = serializer.validated_data["phone_number"]
 
         if email:
             # Отправляем код подтверждения по электронной почте
             sender_service.send_code_by_email(email)
-        elif phone_number:
-            # Отправляем код подтверждения на телефон
-
-            sender_service.send_code_by_phone(phone_number)
         else:
-            return HttpResponse("Email or phone number is required.", status=400)
+            return HttpResponse("Email is required.", status=400)
 
         # Сохраняем код подтверждения и другие данные в Redis
 
@@ -49,31 +48,44 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
 class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ConfirmationSerializer
+    allowed_methods = ['POST']  # Only allow the "POST" method
+
+
 
     def post(self, request, school_name=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data[
-            "code"
-        ]  # Получаем введенный пользователем код подтверждения
+        code = serializer.validated_data["code"]
+        email = serializer.validated_data.get("email")
+        phone_number = serializer.validated_data.get("phone_number")
 
-        saved_code = sender_service.REDIS_INSTANCE.get(code)
+        # Проверка кода подтверждения и остальных данных
 
-        if saved_code and code == saved_code.decode():
-            # Код подтверждения совпадает, выполняем аутентификацию пользователя
+        saved_code = User.objects.filter(confirmation_code=code, is_active=False).exists()
 
-            user = self.get_user_from_request()  # Получаем пользователя из запроса
+        if saved_code:
+            # Код подтверждения совпадает, выполняем дополнительные проверки
+            user = get_object_or_404(User, confirmation_code=code, is_active=False)
 
-            user.is_active = True  # Устанавливаем статус активации пользователя
-            user.save()
+            is_valid_email = User.objects.filter(email=email).exists() if email else False
+            is_valid_phone_number = User.objects.filter(phone_number=phone_number).exists() if phone_number else False
 
-            return HttpResponse(
-                "Confirmation code is valid. User authenticated successfully."
-            )
+            if (email and is_valid_email) or (phone_number and is_valid_phone_number):
+                # Почта или номер телефона совпадают с данными в базе
+
+
+                user.is_active = True  # Устанавливаем статус активации пользователя
+                user.confirmation_code = None  # Удаляем код подтверждения из модели пользователя
+                user.confirmation_code_created_at = timezone.now()  # Устанавливаем время создания кода подтверждения
+                user.save(update_fields=['is_active', 'confirmation_code', 'confirmation_code_created_at'])
+
+                return Response("Confirmation code is valid. User authenticated successfully and activated.")
+            else:
+                return Response("Invalid email or phone number.", status=400)
         else:
-            # Код подтверждения не совпадает
-            return HttpResponse("Invalid confirmation code.", status=400)
-
+            expiry_time = timezone.now() - timedelta(minutes=User.CONFIRMATION_CODE_EXPIRY_MINUTES)
+            User.objects.filter(confirmation_code_created_at__lt=expiry_time).delete()
+            return Response("Invalid confirmation code. Please check the code or request a new one.", status=400)
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт сброса пароля\n

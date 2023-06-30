@@ -9,76 +9,102 @@ from courses.serializers import (
     UserHomeworkCheckDetailSerializer,
     UserHomeworkCheckSerializer,
 )
-from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 
-class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+class HomeworkCheckViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт создания историй проверок домашних заданий ученика.\n
     Cоздавать истории может только ученик и учитель, а так же редактировать исключительно свои истории.
     """
 
-    queryset = UserHomeworkCheck.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
     http_method_names = ["get", "post", "patch", "put", "head"]
 
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(
+            group__name__in=["Student", "Teacher", "Admin"], school=school_id
+        ).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
     def get_serializer_class(self):
-        if self.action == "retrieve":
+        if self.action in ["retrieve", "update"]:
             return UserHomeworkCheckDetailSerializer
         else:
             return UserHomeworkCheckSerializer
 
-    def get_queryset(self):
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                UserHomework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
-        if user.is_anonymous:
-            return UserHomeworkCheck.objects.none()
-        if user.groups.filter(group__name="Student").exists():
-            return UserHomeworkCheck.objects.filter(user_homework__user=user).order_by(
-                "-created_at"
-            )
-        if user.groups.filter(group__name="Teacher").exists():
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
             return UserHomeworkCheck.objects.filter(
-                user_homework__teacher=user
+                user_homework__user=user,
+                user_homework__homework__section__course__school__name=school_name,
             ).order_by("-created_at")
-        if user.groups.filter(group__name="Admin").exists():
-            return UserHomeworkCheck.objects.all().order_by("-created_at")
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            return UserHomeworkCheck.objects.filter(
+                user_homework__teacher=user,
+                user_homework__homework__section__course__school__name=school_name,
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return UserHomeworkCheck.objects.filter(
+                user_homework__homework__section__course__school__name=school_name
+            ).order_by("-created_at")
         return UserHomeworkCheck.objects.none()
 
     def create(self, request, *args, **kwargs):
         user = request.user
-        if isinstance(user, AnonymousUser):
-            return Response(
-                {"status": "Error", "message": "Пользователь не авторизован"},
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user_homework = self.request.data.get("user_homework")
+        if user_homework is not None:
+            user_homeworks = UserHomework.objects.filter(
+                homework__section__course__school__name=school_name
             )
-        if (
-            not user.groups.filter(group__name="Student").exists()
-            and not user.groups.filter(group__name="Teacher").exists()
-        ):
-            return Response(
-                {"status": "Error", "message": "Недостаточно прав доступа"},
-            )
-
+            try:
+                user_homeworks.get(pk=user_homework)
+            except user_homeworks.model.DoesNotExist:
+                raise NotFound(
+                    "Указанная домашняя работа не относится не к одному курсу этой школы."
+                )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_homework_id = serializer.validated_data["user_homework"].pk
-        user_homework = UserHomework.objects.get(pk=user_homework_id)
+        user_homework_obj = UserHomework.objects.get(pk=user_homework)
 
-        if user.groups.filter(group__name="Student").exists():
+        if user.groups.filter(group__name="Student", school=school_id).exists():
             # Логика для студента
-
             # Проверка, что студент является автором user_homework.user
-            if user_homework.user != user:
+            if user_homework_obj.user != user:
                 return Response(
                     {
                         "status": "Error",
                         "message": "Студент не является автором данного домашнего задания",
                     },
                 )
-
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
+            if user_homework_obj.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",
@@ -91,11 +117,10 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 author=user,
             )
 
-        elif user.groups.filter(group__name="Teacher").exists():
+        elif user.groups.filter(group__name="Teacher", school=school_id).exists():
             # Логика для учителя
-
             # Проверка, что учитель является преподавателем user_homework.teacher
-            if user_homework.teacher != user:
+            if user_homework_obj.teacher != user:
                 return Response(
                     {
                         "status": "Error",
@@ -103,7 +128,7 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                     },
                 )
             # Проверка, что статус user_homework не равен "Принято"
-            if user_homework.status == UserHomeworkStatusChoices.SUCCESS:
+            if user_homework_obj.status == UserHomeworkStatusChoices.SUCCESS:
                 return Response(
                     {
                         "status": "Error",
@@ -112,7 +137,6 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 )
 
             serializer.save(author=user)
-
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -146,6 +170,6 @@ class HomeworkCheckViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             user_homework_check.mark = request.data.get("mark")
 
         user_homework_check.save()
-        serializer = UserHomeworkCheckSerializer(user_homework_check)
+        serializer = UserHomeworkCheckDetailSerializer(user_homework_check)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
