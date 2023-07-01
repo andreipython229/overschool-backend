@@ -12,6 +12,8 @@ class EmptySerializer(serializers.Serializer):
 
 
 class LogoutView(LoggingMixin, WithHeadersViewSet, View):
+    """<h2>/api/logout/</h2>\n"""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = EmptySerializer
 

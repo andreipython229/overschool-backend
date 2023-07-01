@@ -23,6 +23,7 @@ class SectionViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт получения, создания, редактирования и удаления секций.\n
+    <h2>/api/{school_name}/sections/</h2>\n
     Разрешения для просмотра секций (любой пользователь)
     Разрешения для создания и изменения секций (только пользователи с группой 'Admin')
     """
@@ -124,6 +125,9 @@ class SectionViewSet(
 
     @action(detail=True)
     def lessons(self, request, pk, *args, **kwargs):
+        """Эндпоинт получения, всех уроков, домашек и тестов секций.\n
+        <h2>/api/{school_name}/sections/{section_id}/lessons/</h2>\n
+        """
         queryset = self.get_queryset()
 
         data = queryset.values(
@@ -151,6 +155,7 @@ class SectionViewSet(
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
+                            "baselesson_ptr_id": obj.baselesson_ptr_id,
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),

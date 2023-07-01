@@ -9,6 +9,7 @@ from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerial
 
 class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления хедера школы.\n
+    <h2>/api/{school_name}/school_header/</h2>\n
     Эндпоинт на получение, создания, изменения и удаления хедера школы
     """
 

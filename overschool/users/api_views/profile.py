@@ -8,8 +8,9 @@ from users.serializers import UserProfileGetSerializer, UserProfileSerializer
 
 
 class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
-    """Эндпоинт просмотра и изменения Profiles\n
-    озвращаем только объекты пользователя, сделавшего запрос"""
+    """Эндпоинт просмотра и изменения Profile\n
+    <h2>/api/profile/</h2>\n
+    возвращаем только объекты пользователя, сделавшего запрос"""
 
     queryset = Profile.objects.all()
     serializer_class = UserProfileSerializer

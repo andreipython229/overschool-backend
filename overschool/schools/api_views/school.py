@@ -15,6 +15,7 @@ from users.serializers import UserProfileGetSerializer
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
+    <h2>/api/{school_name}/schools/</h2>\n
     Разрешения для просмотра школ (любой пользователь)\n
     Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number')"""
 

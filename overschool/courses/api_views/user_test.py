@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт тестирования учеников\n
+    <h2>/api/{school_name}/usertest/</h2>\n
     Тесты проходить могут только ученики\n
     Редактировать и удалять пройденные тесты могут только администраторы
     """
