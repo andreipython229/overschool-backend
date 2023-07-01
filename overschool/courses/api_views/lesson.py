@@ -1,4 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.selectel_client import bulk_remove_from_selectel
 from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Course, Lesson, Section, StudentsGroup
 from courses.serializers import LessonDetailSerializer, LessonSerializer
@@ -52,8 +53,10 @@ class LessonViewSet(
             return LessonSerializer
 
     def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return Lesson.objects.none()  # Возвращаем пустой queryset при генерации схемы
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Lesson.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -147,20 +150,21 @@ class LessonViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        base_lesson = BaseLesson.objects.get(lessons=instance)
-        course = base_lesson.section.course
-        school_id = course.school.school_id
-
-        remove_resp = remove_from_yandex(
-            "/{}_school/{}_course/{}_lesson".format(
-                school_id, course.course_id, base_lesson.id
+        files_to_delete = list(
+            map(
+                lambda el: str(el["file"]),
+                list(instance.text_files.values("file"))
+                + list(instance.audio_files.values("file")),
             )
         )
+        # Удаляем сразу все файлы урока
+        remove_resp = bulk_remove_from_selectel(files_to_delete)
+
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:

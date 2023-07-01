@@ -1,6 +1,5 @@
-import yadisk
 from common_services.models import AudioFile
-from common_services.yandex_client import get_yandex_link
+from common_services.selectel_client import get_selectel_link
 from rest_framework import serializers
 
 
@@ -58,4 +57,4 @@ class AudioFileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_link(self, obj):
-        return get_yandex_link(str(obj.file))
+        return get_selectel_link(str(obj.file))

@@ -1,6 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.selectel_client import bulk_remove_from_selectel
 from common_services.yandex_client import remove_from_yandex, upload_file
-from courses.models import BaseLesson, Homework
+from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
@@ -58,8 +59,10 @@ class HomeworkViewSet(
             return HomeworkSerializer
 
     def get_queryset(self, *args, **kwargs):
-        if getattr(self, 'swagger_fake_view', False):
-            return Homework.objects.none()  # Возвращаем пустой queryset при генерации схемы
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Homework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
@@ -143,20 +146,42 @@ class HomeworkViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        base_lesson = BaseLesson.objects.get(homeworks=instance)
-        course = base_lesson.section.course
-        school_id = course.school.school_id
 
-        remove_resp = remove_from_yandex(
-            "/{}_school/{}_course/{}_lesson".format(
-                school_id, course.course_id, base_lesson.id
+        # Файлы текста и аудио, связанные с homework
+        homework_files = list(instance.text_files.values("file")) + list(
+            instance.audio_files.values("file")
+        )
+        # Файлы текста и аудио, связанные с user_homework
+        user_homework_files = []
+        user_homeworks = instance.user_homeworks.all()
+        for user_homework in user_homeworks:
+            user_homework_files += list(user_homework.text_files.values("file")) + list(
+                user_homework.audio_files.values("file")
+            )
+        # Файлы текста и аудио, связанные с user_homework_check
+        user_homework_checks_files = []
+        user_homework_checks = UserHomeworkCheck.objects.filter(
+            user_homework__homework=instance
+        )
+        for user_homework_check in user_homework_checks:
+            user_homework_checks_files += list(
+                user_homework_check.text_files.values("file")
+            ) + list(user_homework_check.audio_files.values("file"))
+
+        files_to_delete = list(
+            map(
+                lambda el: str(el["file"]),
+                homework_files + user_homework_files + user_homework_checks_files,
             )
         )
+        # Удаляем сразу все файлы, связанные с домашней работой
+        remove_resp = bulk_remove_from_selectel(files_to_delete)
+
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:
