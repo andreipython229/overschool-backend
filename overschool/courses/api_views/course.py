@@ -31,6 +31,7 @@ class CourseViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
+    <h2>/api/{school_name}/courses/</h2>\n
     Получать курсы может любой пользователь. \n
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
@@ -68,7 +69,7 @@ class CourseViewSet(
     def get_queryset(self, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
             return (
-                Homework.objects.none()
+                Course.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
@@ -161,7 +162,8 @@ class CourseViewSet(
 
     @action(detail=True, methods=["GET"])
     def get_students_for_course(self, request, pk=None, *args, **kwargs):
-        """Все студенты одного курса"""
+        """Все студенты одного курса\n
+        <h2>/api/{school_name}/courses/{course_id}/get_students_for_course/</h2>\n"""
 
         course = self.get_object()
         groups = StudentsGroup.objects.filter(course_id=course.course_id)
@@ -258,6 +260,7 @@ class CourseViewSet(
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
         """Клонирование курса\n
+        <h2>/api/{school_name}/courses/{course_id}/clone/</h2>\n
         Клонирование курса"""
 
         course = self.get_object()
@@ -268,6 +271,7 @@ class CourseViewSet(
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
         """Данные по всем секциям курс\n
+        <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
 
         course = self.get_object()
@@ -324,6 +328,7 @@ class CourseViewSet(
     @action(detail=True)
     def user_count_by_month(self, request, pk, *args, **kwargs):
         """Кол-во новых пользователей курса за месяц\n
+        <h2>/api/{school_name}/courses/{course_id}/user_count_by_month/</h2>\n
         Кол-во новых пользователей курса за месяц, по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number=""
         """
@@ -400,6 +405,7 @@ class CourseViewSet(
     @action(detail=True)
     def student_groups(self, request, pk, *args, **kwargs):
         """Список всех групп курса\n
+        <h2>/api/{school_name}/courses/{course_id}/students_groups/</h2>\n
         Список всех групп курса"""
 
         queryset = StudentsGroup.objects.filter(course_id=pk)

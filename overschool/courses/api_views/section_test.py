@@ -26,6 +26,7 @@ class TestViewSet(
     viewsets.ModelViewSet,
 ):
     """Эндпоинт просмотра, создания, изменения и удаления тестов\n
+    <h2>/api/{school_name}/tests/</h2>\n
     Разрешения для просмотра тестов (любой пользователь)
     Разрешения для создания и изменения тестов (только пользователи с группой 'Admin')"""
 
@@ -121,6 +122,7 @@ class TestViewSet(
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk, *args, **kwargs):
         """Возвращает вопросы к конкретному тесту\n
+        <h2>/api/{school_name}/tests/{test_id}/get_questions/</h2>\n
         Возвращает вопросы к конкретному тесту"""
         queryset = self.get_queryset()
         test_obj = queryset.get(test_id=pk).__dict__
@@ -130,6 +132,7 @@ class TestViewSet(
             "show_right_answers": test_obj["show_right_answers"],
             "attempt_limit": test_obj["attempt_limit"],
             "attempt_count": test_obj["attempt_count"],
+            "success_percent": test_obj["success_percent"],
         }
         questions = (
             (
@@ -167,6 +170,7 @@ class TestViewSet(
     @action(detail=True, methods=["POST"])
     def post_questions(self, request, pk, *args, **kwargs):
         """Создать вопросы в тесте\n
+        <h2>/api/{school_name}/tests/{test_id}/post_questions/</h2>\n
         Создать вопросы в тесте"""
         try:
             queryset = self.get_queryset()

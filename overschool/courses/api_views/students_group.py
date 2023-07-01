@@ -25,6 +25,7 @@ class StudentsGroupViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт получения, создания, изменения групп студентов\n
+    <h2>/api/{school_name}/students_group/</h2>\n
     Разрешения для просмотра групп (любой пользователь)
     Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
     """
@@ -127,7 +128,8 @@ class StudentsGroupViewSet(
 
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
-        """Все студенты одной группы"""
+        """Все студенты одной группы\n
+        <h2>/api/{school_name}/students_group/{group_id}/get_students_for_group/</h2>\n"""
         course = self.get_object()
         group = self.get_object()
         students = group.students.all()
@@ -164,6 +166,7 @@ class StudentsGroupViewSet(
     @action(detail=True)
     def user_count_by_month(self, request, pk, *args, **kwargs):
         """Кол-во новых пользователей группы за месяц\n
+        <h2>/api/{school_name}/students_group/{group_id}/user_count_by_month/</h2>\n
         по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number="""
 

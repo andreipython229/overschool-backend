@@ -1,8 +1,8 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_school_image
-from courses.models import StudentsGroup, UserHomework, Course, Section
+from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
-from django.db.models import Sum, Avg, Subquery, OuterRef
+from django.db.models import Avg, OuterRef, Subquery, Sum
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -15,6 +15,7 @@ from users.serializers import UserProfileGetSerializer
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
+    <h2>/api/{school_name}/schools/</h2>\n
     Разрешения для просмотра школ (любой пользователь)\n
     Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number')"""
 
@@ -49,42 +50,54 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         last_active_min = self.request.GET.get("last_active_min")
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_min and last_active_max:
-            queryset = queryset.filter(students__date_joined__range=[last_active_min, last_active_max]).distinct()
+            queryset = queryset.filter(
+                students__date_joined__range=[last_active_min, last_active_max]
+            ).distinct()
 
         mark_sum_min = self.request.GET.get("mark_sum_min")
         mark_sum_max = self.request.GET.get("mark_sum_max")
         if mark_sum_min and mark_sum_max:
             queryset = queryset.filter(
-                students__user_homeworks__mark__range=[mark_sum_min, mark_sum_max]).distinct()
+                students__user_homeworks__mark__range=[mark_sum_min, mark_sum_max]
+            ).distinct()
 
         average_mark_min = self.request.GET.get("average_mark_min")
         average_mark_max = self.request.GET.get("average_mark_max")
         if average_mark_min and average_mark_max:
             queryset = queryset.filter(
-                students__user_homeworks__average_mark__range=[average_mark_min, average_mark_max]).distinct()
+                students__user_homeworks__average_mark__range=[
+                    average_mark_min,
+                    average_mark_max,
+                ]
+            ).distinct()
 
-        subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
-            mark_sum=Sum("mark")
-        ).values("mark_sum")
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
 
-        subquery_average_mark = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-            "user_id").annotate(avg=Avg("mark")).values("avg")
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
 
         data = queryset.values_list(
-            'course_id',
-            'group_id',
-            'students__date_joined',
-            'students__email',
-            'students__first_name',
-            'students__id',
-            'students__profile__avatar',
-            'students__last_name',
-            'name',
-
+            "course_id",
+            "group_id",
+            "students__date_joined",
+            "students__email",
+            "students__first_name",
+            "students__id",
+            "students__profile__avatar",
+            "students__last_name",
+            "name",
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
-
         )
 
         serialized_data = []

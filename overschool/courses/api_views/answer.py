@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
+    <h2>/api/{school_name}/answers/</h2>\n
     Разрешения для просмотра ответов к тестам (любой пользователь).\n
     Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin').
     """

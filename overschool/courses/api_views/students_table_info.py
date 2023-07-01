@@ -16,6 +16,7 @@ class StudentsTableInfoViewSet(
     GenericViewSet,
 ):
     """Эндпоинт табличной информации о студентах\n
+    <h2>/api/{school_name}/students_table_info/</h2>\n
     Табличная информация о студентах
     """
 

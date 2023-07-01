@@ -8,6 +8,7 @@ from schools.serializers import SchoolSerializer
 
 class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт получения доступных школ\n
+    <h2>/api/user-school/</h2>\n
     Ендпоинт получения названий школ, доступных
     пользователю"""
 

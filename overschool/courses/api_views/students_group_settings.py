@@ -11,6 +11,7 @@ class StudentsGroupSettingsViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт для получения и изменения настроек группы\n
+    <h2>/api/{school_name}/students_group_settings/</h2>\n
     Эндпоинт для получения и изменения настроек группы"""
 
     serializer_class = StudentsGroupSettingsSerializer

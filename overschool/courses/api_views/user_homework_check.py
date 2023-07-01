@@ -21,6 +21,7 @@ class HomeworkCheckViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт создания историй проверок домашних заданий ученика.\n
+    <h2>/api/{school_name}/user_homework_checks/</h2>\n
     Cоздавать истории может только ученик и учитель, а так же редактировать исключительно свои истории.
     """
 
