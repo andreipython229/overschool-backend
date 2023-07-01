@@ -20,8 +20,6 @@ class SchoolHeader(TimeStampMixin, models.Model):
         verbose_name="Название школы",
         help_text="Главное название школы",
         unique=True,
-        blank=True,
-        null=True,
     )
     description = RichTextField(
         verbose_name="Описание",

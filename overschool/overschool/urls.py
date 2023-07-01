@@ -19,7 +19,7 @@ from users.api_views import (
     UserSchoolsView,
 )
 
-from .main_router import router, user_router
+from .main_router import router, school_router, user_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -29,7 +29,7 @@ urlpatterns = [
         name="register",
     ),
     path(
-        "api/<str:school_name>/register-school-owner/",
+        "api/register-school-owner/",
         SignupSchoolOwnerView.as_view(actions={"post": "post"}),
         name="register_school_owner",
     ),
@@ -69,6 +69,7 @@ urlpatterns = [
         name="logout",
     ),
     path("api/", include(user_router.urls)),
+    path("api/", include(school_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
     path("api/<str:school_name>/chats/", include("chats.urls")),
     re_path(

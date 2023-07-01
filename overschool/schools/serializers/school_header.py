@@ -54,6 +54,9 @@ class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
             "favicon_url",
             "school",
         ]
+        read_only_fields = [
+            "school",
+        ]
 
     def get_logo_school_link(self, obj):
         return get_yandex_link(str(obj.logo_school))
