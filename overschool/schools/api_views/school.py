@@ -38,8 +38,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats"]
-            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+                self.action in ["stats"]
+                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -121,6 +121,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         queryset = StudentsGroup.objects.none()
         user = self.request.user
         school = self.get_object()
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            queryset = StudentsGroup.objects.filter(
+                teacher_id=request.user, course_id__school=school
+            )
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            queryset = StudentsGroup.objects.filter(course_id__school=school)
         subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
             "user_id"
         ).annotate(mark_sum=Sum("mark")).values("mark_sum")
