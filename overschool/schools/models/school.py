@@ -21,7 +21,7 @@ class School(TimeStampMixin, OrderMixin):
         max_length=256,
         verbose_name="Название",
         help_text="Название школы",
-        default="Имя не придумано",
+        unique=True,
     )
     avatar = models.ImageField(
         verbose_name="Фотография",

@@ -16,6 +16,7 @@ class AccessDistributionView(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
 ):
     """Ендпоинт распределения ролей и доступов\n
+    <h2>/api/{school_name}/access-distribution/</h2>\n
     Ендпоинт распределения ролей и доступов к группам
     в зависимости от роли пользователя"""
 

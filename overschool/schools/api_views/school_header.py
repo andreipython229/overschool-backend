@@ -1,6 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex, upload_school_image
 from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from schools.models import SchoolHeader
 from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer
@@ -8,41 +9,68 @@ from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerial
 
 class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления хедера школы.\n
+    <h2>/api/{school_name}/school_header/</h2>\n
     Эндпоинт на получение, создания, изменения и удаления хедера школы
     """
 
-    queryset = SchoolHeader.objects.all()
-    serializer_class = SchoolHeaderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin").exists():
+            return permissions
+        if self.action in ["list", "retrieve"]:
+            # Разрешения для просмотра домашних заданий (любой пользователь школы)
+            if user.groups.filter(group__name__in=["Teacher", "Student"]).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self, *args, **kwargs):
+        user = self.request.user
+        queryset = SchoolHeader.objects.filter(school__groups__user=user)
+        return queryset
+
     def get_serializer_class(self):
-        if self.action == "retrieve":
+        if self.action in ["retrieve", "update"]:
             return SchoolHeaderDetailSerializer
         else:
             return SchoolHeaderSerializer
 
     def create(self, request, *args, **kwargs):
+        user = self.request.user
+        if not user.groups.filter(group__name="Admin").exists():
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        school = self.request.data.get("school")
+        if school is not None:
+            if not user.groups.filter(group__name="Admin", school=school).exists():
+                raise PermissionDenied("Вы не являетесь администратором данной школы.")
         serializer = SchoolHeaderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        school_id = request.data.get("school")
 
         logo_school = (
-            upload_school_image(request.FILES["logo_school"], school_id)
+            upload_school_image(request.FILES["logo_school"], school)
             if request.FILES.get("logo_school")
             else None
         )
         logo_header = (
-            upload_school_image(request.FILES["logo_header"], school_id)
+            upload_school_image(request.FILES["logo_header"], school)
             if request.FILES.get("logo_header")
             else None
         )
         photo_background = (
-            upload_school_image(request.FILES["photo_background"], school_id)
+            upload_school_image(request.FILES["photo_background"], school)
             if request.FILES.get("photo_background")
             else None
         )
         favicon = (
-            upload_school_image(request.FILES["favicon"], school_id)
+            upload_school_image(request.FILES["favicon"], school)
             if request.FILES.get("favicon")
             else None
         )
@@ -57,7 +85,12 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
     def update(self, request, *args, **kwargs):
         school_header = self.get_object()
+        user = self.request.user
         school_id = school_header.school.school_id
+        if not user.groups.filter(
+            group__name="Admin", school=school_header.school
+        ).exists():
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
         if request.FILES.get("logo_school"):
             if school_header.logo_school:
@@ -94,6 +127,9 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        user = self.request.user
+        if not user.groups.filter(group__name="Admin", school=instance.school).exists():
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         self.perform_destroy(instance)
         remove_resp = []
         if instance.logo_school:

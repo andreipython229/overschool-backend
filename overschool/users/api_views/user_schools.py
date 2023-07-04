@@ -1,12 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.http import HttpResponse
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
 from schools.models import School
 from schools.serializers import SchoolSerializer
 
 
 class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт получения доступных школ\n
+    <h2>/api/user-school/</h2>\n
     Ендпоинт получения названий школ, доступных
     пользователю"""
 
@@ -20,6 +22,9 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
         user_schools = self.get_queryset()
         if user_schools.first():
             data = user_schools.values("name")
-            return HttpResponse(data)
+            return Response(data)
         else:
-            return HttpResponse("У пользователя нет доступа ни к одной школе")
+            return Response(
+                "У пользователя нет доступа ни к одной школе",
+                status=status.HTTP_204_NO_CONTENT,
+            )

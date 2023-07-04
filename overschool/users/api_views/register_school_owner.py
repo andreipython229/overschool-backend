@@ -12,6 +12,7 @@ jwt_handler = JWTHandler()
 
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт регистрации владельца школы\n
+    <h2>/api/{school_name}/register-school-owner/</h2>\n
     Ендпоинт регистрации владельца школы,
     или же дополнение или изменения
     необходимых данных уже зарегистрированного пользователя,

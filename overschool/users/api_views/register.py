@@ -1,6 +1,5 @@
 from datetime import timedelta
-
-from common_services.mixins import WithHeadersViewSet
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -22,6 +21,7 @@ sender_service = SenderServiceMixin()  # Создаем экземпляр Sende
 
 class SignupView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт регистрации пользователя\n
+    <h2>/api/register/</h2>\n
     Эндпоинт регистрации пользователя"""
 
     permission_classes = [permissions.AllowAny]
