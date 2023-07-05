@@ -1,6 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import AudioFile
-from common_services.selectel_client import remove_from_selectel, upload_file
+from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileSerializer
 from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework import UserHomework
@@ -14,6 +14,8 @@ from rest_framework.response import Response
 from schools.school_mixin import SchoolMixin
 
 from schools.models import School
+
+s = SelectelClient()
 
 from common_services.services.request_params import FileParams
 
@@ -103,7 +105,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.M
                             serializer = self.get_serializer(data=request.data)
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                            file_path = upload_file(uploaded_file, base_lesson)
+                            file_path = s.upload_file(uploaded_file, base_lesson)
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
@@ -138,7 +140,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.M
                             serializer = self.get_serializer(data=request.data)
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                            file_path = upload_file(uploaded_file, base_lesson)
+                            file_path = s.upload_file(uploaded_file, base_lesson)
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
@@ -178,7 +180,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.M
                         serializer = self.get_serializer(data=request.data)
                         serializer.is_valid(raise_exception=True)
                         # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                        file_path = upload_file(uploaded_file, base_lesson)
+                        file_path = s.upload_file(uploaded_file, base_lesson)
                         serializer.save(author=user, file=file_path)
                         created_files.append(serializer.data)
                     return Response(created_files, status=status.HTTP_201_CREATED)
@@ -214,7 +216,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.M
             )
 
         self.perform_destroy(instance)
-        if remove_from_selectel(str(instance.file)) == "Success":
+        if s.remove_from_selectel(str(instance.file)) == "Success":
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(

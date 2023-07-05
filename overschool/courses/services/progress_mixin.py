@@ -16,7 +16,12 @@ class LessonProgressMixin:
         UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 
     def check_lesson_progress(self, instance, user, baselesson):
-        if user.groups.filter(group__name="Admin").exists():
+        if user.groups.filter(
+            group__name__in=[
+                "Admin",
+                "Teacher",
+            ]
+        ).exists():
             return None
 
         try:
@@ -35,7 +40,6 @@ class LessonProgressMixin:
                 {"detail": "Пользователь не состоит не в одной группе на этом курсе."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
         if students_group.group_settings.strict_task_order:
             try:
                 # Если есть запись в логе - то отдаём урок
@@ -110,10 +114,19 @@ class LessonProgressMixin:
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        user = self.request.user
+        if not instance:
+            return Response("Урок не найден.")
 
         baselesson = BaseLesson.objects.get(pk=instance.baselesson_ptr_id)
-        response = self.check_lesson_progress(instance, user, baselesson)
+        response = self.check_lesson_progress(instance, request.user, baselesson)
         if response is not None:
             return response
         return super().retrieve(request, *args, **kwargs)
+
+    def check_viewed_and_progress_log(self, request, instance):
+        if not instance:
+            return Response("Урок не найден.")
+
+        baselesson = BaseLesson.objects.get(pk=instance.baselesson_ptr_id)
+        response = self.check_lesson_progress(instance, request.user, baselesson)
+        return response

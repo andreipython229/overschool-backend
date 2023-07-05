@@ -1,8 +1,8 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_school_image
-from courses.models import StudentsGroup, UserHomework, Course, Section
+from common_services.selectel_client import SelectelClient
+from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
-from django.db.models import Sum, Avg, Subquery, OuterRef
+from django.db.models import Avg, OuterRef, Subquery, Sum
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -11,6 +11,8 @@ from schools.models import School
 from schools.serializers import SchoolGetSerializer, SchoolSerializer
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
+
+s = SelectelClient()
 
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -38,8 +40,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -75,7 +77,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         school_id = school.school_id
         if request.FILES.get("avatar"):
-            avatar = upload_school_image(request.FILES["avatar"], school_id)
+            avatar = s.upload_school_image(request.FILES["avatar"], school_id)
             school.avatar = avatar
             school.save()
             serializer = SchoolGetSerializer(school)
@@ -91,8 +93,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("avatar"):
             if school.avatar:
-                remove_from_yandex(str(school.avatar))
-            school.avatar = upload_school_image(request.FILES["avatar"], school_id)
+                s.remove_from_selectel(str(school.avatar))
+            school.avatar = s.upload_school_image(request.FILES["avatar"], school_id)
         school.order = request.data.get("order", school.order)
         school.name = request.data.get("name", school.name)
 
@@ -105,12 +107,19 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.owner != request.user:
             raise PermissionDenied("У вас нет разрешения на удаление этой школы.")
-        remove_resp = remove_from_yandex("/{}_school".format(instance.school_id))
+
+        # Получаем список файлов, хранящихся в папке удаляемой школы
+        files_to_delete = s.get_folder_files("{}_school".format(instance.pk))
+        # Удаляем все файлы, связанные с удаляемой школой
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
+
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:
@@ -127,13 +136,19 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
-        subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-            "user_id"
-        ).annotate(mark_sum=Sum("mark")).values("mark_sum")
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
 
-        subquery_average_mark = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-            "user_id"
-        ).annotate(avg=Avg("mark")).values("avg")
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
 
         first_name = request.GET.get("first_name")
         if first_name:
@@ -154,17 +169,25 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         last_active_min = request.GET.get("last_active_min")
         last_active_max = request.GET.get("last_active_max")
         if last_active_min and last_active_max:
-            queryset = queryset.filter(students__date_joined__range=[last_active_min, last_active_max]).distinct()
+            queryset = queryset.filter(
+                students__date_joined__range=[last_active_min, last_active_max]
+            ).distinct()
 
         mark_sum_min = request.GET.get("mark_sum_min")
         mark_sum_max = request.GET.get("mark_sum_max")
         if mark_sum_min and mark_sum_max:
-            subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-                "user_id"
-            ).annotate(mark_sum=Sum("mark")).values("mark_sum")
+            subquery_mark_sum = (
+                UserHomework.objects.filter(user_id=OuterRef("students__id"))
+                .values("user_id")
+                .annotate(mark_sum=Sum("mark"))
+                .values("mark_sum")
+            )
 
             queryset = queryset.filter(
-                students__id__in=subquery_mark_sum.filter(mark_sum__range=[mark_sum_min, mark_sum_max])).distinct()
+                students__id__in=subquery_mark_sum.filter(
+                    mark_sum__range=[mark_sum_min, mark_sum_max]
+                )
+            ).distinct()
 
         last_active = request.GET.get("last_active")
         if last_active:
@@ -173,28 +196,32 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         average_mark_min = request.GET.get("average_mark_min")
         average_mark_max = request.GET.get("average_mark_max")
         if average_mark_min and average_mark_max:
-            subquery_average_mark = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-                "user_id"
-            ).annotate(avg=Avg("mark")).values("avg")
+            subquery_average_mark = (
+                UserHomework.objects.filter(user_id=OuterRef("students__id"))
+                .values("user_id")
+                .annotate(avg=Avg("mark"))
+                .values("avg")
+            )
 
-            queryset = queryset.filter(students__id__in=subquery_average_mark.filter(
-                avg__range=[average_mark_min, average_mark_max])).distinct()
+            queryset = queryset.filter(
+                students__id__in=subquery_average_mark.filter(
+                    avg__range=[average_mark_min, average_mark_max]
+                )
+            ).distinct()
 
         data = queryset.values_list(
-            'course_id',
-            'group_id',
-            'students__date_joined',
-            'students__email',
-            'students__first_name',
-            'students__id',
-            'students__profile__avatar',
-            'students__last_name',
-            'name',
-
+            "course_id",
+            "group_id",
+            "students__date_joined",
+            "students__email",
+            "students__first_name",
+            "students__id",
+            "students__profile__avatar",
+            "students__last_name",
+            "name",
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
-
         )
 
         serialized_data = []
@@ -212,7 +239,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "email": item[3],
                     "first_name": item[4],
                     "student_id": item[5],
-                    "avatar": serializer.data["avatar_url"],
+                    "avatar": serializer.data["avatar"],
                     "last_name": item[7],
                     "group_name": item[8],
                     "school_name": school.name,
