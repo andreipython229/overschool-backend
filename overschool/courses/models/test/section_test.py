@@ -13,7 +13,16 @@ class SectionTest(BaseLesson, CloneMixin):
         verbose_name="ID теста",
         help_text="Уникальный идентификатор теста",
     )
-
+    random_test_generator = models.BooleanField(
+        default=False,
+        verbose_name="Автотест",
+        help_text="Автоматическая генерация теста",
+    )
+    num_questions = models.IntegerField(
+        default=0,
+        verbose_name="Количество вопросов",
+        help_text="Количество вопросов для генерации теста",
+    )
     success_percent = models.IntegerField(
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
@@ -42,3 +51,14 @@ class SectionTest(BaseLesson, CloneMixin):
         verbose_name = "Тест"
         verbose_name_plural = "Тесты"
         default_related_name = "tests"
+
+
+class RandomTestTests(models.Model):
+    test = models.ForeignKey(SectionTest, related_name="test", on_delete=models.CASCADE)
+    target_test = models.ForeignKey(
+        SectionTest, related_name="target_test", on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name = "Тесты для генерации"
+        verbose_name_plural = "Тесты для генерации"
