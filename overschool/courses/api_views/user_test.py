@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт тестирования учеников\n
+    <h2>/api/{school_name}/usertest/</h2>\n
     Тесты проходить могут только ученики\n
     Редактировать и удалять пройденные тесты могут только администраторы
     """
@@ -37,9 +38,9 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if serializer.is_valid():
             test_status = (
-                "П"
+                True
                 if int(request.data.get("success_percent")) >= test.success_percent
-                else "Н"
+                else False
             )
             serializer.save(user=user, status=test_status)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

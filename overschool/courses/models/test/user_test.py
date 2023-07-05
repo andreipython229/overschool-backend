@@ -1,16 +1,8 @@
+from common_services.mixins import TimeStampMixin
 from django.conf import settings
 from django.db import models
 
-from common_services.mixins import TimeStampMixin
-
 from .section_test import SectionTest
-
-
-class UserTestStatusChoices(models.TextChoices):
-    """Варианты статусов для пройденного теста"""
-
-    SUCCESS = "П", "Прошёл"
-    FAILED = "Н", "Не прошёл"
 
 
 class UserTest(TimeStampMixin, models.Model):
@@ -43,10 +35,8 @@ class UserTest(TimeStampMixin, models.Model):
         verbose_name="Процент(%) правильных ответов",
         help_text="Процент правильных ответов, которые ввёл ученик ученик",
     )
-    status = models.CharField(
-        max_length=256,
-        choices=UserTestStatusChoices.choices,
-        default=UserTestStatusChoices.SUCCESS,
+    status = models.BooleanField(
+        default=False,
         verbose_name="Статус",
         help_text="Статус, отображающий пройден ли тест учеником",
     )
@@ -54,4 +44,3 @@ class UserTest(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Сданный тест"
         verbose_name_plural = "Сданные тесты"
-

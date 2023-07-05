@@ -1,9 +1,11 @@
-from django.utils import timezone
 from datetime import timedelta
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions
+from rest_framework.response import Response
 from users.serializers import (
     ConfirmationSerializer,
     PasswordResetConfirmSerializer,
@@ -11,8 +13,6 @@ from users.serializers import (
     SignupSerializer,
 )
 from users.services import JWTHandler, SenderServiceMixin
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -21,6 +21,7 @@ sender_service = SenderServiceMixin()  # Создаем экземпляр Sende
 
 class SignupView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт регистрации пользователя\n
+    <h2>/api/register/</h2>\n
     Эндпоинт регистрации пользователя"""
 
     permission_classes = [permissions.AllowAny]
@@ -31,16 +32,6 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        email = serializer.validated_data["email"]
-
-        if email:
-            # Отправляем код подтверждения по электронной почте
-            sender_service.send_code_by_email(email)
-        else:
-            return HttpResponse("Email is required.", status=400)
-
-        # Сохраняем код подтверждения и другие данные в Redis
-
         response = HttpResponse("/api/user/", status=201)
         return response
 
@@ -49,8 +40,6 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ConfirmationSerializer
     allowed_methods = ['POST']  # Only allow the "POST" method
-
-
 
     def post(self, request, school_name=None):
         serializer = self.get_serializer(data=request.data)
@@ -73,7 +62,6 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
             if (email and is_valid_email) or (phone_number and is_valid_phone_number):
                 # Почта или номер телефона совпадают с данными в базе
 
-
                 user.is_active = True  # Устанавливаем статус активации пользователя
                 user.confirmation_code = None  # Удаляем код подтверждения из модели пользователя
                 user.confirmation_code_created_at = timezone.now()  # Устанавливаем время создания кода подтверждения
@@ -86,6 +74,7 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
             expiry_time = timezone.now() - timedelta(minutes=User.CONFIRMATION_CODE_EXPIRY_MINUTES)
             User.objects.filter(confirmation_code_created_at__lt=expiry_time).delete()
             return Response("Invalid confirmation code. Please check the code or request a new one.", status=400)
+
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     """Эндпоинт сброса пароля\n

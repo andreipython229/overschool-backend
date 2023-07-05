@@ -14,6 +14,7 @@ s = SelectelClient()
 class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
     Модель добавления аудиофайлов к урокам и занятиям\n
+    <h2>/api/{school_name}/audio_files/</h2>\n
     Модель добавления аудиофайлов к урокам и занятиям
     """
 

@@ -1,6 +1,5 @@
+from common_services.api_views import AudioFileViewSet, TextFileViewSet
 from rest_framework import routers
-
-from common_services.api_views import (AudioFileViewSet, TextFileViewSet)
 
 router = routers.DefaultRouter()
 router.register("audio_files", AudioFileViewSet, basename="audio_files")

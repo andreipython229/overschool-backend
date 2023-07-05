@@ -84,6 +84,9 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
+# Длительность жизни кода подтверждения в минутах
+CONFIRMATION_CODE_EXPIRY_MINUTES = 1
+
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
@@ -231,6 +234,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
+
+# Длительность жизни кода подтверждения в минутах
+CONFIRMATION_CODE_EXPIRY_MINUTES = 1
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

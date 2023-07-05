@@ -10,6 +10,8 @@ jwt_handler = JWTHandler()
 
 
 class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
+    """<h2>/api/login/</h2>\n"""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
 

@@ -7,6 +7,7 @@ from users.serializers import UserSerializer
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Возвращаем только объекты пользователя, сделавшего запрос\n
+    <h2>/api/user/</h2>\n
     Возвращаем только объекты пользователя, сделавшего запрос"""
 
     serializer_class = UserSerializer

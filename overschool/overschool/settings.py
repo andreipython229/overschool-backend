@@ -227,8 +227,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
 
 STATICFILES = (os.path.join(BASE_DIR, "static"),)
+
 # Длительность жизни кода подтверждения в минутах
 CONFIRMATION_CODE_EXPIRY_MINUTES = 1
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 

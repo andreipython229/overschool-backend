@@ -43,13 +43,10 @@ class SignupSerializer(serializers.Serializer):
         instance = super().save(**kwargs)
         email = instance.email
 
-
         if email:
             sender_service = SenderServiceMixin()
             confirmation_code = sender_service.send_code_by_email(email=email)
             instance.confirmation_code = confirmation_code
-
-
 
         instance.save()
         return instance

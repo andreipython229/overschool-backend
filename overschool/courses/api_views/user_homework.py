@@ -24,6 +24,7 @@ class UserHomeworkViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт домашних заданий ученика.\n
+    <h2>/api/{school_name}/user_homeworks/</h2>\n
     Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
     (свои поля-"text", "file"), учитель подкидывается исходя из группы пользователя.
     """

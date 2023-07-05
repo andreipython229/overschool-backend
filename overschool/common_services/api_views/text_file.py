@@ -13,6 +13,7 @@ s = SelectelClient()
 class TextFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
     Модель добавления текстовых к занятиям\n
+    <h2>/api/{school_name}/text_files/</h2>\n
     Модель добавления текстовых к занятиям
     """
 
