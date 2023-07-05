@@ -165,16 +165,6 @@ class TestViewSet(
             return Response(
                 data={"status": f"Error: {e}"}, status=status.HTTP_400_BAD_REQUEST
             )
-        # Question.objects.bulk_create(
-        #     [Question(test=test_obj,
-        #               question_type=question['type'],
-        #               body=question['body'],
-        #               picture=question['picture'] if 'picture' in question else None,
-        #               is_any_answer_correct=question[
-        #        `           'is_any_answer_correct'] if 'is_any_answer_correct' in question else None,
-        #               only_whole_numbers=question['only_whole_numbers'] if 'only_whole_numbers' in question else None)
-        #      for question in questions]
-        # )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

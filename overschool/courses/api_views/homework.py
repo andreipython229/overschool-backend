@@ -42,7 +42,7 @@ class HomeworkViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -113,7 +113,9 @@ class HomeworkViewSet(
             )
             homework.video = video
             homework.save()
-            serializer = HomeworkDetailSerializer(homework, context={"request": request})
+            serializer = HomeworkDetailSerializer(
+                homework, context={"request": request}
+            )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
