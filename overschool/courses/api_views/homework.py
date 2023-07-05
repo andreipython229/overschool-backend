@@ -40,7 +40,7 @@ class HomeworkViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -99,7 +99,8 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        serializer = HomeworkSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
         homework = serializer.save(video=None)
 
@@ -110,7 +111,7 @@ class HomeworkViewSet(
             )
             homework.video = video
             homework.save()
-            serializer = HomeworkDetailSerializer(homework)
+            serializer = HomeworkDetailSerializer(homework, context={"request": request})
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -126,7 +127,8 @@ class HomeworkViewSet(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
         instance = self.get_object()
-        serializer = HomeworkSerializer(instance, data=request.data)
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("video"):
@@ -141,7 +143,7 @@ class HomeworkViewSet(
 
         self.perform_update(serializer)
 
-        serializer = HomeworkDetailSerializer(instance)
+        serializer = HomeworkDetailSerializer(instance, context={"request": request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

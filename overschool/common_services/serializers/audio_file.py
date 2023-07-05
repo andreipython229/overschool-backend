@@ -21,13 +21,13 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file"]
 
     def validate(self, attrs):
         if (
-            not attrs.get("base_lesson")
-            and not attrs.get("user_homework")
-            and not attrs.get("user_homework_check")
+                not attrs.get("base_lesson")
+                and not attrs.get("user_homework")
+                and not attrs.get("user_homework_check")
         ):
             raise serializers.ValidationError(
                 "Укажите base_lesson либо user_homework либо user_homework_check"
