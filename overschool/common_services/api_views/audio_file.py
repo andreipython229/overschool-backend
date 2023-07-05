@@ -1,12 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import AudioFile
-from common_services.selectel_client import remove_from_selectel, upload_file
+from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileSerializer
 from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework import UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+
+s = SelectelClient()
 
 
 class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -46,7 +48,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         homeworks=user_homework.homework
                     )
                     # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                    file_path = upload_file(uploaded_file, base_lesson)
+                    file_path = s.upload_file(uploaded_file, base_lesson)
                     serializer.save(author=user, file=file_path)
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 else:
@@ -70,7 +72,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         homeworks=user_homework_check.user_homework.homework
                     )
                     # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                    file_path = upload_file(uploaded_file, base_lesson)
+                    file_path = s.upload_file(uploaded_file, base_lesson)
                     serializer.save(author=user, file=file_path)
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 else:
@@ -100,7 +102,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 uploaded_file = request.FILES["file"]
                 base_lesson = BaseLesson.objects.get(id=base_lesson_id)
                 # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                file_path = upload_file(uploaded_file, base_lesson)
+                file_path = s.upload_file(uploaded_file, base_lesson)
                 serializer.save(author=user, file=file_path)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
@@ -128,7 +130,7 @@ class AudioFileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
 
         self.perform_destroy(instance)
-        if remove_from_selectel(str(instance.file)) == "Success":
+        if s.remove_from_selectel(str(instance.file)) == "Success":
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(

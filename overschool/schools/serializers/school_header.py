@@ -1,6 +1,8 @@
-from common_services.yandex_client import get_yandex_link
+from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from schools.models import SchoolHeader
+
+s = SelectelClient()
 
 
 class SchoolHeaderSerializer(serializers.ModelSerializer):
@@ -56,13 +58,17 @@ class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_logo_school_link(self, obj):
-        return get_yandex_link(str(obj.logo_school))
+        return s.get_selectel_link(str(obj.logo_school)) if obj.logo_school else None
 
     def get_logo_header_link(self, obj):
-        return get_yandex_link(str(obj.logo_header))
+        return s.get_selectel_link(str(obj.logo_header)) if obj.logo_header else None
 
     def get_photo_background_link(self, obj):
-        return get_yandex_link(str(obj.photo_background))
+        return (
+            s.get_selectel_link(str(obj.photo_background))
+            if obj.photo_background
+            else None
+        )
 
     def get_favicon_link(self, obj):
-        return get_yandex_link(str(obj.favicon))
+        return s.get_selectel_link(str(obj.favicon)) if obj.favicon else None

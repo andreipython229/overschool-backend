@@ -1,9 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_school_image
+from common_services.selectel_client import SelectelClient
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from schools.models import SchoolHeader
 from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer
+
+s = SelectelClient()
 
 
 class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -27,31 +29,32 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         school_id = request.data.get("school")
 
         logo_school = (
-            upload_school_image(request.FILES["logo_school"], school_id)
+            s.upload_school_image(request.FILES["logo_school"], school_id)
             if request.FILES.get("logo_school")
             else None
         )
         logo_header = (
-            upload_school_image(request.FILES["logo_header"], school_id)
+            s.upload_school_image(request.FILES["logo_header"], school_id)
             if request.FILES.get("logo_header")
             else None
         )
         photo_background = (
-            upload_school_image(request.FILES["photo_background"], school_id)
+            s.upload_school_image(request.FILES["photo_background"], school_id)
             if request.FILES.get("photo_background")
             else None
         )
         favicon = (
-            upload_school_image(request.FILES["favicon"], school_id)
+            s.upload_school_image(request.FILES["favicon"], school_id)
             if request.FILES.get("favicon")
             else None
         )
-        serializer.save(
+        school_header = serializer.save(
             logo_school=logo_school,
             logo_header=logo_header,
             photo_background=photo_background,
             favicon=favicon,
         )
+        serializer = SchoolHeaderDetailSerializer(school_header)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -61,26 +64,26 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
         if request.FILES.get("logo_school"):
             if school_header.logo_school:
-                remove_from_yandex(str(school_header.logo_school))
-            school_header.logo_school = upload_school_image(
+                s.remove_from_selectel(str(school_header.logo_school))
+            school_header.logo_school = s.upload_school_image(
                 request.FILES["logo_school"], school_id
             )
         if request.FILES.get("logo_header"):
             if school_header.logo_header:
-                remove_from_yandex(str(school_header.logo_header))
-            school_header.logo_header = upload_school_image(
+                s.remove_from_selectel(str(school_header.logo_header))
+            school_header.logo_header = s.upload_school_image(
                 request.FILES["logo_header"], school_id
             )
         if request.FILES.get("photo_background"):
             if school_header.photo_background:
-                remove_from_yandex(str(school_header.photo_background))
-            school_header.photo_background = upload_school_image(
+                s.remove_from_selectel(str(school_header.photo_background))
+            school_header.photo_background = s.upload_school_image(
                 request.FILES["photo_background"], school_id
             )
         if request.FILES.get("favicon"):
             if school_header.favicon:
-                remove_from_yandex(str(school_header.favicon))
-            school_header.favicon = upload_school_image(
+                s.remove_from_selectel(str(school_header.favicon))
+            school_header.favicon = s.upload_school_image(
                 request.FILES["favicon"], school_id
             )
         school_header.description = request.data.get(
@@ -97,17 +100,17 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         self.perform_destroy(instance)
         remove_resp = []
         if instance.logo_school:
-            remove_resp.append(remove_from_yandex(str(instance.logo_school)))
+            remove_resp.append(s.remove_from_selectel(str(instance.logo_school)))
         if instance.logo_header:
-            remove_resp.append(remove_from_yandex(str(instance.logo_header)))
+            remove_resp.append(s.remove_from_selectel(str(instance.logo_header)))
         if instance.photo_background:
-            remove_resp.append(remove_from_yandex(str(instance.photo_background)))
+            remove_resp.append(s.remove_from_selectel(str(instance.photo_background)))
         if instance.favicon:
-            remove_resp.append(remove_from_yandex(str(instance.favicon)))
+            remove_resp.append(s.remove_from_selectel(str(instance.favicon)))
 
         if "Error" in remove_resp:
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:
