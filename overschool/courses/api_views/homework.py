@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import bulk_remove_from_selectel
+from common_services.selectel_client import SelectelClient
 from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
@@ -11,6 +11,8 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+s = SelectelClient()
 
 
 class HomeworkViewSet(
@@ -176,7 +178,9 @@ class HomeworkViewSet(
             )
         )
         # Удаляем сразу все файлы, связанные с домашней работой
-        remove_resp = bulk_remove_from_selectel(files_to_delete)
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
 
         self.perform_destroy(instance)
 
