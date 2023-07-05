@@ -80,14 +80,6 @@ class LessonViewSet(
 
         return Lesson.objects.none()
 
-    def retrieve(self, request, pk=None, school_name=None):
-        queryset = self.get_queryset()
-        lesson = queryset.filter(pk=pk).first()
-        if not lesson:
-            return Response("Урок не найден.")
-        serializer = LessonDetailSerializer(lesson)
-        return Response(serializer.data)
-
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
 

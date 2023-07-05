@@ -12,5 +12,5 @@ from .students.students_table_info import StudentsTableInfo
 from .students.user_progress import UserProgressLogs
 from .test.answer import Answer
 from .test.question import Question
-from .test.section_test import SectionTest
+from .test.section_test import RandomTestTests, SectionTest
 from .test.user_test import UserTest
