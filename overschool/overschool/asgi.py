@@ -1,6 +1,8 @@
 import datetime
 import logging
+import os
 import time
+
 import chats.routing
 import sentry_sdk
 from channels.auth import AuthMiddlewareStack
@@ -32,7 +34,7 @@ timestamp = time.time() + 10800
 formatted_time = datetime.datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y -> %H:%M')
 formatted_message = '{} (время записи: {})'.format(message, formatted_time)
 logger.info(formatted_message)
-
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings")
 django_asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter({

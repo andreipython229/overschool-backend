@@ -33,6 +33,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content=message
         )
 
+    def set_room_group_name(self):
+        self.room_group_name = f'chat_{self.chat_uuid}'
+
     async def connect(self):
         self.chat_uuid = self.scope['url_route']['kwargs']['room_name']
         self.chat = await self.is_chat_exist(self.chat_uuid)
@@ -44,9 +47,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if user_is_chat_participant is False:
             raise DenyConnection(CustomResponses.no_permission)
 
-        # имя комнаты может содержать только:
-        # буквы, цифры, дефисы, символы подчеркивания или точки
-        self.room_group_name = f'chat_{self.chat_uuid}'
+        self.set_room_group_name()
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -56,10 +57,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def receive(self, text_data):
-        """
-        Сервер принимает сообщение от пользователя
-        и использует далее указанную функцию (chat_message())
-        """
         text_data_json = json.loads(text_data)
         message = text_data_json.get('message')
 
@@ -72,8 +69,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                # def chat_message() - функция,
-                # которая будет выполняться
                 'type': 'chat_message',
                 'message': message,
                 'user': str(self.user)
@@ -81,9 +76,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_message(self, event):
-        """
-        Сервер рассылает сообщение всем, подключенным к websocket
-        """
         message = event['message']
         user = event['user']
 
@@ -93,6 +85,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
+        self.set_room_group_name()
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
