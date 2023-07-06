@@ -17,6 +17,7 @@ class SchoolHeaderViewSetAPITestCase(APITestCase):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
             "users/fixtures/test_initial_user_data.json",
+            "users/fixtures/test_initial_user_group_data.json",
             "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "courses/fixtures/test_initial_course_data.json",
