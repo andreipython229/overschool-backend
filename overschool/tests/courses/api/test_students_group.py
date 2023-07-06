@@ -29,6 +29,7 @@ class StudentsGroupViewSetAPITestCase(APITestCase):
             "schools/fixtures/test_initial_school_header.json",
             "users/fixtures/test_initial_document_data.json",
             'courses/fixtures/test_initial_students_group_data.json',
+            'courses/fixtures/test_initial_students_group_settings.json'
         ]
         call_command('loaddata', fixture_paths)
 
@@ -43,18 +44,18 @@ class StudentsGroupViewSetAPITestCase(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # def test_create_students_group(self):
-    #     url = reverse('students_group-list', args=["School_1"])
-    #     post_data = {
-    #         "name": "string",
-    #         "course_id": 3,
-    #         "teacher_id": 5,
-    #         "students": [
-    #             3
-    #         ]
-    #     }
-    #     response = self.client.post(url, post_data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    def test_create_students_group(self):
+        url = reverse('students_group-list', args=["School_1"])
+        post_data = {
+            "name": "string",
+            "course_id": 3,
+            "teacher_id": 5,
+            "students": [
+                3
+            ]
+        }
+        response = self.client.post(url, post_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_retrieve_students_group(self):
         url = reverse('students_group-detail', args=["School_1", self.students_group.pk])
@@ -62,39 +63,39 @@ class StudentsGroupViewSetAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], self.students_group.name)
 
-    # def test_update_students_group(self):
-    #     url = reverse('students_group-detail', args=["School_1", self.students_group.pk])
-    #     put_data = {
-    #         "group_settings": {
-    #             "strict_task_order": True,
-    #             "task_submission_lock": True
-    #         },
-    #         "name": "string",
-    #         "course_id": 1,
-    #         "teacher_id": 5,
-    #         "students": [
-    #             2
-    #         ]
-    #     }
-    #     response = self.client.put(url, put_data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_update_students_group(self):
+        url = reverse('students_group-detail', args=["School_1", self.students_group.pk])
+        put_data = {
+            "group_settings": {
+                "strict_task_order": True,
+                "task_submission_lock": True
+            },
+            "name": "string",
+            "course_id": 1,
+            "teacher_id": 5,
+            "students": [
+                2
+            ]
+        }
+        response = self.client.put(url, put_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # def test_partial_update_students_group(self):
-    #     url = reverse('students_group-detail', args=["School_1", self.students_group.pk])
-    #     patch_data = {
-    #         "group_settings": {
-    #             "strict_task_order": True,
-    #             "task_submission_lock": True
-    #         },
-    #         "name": "string",
-    #         "course_id": 1,
-    #         "teacher_id": 5,
-    #         "students": [
-    #             2
-    #         ]
-    #     }
-    #     response = self.client.patch(url, patch_data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_partial_update_students_group(self):
+        url = reverse('students_group-detail', args=["School_1", self.students_group.pk])
+        patch_data = {
+            "group_settings": {
+                "strict_task_order": True,
+                "task_submission_lock": True
+            },
+            "name": "string",
+            "course_id": 1,
+            "teacher_id": 5,
+            "students": [
+                2
+            ]
+        }
+        response = self.client.patch(url, patch_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_delete_students_group(self):
         url = reverse('students_group-detail', args=["School_1", self.students_group.pk])

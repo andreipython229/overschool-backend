@@ -63,39 +63,49 @@ class HomeworksTestCase(APITestCase):
         responce = self.client.post(url, post_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_201_CREATED)
 
-    # def test_homeworks_put(self):
-    #     url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
-    #
-    #     put_data = {
-    #         "section": 1,
-    #         "name": "string",
-    #         "order": 45,
-    #         "description": "string",
-    #         "video": "",
-    #         "automate_accept": True,
-    #         "time_accept": "",
-    #         "points": 21,
-    #     }
-    #
-    #     resp = self.client.put(url, put_data, format="json")
-    #     self.assertEqual(resp.status_code, status.HTTP_200_OK)
+    def test_homeworks_put(self):
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
 
-    # def test_homeworks_patch(self):
-    #     url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
-    #
-    #     patch_data = {
-    #         "section": 1,
-    #         "name": "string",
-    #         "order": 45,
-    #         "description": "string",
-    #         "video": "",
-    #         "automate_accept": True,
-    #         "time_accept": "",
-    #         "points": 21,
-    #     }
-    #
-    #     resp = self.client.patch(url, patch_data, format="json")
-    #     self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        put_data = {
+            "section": 1,
+            "name": "string",
+            "order": 2147483647,
+            "description": "string",
+            "automate_accept": True,
+            "time_accept": "4 days 06:00:00",
+            "points": 2147483647,
+            "all_components": [
+                {
+                  "order": 21477,
+                  "component_type": "Текст"
+                }
+              ]
+        }
+
+        resp = self.client.put(url, put_data, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_homeworks_patch(self):
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
+
+        patch_data = {
+            "section": 1,
+            "name": "string",
+            "order": 2147483647,
+            "description": "string",
+            "automate_accept": True,
+            "time_accept": "4 days 06:00:00",
+            "points": 2147483647,
+            "all_components": [
+                {
+                  "order": 21477,
+                  "component_type": "Текст"
+                }
+              ]
+        }
+
+        resp = self.client.patch(url, patch_data, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_homeworks_delete(self):
         url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
