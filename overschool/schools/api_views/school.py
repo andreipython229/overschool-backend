@@ -150,9 +150,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
 
-        school_name = self.request.GET.get("school_name")
-        if school_name:
-            queryset = queryset.filter(school_name=school_name).distinct()
+
         last_active_min = self.request.GET.get("last_active_min")
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_min and last_active_max:
