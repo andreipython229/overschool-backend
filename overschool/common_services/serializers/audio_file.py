@@ -1,6 +1,8 @@
 from common_services.models import AudioFile
-from common_services.selectel_client import get_selectel_link
+from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
+
+s = SelectelClient()
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
@@ -21,13 +23,13 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file"]
 
     def validate(self, attrs):
         if (
-            not attrs.get("base_lesson")
-            and not attrs.get("user_homework")
-            and not attrs.get("user_homework_check")
+                not attrs.get("base_lesson")
+                and not attrs.get("user_homework")
+                and not attrs.get("user_homework_check")
         ):
             raise serializers.ValidationError(
                 "Укажите base_lesson либо user_homework либо user_homework_check"
@@ -57,4 +59,4 @@ class AudioFileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_link(self, obj):
-        return get_selectel_link(str(obj.file))
+        return s.get_selectel_link(str(obj.file))

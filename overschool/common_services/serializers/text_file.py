@@ -1,6 +1,8 @@
 from common_services.models import TextFile
-from common_services.selectel_client import get_selectel_link
+from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
+
+s = SelectelClient()
 
 
 class TextFileSerializer(serializers.ModelSerializer):
@@ -21,7 +23,7 @@ class TextFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file"]
 
     def validate(self, attrs):
         if (
@@ -57,4 +59,4 @@ class TextFileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_link(self, obj):
-        return get_selectel_link(str(obj.file))
+        return s.get_selectel_link(str(obj.file))

@@ -3,6 +3,8 @@
     "model": "courses.SectionTest",
     "pk": 1,
     "fields": {
+      "random_test_generator": false,
+      "num_questions": 0,
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -17,6 +19,8 @@
     "model": "courses.SectionTest",
     "pk": 2,
     "fields": {
+      "random_test_generator": false,
+      "num_questions": 0,
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -31,6 +35,8 @@
     "model": "courses.SectionTest",
     "pk": 3,
     "fields": {
+      "random_test_generator": false,
+      "num_questions": 0,
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -45,6 +51,8 @@
     "model": "courses.SectionTest",
     "pk": 4,
     "fields": {
+      "random_test_generator": false,
+      "num_questions": 0,
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,
@@ -59,6 +67,8 @@
     "model": "courses.SectionTest",
     "pk": 5,
     "fields": {
+      "random_test_generator": false,
+      "num_questions": 0,
       "success_percent": 80,
       "random_questions": true,
       "random_answers": true,

@@ -109,6 +109,11 @@ class AccessDistributionView(
                 return HttpResponse(
                     "Группу нельзя оставить без преподавателя", status=400
                 )
+            elif role == "Admin" and school.owner == user:
+                print("uuuuuuuu")
+                return HttpResponse(
+                    "Владельца школы нельзя лишать его прав", status=400
+                )
             else:
                 user.groups.get(group=group, school=school).delete()
                 if role == "Student":

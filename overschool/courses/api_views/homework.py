@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import bulk_remove_from_selectel
+from common_services.selectel_client import SelectelClient
 from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
@@ -11,6 +11,8 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+s = SelectelClient()
 
 
 class HomeworkViewSet(
@@ -99,7 +101,8 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        serializer = HomeworkSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
         homework = serializer.save(video=None)
 
@@ -110,7 +113,9 @@ class HomeworkViewSet(
             )
             homework.video = video
             homework.save()
-            serializer = HomeworkDetailSerializer(homework)
+            serializer = HomeworkDetailSerializer(
+                homework, context={"request": request}
+            )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -126,7 +131,8 @@ class HomeworkViewSet(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
         instance = self.get_object()
-        serializer = HomeworkSerializer(instance, data=request.data)
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("video"):
@@ -141,7 +147,7 @@ class HomeworkViewSet(
 
         self.perform_update(serializer)
 
-        serializer = HomeworkDetailSerializer(instance)
+        serializer = HomeworkDetailSerializer(instance, context={"request": request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -176,7 +182,9 @@ class HomeworkViewSet(
             )
         )
         # Удаляем сразу все файлы, связанные с домашней работой
-        remove_resp = bulk_remove_from_selectel(files_to_delete)
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
 
         self.perform_destroy(instance)
 

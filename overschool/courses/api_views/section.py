@@ -129,8 +129,9 @@ class SectionViewSet(
         <h2>/api/{school_name}/sections/{section_id}/lessons/</h2>\n
         """
         queryset = self.get_queryset()
+        section = queryset.filter(pk=pk)
 
-        data = queryset.values(
+        data = section.values(
             section_name=F("name"),
             section=F("section_id"),
         )
@@ -152,6 +153,7 @@ class SectionViewSet(
                     result_data["lessons"].append(
                         {
                             "type": types[i[0]],
+                            "section": dict_obj["section"],
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
