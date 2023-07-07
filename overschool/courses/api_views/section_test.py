@@ -1,9 +1,12 @@
+from random import sample
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.yandex_client import remove_from_yandex
 from courses.models import (
     Answer,
     BaseLesson,
     Question,
+    RandomTestTests,
     Section,
     SectionTest,
     StudentsGroup,
@@ -119,54 +122,6 @@ class TestViewSet(
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["GET"])
-    def get_questions(self, request, pk, *args, **kwargs):
-        """Возвращает вопросы к конкретному тесту\n
-        <h2>/api/{school_name}/tests/{test_id}/get_questions/</h2>\n
-        Возвращает вопросы к конкретному тесту"""
-        queryset = self.get_queryset()
-        test_obj = queryset.get(test_id=pk).__dict__
-        test = {
-            "test": pk,
-            "name": test_obj["name"],
-            "show_right_answers": test_obj["show_right_answers"],
-            "attempt_limit": test_obj["attempt_limit"],
-            "attempt_count": test_obj["attempt_count"],
-            "success_percent": test_obj["success_percent"],
-        }
-        questions = (
-            (
-                Question.objects.filter(test=pk)
-                .order_by("?")
-                .values("body", "question_id", "question_type", "body", "picture")
-            )
-            if test_obj["random_questions"]
-            else Question.objects.filter(test=pk).values("body", "question_id")
-        )
-        test["questions"] = list(questions)
-        for index, question in enumerate(questions):
-            if test_obj["random_answers"]:
-                answers = (
-                    Answer.objects.filter(question=question["question_id"])
-                    .order_by("?")
-                    .values(
-                        "answer_id",
-                        "body",
-                        "is_correct",
-                        "question",
-                        "picture",
-                        "answer_in_range",
-                        "from_digit",
-                        "to_digit",
-                    )
-                )
-            else:
-                answers = Answer.objects.filter(
-                    question=question["question_id"]
-                ).values("answer_id", "body")
-            test["questions"][index]["answers"] = list(answers)
-        return Response(test)
-
     @action(detail=True, methods=["POST"])
     def post_questions(self, request, pk, *args, **kwargs):
         """Создать вопросы в тесте\n
@@ -210,16 +165,6 @@ class TestViewSet(
             return Response(
                 data={"status": f"Error: {e}"}, status=status.HTTP_400_BAD_REQUEST
             )
-        # Question.objects.bulk_create(
-        #     [Question(test=test_obj,
-        #               question_type=question['type'],
-        #               body=question['body'],
-        #               picture=question['picture'] if 'picture' in question else None,
-        #               is_any_answer_correct=question[
-        #        `           'is_any_answer_correct'] if 'is_any_answer_correct' in question else None,
-        #               only_whole_numbers=question['only_whole_numbers'] if 'only_whole_numbers' in question else None)
-        #      for question in questions]
-        # )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -241,3 +186,94 @@ class TestViewSet(
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["GET"])
+    def get_questions(self, request, pk, *args, **kwargs):
+
+        queryset = self.get_queryset()
+        try:
+            instance = queryset.get(test_id=pk)
+        except:
+            return Response("Тест не найден")
+
+        # Проверяем пройдены ли предыдущие base_lessons и делаем запись в userprogresslogs
+        check_response = self.check_viewed_and_progress_log(request, instance)
+        if check_response is not None:
+            return check_response
+
+        tests_ids = []
+
+        if instance.random_test_generator:
+            num_questions = instance.num_questions
+
+            tests_ids = RandomTestTests.objects.filter(test=instance).values_list(
+                "target_test_id", flat=True
+            )
+
+            questions_ids = (
+                Question.objects.filter(test_id__in=tests_ids)
+                .values_list("question_id", flat=True)
+                .distinct()
+            )
+
+            if len(questions_ids) == 0:
+                return Response(
+                    {"detail": "random_test_generator=True, Вопросы не найдены."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if len(questions_ids) < num_questions:
+                num_questions = len(questions_ids)
+
+            random_question_ids = sample(list(questions_ids), num_questions)
+            questions = Question.objects.filter(question_id__in=random_question_ids)
+            test_obj = SectionTest.objects.get(baselesson_ptr_id=instance.id).__dict__
+        else:
+            queryset = self.get_queryset()
+            test_obj = queryset.get(test_id=pk).__dict__
+            questions = Question.objects.filter(test=pk)
+
+        test = {
+            "random_test_generator": test_obj["random_test_generator"],
+            "num_questions": test_obj["num_questions"],
+            "tests_ids": tests_ids,
+            "all_questions": len(questions),
+            "test": test_obj["test_id"],
+            "name": test_obj["name"],
+            "show_right_answers": test_obj["show_right_answers"],
+            "attempt_limit": test_obj["attempt_limit"],
+            "attempt_count": test_obj["attempt_count"],
+            "success_percent": test_obj["success_percent"],
+        }
+        questions = (
+            (
+                questions.order_by("?").values(
+                    "body", "question_id", "question_type", "body", "picture"
+                )
+            )
+            if test_obj["random_questions"]
+            else questions.values("body", "question_id")
+        )
+        test["questions"] = list(questions)
+        for index, question in enumerate(questions):
+            if test_obj["random_answers"]:
+                answers = (
+                    Answer.objects.filter(question=question["question_id"])
+                    .order_by("?")
+                    .values(
+                        "answer_id",
+                        "body",
+                        "is_correct",
+                        "question",
+                        "picture",
+                        "answer_in_range",
+                        "from_digit",
+                        "to_digit",
+                    )
+                )
+            else:
+                answers = Answer.objects.filter(
+                    question=question["question_id"]
+                ).values("answer_id", "body")
+            test["questions"][index]["answers"] = list(answers)
+        return Response(test)

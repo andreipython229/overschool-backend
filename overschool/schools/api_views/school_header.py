@@ -35,6 +35,10 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                SchoolHeader.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         queryset = SchoolHeader.objects.filter(school__groups__user=user)
         return queryset
