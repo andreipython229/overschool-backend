@@ -1,10 +1,12 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_user_avatar
+from common_services.selectel_client import SelectelClient
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from users.models import Profile
 from users.permissions import OwnerProfilePermissions
 from users.serializers import UserProfileGetSerializer, UserProfileSerializer
+
+s = SelectelClient()
 
 
 class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -34,8 +36,8 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("avatar"):
             if instance.avatar:
-                remove_from_yandex(str(instance.avatar))
-            serializer.validated_data["avatar"] = upload_user_avatar(
+                s.remove_from_selectel(str(instance.avatar))
+            serializer.validated_data["avatar"] = s.upload_user_avatar(
                 request.FILES["avatar"], instance.user.id
             )
         else:

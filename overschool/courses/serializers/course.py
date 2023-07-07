@@ -1,6 +1,8 @@
-from common_services.yandex_client import get_yandex_link
+from common_services.selectel_client import SelectelClient
 from courses.models import Course
 from rest_framework import serializers
+
+s = SelectelClient()
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -47,11 +49,10 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
-
         ]
 
     def get_photo(self, obj):
-        return get_yandex_link(str(obj.photo))
+        return s.get_selectel_link(str(obj.photo))
 
 
 class CourseStudentsSerializer(serializers.Serializer):
