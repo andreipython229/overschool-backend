@@ -52,7 +52,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_photo(self, obj):
-        return s.get_selectel_link(str(obj.photo))
+        return s.get_selectel_link(str(obj.photo)) if obj.photo else None
 
 
 class CourseStudentsSerializer(serializers.Serializer):

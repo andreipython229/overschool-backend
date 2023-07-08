@@ -1,10 +1,12 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_file
+from common_services.selectel_client import SelectelClient
 from courses.models import Answer, BaseLesson, Question
 from courses.serializers import AnswerGetSerializer, AnswerSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+
+s = SelectelClient()
 
 
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -46,7 +48,7 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if request.FILES.get("picture"):
             question = Question.objects.get(pk=request.data["question"])
             base_lesson = BaseLesson.objects.get(tests=question.test)
-            serializer.validated_data["picture"] = upload_file(
+            serializer.validated_data["picture"] = s.upload_file(
                 request.FILES["picture"], base_lesson
             )
 
@@ -61,9 +63,9 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("picture"):
             if instance.picture:
-                remove_from_yandex(str(instance.picture))
+                s.remove_from_selectel(str(instance.picture))
             base_lesson = BaseLesson.objects.get(tests=instance.question.test)
-            serializer.validated_data["picture"] = upload_file(
+            serializer.validated_data["picture"] = s.upload_file(
                 request.FILES["picture"], base_lesson
             )
         else:
@@ -79,11 +81,11 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         self.perform_destroy(instance)
 
         remove_resp = (
-            remove_from_yandex(str(instance.picture)) if instance.picture else None
+            s.remove_from_selectel(str(instance.picture)) if instance.picture else None
         )
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:

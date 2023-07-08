@@ -77,4 +77,4 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_avatar(self, obj):
-        return s.get_selectel_link(str(obj.avatar))
+        return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
