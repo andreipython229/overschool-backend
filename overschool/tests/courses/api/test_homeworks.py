@@ -4,11 +4,17 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 from users.models.user import User
+from schools.models.school import School
 
 
 class HomeworksTestCase(APITestCase):
+    """Тест-кейс для эндпоинта /homeworks/"""
+
     def setUp(self):
         fixture_paths = [
+            "users/fixtures/test_initial_role_data.json",
+            "users/fixtures/test_initial_user_data.json",
+            "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_data_answer.json",
@@ -17,87 +23,104 @@ class HomeworksTestCase(APITestCase):
             "courses/fixtures/test_initial_homework_data.json",
             "courses/fixtures/test_initial_section_data.json",
             "schools/fixtures/test_initial_school_data.json",
-            "users/fixtures/test_initial_role_data.json",
-            "users/fixtures/test_initial_user_data.json",
         ]
         call_command("loaddata", fixture_paths)
 
         self.user = User.objects.first()
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-
         self.homework = Homework.objects.get(pk=1)
 
     def test_homeworks_get(self):
-        url = reverse("homeworks-list")
+        url = reverse("homeworks-list", args=["School_1"])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_homeworks_id_get(self):
-        url = reverse("homeworks-detail", args=[self.homework.pk])
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_homeworks_post(self):
-        url = reverse("homeworks-list")
+        url = reverse("homeworks-list", args=["School_1"])
 
         post_data = {
             "section": 1,
             "name": "string",
             "order": 2147483647,
             "description": "string",
-            "video": "",
             "automate_accept": True,
-            "time_accept": "",
+            "time_accept": "4 days 06:00:00",
             "points": 2147483647,
+            "all_components": [
+                {
+                    "order": 2147483647,
+                    "component_type": "Текст"
+                }
+            ]
         }
 
         responce = self.client.post(url, post_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_201_CREATED)
 
     def test_homeworks_put(self):
-        url = reverse("homeworks-detail", args=[self.homework.pk])
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
 
         put_data = {
             "section": 1,
             "name": "string",
-            "order": 45,
+            "order": 2147483647,
             "description": "string",
-            "video": "",
             "automate_accept": True,
-            "time_accept": "",
-            "points": 21,
+            "time_accept": "4 days 06:00:00",
+            "points": 2147483647,
+            "all_components": [
+                {
+                  "order": 21477,
+                  "component_type": "Текст"
+                }
+              ]
         }
 
         resp = self.client.put(url, put_data, format="json")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_homeworks_patch(self):
-        url = reverse("homeworks-detail", args=[self.homework.pk])
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
 
         patch_data = {
             "section": 1,
             "name": "string",
-            "order": 45,
+            "order": 2147483647,
             "description": "string",
-            "video": "",
             "automate_accept": True,
-            "time_accept": "",
-            "points": 21,
+            "time_accept": "4 days 06:00:00",
+            "points": 2147483647,
+            "all_components": [
+                {
+                  "order": 21477,
+                  "component_type": "Текст"
+                }
+              ]
         }
 
         resp = self.client.patch(url, patch_data, format="json")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_homeworks_delete(self):
-        url = reverse("homeworks-detail", args=[self.homework.pk])
+        url = reverse("homeworks-detail", args=["School_1", self.homework.pk])
         resp = self.client.delete(url)
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
 
 
 class HomeworksStatsTestCase(APITestCase):
+    """Тест-кейс для эндпоинта /homeworks_stats/"""
+
     def setUp(self):
         fixture_paths = [
+            "users/fixtures/test_initial_role_data.json",
+            "users/fixtures/test_initial_user_data.json",
+            "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_data_answer.json",
@@ -106,9 +129,8 @@ class HomeworksStatsTestCase(APITestCase):
             "courses/fixtures/test_initial_homework_data.json",
             "courses/fixtures/test_initial_section_data.json",
             "schools/fixtures/test_initial_school_data.json",
-            "users/fixtures/test_initial_role_data.json",
-            "users/fixtures/test_initial_user_data.json",
         ]
+
         call_command("loaddata", fixture_paths)
 
         self.user = User.objects.first()
@@ -116,6 +138,6 @@ class HomeworksStatsTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_homeworks_stats_get(self):
-        url = reverse("homeworks_stats-list")
+        url = reverse("homeworks_stats-list", args=["School_1"])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
