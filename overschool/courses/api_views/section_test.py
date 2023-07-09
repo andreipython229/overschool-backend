@@ -1,7 +1,7 @@
 from random import sample
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex
+from common_services.selectel_client import SelectelClient
 from courses.models import (
     Answer,
     BaseLesson,
@@ -19,6 +19,8 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+s = SelectelClient()
 
 
 class TestViewSet(
@@ -172,16 +174,22 @@ class TestViewSet(
         course = base_lesson.section.course
         school_id = course.school.school_id
 
-        remove_resp = remove_from_yandex(
-            "/{}_school/{}_course/{}_lesson".format(
+        # Получаем список файлов, хранящихся в папке удаляемого теста
+        files_to_delete = s.get_folder_files(
+            "{}_school/{}_course/{}_lesson".format(
                 school_id, course.course_id, base_lesson.id
             )
         )
+        # Удаляем все файлы, связанные с удаляемым тестом
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
+
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:

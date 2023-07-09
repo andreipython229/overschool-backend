@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_course_image
+from common_services.selectel_client import SelectelClient
 from courses.models import (
     Course,
     Homework,
@@ -25,6 +25,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+s = SelectelClient()
 
 
 class CourseViewSet(
@@ -95,8 +97,11 @@ class CourseViewSet(
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
+        print(school_id)
+
         school = self.request.data.get("school")
-        if school != school_id:
+        print(school)
+        if int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
@@ -107,7 +112,7 @@ class CourseViewSet(
         course = serializer.save(photo=None)
 
         if request.FILES.get("photo"):
-            photo = upload_course_image(request.FILES["photo"], course)
+            photo = s.upload_course_image(request.FILES["photo"], course)
             course.photo = photo
             course.save()
             serializer = CourseGetSerializer(course)
@@ -118,7 +123,7 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         school = self.request.data.get("school")
-        if school != school_id:
+        if int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
@@ -126,12 +131,12 @@ class CourseViewSet(
 
         instance = self.get_object()
         serializer = CourseSerializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exceptions=True)
 
         if request.FILES.get("photo"):
             if instance.photo:
-                remove_from_yandex(str(instance.photo))
-            serializer.validated_data["photo"] = upload_course_image(
+                s.remove_from_selectel(str(instance.photo))
+            serializer.validated_data["photo"] = s.upload_course_image(
                 request.FILES["photo"], instance
             )
         else:
@@ -147,14 +152,21 @@ class CourseViewSet(
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         school_id = instance.school.school_id
-        remove_resp = remove_from_yandex(
-            "/{}_school/{}_course".format(school_id, instance.course_id)
+
+        # Получаем список файлов, хранящихся в папке удаляемого курса
+        files_to_delete = s.get_folder_files(
+            "{}_school/{}_course".format(school_id, instance.pk)
         )
+        # Удаляем все файлы, связанные с удаляемой школой
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
+
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:

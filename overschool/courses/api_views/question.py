@@ -1,10 +1,12 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.yandex_client import remove_from_yandex, upload_file
+from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Question, SectionTest
 from courses.serializers import QuestionGetSerializer, QuestionSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+
+s = SelectelClient()
 
 
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -44,7 +46,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if request.FILES.get("picture"):
             test = SectionTest.objects.get(pk=request.data["test"])
             base_lesson = BaseLesson.objects.get(tests=test)
-            serializer.validated_data["picture"] = upload_file(
+            serializer.validated_data["picture"] = s.upload_file(
                 request.FILES["picture"], base_lesson
             )
 
@@ -59,9 +61,9 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("picture"):
             if instance.picture:
-                remove_from_yandex(str(instance.picture))
+                s.remove_from_selectel(str(instance.picture))
             base_lesson = BaseLesson.objects.get(tests=instance.test)
-            serializer.validated_data["picture"] = upload_file(
+            serializer.validated_data["picture"] = s.upload_file(
                 request.FILES["picture"], base_lesson
             )
         else:
@@ -75,19 +77,21 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        remove_resp = None
+        files_to_delete = []
         if instance.picture:
-            if remove_from_yandex(str(instance.picture)) == "Error":
-                remove_resp = "Error"
+            files_to_delete.append(str(instance.picture))
         for file_obj in list(instance.answers.exclude(picture="").values("picture")):
-            if remove_from_yandex(str(file_obj["picture"])) == "Error":
-                remove_resp = "Error"
+            files_to_delete.append(str(file_obj["picture"]))
+
+        remove_resp = (
+            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        )
 
         self.perform_destroy(instance)
 
         if remove_resp == "Error":
             return Response(
-                {"error": "Запрашиваемый путь на диске не существует"},
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
                 status=status.HTTP_204_NO_CONTENT,
             )
         else:

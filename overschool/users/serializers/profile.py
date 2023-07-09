@@ -1,6 +1,8 @@
-from common_services.yandex_client import get_yandex_link
+from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from users.models import Profile, User
+
+s = SelectelClient()
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -75,4 +77,4 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_avatar(self, obj):
-        return get_yandex_link(str(obj.avatar))
+        return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
