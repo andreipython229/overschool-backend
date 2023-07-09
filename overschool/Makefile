@@ -24,6 +24,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${MANAGE} makemigrations --settings=overschool.settings2
 	${MANAGE} migrate --settings=overschool.settings2
 	${MANAGE} runserver 0.0.0.0:8000 --settings=overschool.settings2
+
 	docker-compose exec back python overschool/manage.py test
 
 

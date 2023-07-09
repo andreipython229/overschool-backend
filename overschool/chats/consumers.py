@@ -45,9 +45,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = self.scope['user']
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
         if user_is_chat_participant is False:
-            raise DenyConnection(CustomResponses.no_permission)
+            # raise DenyConnection(CustomResponses.no_permission)
 
-        self.set_room_group_name()
+            self.set_room_group_name()
 
         await self.channel_layer.group_add(
             self.room_group_name,
