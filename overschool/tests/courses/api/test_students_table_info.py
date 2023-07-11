@@ -24,7 +24,6 @@ class StudentsTableInfoViewSetAPITestCase(APITestCase):
             'courses/fixtures/test_initial_base_lesson_data.json',
             'courses/fixtures/test_initial_lesson_data.json',
             'courses/fixtures/test_initial_students_group_data.json',
-            'courses/fixtures/test_initial_students_table_info.json',
             'courses/fixtures/test_initial_students_group_settings.json'
         ]
         call_command('loaddata', fixture_paths)

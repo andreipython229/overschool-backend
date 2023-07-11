@@ -1,6 +1,6 @@
 from django.db import models
-
-from users.models import User
+from common_services.mixins import AuthorMixin
+from schools.models import School
 
 
 def get_default_students_table_info():
@@ -10,19 +10,20 @@ def get_default_students_table_info():
         {"id": 3, "order": 3, "name": "Суммарный балл", "checked": False},
         {"id": 4, "order": 4, "name": "Курс", "checked": False},
         {"id": 5, "order": 5, "name": "Последняя активность", "checked": False},
-        {"id": 6, "order": 6, "name": "Прогресс", "checked": False},
-        {"id": 7, "order": 7, "name": "Комментарий", "checked": True},
-        {"id": 8, "order": 8, "name": "Группа", "checked": False},
-        {"id": 9, "order": 9, "name": "Средний балл", "checked": False},
-        {"id": 10, "order": 10, "name": "Дата обновления", "checked": False},
-        {"id": 11, "order": 11, "name": "Дата заверения", "checked": False},
+        {"id": 6, "order": 6, "name": "Группа", "checked": False},
+        {"id": 7, "order": 7, "name": "Средний балл", "checked": False},
     ]
 
 
-class StudentsTableInfo(models.Model):
+class StudentsTableInfo(AuthorMixin, models.Model):
     """
     Модель для хранения настроек отображения информации о студентах в таблице у админа
     """
+
+    class TableTypes(models.TextChoices):
+        SCHOOL = "School", "School"
+        COURSE = "Course", "Course"
+        GROUP = "Group", "Group"
 
     students_table_info_id = models.AutoField(
         primary_key=True,
@@ -30,17 +31,23 @@ class StudentsTableInfo(models.Model):
         verbose_name="ID отображения информации о студентах",
         help_text="Уникальный идентификатор отображения информации о студентах",
     )
-    admin = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        default=1,
-        verbose_name="Админ",
-        help_text="Пользователь, являющийся админом, по умолчанию - супер админ",
+    type = models.CharField(
+        max_length=10,
+        choices=TableTypes.choices,
+        verbose_name="Тип отображения таблицы",
+        help_text="Может быть: School, Course, Group",
     )
     students_table_info = models.JSONField(
         default=get_default_students_table_info,
         verbose_name="Отображение информации о студентах",
         help_text="Отображение информации о студентах",
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="tables",
+        verbose_name="Школа",
+        help_text="К какой школе относятся таблицы",
     )
 
     class Meta:
