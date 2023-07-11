@@ -3,8 +3,8 @@ from django.core.management import call_command
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
-from users.models.user import User
 from schools.models.school import School
+from users.models.user import User
 
 
 class HomeworksTestCase(APITestCase):
@@ -13,6 +13,7 @@ class HomeworksTestCase(APITestCase):
     def setUp(self):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
@@ -22,7 +23,6 @@ class HomeworksTestCase(APITestCase):
             "courses/fixtures/test_initial_data_section_test.json",
             "courses/fixtures/test_initial_homework_data.json",
             "courses/fixtures/test_initial_section_data.json",
-            "schools/fixtures/test_initial_school_data.json",
         ]
         call_command("loaddata", fixture_paths)
 
@@ -52,12 +52,7 @@ class HomeworksTestCase(APITestCase):
             "automate_accept": True,
             "time_accept": "4 days 06:00:00",
             "points": 2147483647,
-            "all_components": [
-                {
-                    "order": 2147483647,
-                    "component_type": "Текст"
-                }
-            ]
+            "all_components": [{"order": 2147483647, "component_type": "Текст"}],
         }
 
         responce = self.client.post(url, post_data, format="json")
@@ -74,12 +69,7 @@ class HomeworksTestCase(APITestCase):
             "automate_accept": True,
             "time_accept": "4 days 06:00:00",
             "points": 2147483647,
-            "all_components": [
-                {
-                  "order": 21477,
-                  "component_type": "Текст"
-                }
-              ]
+            "all_components": [{"order": 21477, "component_type": "Текст"}],
         }
 
         resp = self.client.put(url, put_data, format="json")
@@ -96,12 +86,7 @@ class HomeworksTestCase(APITestCase):
             "automate_accept": True,
             "time_accept": "4 days 06:00:00",
             "points": 2147483647,
-            "all_components": [
-                {
-                  "order": 21477,
-                  "component_type": "Текст"
-                }
-              ]
+            "all_components": [{"order": 21477, "component_type": "Текст"}],
         }
 
         resp = self.client.patch(url, patch_data, format="json")
@@ -119,6 +104,7 @@ class HomeworksStatsTestCase(APITestCase):
     def setUp(self):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
@@ -128,7 +114,6 @@ class HomeworksStatsTestCase(APITestCase):
             "courses/fixtures/test_initial_data_section_test.json",
             "courses/fixtures/test_initial_homework_data.json",
             "courses/fixtures/test_initial_section_data.json",
-            "schools/fixtures/test_initial_school_data.json",
         ]
 
         call_command("loaddata", fixture_paths)

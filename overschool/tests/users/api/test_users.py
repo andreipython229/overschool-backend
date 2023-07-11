@@ -13,9 +13,9 @@ class UserTestCAse(APITestCase):
 
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
-            "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_section_data.json",
@@ -28,11 +28,11 @@ class UserTestCAse(APITestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_user_get(self):
-        url = reverse('user-list')
+        url = reverse("user-list")
         responce = self.client.get(url)
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_user_id_get(self):
-        url = reverse('user-detail', args=[self.user.pk])
+        url = reverse("user-detail", args=[self.user.pk])
         responce = self.client.get(url)
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
