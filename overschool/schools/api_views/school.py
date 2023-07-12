@@ -1,16 +1,20 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
+from courses.api_views.schemas.apply_auto_schema import apply_swagger_auto_schema
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.serializers import SchoolGetSerializer, SchoolSerializer
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
+
+from .schemas.school import school_schema
 
 s = SelectelClient()
 
@@ -22,6 +26,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number')"""
 
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -254,3 +259,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
 
         return Response(serialized_data)
+
+
+SchoolViewSet = apply_swagger_auto_schema(school_schema)(SchoolViewSet)

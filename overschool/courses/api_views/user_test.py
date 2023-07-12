@@ -2,7 +2,11 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Answer, Question, SectionTest, UserTest
 from courses.serializers import UserTestSerializer
 from rest_framework import permissions, status, viewsets
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.user_test import user_test_schema
 
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -15,6 +19,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def create(self, request, *args, **kwargs):
 
@@ -85,3 +90,6 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+UserTestViewSet = apply_swagger_auto_schema(user_test_schema)(UserTestViewSet)

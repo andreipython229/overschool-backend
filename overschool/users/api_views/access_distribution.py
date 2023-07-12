@@ -1,13 +1,17 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.api_views.schemas.apply_auto_schema import apply_swagger_auto_schema
 from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from rest_framework import generics, permissions
+from rest_framework.parsers import MultiPartParser
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.serializers import AccessDistributionSerializer
+
+from .schemas.access_distribution import access_distribution_schema
 
 User = get_user_model()
 
@@ -22,6 +26,7 @@ class AccessDistributionView(
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
+    parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -135,3 +140,8 @@ class AccessDistributionView(
                 for group in student_groups:
                     user.students_group_fk.remove(group)
                 return HttpResponse("Доступ успешно заблокирован", status=201)
+
+
+AccessDistributionView = apply_swagger_auto_schema(access_distribution_schema)(
+    AccessDistributionView
+)

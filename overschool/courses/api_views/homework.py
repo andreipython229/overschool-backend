@@ -7,9 +7,13 @@ from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.homework import homework_schema
 
 s = SelectelClient()
 
@@ -27,6 +31,7 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     permission_classes = [permissions.IsAuthenticated]
+    # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -209,3 +214,6 @@ class HomeworkViewSet(
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+HomeworkViewSet = apply_swagger_auto_schema(homework_schema)(HomeworkViewSet)

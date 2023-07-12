@@ -24,11 +24,15 @@ from django.forms.models import model_to_dict
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.course import course_schema
 
 s = SelectelClient()
 
@@ -44,6 +48,7 @@ class CourseViewSet(
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -108,10 +113,7 @@ class CourseViewSet(
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
-        print(school_id)
-
         school = self.request.data.get("school")
-        print(school)
         if int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
@@ -436,3 +438,6 @@ class CourseViewSet(
             return self.get_paginated_response(serializer.data)
         serializer = StudentsGroupSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+CourseViewSet = apply_swagger_auto_schema(course_schema)(CourseViewSet)

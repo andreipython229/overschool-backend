@@ -12,9 +12,13 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.user_homework_check import user_homework_check_schema
 
 
 class HomeworkCheckViewSet(
@@ -174,3 +178,8 @@ class HomeworkCheckViewSet(
         serializer = UserHomeworkCheckDetailSerializer(user_homework_check)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+HomeworkCheckViewSet = apply_swagger_auto_schema(user_homework_check_schema)(
+    HomeworkCheckViewSet
+)

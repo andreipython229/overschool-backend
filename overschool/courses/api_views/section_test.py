@@ -16,9 +16,13 @@ from courses.services import LessonProgressMixin
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.section_test import section_test_schema
 
 s = SelectelClient()
 
@@ -37,6 +41,7 @@ class TestViewSet(
 
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -285,3 +290,6 @@ class TestViewSet(
                 ).values("answer_id", "body")
             test["questions"][index]["answers"] = list(answers)
         return Response(test)
+
+
+TestViewSet = apply_swagger_auto_schema(section_test_schema)(TestViewSet)

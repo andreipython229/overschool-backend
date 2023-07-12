@@ -12,10 +12,14 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import OuterRef, Subquery
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
+
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.user_homework import user_homework_schema
 
 s = SelectelClient()
 
@@ -31,6 +35,7 @@ class UserHomeworkViewSet(
 
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "delete", "head"]
+    parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -271,3 +276,11 @@ class HomeworkStatisticsView(
                 last_check_updated_at__lte=self.request.GET.get("end_date")
             )
         return queryset
+
+
+UserHomeworkViewSet = apply_swagger_auto_schema(user_homework_schema)(
+    UserHomeworkViewSet
+)
+HomeworkStatisticsView = apply_swagger_auto_schema(user_homework_schema)(
+    HomeworkStatisticsView
+)

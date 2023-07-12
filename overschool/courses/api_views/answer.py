@@ -4,7 +4,11 @@ from courses.models import Answer, BaseLesson, Question
 from courses.serializers import AnswerGetSerializer, AnswerSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+
+from .schemas.answer import answer_schema
+from .schemas.apply_auto_schema import apply_swagger_auto_schema
 
 s = SelectelClient()
 
@@ -19,6 +23,7 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -90,3 +95,6 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+AnswerViewSet = apply_swagger_auto_schema(answer_schema)(AnswerViewSet)

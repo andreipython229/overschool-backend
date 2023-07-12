@@ -1,10 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
+from courses.api_views.schemas.apply_auto_schema import apply_swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
 from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer
+
+from .schemas.school_header import school_header_schema
 
 s = SelectelClient()
 
@@ -16,6 +20,7 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_permissions(self):
 
@@ -156,3 +161,8 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+SchoolHeaderViewSet = apply_swagger_auto_schema(school_header_schema)(
+    SchoolHeaderViewSet
+)
