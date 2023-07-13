@@ -53,29 +53,61 @@ class SelectelClient:
         sig = hmac.new(link_secret_key, hmac_body, sha1).hexdigest()
         return sig, expires
 
+    # Запрос на загрузку файла либо сегмента файла
+    @staticmethod
+    def upload_request(path, token, data, content_type=None):
+        return requests.put(
+            SelectelClient.URL + path,
+            headers={
+                "X-Auth-Token": token,
+                "Content-Type": content_type,
+                "Content-Disposition": "attachment",
+            },
+            data=data,
+        )
+
+    # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file):
-        try:
-            r = requests.put(
+        if file.size <= 90 * 1024 * 1024:
+            file_data = file.read()
+            try:
+                r = self.upload_request(
+                    path,
+                    self.REDIS_INSTANCE.get("selectel_token"),
+                    file_data,
+                    file.content_type,
+                )
+                r.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    self.upload_request(
+                        path, self.get_token(), file_data, file.content_type
+                    )
+        else:
+            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
+            for num, chunk in enumerate(file.chunks(chunk_size=90 * 1024 * 1024)):
+                try:
+                    r = self.upload_request(
+                        "_segments" + path + "/{}".format(num + 1),
+                        self.REDIS_INSTANCE.get("selectel_token"),
+                        chunk,
+                    )
+                    r.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 401:
+                        self.upload_request(
+                            "_segments" + path + "/{}".format(num + 1),
+                            self.get_token(),
+                            chunk,
+                        )
+            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
+            requests.put(
                 self.URL + path,
                 headers={
                     "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-                    "Content-Type": file.content_type,
-                    "Content-Disposition": "attachment",
+                    "X-Object-Manifest": "{}_segments{}/".format(CONTAINER_NAME, path),
                 },
-                data=file.read(),
             )
-            r.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
-                requests.put(
-                    self.URL + path,
-                    headers={
-                        "X-Auth-Token": self.get_token(),
-                        "Content-Type": file.content_type,
-                        "Content-Disposition": "attachment",
-                    },
-                    data=file.read(),
-                )
 
     def upload_file(self, uploaded_file, base_lesson):
         course = base_lesson.section.course
@@ -110,20 +142,26 @@ class SelectelClient:
         self.upload_to_selectel(file_path, avatar)
         return file_path
 
+    # Запрос на удаление файла
+    @staticmethod
+    def remove_request(file_path, token):
+        return requests.delete(
+            SelectelClient.URL + file_path,
+            headers={"X-Auth-Token": token},
+        )
+
+    # Удаление файла из хранилища
     def remove_from_selectel(self, file_path):
         try:
-            r = requests.delete(
-                self.URL + file_path,
-                headers={"X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token")},
+            r = self.remove_request(
+                file_path, self.REDIS_INSTANCE.get("selectel_token")
             )
             r.raise_for_status()
             return "Success"
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == "401":
                 try:
-                    r = requests.delete(
-                        self.URL + file_path, headers={"X-Auth-Token": self.get_token()}
-                    )
+                    r = self.remove_request(file_path, self.get_token())
                     r.raise_for_status()
                     return "Success"
                 except requests.exceptions.HTTPError:
@@ -131,32 +169,33 @@ class SelectelClient:
             else:
                 return "Error"
 
-    def bulk_remove_from_selectel(self, files):
+    # Запрос на удаление нескольких файлов
+    @staticmethod
+    def bulk_remove_request(token, data):
+        return requests.post(
+            SelectelClient.BASE_URL + "?bulk-delete=true",
+            headers={
+                "X-Auth-Token": token,
+                "Content-Type": "text/plain",
+            },
+            data=data.encode("utf-8"),
+        )
+
+    # Удаление сразу нескольких файлов из хранилища
+    def bulk_remove_from_selectel(self, files, segments=""):
         data = ""
         for file_path in files:
-            data += CONTAINER_NAME + file_path + "\n"
+            data += CONTAINER_NAME + segments + file_path + "\n"
         try:
-            r = requests.post(
-                self.BASE_URL + "?bulk-delete=true",
-                headers={
-                    "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-                    "Content-Type": "text/plain",
-                },
-                data=data.encode("utf-8"),
+            r = self.bulk_remove_request(
+                self.REDIS_INSTANCE.get("selectel_token"), data
             )
             r.raise_for_status()
             return "Success"
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == "401":
                 try:
-                    r = requests.post(
-                        self.BASE_URL + "?bulk-delete=true",
-                        headers={
-                            "X-Auth-Token": self.get_token(),
-                            "Content-Type": "text/plain",
-                        },
-                        data=data.encode("utf-8"),
-                    )
+                    r = self.bulk_remove_request(self.get_token(), data)
                     r.raise_for_status()
                     return "Success"
                 except requests.exceptions.HTTPError:
@@ -164,6 +203,7 @@ class SelectelClient:
             else:
                 return "Error"
 
+    # Получение ссылки на файл
     def get_selectel_link(self, file_path):
         sig, expires = self.create_access_key(CONTAINER_KEY, file_path)
         link = (
@@ -173,19 +213,26 @@ class SelectelClient:
         )
         return link
 
-    def get_folder_files(self, folder):
+    # Запрос на получение списка файлов
+    @staticmethod
+    def get_folder_files_request(segments, folder, token):
+        return requests.get(
+            SelectelClient.URL + segments + "/?format=json&prefix={}".format(folder),
+            headers={"X-Auth-Token": token},
+        )
+
+    # Получение списка файлов, путь к которым начинается с указанного префикса
+    def get_folder_files(self, folder, segments=""):
         objects = None
         try:
-            objects = requests.get(
-                self.URL + "/?format=json&prefix={}".format(folder),
-                headers={"X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token")},
+            objects = self.get_folder_files_request(
+                segments, folder, self.REDIS_INSTANCE.get("selectel_token")
             )
             objects.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
-                objects = requests.get(
-                    self.URL + "/?format=json&prefix={}".format(folder),
-                    headers={"X-Auth-Token": self.get_token()},
+                objects = self.get_folder_files_request(
+                    segments, folder, self.get_token()
                 )
         files = (
             list(map(lambda el: "/" + el["name"], objects.json())) if objects else None

@@ -1,6 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
-from common_services.yandex_client import remove_from_yandex, upload_file
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
@@ -108,9 +107,7 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = upload_file(
-                request.FILES["video"], base_lesson, timeout=(2000.0, 10000.0)
-            )
+            video = s.upload_file(request.FILES["video"], base_lesson)
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -137,10 +134,15 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             if instance.video:
-                remove_from_yandex(str(instance.video))
+                s.remove_from_selectel(str(instance.video))
+                segments_to_delete = s.get_folder_files(
+                    str(instance.video)[1:], "_segments"
+                )
+                if segments_to_delete:
+                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
             base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = upload_file(
-                request.FILES["video"], base_lesson, timeout=(2000.0, 10000.0)
+            serializer.validated_data["video"] = s.upload_file(
+                request.FILES["video"], base_lesson
             )
         else:
             serializer.validated_data["video"] = instance.video
@@ -181,10 +183,22 @@ class HomeworkViewSet(
                 homework_files + user_homework_files + user_homework_checks_files,
             )
         )
-        # Удаляем сразу все файлы, связанные с домашней работой
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
-        )
+
+        segments_to_delete = []
+        if instance.video:
+            files_to_delete += str(instance.video)
+            segments_to_delete = s.get_folder_files(
+                str(instance.video)[1:], "_segments"
+            )
+
+        # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
+        remove_resp = None
+        if files_to_delete:
+            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
+                remove_resp = "Error"
+        if segments_to_delete:
+            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 

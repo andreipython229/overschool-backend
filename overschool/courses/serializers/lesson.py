@@ -1,9 +1,11 @@
+from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
-from common_services.yandex_client import get_yandex_link
 from courses.models import BaseLesson, Lesson, LessonComponentsOrder
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
+
+s = SelectelClient()
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -96,4 +98,4 @@ class LessonDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ["type", "text_files", "audio_files"]
 
     def get_video(self, obj):
-        return get_yandex_link(str(obj.video))
+        return s.get_selectel_link(str(obj.video)) if obj.video else None
