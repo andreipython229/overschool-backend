@@ -1,9 +1,9 @@
+from courses.models.test.section_test import SectionTest
 from django.core.management import call_command
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 from users.models.user import User
-from courses.models.test.section_test import SectionTest
 
 
 class TestsTestCase(APITestCase):
@@ -12,6 +12,7 @@ class TestsTestCase(APITestCase):
     def setUp(self):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
@@ -23,7 +24,6 @@ class TestsTestCase(APITestCase):
             "courses/fixtures/test_initial_lesson_data.json",
             "courses/fixtures/test_initial_section_data.json",
             "courses/fixtures/test_initial_user_progress_data.json",
-            "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "users/fixtures/test_initial_document_data.json",
         ]
@@ -36,22 +36,22 @@ class TestsTestCase(APITestCase):
         self.test = SectionTest.objects.get(pk=1)
 
     def test_tests_get(self):
-        url = reverse('tests-list', args=["School_1"])
+        url = reverse("tests-list", args=["School_1"])
         responce = self.client.get(url)
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_tests_id_get(self):
-        url = reverse('tests-detail', args=["School_1", self.test.pk])
+        url = reverse("tests-detail", args=["School_1", self.test.pk])
         responce = self.client.get(url)
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_tests_id_get_questions_get(self):
-        url = reverse('tests-detail', args=["School_1", self.test.pk])
+        url = reverse("tests-detail", args=["School_1", self.test.pk])
         responce = self.client.get(url)
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_tests_post(self):
-        url = reverse('tests-list', args=["School_1"])
+        url = reverse("tests-list", args=["School_1"])
 
         post_data = {
             "section": 1,
@@ -64,14 +64,14 @@ class TestsTestCase(APITestCase):
             "attempt_count": 2147483647,
             "points_per_answer": 2147483647,
             "points": 2147483647,
-            "order": 21474
+            "order": 21474,
         }
 
-        responce = self.client.post(url, post_data, format='json')
+        responce = self.client.post(url, post_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_201_CREATED)
 
     def test_tests_put(self):
-        url = reverse('tests-detail', args=["School_1", self.test.pk])
+        url = reverse("tests-detail", args=["School_1", self.test.pk])
 
         put_data = {
             "section": 1,
@@ -84,14 +84,14 @@ class TestsTestCase(APITestCase):
             "attempt_count": 2147483647,
             "points_per_answer": 2147483647,
             "points": 2147483647,
-            "order": 21474874
+            "order": 21474874,
         }
 
-        responce = self.client.put(url, put_data, format='json')
+        responce = self.client.put(url, put_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_tests_patch(self):
-        url = reverse('tests-detail', args=["School_1", self.test.pk])
+        url = reverse("tests-detail", args=["School_1", self.test.pk])
 
         patch_data = {
             "section": 1,
@@ -104,13 +104,13 @@ class TestsTestCase(APITestCase):
             "attempt_count": 2147483647,
             "points_per_answer": 2147483647,
             "points": 2147483647,
-            "order": 21474874
+            "order": 21474874,
         }
 
-        responce = self.client.patch(url, patch_data, format='json')
+        responce = self.client.patch(url, patch_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
 
     def test_tests_delete(self):
-        url = reverse('tests-detail', args=["School_1", self.test.pk])
+        url = reverse("tests-detail", args=["School_1", self.test.pk])
         responce = self.client.delete(url)
         self.assertEqual(responce.status_code, status.HTTP_204_NO_CONTENT)

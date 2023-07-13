@@ -140,6 +140,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
+        # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
             queryset = queryset.filter(students__first_name=first_name).distinct()
@@ -149,40 +150,56 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
-
-
         last_active_min = self.request.GET.get("last_active_min")
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_min and last_active_max:
-            queryset = queryset.filter(students__date_joined__range=[last_active_min, last_active_max]).distinct()
-        mark_sum = self.request.GET.get("mark_sum")
-        if mark_sum:
-            queryset = queryset.filter(students__user_homeworks__mark__gte=mark_sum).distinct()
+            queryset = queryset.filter(
+                students__date_joined__range=[last_active_min, last_active_max]
+            ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__exact=mark_sum)
         average_mark = self.request.GET.get("average_mark")
         if average_mark:
-            queryset = queryset.filter(students__user_homeworks__average_mark__gte=average_mark).distinct()
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__exact=average_mark)
         mark_sum_min = self.request.GET.get("mark_sum_min")
         mark_sum_max = self.request.GET.get("mark_sum_max")
         if mark_sum_min and mark_sum_max:
-            queryset = queryset.filter(students__user_homeworks__mark__range=(mark_sum_min, mark_sum_max)).distinct()
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__range=(mark_sum_min, mark_sum_max))
 
         average_mark_min = self.request.GET.get("average_mark_min")
         average_mark_max = self.request.GET.get("average_mark_max")
         if average_mark_min and average_mark_max:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
             queryset = queryset.filter(
-                students__user_homeworks__average_mark__range=(average_mark_min, average_mark_max)).distinct()
+                average_mark__range=(average_mark_min, average_mark_max)
+            )
 
-        subquery_mark_sum = UserHomework.objects.filter(user_id=OuterRef("students__id")).values("user_id").annotate(
-            mark_sum=Sum("mark")
-        ).values("mark_sum")
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
 
-        subquery_average_mark = UserHomework.objects.filter(user_id=OuterRef("students__id")).values(
-            "user_id").annotate(avg=Avg("mark")).values("avg")
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
 
-        data = queryset.values_list(
+        data = queryset.values(
             "course_id",
             "group_id",
             "students__date_joined",
@@ -199,25 +216,25 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item[5])
+            profile = Profile.objects.get(user_id=item["students__id"])
             serializer = UserProfileGetSerializer(profile)
             courses = Course.objects.filter(school=school)
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
                 {
-                    "course_id": item[0],
-                    "group_id": item[1],
-                    "last_active": item[2],
-                    "email": item[3],
-                    "first_name": item[4],
-                    "student_id": item[5],
+                    "course_id": item["course_id"],
+                    "group_id": item["group_id"],
+                    "last_active": item["students__date_joined"],
+                    "email": item["students__email"],
+                    "first_name": item["students__first_name"],
+                    "student_id": item["students__id"],
                     "avatar": serializer.data["avatar"],
-                    "last_name": item[7],
-                    "group_name": item[8],
+                    "last_name": item["students__last_name"],
+                    "group_name": item["name"],
                     "school_name": school.name,
-                    "mark_sum": item[9],
-                    "average_mark": item[10],
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
                     "sections": section_data,
                 }
             )

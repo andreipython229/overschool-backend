@@ -12,7 +12,7 @@ from .students_group import (
     StudentsGroupSerializer,
 )
 from .students_group_settings import StudentsGroupSettingsSerializer
-from .students_table_info import StudentsTableInfoSerializer
+from .students_table_info import StudentsTableInfoSerializer, StudentsTableInfoDetailSerializer
 from .user_homework import (
     UserHomeworkDetailSerializer,
     UserHomeworkSerializer,

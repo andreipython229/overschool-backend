@@ -1,6 +1,8 @@
-from common_services.yandex_client import get_yandex_link
+from common_services.selectel_client import SelectelClient
 from courses.models import Question
 from rest_framework import serializers
+
+s = SelectelClient()
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -26,4 +28,4 @@ class QuestionGetSerializer(serializers.ModelSerializer):
         read_only_fields = ("test",)
 
     def get_picture(self, obj):
-        return get_yandex_link(str(obj.picture))
+        return s.get_selectel_link(str(obj.picture)) if obj.picture else None

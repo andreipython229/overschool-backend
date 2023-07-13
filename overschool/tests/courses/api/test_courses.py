@@ -12,6 +12,7 @@ class CoursesTestCase(APITestCase):
     def setUp(self):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
             "courses/fixtures/test_initial_base_lesson_data.json",
@@ -23,7 +24,6 @@ class CoursesTestCase(APITestCase):
             "courses/fixtures/test_initial_lesson_data.json",
             "courses/fixtures/test_initial_section_data.json",
             "courses/fixtures/test_initial_user_progress_data.json",
-            "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "users/fixtures/test_initial_document_data.json",
         ]
@@ -78,9 +78,7 @@ class CoursesTestCase(APITestCase):
             "description": "string",
             "order": 2147483647,
             "school": 1,
-            "sections": [
-                1
-            ]
+            "sections": [1],
         }
 
         response = self.client.post(url, post_data, format="json")
@@ -98,9 +96,7 @@ class CoursesTestCase(APITestCase):
             "description": "string",
             "order": 214,
             "school": 1,
-            "sections": [
-                1
-            ]
+            "sections": [1],
         }
 
         response = self.client.put(url, put_data, format="json")
@@ -118,9 +114,7 @@ class CoursesTestCase(APITestCase):
             "description": "string",
             "order": 214,
             "school": 1,
-            "sections": [
-                1
-            ]
+            "sections": [1],
         }
 
         response = self.client.patch(url, patch_data, format="json")

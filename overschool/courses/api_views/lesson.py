@@ -1,3 +1,5 @@
+import inspect
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from common_services.yandex_client import remove_from_yandex, upload_file
@@ -5,11 +7,23 @@ from courses.models import BaseLesson, Course, Lesson, Section, StudentsGroup
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
+from django.utils.decorators import method_decorator
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+tag_decorator = swagger_auto_schema(
+    operation_description="""Эндпоинт на получение, создания, изменения и удаления уроков\n
+    /api/{school_name}/lessons/\n
+    Разрешения для просмотра уроков (любой пользователь)\n
+    Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')""",
+    operation_summary="Эндпоинт уроков",
+    tags=["lessons"],
+    responses={200: "Successful response"},
+)
 
 s = SelectelClient()
 
@@ -165,3 +179,15 @@ class LessonViewSet(
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def apply_decorator_to_methods(decorator):
+    def decorator_fn(view_cls):
+        for _, method in inspect.getmembers(view_cls, predicate=inspect.isfunction):
+            setattr(view_cls, method.__name__, method_decorator(decorator)(method))
+        return view_cls
+
+    return decorator_fn
+
+
+LessonViewSet = apply_decorator_to_methods(tag_decorator)(LessonViewSet)
