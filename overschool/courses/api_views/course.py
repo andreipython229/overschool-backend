@@ -21,6 +21,7 @@ from courses.serializers import (
 )
 from django.db.models import Avg, Count, F, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -32,11 +33,19 @@ from users.models import Profile
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.course import course_schema
+from .schemas.course import CoursesSchemas, course_schema
 
 s = SelectelClient()
 
 
+# @method_decorator(
+#     name="update",
+#     decorator=CoursesSchemas.courses_update_schema(),
+# )
+# @method_decorator(
+#     name="partial_update",
+#     decorator=CoursesSchemas.courses_update_schema(),
+# )
 class CourseViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
