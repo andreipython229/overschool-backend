@@ -38,7 +38,7 @@ class Message(models.Model):
     sender = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="masseges"
+        related_name="messages"
     )
     sent_at = models.DateTimeField(
         auto_now_add=True

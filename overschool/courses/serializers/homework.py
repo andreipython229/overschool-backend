@@ -1,5 +1,5 @@
+from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
-from common_services.yandex_client import get_yandex_link
 from courses.models import BaseLesson, Homework, LessonComponentsOrder
 from courses.models.homework.user_homework import UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
@@ -7,6 +7,8 @@ from courses.serializers.user_homework_check import UserHomeworkCheckDetailSeria
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
+
+s = SelectelClient()
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
@@ -113,7 +115,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_video(self, obj):
-        return get_yandex_link(str(obj.video))
+        return s.get_selectel_link(str(obj.video)) if obj.video else None
 
     def get_user_homework_checks(self, obj):
         user = self.context["request"].user
