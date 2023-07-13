@@ -68,10 +68,11 @@ urlpatterns = [
         LogoutView.as_view(actions={"get": "get"}),
         name="logout",
     ),
+    path("api/chats/", include("chats.urls")),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
-    path("api/<str:school_name>/chats/", include("chats.urls")),
+
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),

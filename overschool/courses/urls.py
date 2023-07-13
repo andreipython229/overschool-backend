@@ -7,6 +7,7 @@ from courses.api_views import (
     LessonViewSet,
     QuestionViewSet,
     SectionViewSet,
+    StudentProgressViewSet,
     StudentsGroupSettingsViewSet,
     StudentsGroupViewSet,
     StudentsTableInfoViewSet,
@@ -39,5 +40,6 @@ router.register("tests", TestViewSet, basename="tests")
 router.register("questions", QuestionViewSet, basename="questions")
 router.register("answers", AnswerViewSet, basename="answers")
 router.register("usertest", UserTestViewSet, basename="test_user")
+router.register("student_progress", StudentProgressViewSet, basename="student_progress")
 
 urlpatterns = router.urls

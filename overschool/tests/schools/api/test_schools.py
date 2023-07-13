@@ -17,8 +17,8 @@ class SchoolsViewSetAPITestCase(APITestCase):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
             "users/fixtures/test_initial_user_data.json",
-            "users/fixtures/test_initial_user_group_data.json",
             "schools/fixtures/test_initial_school_data.json",
+            "users/fixtures/test_initial_user_group_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_section_data.json",
@@ -74,8 +74,8 @@ class SchoolCreateTestCase(APITestCase):
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
             "users/fixtures/test_initial_user_data.json",
-            "users/fixtures/test_initial_user_group_data.json",
             "schools/fixtures/test_initial_school_data.json",
+            "users/fixtures/test_initial_user_group_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_section_data.json",
@@ -90,10 +90,7 @@ class SchoolCreateTestCase(APITestCase):
 
     def test_create_school(self):
         url = reverse("schools-list")
-        post_data = {
-            "name": "string",
-            "order": 214748
-        }
+        post_data = {"name": "string", "order": 214748}
         response = self.client.post(url, post_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(School.objects.count(), 6)

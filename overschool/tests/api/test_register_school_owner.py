@@ -9,6 +9,7 @@ class RegisterSchoolOwnerTestCase(APITestCase):
     def setUp(self):
         fixture_paths = [
             "courses/fixtures/test_initial_base_lesson_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_data_answer.json",
             "courses/fixtures/test_initial_data_question.json",
@@ -20,7 +21,6 @@ class RegisterSchoolOwnerTestCase(APITestCase):
             # "courses/fixtures/test_initial_students_group_data.json",
             "courses/fixtures/test_initial_user_progress_data.json",
             # "courses/fixtures/test_initial_user_homework_data.json",
-            "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "users/fixtures/test_initial_document_data.json",
             # 'users/fixtures/test_initial_profile_data.json',

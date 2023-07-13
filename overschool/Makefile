@@ -24,6 +24,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${MANAGE} makemigrations --settings=overschool.settings2
 	${MANAGE} migrate --settings=overschool.settings2
 	${MANAGE} runserver 0.0.0.0:8000 --settings=overschool.settings2
+
 	docker-compose exec back python overschool/manage.py test
 
 
@@ -39,7 +40,6 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${DOCKER_LOAD_DATA}  test_initial_base_lesson_data.json
 	${DOCKER_LOAD_DATA}  test_initial_students_group_settings.json
 	${DOCKER_LOAD_DATA}  test_initial_students_group_data.json
-	${DOCKER_LOAD_DATA}  test_initial_students_table_info.json
 	${DOCKER_LOAD_DATA}  test_initial_lesson_data.json
 	${DOCKER_LOAD_DATA}  test_initial_homework_data.json
 	${DOCKER_LOAD_DATA}  test_initial_data_section_test.json

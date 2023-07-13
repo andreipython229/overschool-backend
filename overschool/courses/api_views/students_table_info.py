@@ -1,60 +1,63 @@
-from common_services.mixins import LoggingMixin
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsTableInfo
-from courses.serializers import StudentsTableInfoSerializer
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import mixins, permissions, status
+from courses.serializers import StudentsTableInfoSerializer, StudentsTableInfoDetailSerializer
+from rest_framework import permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
+
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 
 class StudentsTableInfoViewSet(
-    LoggingMixin,
-    mixins.CreateModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.ListModelMixin,
-    GenericViewSet,
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт табличной информации о студентах\n
     <h2>/api/{school_name}/students_table_info/</h2>\n
     Табличная информация о студентах
     """
 
-    queryset = StudentsTableInfo.objects.all()
-    serializer_class = StudentsTableInfoSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "put", "patch", "head"]
 
-    def retrieve(self, request, *args, **kwargs):
-        user_id = self.kwargs["pk"]
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
 
-        try:
-            instance = StudentsTableInfo.objects.get(admin=user_id)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except ObjectDoesNotExist:
-            return Response(
-                {"status": "Error", "message": "Not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name__in=["Admin", "Teacher"], school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_serializer_class(self):
+        if self.action == "update":
+            return StudentsTableInfoDetailSerializer
+        return StudentsTableInfoSerializer
+
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsTableInfo.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user = self.request.user
+        return StudentsTableInfo.objects.filter(
+            author=user, school=school_id
+        )
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
-        user_id = self.kwargs["pk"]
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
-        try:
-            instance = StudentsTableInfo.objects.get(admin=user_id)
-            serializer = self.get_serializer(
-                instance, data=request.data, partial=partial
-            )
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
 
-            if getattr(instance, "_prefetched_objects_cache", None):
-                instance._prefetched_objects_cache = {}
-
-            return Response(serializer.data)
-        except ObjectDoesNotExist:
-            return Response(
-                {"status": "Error", "message": "Not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        return Response(serializer.data)

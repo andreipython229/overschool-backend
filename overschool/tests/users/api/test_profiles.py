@@ -15,9 +15,9 @@ class ProfileViewSetAPITestCase(APITestCase):
 
         fixture_paths = [
             "users/fixtures/test_initial_role_data.json",
+            "schools/fixtures/test_initial_school_data.json",
             "users/fixtures/test_initial_user_data.json",
             "users/fixtures/test_initial_user_group_data.json",
-            "schools/fixtures/test_initial_school_data.json",
             "schools/fixtures/test_initial_school_header.json",
             "courses/fixtures/test_initial_course_data.json",
             "courses/fixtures/test_initial_section_data.json",
@@ -76,9 +76,9 @@ class ProfileViewSetAPITestCase(APITestCase):
                 "first_name": "string",
                 "last_name": "string",
                 "email": "user@example.com",
-                "phone_number": "+375293745578"
-            }
+                "phone_number": "+375293745578",
+            },
         }
 
-        responce = self.client.put(url, put_data, format='json')
+        responce = self.client.put(url, put_data, format="json")
         self.assertEqual(responce.status_code, status.HTTP_200_OK)
