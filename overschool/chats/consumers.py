@@ -1,5 +1,5 @@
 import json
-
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 import jwt
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
@@ -11,7 +11,7 @@ from .models import Chat, UserChat, Message
 from users.models import User
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class ChatConsumer(AsyncWebsocketConsumer, LoggingMixin, WithHeadersViewSet):
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
         try:
