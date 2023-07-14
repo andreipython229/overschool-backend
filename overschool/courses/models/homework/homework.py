@@ -5,6 +5,7 @@ from ..common.base_lesson import BaseLesson
 
 class Homework(BaseLesson):
     """Модель домашнего задания"""
+
     homework_id = models.AutoField(
         primary_key=True,
         editable=True,
