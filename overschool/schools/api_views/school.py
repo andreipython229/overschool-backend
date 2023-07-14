@@ -40,8 +40,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -147,15 +147,22 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         last_name = self.request.GET.get("last_name")
         if last_name:
             queryset = queryset.filter(students__last_name=last_name).distinct()
+        course_name = self.request.GET.get("course_name")
+        if course_name:
+            queryset = queryset.filter(course_id__name=course_name).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            queryset = queryset.filter(students__date_joined__gte=last_active_min).distinct()
+            queryset = queryset.filter(
+                students__date_joined__gte=last_active_min
+            ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            queryset = queryset.filter(students__date_joined__lte=last_active_max).distinct()
+            queryset = queryset.filter(
+                students__date_joined__lte=last_active_max
+            ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
@@ -206,6 +213,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         data = queryset.values(
             "course_id",
+            "course_id__name",
             "group_id",
             "students__date_joined",
             "students__email",
@@ -229,6 +237,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             serialized_data.append(
                 {
                     "course_id": item["course_id"],
+                    "course_name": item["course_id__name"],
                     "group_id": item["group_id"],
                     "last_active": item["students__date_joined"],
                     "email": item["students__email"],

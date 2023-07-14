@@ -24,7 +24,6 @@ class CourseSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
-            "sections",
         ]
 
 

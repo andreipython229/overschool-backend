@@ -65,14 +65,6 @@ REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 BROKER_BACKEND = "redis"
 
-# CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-# CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-# CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
-# CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
-# CELERY_ACCEPT_CONTENT = ["application/json"]
-# CELERY_TASK_SERIALIZER = "json"
-# CELERY_RESULT_SERIALIZER = "json"
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False

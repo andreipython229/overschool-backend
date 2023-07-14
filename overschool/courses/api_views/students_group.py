@@ -18,7 +18,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-from users.models import UserGroup
+from users.models import Profile, UserGroup
+from users.serializers import UserProfileGetSerializer
 
 
 class StudentsGroupViewSet(
@@ -44,29 +45,41 @@ class StudentsGroupViewSet(
             return (
                 StudentsGroup.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
-        return StudentsGroup.objects.filter(
-            course_id__school__school_id=self.get_school().school_id
-        )
+        user = self.request.user
+        if user.groups.filter(group__name="Student", school=self.get_school()).exists():
+            return StudentsGroup.objects.filter(
+                students=user, course_id__school__school_id=self.get_school().school_id
+            )
+        if user.groups.filter(group__name="Teacher", school=self.get_school()).exists():
+            return StudentsGroup.objects.filter(
+                teacher_id=user,
+                course_id__school__school_id=self.get_school().school_id,
+            )
+        if user.groups.filter(group__name="Admin", school=self.get_school()).exists():
+            return StudentsGroup.objects.filter(
+                course_id__school__school_id=self.get_school().school_id
+            )
 
     def get_permissions(self):
         permissions = super().get_permissions()
         user = self.request.user
         school = self.get_school()
-        # Разрешения только для пользователей данной школы
-        if user.groups.filter(school=school).exists():
-            if self.action in ["list", "retrieve"]:
-                # Разрешения для просмотра групп (любой пользователь школы)
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return permissions
+        if self.action in [
+            "list",
+            "retrieve",
+            "get_students_for_group",
+            "user_count_by_month",
+        ]:
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school
+            ).exists():
                 return permissions
-            elif self.action in ["create", "update", "partial_update", "destroy"]:
-                # Разрешения для создания и изменения групп (только пользователи с группой 'Admin')
-                if user.groups.filter(school=school, group__name="Admin").exists():
-                    return permissions
-                else:
-                    raise PermissionDenied(
-                        "У вас нет прав для выполнения этого действия."
-                    )
             else:
-                return permissions
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
@@ -130,15 +143,76 @@ class StudentsGroupViewSet(
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
         """Все студенты одной группы\n
         <h2>/api/{school_name}/students_group/{group_id}/get_students_for_group/</h2>\n"""
-        course = self.get_object()
         group = self.get_object()
-        students = group.students.all()
+        user = self.request.user
+        school = self.get_school()
+        students = group.students.none()
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            if group.teacher_id == user:
+                students = group.students.all()
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            students = group.students.all()
+
+        # Фильтры
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            students = students.filter(first_name=first_name)
+
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            students = students.filter(last_name=last_name)
+
+        last_active_min = self.request.GET.get("last_active_min")
+        if last_active_min:
+            students = students.filter(date_joined__gte=last_active_min)
+
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_max:
+            students = students.filter(date_joined__lte=last_active_max)
+
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            students = students.filter(date_joined=last_active)
+
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum=mark_sum)
+
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark=average_mark)
+
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        if mark_sum_min:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum__gte=mark_sum_min)
+
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_max:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum__lte=mark_sum_max)
+
+        average_mark_min = self.request.GET.get("average_mark_min")
+        if average_mark_min:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark__gte=average_mark_min)
+
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_max:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark__lte=average_mark_max)
 
         student_data = []
         for student in students:
+            profile = Profile.objects.get(user_id=student)
+            serializer = UserProfileGetSerializer(profile)
 
             student_data.append(
                 {
+                    "course_id": group.course_id.course_id,
+                    "course_name": group.course_id.name,
                     "group_id": group.group_id,
                     "group_name": group.name,
                     "id": student.id,
@@ -146,10 +220,9 @@ class StudentsGroupViewSet(
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
-                    "course_name": course.name,
+                    "school_name": school.name,
+                    "avatar": serializer.data["avatar"],
                     "last_active": student.date_joined,
-                    "update_date": student.date_joined,
-                    "ending_date": student.date_joined,
                     "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
                         "mark_sum"
                     ],
@@ -157,7 +230,7 @@ class StudentsGroupViewSet(
                         average_mark=Avg("mark")
                     )["average_mark"],
                     "section": SectionSerializer(
-                        course.course_id.sections.all(), many=True
+                        group.course_id.sections.all(), many=True
                     ).data,
                 }
             )
@@ -170,20 +243,27 @@ class StudentsGroupViewSet(
         по дефолту стоит текущий месяц,
         для конкретного месяца указываем параметр month_number="""
 
+        queryset = StudentsGroup.objects.none()
+        user = self.request.user
         group = self.get_object()
-        queryset = StudentsGroup.objects.filter(
-            group_id=group.pk,
-            students__date_joined__month=request.GET["month_number"]
-            if "month_number" in request.GET
-            else datetime.now().month,
-        )
+        school = self.get_school()
+        if user.groups.filter(
+            group__name__in=["Admin", "Teacher"], school=school
+        ).exists():
+            queryset = StudentsGroup.objects.filter(group_id=group.pk)
+
+        month_number = request.GET.get("month_number", datetime.now().month)
+        queryset = queryset.filter(students__date_joined__month=month_number)
+
         datas = queryset.values(group=F("group_id")).annotate(
             students_sum=Count("students__id")
         )
+
         for data in datas:
             data["graphic_data"] = queryset.values(
                 group=F("group_id"), date=F("students__date_joined__day")
             ).annotate(students_sum=Count("students__id"))
+
         page = self.paginate_queryset(datas)
         if page is not None:
             return self.get_paginated_response(page)
