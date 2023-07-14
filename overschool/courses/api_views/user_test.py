@@ -1,12 +1,10 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Answer, Question, SectionTest, UserTest
 from courses.serializers import UserTestSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.user_test import user_test_schema
 
 
 class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -92,4 +90,8 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-UserTestViewSet = apply_swagger_auto_schema(user_test_schema)(UserTestViewSet)
+UserTestViewSet = apply_swagger_auto_schema(
+    tags=[
+        "user_test",
+    ]
+)(UserTestViewSet)

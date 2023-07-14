@@ -1,11 +1,30 @@
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
-answer_schema = swagger_auto_schema(
-    operation_description="""Эндпоинт на получение, создания, изменения и удаления ответов\n
-    /api/{school_name}/answers/\n
-    Разрешения для просмотра ответов к тестам (любой пользователь).\n
-    Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin').""",
-    operation_summary="Эндпоинт ответов",
-    tags=["answers"],
-    # responses={200: "Successful response"},
-)
+
+class AnswersSchemas:
+    def default_schema():
+        return swagger_auto_schema(
+            tags=["answers"],
+        )
+
+    def partial_update_schema():
+        return swagger_auto_schema(
+            tags=["answers"],
+            manual_parameters=[
+                openapi.Parameter(
+                    name="body",
+                    in_=openapi.IN_FORM,
+                    description="HTML вариант ответа",
+                    type=openapi.TYPE_STRING,
+                    required=True,
+                ),
+                openapi.Parameter(
+                    name="question",
+                    in_=openapi.IN_FORM,
+                    description="Вопрос, к которому привязан ответ",
+                    type=openapi.TYPE_INTEGER,
+                    required=True,
+                ),
+            ],
+        )

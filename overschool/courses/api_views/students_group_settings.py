@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.serializers import StudentsGroupSettingsSerializer
@@ -6,9 +7,6 @@ from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.students_group_settings import students_group_settings_schema
 
 
 class StudentsGroupSettingsViewSet(
@@ -67,5 +65,7 @@ class StudentsGroupSettingsViewSet(
 
 
 StudentsGroupSettingsViewSet = apply_swagger_auto_schema(
-    students_group_settings_schema
+    tags=[
+        "students_group_settings",
+    ]
 )(StudentsGroupSettingsViewSet)

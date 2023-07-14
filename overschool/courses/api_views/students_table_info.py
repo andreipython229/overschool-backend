@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsTableInfo
 from courses.serializers import (
@@ -10,9 +11,6 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.students_table_info import students_table_info_schema
 
 
 class StudentsTableInfoViewSet(
@@ -70,6 +68,8 @@ class StudentsTableInfoViewSet(
         return Response(serializer.data)
 
 
-StudentsTableInfoViewSet = apply_swagger_auto_schema(students_table_info_schema)(
-    StudentsTableInfoViewSet
-)
+StudentsTableInfoViewSet = apply_swagger_auto_schema(
+    tags=[
+        "students_table_info",
+    ]
+)(StudentsTableInfoViewSet)

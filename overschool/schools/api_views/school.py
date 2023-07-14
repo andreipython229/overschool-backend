@@ -1,9 +1,10 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
-from courses.api_views.schemas.apply_auto_schema import apply_swagger_auto_schema
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -14,11 +15,15 @@ from schools.serializers import SchoolGetSerializer, SchoolSerializer
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
-from .schemas.school import school_schema
+from .schemas.school import SchoolsSchemas
 
 s = SelectelClient()
 
 
+@method_decorator(
+    name="partial_update",
+    decorator=SchoolsSchemas.partial_update_schema(),
+)
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
     <h2>/api/{school_name}/schools/</h2>\n
@@ -261,4 +266,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(serialized_data)
 
 
-SchoolViewSet = apply_swagger_auto_schema(school_schema)(SchoolViewSet)
+SchoolViewSet = apply_swagger_auto_schema(
+    tags=["schools"], excluded_methods=["partial_update"]
+)(SchoolViewSet)

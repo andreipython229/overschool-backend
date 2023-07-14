@@ -1,28 +1,19 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Question, SectionTest
 from courses.serializers import QuestionGetSerializer, QuestionSerializer
 from django.utils.decorators import method_decorator
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.question import QuestionsSchemas, question_schema
+from .schemas.question import QuestionsSchemas
 
 s = SelectelClient()
 
 
-@method_decorator(
-    name="list",
-    decorator=QuestionsSchemas.question_get_and_create_schema(),
-)
-@method_decorator(
-    name="retrieve",
-    decorator=QuestionsSchemas.question_get_and_create_schema(),
-)
 @method_decorator(
     name="update",
     decorator=QuestionsSchemas.question_update_schema(),
@@ -30,9 +21,6 @@ s = SelectelClient()
 @method_decorator(
     name="partial_update",
     decorator=QuestionsSchemas.question_update_schema(),
-)
-@method_decorator(
-    name="create", decorator=QuestionsSchemas.question_get_and_create_schema()
 )
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления вопросов \n
@@ -101,7 +89,6 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["questions"])
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
 
@@ -126,4 +113,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# QuestionViewSet = apply_swagger_auto_schema(question_schema)(QuestionViewSet)
+QuestionViewSet = apply_swagger_auto_schema(
+    default_schema=QuestionsSchemas.default_schema(),
+    excluded_methods=["update", "partial_update"],
+)(QuestionViewSet)

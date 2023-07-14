@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
     Course,
@@ -11,6 +12,7 @@ from courses.models import (
 from courses.serializers import SectionSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -19,10 +21,13 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.section import section_schema
+from .schemas.section import SectionsSchemas
 
 
+@method_decorator(
+    name="partial_update",
+    decorator=SectionsSchemas.partial_update_schema(),
+)
 class SectionViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
@@ -176,4 +181,6 @@ class SectionViewSet(
         return Response(result_data)
 
 
-SectionViewSet = apply_swagger_auto_schema(section_schema)(SectionViewSet)
+SectionViewSet = apply_swagger_auto_schema(
+    tags=["sections"], excluded_methods=["partial_update"]
+)(SectionViewSet)

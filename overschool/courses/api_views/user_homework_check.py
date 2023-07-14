@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.homework.user_homework import (
     UserHomework,
@@ -16,9 +17,6 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.user_homework_check import user_homework_check_schema
 
 
 class HomeworkCheckViewSet(
@@ -180,6 +178,8 @@ class HomeworkCheckViewSet(
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-HomeworkCheckViewSet = apply_swagger_auto_schema(user_homework_check_schema)(
-    HomeworkCheckViewSet
-)
+HomeworkCheckViewSet = apply_swagger_auto_schema(
+    tags=[
+        "homeworks_check",
+    ]
+)(HomeworkCheckViewSet)

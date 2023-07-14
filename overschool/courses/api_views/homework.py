@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
@@ -7,13 +8,9 @@ from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.homework import homework_schema
 
 s = SelectelClient()
 
@@ -216,4 +213,8 @@ class HomeworkViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-HomeworkViewSet = apply_swagger_auto_schema(homework_schema)(HomeworkViewSet)
+HomeworkViewSet = apply_swagger_auto_schema(
+    tags=[
+        "homeworks",
+    ]
+)(HomeworkViewSet)

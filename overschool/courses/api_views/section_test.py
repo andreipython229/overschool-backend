@@ -1,5 +1,6 @@
 from random import sample
 
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import (
@@ -20,9 +21,6 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.section_test import section_test_schema
 
 s = SelectelClient()
 
@@ -292,4 +290,8 @@ class TestViewSet(
         return Response(test)
 
 
-TestViewSet = apply_swagger_auto_schema(section_test_schema)(TestViewSet)
+TestViewSet = apply_swagger_auto_schema(
+    tags=[
+        "tests",
+    ]
+)(TestViewSet)

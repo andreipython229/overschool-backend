@@ -1,18 +1,23 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import Answer, BaseLesson, Question
 from courses.serializers import AnswerGetSerializer, AnswerSerializer
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from .schemas.answer import answer_schema
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
+from .schemas.answer import AnswersSchemas
 
 s = SelectelClient()
 
 
+@method_decorator(
+    name="partial_update",
+    decorator=AnswersSchemas.partial_update_schema(),
+)
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
     <h2>/api/{school_name}/answers/</h2>\n
@@ -97,4 +102,9 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-AnswerViewSet = apply_swagger_auto_schema(answer_schema)(AnswerViewSet)
+AnswerViewSet = apply_swagger_auto_schema(
+    tags=[
+        "answers",
+    ],
+    excluded_methods=["partial_update"],
+)(AnswerViewSet)

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import (
@@ -32,20 +33,19 @@ from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
 
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.course import CoursesSchemas, course_schema
+from .schemas.course import CoursesSchemas
 
 s = SelectelClient()
 
 
-# @method_decorator(
-#     name="update",
-#     decorator=CoursesSchemas.courses_update_schema(),
-# )
-# @method_decorator(
-#     name="partial_update",
-#     decorator=CoursesSchemas.courses_update_schema(),
-# )
+@method_decorator(
+    name="update",
+    decorator=CoursesSchemas.courses_update_schema(),
+)
+@method_decorator(
+    name="partial_update",
+    decorator=CoursesSchemas.courses_update_schema(),
+)
 class CourseViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
@@ -449,4 +449,6 @@ class CourseViewSet(
         return Response(serializer.data)
 
 
-CourseViewSet = apply_swagger_auto_schema(course_schema)(CourseViewSet)
+CourseViewSet = apply_swagger_auto_schema(
+    tags=["courses"], excluded_methods=["partial_update", "update"]
+)(CourseViewSet)

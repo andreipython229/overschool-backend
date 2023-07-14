@@ -1,6 +1,6 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
-from courses.api_views.schemas.apply_auto_schema import apply_swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -55,4 +55,4 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-ProfileViewSet = apply_swagger_auto_schema(profile_schema)(ProfileViewSet)
+ProfileViewSet = apply_swagger_auto_schema(tags=["profiles"])(ProfileViewSet)

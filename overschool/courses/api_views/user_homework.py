@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
@@ -17,9 +18,6 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
-
-from .schemas.apply_auto_schema import apply_swagger_auto_schema
-from .schemas.user_homework import user_homework_schema
 
 s = SelectelClient()
 
@@ -278,9 +276,13 @@ class HomeworkStatisticsView(
         return queryset
 
 
-UserHomeworkViewSet = apply_swagger_auto_schema(user_homework_schema)(
-    UserHomeworkViewSet
-)
-HomeworkStatisticsView = apply_swagger_auto_schema(user_homework_schema)(
-    HomeworkStatisticsView
-)
+UserHomeworkViewSet = apply_swagger_auto_schema(
+    tags=[
+        "homeworks",
+    ]
+)(UserHomeworkViewSet)
+HomeworkStatisticsView = apply_swagger_auto_schema(
+    tags=[
+        "homeworks",
+    ]
+)(HomeworkStatisticsView)

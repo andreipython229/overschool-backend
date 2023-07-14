@@ -1,6 +1,30 @@
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
-school_schema = swagger_auto_schema(
-    tags=["schools"],
-    # responses={200: "Successful response"},
-)
+
+class SchoolsSchemas:
+    def default_schema():
+        return swagger_auto_schema(
+            tags=["schools"],
+        )
+
+    def partial_update_schema():
+        return swagger_auto_schema(
+            tags=["schools"],
+            manual_parameters=[
+                openapi.Parameter(
+                    name="name",
+                    in_=openapi.IN_FORM,
+                    description="Название школы",
+                    type=openapi.TYPE_STRING,
+                    required=False,
+                ),
+                openapi.Parameter(
+                    name="order",
+                    in_=openapi.IN_FORM,
+                    description="",
+                    type=openapi.TYPE_INTEGER,
+                    required=False,
+                ),
+            ],
+        )

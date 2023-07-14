@@ -43,6 +43,7 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ConfirmationSerializer
     allowed_methods = ["POST"]  # Only allow the "POST" method
+    parser_classes = (MultiPartParser,)
 
     def post(self, request, school_name=None):
         serializer = self.get_serializer(data=request.data)
@@ -113,6 +114,7 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
 
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetSerializer
+    parser_classes = (MultiPartParser,)
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -147,6 +149,7 @@ class PasswordResetConfirmView(WithHeadersViewSet, generics.GenericAPIView):
 
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetConfirmSerializer
+    parser_classes = (MultiPartParser,)
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
