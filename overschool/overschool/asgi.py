@@ -5,6 +5,7 @@ import time
 
 import chats.routing
 import sentry_sdk
+from channels.auth import AuthMiddlewareStack
 from channels.middleware import BaseMiddleware
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
@@ -43,9 +44,11 @@ django_asgi_app = get_asgi_application()
 class CorsHeadersMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         response = await super().__call__(scope, receive, send)
-        response["access-control-allow-credentials"] = "true"
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "*"
+        if response is not None:
+            response["access-control-allow-credentials"] = "true"
+            response["Access-Control-Allow-Origin"] = "*"
+            response["Access-Control-Allow-Methods"] = "*"
+            response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         return response
 
 
@@ -53,7 +56,7 @@ application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
         "websocket": AllowedHostsOriginValidator(
-            URLRouter(chats.routing.websocket_urlpatterns)
+            AuthMiddlewareStack(URLRouter(chats.routing.websocket_urlpatterns))
         ),
     }
 )
