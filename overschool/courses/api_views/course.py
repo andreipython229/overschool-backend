@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import (
@@ -21,18 +22,30 @@ from courses.serializers import (
 )
 from django.db.models import Avg, Count, F, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
 
+from .schemas.course import CoursesSchemas
+
 s = SelectelClient()
 
 
+@method_decorator(
+    name="update",
+    decorator=CoursesSchemas.courses_update_schema(),
+)
+@method_decorator(
+    name="partial_update",
+    decorator=CoursesSchemas.courses_update_schema(),
+)
 class CourseViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
@@ -44,6 +57,7 @@ class CourseViewSet(
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -108,10 +122,7 @@ class CourseViewSet(
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
-        print(school_id)
-
         school = self.request.data.get("school")
-        print(school)
         if int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
@@ -436,3 +447,8 @@ class CourseViewSet(
             return self.get_paginated_response(serializer.data)
         serializer = StudentsGroupSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+CourseViewSet = apply_swagger_auto_schema(
+    tags=["courses"], excluded_methods=["partial_update", "update"]
+)(CourseViewSet)

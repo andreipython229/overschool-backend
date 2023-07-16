@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
@@ -27,6 +28,7 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     permission_classes = [permissions.IsAuthenticated]
+    # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -209,3 +211,10 @@ class HomeworkViewSet(
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+HomeworkViewSet = apply_swagger_auto_schema(
+    tags=[
+        "homeworks",
+    ]
+)(HomeworkViewSet)

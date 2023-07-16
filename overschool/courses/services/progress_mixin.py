@@ -48,7 +48,6 @@ class LessonProgressMixin:
                 course_lessons = BaseLesson.objects.filter(
                     section__course_id=baselesson.section.course
                 ).order_by("section__order", "order")
-
                 # Если урок стоит первым в курсе - то отдаём урок
                 if baselesson == course_lessons.first():
                     self.create_log(user=user, instance=instance)
