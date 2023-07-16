@@ -100,7 +100,7 @@ CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = None
 CSRF_COOKIE_SAMESITE = None
 
-CORS_ALLOW_METHODS = (
+CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
     "OPTIONS",
@@ -108,9 +108,9 @@ CORS_ALLOW_METHODS = (
     "POST",
     "PUT",
     "VIEW",
-)
+]
 
-CORS_ALLOW_HEADERS = (
+CORS_ALLOW_HEADERS = [
     "XMLHttpRequest",
     "X_FILENAME",
     "accept-encoding",
@@ -123,7 +123,8 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
     "Pragma",
     "Cookie",
-)
+    "Sec-WebSocket-Protocol",
+]
 
 CHANNEL_LAYERS = {
     "default": {

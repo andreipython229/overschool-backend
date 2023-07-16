@@ -37,11 +37,14 @@ formatted_time = datetime.datetime.fromtimestamp(timestamp).strftime(
 )
 formatted_message = "{} (время записи: {})".format(message, formatted_time)
 logger.info(formatted_message)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings2")
 django_asgi_app = get_asgi_application()
 
 
 class CorsHeadersMiddleware(BaseMiddleware):
+    def __init__(self, inner):
+        super().__init__(inner)
+
     async def __call__(self, scope, receive, send):
         response = await super().__call__(scope, receive, send)
         if response is not None:
