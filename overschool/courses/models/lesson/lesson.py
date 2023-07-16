@@ -4,6 +4,7 @@ from django.db import models
 
 class Lesson(BaseLesson):
     """Модель урока в разделе"""
+
     lesson_id = models.AutoField(
         primary_key=True,
         editable=False,

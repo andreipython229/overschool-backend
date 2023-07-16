@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Course, StudentsGroup, UserTest
 from courses.models.students.students_group_settings import StudentsGroupSettings
@@ -15,6 +16,8 @@ from django.db.models import Avg, Count, F, Sum
 from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+
+# from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -34,6 +37,7 @@ class StudentsGroupViewSet(
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+    # parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -268,3 +272,10 @@ class StudentsGroupViewSet(
         if page is not None:
             return self.get_paginated_response(page)
         return Response(datas)
+
+
+StudentsGroupViewSet = apply_swagger_auto_schema(
+    tags=[
+        "students_group",
+    ]
+)(StudentsGroupViewSet)

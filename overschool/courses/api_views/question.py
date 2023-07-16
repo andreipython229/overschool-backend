@@ -1,22 +1,37 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Question, SectionTest
 from courses.serializers import QuestionGetSerializer, QuestionSerializer
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+
+from .schemas.question import QuestionsSchemas
 
 s = SelectelClient()
 
 
+@method_decorator(
+    name="update",
+    decorator=QuestionsSchemas.question_update_schema(),
+)
+@method_decorator(
+    name="partial_update",
+    decorator=QuestionsSchemas.question_update_schema(),
+)
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления вопросов \n
     <h2>/api/{school_name}/questions/</h2>\n
-    Получать курсы может любой пользователь. \n
+    Получать вопросы может любой пользователь. \n
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
     queryset = Question.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve", "update", "partial_update"]:
@@ -96,3 +111,9 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+QuestionViewSet = apply_swagger_auto_schema(
+    default_schema=QuestionsSchemas.default_schema(),
+    excluded_methods=["update", "partial_update"],
+)(QuestionViewSet)

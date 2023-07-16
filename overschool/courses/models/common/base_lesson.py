@@ -36,6 +36,12 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Баллы за прохождение",
         default=0,
     )
+    active = models.BooleanField(
+        default=True,
+        verbose_name="Активный",
+        help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
+        blank=False,
+    )
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
 
     def __str__(self):

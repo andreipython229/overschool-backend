@@ -1,5 +1,6 @@
 from random import sample
 
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import (
@@ -16,6 +17,7 @@ from courses.services import LessonProgressMixin
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -37,6 +39,7 @@ class TestViewSet(
 
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -285,3 +288,10 @@ class TestViewSet(
                 ).values("answer_id", "body")
             test["questions"][index]["answers"] = list(answers)
         return Response(test)
+
+
+TestViewSet = apply_swagger_auto_schema(
+    tags=[
+        "tests",
+    ]
+)(TestViewSet)

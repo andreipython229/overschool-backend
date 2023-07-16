@@ -1,28 +1,15 @@
-import inspect
-
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Course, Lesson, Section, StudentsGroup
 from courses.serializers import LessonDetailSerializer, LessonSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
-from django.utils.decorators import method_decorator
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-tag_decorator = swagger_auto_schema(
-    operation_description="""Эндпоинт на получение, создания, изменения и удаления уроков\n
-    /api/{school_name}/lessons/\n
-    Разрешения для просмотра уроков (любой пользователь)\n
-    Разрешения для создания и изменения уроков (только пользователи с группой 'Admin')""",
-    operation_summary="Эндпоинт уроков",
-    tags=["lessons"],
-    responses={200: "Successful response"},
-)
 
 s = SelectelClient()
 
@@ -69,9 +56,7 @@ class LessonViewSet(
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return (
-                Lesson.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
+            return Lesson.objects.none()  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -83,13 +68,17 @@ class LessonViewSet(
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
             ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(section__course_id__in=course_ids)
+            return Lesson.objects.filter(
+                active=True, section__course_id__in=course_ids
+            )
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
                 course_id_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(section__course_id__in=course_ids)
+            return Lesson.objects.filter(
+                active=True, section__course_id__in=course_ids
+            )
 
         return Lesson.objects.none()
 
@@ -195,13 +184,8 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def apply_decorator_to_methods(decorator):
-    def decorator_fn(view_cls):
-        for _, method in inspect.getmembers(view_cls, predicate=inspect.isfunction):
-            setattr(view_cls, method.__name__, method_decorator(decorator)(method))
-        return view_cls
-
-    return decorator_fn
-
-
-LessonViewSet = apply_decorator_to_methods(tag_decorator)(LessonViewSet)
+LessonViewSet = apply_swagger_auto_schema(
+    tags=[
+        "lessons",
+    ]
+)(LessonViewSet)

@@ -1,8 +1,10 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.serializers import StudentsGroupSettingsSerializer
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
@@ -16,6 +18,8 @@ class StudentsGroupSettingsViewSet(
 
     serializer_class = StudentsGroupSettingsSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -58,3 +62,10 @@ class StudentsGroupSettingsViewSet(
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
+
+
+StudentsGroupSettingsViewSet = apply_swagger_auto_schema(
+    tags=[
+        "students_group_settings",
+    ]
+)(StudentsGroupSettingsViewSet)

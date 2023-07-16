@@ -1,3 +1,4 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.homework.user_homework import (
     UserHomework,
@@ -12,6 +13,7 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -174,3 +176,10 @@ class HomeworkCheckViewSet(
         serializer = UserHomeworkCheckDetailSerializer(user_homework_check)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+HomeworkCheckViewSet = apply_swagger_auto_schema(
+    tags=[
+        "homeworks_check",
+    ]
+)(HomeworkCheckViewSet)
