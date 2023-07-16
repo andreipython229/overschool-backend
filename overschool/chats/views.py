@@ -9,7 +9,7 @@ from .models import Chat, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatSerializer, MessageSerializer
-
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 User = get_user_model()
 
 
@@ -38,7 +38,7 @@ def is_object_exist(pk, object):
         return False
 
 
-class ChatListCreate(APIView):
+class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Список всех чатов
     - Создание чата
@@ -112,7 +112,7 @@ class ChatListCreate(APIView):
                 )
 
 
-class ChatDetailDelete(APIView):
+class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Детали чата
     - Удаление / восстановление чата
@@ -193,7 +193,7 @@ class ChatDetailDelete(APIView):
         )
 
 
-class MessageList(APIView):
+class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Сообщения чата
     """
