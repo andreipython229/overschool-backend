@@ -28,7 +28,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
 
 # Application definition
@@ -221,13 +221,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-MEDIA_URL = "/media/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "staticfiles"),
+]
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
 
+MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
-
-STATICFILES = (os.path.join(BASE_DIR, "static"),)
 
 # Длительность жизни кода подтверждения в минутах
 CONFIRMATION_CODE_EXPIRY_MINUTES = 1

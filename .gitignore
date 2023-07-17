@@ -109,3 +109,4 @@ static/
 *.pid
 
 .idea
+/overschool/staticfiles/

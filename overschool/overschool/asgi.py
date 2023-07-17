@@ -3,7 +3,6 @@ import logging
 import os
 import time
 
-import chats.routing
 import sentry_sdk
 from channels.auth import AuthMiddlewareStack
 from channels.middleware import BaseMiddleware
@@ -39,6 +38,8 @@ formatted_message = "{} (время записи: {})".format(message, formatted
 logger.info(formatted_message)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings2")
 django_asgi_app = get_asgi_application()
+
+import chats.routing
 
 
 class CorsHeadersMiddleware(BaseMiddleware):
