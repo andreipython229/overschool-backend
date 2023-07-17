@@ -79,16 +79,10 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1",
-    "http://localhost:3000",
-    "http://85.209.148.157:3000",
-    "https://www.youtube.com",
+    "*",
 ]
 CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1",
-    "http://localhost:3000",
-    "http://85.209.148.157:3000",
-    "https://www.youtube.com",
+    "*",
 ]
 
 SESSION_COOKIE_SECURE = False
@@ -97,30 +91,11 @@ SESSION_COOKIE_SAMESITE = None
 CSRF_COOKIE_SAMESITE = None
 
 CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-    "VIEW",
+    "*",
 ]
 
 CORS_ALLOW_HEADERS = [
-    "XMLHttpRequest",
-    "X_FILENAME",
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "X-CSRFToken",
-    "x-requested-with",
-    "Pragma",
-    "Cookie",
-    "Sec-WebSocket-Protocol",
+    "*",
 ]
 
 CHANNEL_LAYERS = {

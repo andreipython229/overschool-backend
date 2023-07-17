@@ -52,7 +52,6 @@ class CorsHeadersMiddleware(BaseMiddleware):
             response["access-control-allow-credentials"] = "true"
             response["Access-Control-Allow-Origin"] = "*"
             response["Access-Control-Allow-Methods"] = "*"
-            response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         return response
 
 
