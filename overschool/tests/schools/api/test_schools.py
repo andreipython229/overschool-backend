@@ -46,7 +46,7 @@ class SchoolsViewSetAPITestCase(APITestCase):
     def test_update_school(self):
         url = reverse("schools-detail", args=[self.school.pk])
         data = {"name": "New Test School Name", "order": 0}
-        response = self.client.put(url, data, format="json")
+        response = self.client.put(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.school.refresh_from_db()
         self.assertEqual(self.school.name, data["name"])
@@ -54,7 +54,7 @@ class SchoolsViewSetAPITestCase(APITestCase):
     def test_partial_update_school(self):
         url = reverse("schools-detail", args=[self.school.pk])
         data = {"name": "New School Name"}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.school.refresh_from_db()
         self.assertEqual(self.school.name, data["name"])
@@ -91,7 +91,7 @@ class SchoolCreateTestCase(APITestCase):
     def test_create_school(self):
         url = reverse("schools-list")
         post_data = {"name": "string", "order": 214748}
-        response = self.client.post(url, post_data, format="json")
+        response = self.client.post(url, post_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(School.objects.count(), 6)
         self.assertEqual(response.data["name"], post_data["name"])

@@ -81,7 +81,7 @@ class CoursesTestCase(APITestCase):
             "sections": [1],
         }
 
-        response = self.client.post(url, post_data, format="json")
+        response = self.client.post(url, post_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_courses_update_put(self):
@@ -99,7 +99,7 @@ class CoursesTestCase(APITestCase):
             "sections": [1],
         }
 
-        response = self.client.put(url, put_data, format="json")
+        response = self.client.put(url, put_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_courses_patch(self):
@@ -117,7 +117,7 @@ class CoursesTestCase(APITestCase):
             "sections": [1],
         }
 
-        response = self.client.patch(url, patch_data, format="json")
+        response = self.client.patch(url, patch_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_courses_delete(self):

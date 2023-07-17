@@ -153,7 +153,7 @@ class CourseViewSet(
 
         instance = self.get_object()
         serializer = CourseSerializer(instance, data=request.data)
-        serializer.is_valid(raise_exceptions=True)
+        serializer.is_valid()
 
         if request.FILES.get("photo"):
             if instance.photo:

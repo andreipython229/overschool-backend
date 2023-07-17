@@ -40,7 +40,7 @@ class SectionViewSetAPITestCase(APITestCase):
     def test_create_section(self):
         url = reverse("sections-list", args=["School_1"])
         data = {"order": 10, "name": "New Section", "author": 1, "course": 1}
-        response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Section.objects.count(), 6)
         self.assertEqual(response.data["name"], data["name"])
@@ -54,7 +54,7 @@ class SectionViewSetAPITestCase(APITestCase):
     def test_update_section(self):
         url = reverse("sections-detail", args=["School_1", self.section.pk])
         data = {"order": 10, "name": "New Section Name", "author": 1, "course": 1}
-        response = self.client.put(url, data, format="json")
+        response = self.client.put(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.section.refresh_from_db()
         self.assertEqual(self.section.name, data["name"])
@@ -62,7 +62,7 @@ class SectionViewSetAPITestCase(APITestCase):
     def test_partial_update_section(self):
         url = reverse("sections-detail", args=["School_1", self.section.pk])
         data = {"name": "New Section Name"}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.section.refresh_from_db()
         self.assertEqual(self.section.name, data["name"])
