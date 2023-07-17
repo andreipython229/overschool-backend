@@ -36,7 +36,7 @@ formatted_time = datetime.datetime.fromtimestamp(timestamp).strftime(
 )
 formatted_message = "{} (время записи: {})".format(message, formatted_time)
 logger.info(formatted_message)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings2")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "overschool.settings")
 django_asgi_app = get_asgi_application()
 
 import chats.routing

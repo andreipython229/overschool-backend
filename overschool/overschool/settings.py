@@ -170,11 +170,15 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 
-# For local testing
+# prod db
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": env("POSTGRES_DB_NAME"),
+        "USER": env("POSTGRES_USER"),
+        "PASSWORD": env("POSTGRES_USER_PASSWORD"),
+        "HOST": env("POSTGRES_HOST"),
+        "PORT": int(env("POSTGRES_PORT")),
     }
 }
 
