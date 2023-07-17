@@ -7,7 +7,7 @@ env.read_env()
 REDIS_HOST = env("REDIS_HOST")
 REDIS_PORT = env("REDIS_PORT")
 
-huey = RedisHuey(url=f"redis://default:sOmE_sEcUrE_pAsS@{REDIS_HOST}:{REDIS_PORT}/0")
+huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/0")
 
 YANDEX_TOKEN = env.str("YANDEX_TOKEN")
 CLIENT_ID = env.str("CLIENT_ID")
