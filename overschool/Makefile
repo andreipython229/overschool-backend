@@ -21,9 +21,9 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	sudo docker-compose up --build
 
  back:
+	${MANAGE} collectstatic --noinput --settings=overschool.settings2
 	${MANAGE} makemigrations --settings=overschool.settings2
 	${MANAGE} migrate --settings=overschool.settings2
-	${MANAGE} collectstatic --noinput --settings=overschool.settings2
 	daphne -b 0.0.0.0 -p 8000 overschool.asgi:application
 
 	docker-compose exec back python overschool/manage.py test
