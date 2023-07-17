@@ -5,14 +5,13 @@ from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from users.models import User
 
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 
 
-class ChatConsumer(LoggingMixin, WithHeadersViewSet, AsyncWebsocketConsumer):
+class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
         try:
