@@ -98,11 +98,30 @@ SESSION_COOKIE_SAMESITE = None
 CSRF_COOKIE_SAMESITE = None
 
 CORS_ALLOW_METHODS = [
-    "*",
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+    "VIEW",
+    "WEBSOCKET",
 ]
 
 CORS_ALLOW_HEADERS = [
-    "*",
+    "XMLHttpRequest",
+    "X_FILENAME",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "X-CSRFToken",
+    "x-requested-with",
+    "Pragma",
+    "Cookie",
+    "Sec-WebSocket-Protocol",
 ]
 
 CHANNEL_LAYERS = {
