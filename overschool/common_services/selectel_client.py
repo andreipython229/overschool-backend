@@ -24,7 +24,7 @@ class SelectelClient:
         # host="localhost",
         port=REDIS_PORT,
         db=0,
-        password="sOmE_sEcUrE_pAsS",
+        # password="sOmE_sEcUrE_pAsS",
     )
 
     # Получение токена для работы с хранилищем
