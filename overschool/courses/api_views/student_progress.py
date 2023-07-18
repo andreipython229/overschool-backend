@@ -87,7 +87,10 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 course_id__school__school_id=school_id,
             )
         except:
-            return Response(f"Студент в курсе course_id = {course_id} не найден.")
+            return Response(
+                f"Студент в курсе course_id = {course_id} не найден.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         return self.generate_response(
             student=user, school_name=school_name, courses_ids=[int(course_id)]
@@ -109,10 +112,14 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 group__name="Student", school=school_id
             ).exists():
                 return Response(
-                    f"student_id не принадлежит пользователю добавленному как студент в данную школу."
+                    f"student_id не принадлежит пользователю добавленному как студент в данную школу.",
+                    status=status.HTTP_403_FORBIDDEN,
                 )
         except:
-            return Response(f"Студент с id = {student_id} не найден.")
+            return Response(
+                f"Студент с id = {student_id} не найден.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         courses_ids = []
 
@@ -142,7 +149,6 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
     def generate_response(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
         school_id = School.objects.get(name=school_name).school_id
-        print(courses_ids)
 
         all_base_lesson_ids = UserProgressLogs.objects.filter(
             user=student.pk
@@ -150,7 +156,6 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
 
         courses = []
         return_dict = {}
-
         for course_id in courses_ids:
             course = {}
             course_obj = Course.objects.get(pk=course_id)
