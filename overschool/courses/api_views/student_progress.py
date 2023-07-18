@@ -168,7 +168,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             course["course_name"] = course_obj.name
             course["all_baselessons"] = all_base_lesson.count()
             course["completed_count"] = all_base_completed_lesson.count()
-            course["completed_perсent"] = (
+            course["completed_percent"] = (
                 round(
                     all_base_completed_lesson.count() / all_base_lesson.count() * 100, 2
                 )
