@@ -72,13 +72,13 @@ urlpatterns = [
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
-
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),
         name="account_confirm_email",
     ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 schema_view = get_schema_view(
     openapi.Info(

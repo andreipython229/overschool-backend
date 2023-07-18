@@ -44,7 +44,7 @@ class SchoolHeaderViewSetAPITestCase(APITestCase):
             "description": "Test Description",
             "school": 1,
         }
-        response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(SchoolHeader.objects.count(), 6)
         self.assertEqual(response.data["name"], data["name"])
@@ -62,7 +62,7 @@ class SchoolHeaderViewSetAPITestCase(APITestCase):
             "description": "Update Test Description",
             "school": 1,
         }
-        response = self.client.put(url, data, format="json")
+        response = self.client.put(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.school_header.refresh_from_db()
         self.assertEqual(self.school_header.name, data["name"])
@@ -70,7 +70,7 @@ class SchoolHeaderViewSetAPITestCase(APITestCase):
     def test_partial_update_school_header(self):
         url = reverse("school_headers-detail", args=[self.school_header.pk])
         data = {"name": "New School Header Name"}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.school_header.refresh_from_db()
         self.assertEqual(self.school_header.name, data["name"])

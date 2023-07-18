@@ -7,12 +7,12 @@ env.read_env()
 REDIS_HOST = env("REDIS_HOST")
 REDIS_PORT = env("REDIS_PORT")
 
-huey = RedisHuey(url=f"redis://default:sOmE_sEcUrE_pAsS@{REDIS_HOST}:{REDIS_PORT}/0")
+huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/0")
 
-YANDEX_TOKEN = env.str("YANDEX_TOKEN")
-CLIENT_ID = env.str("CLIENT_ID")
-YANDEX_SECRET = env.str("YANDEX_SECRET")
-YANDEX_DISK_UPLOAD_PATH = env.str("YANDEX_DISK_UPLOAD_PATH")
+SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
+ACCOUNT_ID = env.str("ACCOUNT_ID")
+CONTAINER_KEY = env.str("CONTAINER_KEY")
+CONTAINER_NAME = env.str("CONTAINER_NAME")
 
 POSTGRES_DB_NAME = env("POSTGRES_DB_NAME")
 POSTGRES_USER = env("POSTGRES_USER")

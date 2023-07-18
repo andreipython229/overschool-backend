@@ -1,5 +1,5 @@
 MANAGE = python manage.py
-DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddata --settings=overschool.settings2
+DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddata
  # .PHONY defines parts of the makefile that are not dependant on any specific file
  .PHONY = run back test
 
@@ -21,9 +21,10 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	sudo docker-compose up --build
 
  back:
-	${MANAGE} makemigrations --settings=overschool.settings2
-	${MANAGE} migrate --settings=overschool.settings2
-	${MANAGE} runserver 0.0.0.0:8000 --settings=overschool.settings2
+	${MANAGE} collectstatic --noinput
+	${MANAGE} makemigrations
+	${MANAGE} migrate
+	daphne -b 0.0.0.0 -p 8000 overschool.asgi:application
 
 	docker-compose exec back python overschool/manage.py test
 
@@ -48,4 +49,3 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${DOCKER_LOAD_DATA}  test_initial_user_homework_data.json
 	${DOCKER_LOAD_DATA}  test_initial_data_user_test.json
 	${DOCKER_LOAD_DATA}  test_initial_user_group_data.json
-

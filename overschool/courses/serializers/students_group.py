@@ -1,11 +1,8 @@
 from datetime import datetime
 
 from courses.models import StudentsGroup, StudentsGroupSettings
-from django.db.models import Count
 from rest_framework import serializers
 
-# from users.models.user import User
-# from django.db import models
 from .students_group_settings import StudentsGroupSettingsSerializer
 
 

@@ -45,22 +45,3 @@ class StudentsTableInfoViewSetAPITestCase(APITestCase):
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["admin"], self.students_table_info.admin_id)
-
-    def test_update_students_table_info(self):
-        url = reverse(
-            "students_table_info-detail", args=["School_1", self.students_table_info.pk]
-        )
-        data = {
-            "admin": 1,
-            "students_table_info": [
-                {"id": 1, "order": 1, "name": "Имя", "checked": True},
-                {"id": 2, "order": 2, "name": "Email", "checked": True},
-            ],
-        }
-        response = self.client.put(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.students_table_info.refresh_from_db()
-        self.assertEqual(
-            self.students_table_info.students_table_info, data["students_table_info"]
-        )

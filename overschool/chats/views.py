@@ -1,9 +1,11 @@
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, permissions
+from rest_framework import permissions, serializers, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 from .request_params import ChatParams, UserParams
@@ -38,18 +40,25 @@ def is_object_exist(pk, object):
         return False
 
 
-class ChatListCreate(APIView):
+class EmptySerializer(serializers.Serializer):
+    pass
+
+
+class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Список всех чатов
     - Создание чата
     """
+
+    serializer_class = EmptySerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
         operation_description="Get all chats for user",
-        operation_summary='Get all chats for user'
+        operation_summary="Get all chats for user",
+        tags=["chats"],
     )
     def get(self, request, *args, **kwargs):
         user = self.request.user
@@ -60,38 +69,30 @@ class ChatListCreate(APIView):
 
         serializer = ChatSerializer(chats, many=True)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         responses=ChatSchemas.chat_uuid_schema,
-        manual_parameters=[
-            UserParams.user_id
-        ],
+        manual_parameters=[UserParams.user_id],
         operation_description="Get or create chat with user",
-        operation_summary='Get or create chat with user'
+        operation_summary="Get or create chat with user",
+        tags=["chats"],
     )
     def post(self, request, *args, **kwargs):
         chat_creator = self.request.user
 
-        chat_reciever_id = request.data.get('user_id')
+        chat_reciever_id = request.data.get("user_id")
         chat_reciever = is_user_exist(chat_reciever_id)
         if chat_reciever is False:
             return Response(
-                {"error": "User does not exist"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
         if existed_chat_id:
             existed_chat = Chat.objects.get(id=existed_chat_id)
             user_chat_serializer = ChatSerializer(existed_chat)
-            return Response(
-                user_chat_serializer.data,
-                status=status.HTTP_200_OK
-            )
+            return Response(user_chat_serializer.data, status=status.HTTP_200_OK)
         else:
             chat = Chat.objects.create()
             UserChat.objects.create(user=chat_creator, chat=chat)
@@ -102,133 +103,116 @@ class ChatListCreate(APIView):
                 existed_chat = Chat.objects.get(id=existed_chat_id)
                 user_chat_serializer = ChatSerializer(existed_chat)
                 return Response(
-                    user_chat_serializer.data,
-                    status=status.HTTP_201_CREATED
+                    user_chat_serializer.data, status=status.HTTP_201_CREATED
                 )
             else:
                 return Response(
                     {"error": "Chat does not created"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
 
-class ChatDetailDelete(APIView):
+class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Детали чата
     - Удаление / восстановление чата
     """
+
+    serializer_class = EmptySerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.chat_schema,
-        manual_parameters=[
-            ChatParams.uuid
-        ],
+        manual_parameters=[ChatParams.uuid],
         operation_description="Get chat by uuid",
-        operation_summary='Get chat by uuid'
+        operation_summary="Get chat by uuid",
+        tags=["chats"],
     )
     def get(self, request, *args, **kwargs):
         pk = self.kwargs["chat_uuid"]
         chat = is_object_exist(pk, Chat)
         if chat is False:
             return Response(
-                CustomResponses.chat_not_exist,
-                status=status.HTTP_400_BAD_REQUEST
+                CustomResponses.chat_not_exist, status=status.HTTP_400_BAD_REQUEST
             )
 
         user = self.request.user
         user_is_chat_participant = is_chat_participant(user, chat)
         if user_is_chat_participant is False:
             return Response(
-                CustomResponses.no_permission,
-                status=status.HTTP_403_FORBIDDEN
+                CustomResponses.no_permission, status=status.HTTP_403_FORBIDDEN
             )
 
         serializer = ChatSerializer(chat)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         responses=ChatSchemas.chat_schema,
-        manual_parameters=[
-            ChatParams.uuid,
-            ChatParams.name,
-            ChatParams.is_deleted
-        ],
+        manual_parameters=[ChatParams.uuid, ChatParams.name, ChatParams.is_deleted],
         operation_description="Delete or restore chat by uuid, change chat name",
-        operation_summary='Delete or restore chat by uuid, change chat name'
+        operation_summary="Delete or restore chat by uuid, change chat name",
+        tags=["chats"],
     )
     def patch(self, request, *args, **kwargs):
         pk = self.kwargs["chat_uuid"]
         chat = is_object_exist(pk, Chat)
         if chat is False:
             return Response(
-                CustomResponses.chat_not_exist,
-                status=status.HTTP_400_BAD_REQUEST
+                CustomResponses.chat_not_exist, status=status.HTTP_400_BAD_REQUEST
             )
 
         user = self.request.user
         user_is_chat_participant = is_chat_participant(user, chat)
         if user_is_chat_participant is False:
             return Response(
-                CustomResponses.no_permission,
-                status=status.HTTP_403_FORBIDDEN
+                CustomResponses.no_permission, status=status.HTTP_403_FORBIDDEN
             )
-        if request.data.get('name'):
-            chat.name = request.data.get('name')
-        if request.data.get('is_deleted') == "true":
+        if request.data.get("name"):
+            chat.name = request.data.get("name")
+        if request.data.get("is_deleted") == "true":
             chat.is_deleted = True
-        if request.data.get('is_deleted') == "false":
+        if request.data.get("is_deleted") == "false":
             chat.is_deleted = False
         chat.save()
         serializer = ChatSerializer(chat)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MessageList(APIView):
+class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
     """
     - Сообщения чата
     """
+
+    serializer_class = EmptySerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
         responses=ChatSchemas.messages_schema,
-        manual_parameters=[
-            ChatParams.uuid
-        ],
+        manual_parameters=[ChatParams.uuid],
         operation_description="Get messages for chat by uuid",
-        operation_summary='Get messages for chat by uuid'
+        operation_summary="Get messages for chat by uuid",
+        tags=["chats"],
     )
     def get(self, request, *args, **kwargs):
         pk = self.kwargs["chat_uuid"]
         chat = is_object_exist(pk, Chat)
         if chat is False:
             return Response(
-                CustomResponses.chat_not_exist,
-                status=status.HTTP_400_BAD_REQUEST
+                CustomResponses.chat_not_exist, status=status.HTTP_400_BAD_REQUEST
             )
 
         user = self.request.user
         user_is_chat_participant = is_chat_participant(user, chat)
         if user_is_chat_participant is False:
             return Response(
-                CustomResponses.no_permission,
-                status=status.HTTP_403_FORBIDDEN
+                CustomResponses.no_permission, status=status.HTTP_403_FORBIDDEN
             )
 
         messages = Message.objects.filter(chat=chat)
         serializer = MessageSerializer(messages, many=True)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK)

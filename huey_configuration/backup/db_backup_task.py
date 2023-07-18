@@ -7,9 +7,9 @@ from .pg_dump_config import db_config, run_pg_dump
 from .upload_to_s3 import compress_and_upload
 
 
-# The task is started every week on Tuesday at 1:00 a.m.
+# The task starts every day at 1:00.
 @huey.periodic_task(
-    crontab(hour=2, minute=0),
+    crontab(hour=1, minute=0),
     max_retries=3,
     delay=7200,
 )

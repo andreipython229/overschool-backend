@@ -1,14 +1,23 @@
+from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
 from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer
 
+from .schemas.school_header import SchoolHeaderSchemas
+
 s = SelectelClient()
 
 
+@method_decorator(
+    name="partial_update",
+    decorator=SchoolHeaderSchemas.partial_update_schema(),
+)
 class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления хедера школы.\n
     <h2>/api/{school_name}/school_header/</h2>\n
@@ -16,6 +25,7 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser,)
 
     def get_permissions(self):
 
@@ -156,3 +166,11 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+SchoolHeaderViewSet = apply_swagger_auto_schema(
+    tags=["school_header"],
+    excluded_methods=[
+        "partial_update",
+    ],
+)(SchoolHeaderViewSet)

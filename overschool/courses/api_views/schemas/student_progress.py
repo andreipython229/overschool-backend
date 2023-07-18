@@ -64,34 +64,20 @@ student_progress_schema_response = {
 
 
 class StudentProgressSchemas:
-    def student_progress_swagger_schema():
+    def student_progress_for_student_swagger_schema():
         return swagger_auto_schema(
-            operation_description="""Эндпоинт прогресса прохождения курсов студентом\n
+            operation_description="""Эндпоинт прогресса прохождения курсов для студента\n
                 /api/{school_name}/student_progress/get_student_progress/\n
                 необходимо быть залогиненым под студентом\n
-                возвращает прогресс по всем курсам школы в которых есть студент.
                 """,
             operation_summary="Эндпоинт прогресса прохождения курсов",
             tags=["student_progress"],
             responses=student_progress_schema_response,
-        )
-
-    def student_progress_by_id_swagger_schema():
-        return swagger_auto_schema(
-            operation_description="""Эндпоинт прогресса прохождения курсов студентом\n
-                /api/{school_name}/student_progress/get_student_progress/{student_id}\n
-                необходимо быть залогиненым под АДМИНОМ указанной школы\n
-                студент должен быть ДОБАВЛЕН в указанную школу\n
-                возвращает прогресс по всем курсам школы в которых есть студент.
-                """,
-            operation_summary="Эндпоинт прогресса прохождения курсов студента по его id",
-            tags=["student_progress"],
-            responses=student_progress_schema_response,
             manual_parameters=[
                 openapi.Parameter(
-                    name="student_id",
+                    name="course_id",
                     in_=openapi.IN_QUERY,
-                    description="id студента",
+                    description="id курса",
                     type=openapi.TYPE_INTEGER,
                     required=True,
                 )

@@ -11,7 +11,7 @@ class RegisterTestCase(APITestCase):
             'email': 'testuser@test.com',
             'password': 'password123',
         }
-        response = self.client.post(url, invalid_data, format='json')
+        response = self.client.post(url, invalid_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_invalid_email(self):
@@ -22,7 +22,7 @@ class RegisterTestCase(APITestCase):
             'password': 'password123',
             'password_confirmation': 'password123'
         }
-        response = self.client.post(url, invalid_data, format='json')
+        response = self.client.post(url, invalid_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_password_mismatch(self):
@@ -33,5 +33,5 @@ class RegisterTestCase(APITestCase):
             'password': 'password123',
             'password_confirmation': 'mismatchedpassword'
         }
-        response = self.client.post(url, invalid_data, format='json')
+        response = self.client.post(url, invalid_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

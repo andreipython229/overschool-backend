@@ -28,7 +28,8 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
+ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
 
 # Application definition
 
@@ -65,14 +66,6 @@ REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 BROKER_BACKEND = "redis"
 
-CELERY_BROKER_URL = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://default:sOmE_sEcUrE_pAsS@redis:6379/0"
-CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
-# CELERY_RESULT_BACKEND = 'redis://'+REDIS_HOST+':'+REDIS_PORT
-CELERY_ACCEPT_CONTENT = ["application/json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False
@@ -85,12 +78,8 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1",
-    "http://localhost:3000",
-    "http://85.209.148.157:3000",
-    "https://www.youtube.com",
-]
+CORS_ALLOW_ALL_ORIGINS = True
+
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
     "http://localhost:3000",
@@ -99,11 +88,11 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = None
-CSRF_COOKIE_SAMESITE = None
+CSRF_COOKIE_SAMESITE = "None"
 
-CORS_ALLOW_METHODS = (
+CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
     "OPTIONS",
@@ -111,12 +100,12 @@ CORS_ALLOW_METHODS = (
     "POST",
     "PUT",
     "VIEW",
-)
+    "WEBSOCKET",
+]
 
-CORS_ALLOW_HEADERS = (
+CORS_ALLOW_HEADERS = [
     "XMLHttpRequest",
     "X_FILENAME",
-    "accept",
     "accept-encoding",
     "authorization",
     "content-type",
@@ -127,7 +116,8 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
     "Pragma",
     "Cookie",
-)
+    "Sec-WebSocket-Protocol",
+]
 
 CHANNEL_LAYERS = {
     "default": {
@@ -176,11 +166,15 @@ ASGI_APPLICATION = "overschool.asgi.application"
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 
-# For local testing
+# prod db
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": env("POSTGRES_DB_NAME"),
+        "USER": env("POSTGRES_USER"),
+        "PASSWORD": env("POSTGRES_USER_PASSWORD"),
+        "HOST": env("POSTGRES_HOST"),
+        "PORT": int(env("POSTGRES_PORT")),
     }
 }
 
@@ -220,13 +214,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-MEDIA_URL = "/media/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
 
+MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
-
-STATICFILES = (os.path.join(BASE_DIR, "static"),)
 
 # Длительность жизни кода подтверждения в минутах
 CONFIRMATION_CODE_EXPIRY_MINUTES = 1
