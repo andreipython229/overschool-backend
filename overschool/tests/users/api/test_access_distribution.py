@@ -34,7 +34,7 @@ class AccessDistributionTestCase(APITestCase):
 
         post_data = {"user_id": 31, "role": "Student", "student_groups": [1]}
 
-        responce = self.client.post(url, post_data, format="json")
+        responce = self.client.post(url, post_data)
         self.assertEqual(responce.status_code, status.HTTP_201_CREATED)
 
     # def test_access_distribution_delete(self):
