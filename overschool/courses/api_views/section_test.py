@@ -12,8 +12,9 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
 )
-from courses.serializers import TestSerializer
+from courses.serializers import QuestionListGetSerializer, TestSerializer
 from courses.services import LessonProgressMixin
+from django.db.models import Prefetch
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -127,50 +128,6 @@ class TestViewSet(
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["POST"])
-    def post_questions(self, request, pk, *args, **kwargs):
-        """Создать вопросы в тесте\n
-        <h2>/api/{school_name}/tests/{test_id}/post_questions/</h2>\n
-        Создать вопросы в тесте"""
-        try:
-            queryset = self.get_queryset()
-            test_obj = queryset.get(test_id=pk)
-            questions = request.data.get("questions")
-            for question in questions:
-                q = Question(
-                    test=test_obj,
-                    question_type=question["question_type"],
-                    body=question["body"],
-                    picture=question["picture"] if "picture" in question else None,
-                    is_any_answer_correct=question["is_any_answer_correct"]
-                    if "is_any_answer_correct" in question
-                    else False,
-                    only_whole_numbers=question["only_whole_numbers"]
-                    if "only_whole_numbers" in question
-                    else False,
-                )
-                q.save()
-                for answer in question["answers"]:
-                    a = Answer(
-                        question=q,
-                        body=answer["body"],
-                        is_correct=answer["is_correct"],
-                        picture=answer["picture"] if "picture" in answer else None,
-                        answer_in_range=answer["answer_in_range"]
-                        if "answer_in_range" in answer
-                        else False,
-                        from_digit=answer["from_digit"]
-                        if "from_digit" in answer
-                        else 0,
-                        to_digit=answer["to_digit"] if "to_digit" in answer else 0,
-                    )
-                    a.save()
-            return Response(data={"status": "OK"}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response(
-                data={"status": f"Error: {e}"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         base_lesson = BaseLesson.objects.get(tests=instance)
@@ -256,37 +213,17 @@ class TestViewSet(
             "attempt_count": test_obj["attempt_count"],
             "success_percent": test_obj["success_percent"],
         }
-        questions = (
-            (
-                questions.order_by("?").values(
-                    "body", "question_id", "question_type", "body", "picture"
-                )
+        if test_obj["random_questions"]:
+            questions = questions.order_by("?")
+
+        if test_obj["random_answers"]:
+            questions = questions.prefetch_related(
+                Prefetch("answers", queryset=Answer.objects.order_by("?"))
             )
-            if test_obj["random_questions"]
-            else questions.values("body", "question_id")
-        )
-        test["questions"] = list(questions)
-        for index, question in enumerate(questions):
-            if test_obj["random_answers"]:
-                answers = (
-                    Answer.objects.filter(question=question["question_id"])
-                    .order_by("?")
-                    .values(
-                        "answer_id",
-                        "body",
-                        "is_correct",
-                        "question",
-                        "picture",
-                        "answer_in_range",
-                        "from_digit",
-                        "to_digit",
-                    )
-                )
-            else:
-                answers = Answer.objects.filter(
-                    question=question["question_id"]
-                ).values("answer_id", "body")
-            test["questions"][index]["answers"] = list(answers)
+
+        questions_ser = QuestionListGetSerializer(questions, many=True)
+        test["questions"] = questions_ser.data
+
         return Response(test)
 
 

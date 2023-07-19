@@ -83,3 +83,23 @@ class StudentProgressSchemas:
                 )
             ],
         )
+
+    def student_progress_for_admin_or_teacher_swagger_schema():
+        return swagger_auto_schema(
+            operation_description="""Эндпоинт прогресса прохождения курсов для АДМИНА и УЧИТЕЛЯ\n
+                /api/{school_name}/student_progress/get_student_progress_for_admin_or_teacher/\n
+                необходимо быть залогиненым под АДМИНОМ или УЧИТЕЛЕМ\n
+                """,
+            operation_summary="Эндпоинт прогресса прохождения курсов для АДМИНА и УЧИТЕЛЯ",
+            tags=["student_progress"],
+            responses=student_progress_schema_response,
+            manual_parameters=[
+                openapi.Parameter(
+                    name="student_id",
+                    in_=openapi.IN_QUERY,
+                    description="id студента",
+                    type=openapi.TYPE_INTEGER,
+                    required=True,
+                )
+            ],
+        )
