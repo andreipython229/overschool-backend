@@ -4,7 +4,6 @@ import os
 import time
 
 import sentry_sdk
-from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -40,9 +39,7 @@ django_asgi_app = get_asgi_application()
 import chats.routing
 
 
-websocket_application = AuthMiddlewareStack(
-    URLRouter(chats.routing.websocket_urlpatterns)
-)
+websocket_application = URLRouter(chats.routing.websocket_urlpatterns)
 
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
