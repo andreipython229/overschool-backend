@@ -113,14 +113,14 @@ class SelectelClient:
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}_lesson/{}_{}".format(
+        file_path = "/{}_school/{}_course/{}_lesson/{}&{}".format(
             school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
         ).replace(" ", "_")
         self.upload_to_selectel(file_path, uploaded_file)
         return file_path
 
     def upload_school_image(self, uploaded_image, school_id):
-        file_path = "/{}_school/school_data/images/{}_{}".format(
+        file_path = "/{}_school/school_data/images/{}&{}".format(
             school_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.upload_to_selectel(file_path, uploaded_image)
@@ -129,14 +129,14 @@ class SelectelClient:
     def upload_course_image(self, uploaded_image, course):
         course_id = course.course_id
         school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}_{}".format(
+        file_path = "/{}_school/{}_course/{}&{}".format(
             school_id, course_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.upload_to_selectel(file_path, uploaded_image)
         return file_path
 
     def upload_user_avatar(self, avatar, user_id):
-        file_path = "/users/avatars/{}_{}".format(user_id, avatar.name).replace(
+        file_path = "/users/avatars/{}&{}".format(user_id, avatar.name).replace(
             " ", "_"
         )
         self.upload_to_selectel(file_path, avatar)
