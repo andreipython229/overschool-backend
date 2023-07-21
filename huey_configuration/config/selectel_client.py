@@ -1,3 +1,4 @@
+import redis
 import requests
 from config.config import (
     ACCOUNT_ID,
@@ -5,57 +6,28 @@ from config.config import (
     CONTAINER_NAME,
     REDIS_HOST,
     REDIS_PORT,
+    SEL_AUTH_KEY,
 )
 
 
 class SelectelClient:
     BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)
     URL = BASE_URL + "/{}".format(CONTAINER_NAME)
+    REDIS_INSTANCE = redis.StrictRedis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=3,
+    )
 
     # Получение токена для работы с хранилищем
     def get_token(self):
         resp = requests.get(
             "https://api.selcdn.ru/auth/v1.0",
-            headers={"X-Auth-User": ACCOUNT_ID, "X-Auth-Key": CONTAINER_KEY},
+            headers={"X-Auth-User": ACCOUNT_ID, "X-Auth-Key": SEL_AUTH_KEY},
         )
         token = resp.headers.get("X-Auth-Token")
+        self.REDIS_INSTANCE.set("selectel_token", token)
         return token
-
-    # Загрузка файла непосредственно в хранилище
-    def upload_to_selectel(self, path, file):
-        token = self.get_token()
-
-        if file.size <= 90 * 1024 * 1024:
-            file_data = file.read()
-            try:
-                r = self.upload_request(path, token, file_data, file.content_type)
-                r.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 401:
-                    token = self.get_token()
-                    self.upload_request(path, token, file_data, file.content_type)
-        else:
-            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-            for num, chunk in enumerate(file.chunks(chunk_size=90 * 1024 * 1024)):
-                try:
-                    r = self.upload_request(
-                        "_segments" + path + "/{}".format(num + 1), token, chunk
-                    )
-                    r.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    if e.response.status_code == 401:
-                        token = self.get_token()
-                        self.upload_request(
-                            "_segments" + path + "/{}".format(num + 1), token, chunk
-                        )
-            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
-            requests.put(
-                self.URL + path,
-                headers={
-                    "X-Auth-Token": token,
-                    "X-Object-Manifest": "{}_segments{}/".format(CONTAINER_NAME, path),
-                },
-            )
 
     # Запрос на загрузку файла либо сегмента файла
     @staticmethod
@@ -70,6 +42,49 @@ class SelectelClient:
             data=data,
         )
 
+    # Загрузка файла непосредственно в хранилище
+    def upload_to_selectel(self, path, file):
+        if file.size <= 90 * 1024 * 1024:
+            file_data = file.read()
+            try:
+                r = self.upload_request(
+                    path,
+                    self.REDIS_INSTANCE.get("selectel_token"),
+                    file_data,
+                    file.content_type,
+                )
+                r.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    self.upload_request(
+                        path, self.get_token(), file_data, file.content_type
+                    )
+        else:
+            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
+            for num, chunk in enumerate(file.chunks(chunk_size=90 * 1024 * 1024)):
+                try:
+                    r = self.upload_request(
+                        "_segments" + path + "/{}".format(num + 1),
+                        self.REDIS_INSTANCE.get("selectel_token"),
+                        chunk,
+                    )
+                    r.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 401:
+                        self.upload_request(
+                            "_segments" + path + "/{}".format(num + 1),
+                            self.get_token(),
+                            chunk,
+                        )
+            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
+            requests.put(
+                self.URL + path,
+                headers={
+                    "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
+                    "X-Object-Manifest": "{}_segments{}/".format(CONTAINER_NAME, path),
+                },
+            )
+
     # Запрос на удаление файла
     @staticmethod
     def remove_request(file_path, token):
@@ -77,3 +92,48 @@ class SelectelClient:
             SelectelClient.URL + file_path,
             headers={"X-Auth-Token": token},
         )
+
+    # Удаление файла из хранилища
+    def remove_from_selectel(self, file_path):
+        try:
+            r = self.remove_request(
+                file_path, self.REDIS_INSTANCE.get("selectel_token")
+            )
+            r.raise_for_status()
+            return "Success"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == "401":
+                try:
+                    r = self.remove_request(file_path, self.get_token())
+                    r.raise_for_status()
+                    return "Success"
+                except requests.exceptions.HTTPError:
+                    return "Error"
+            else:
+                return "Error"
+
+    # Запрос на получение списка файлов
+    @staticmethod
+    def get_folder_files_request(segments, folder, token):
+        return requests.get(
+            SelectelClient.URL + segments + "/?format=json&prefix={}".format(folder),
+            headers={"X-Auth-Token": token},
+        )
+
+    # Получение списка файлов, путь к которым начинается с указанного префикса
+    def get_folder_files(self, folder, segments=""):
+        objects = None
+        try:
+            objects = self.get_folder_files_request(
+                segments, folder, self.REDIS_INSTANCE.get("selectel_token")
+            )
+            objects.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                objects = self.get_folder_files_request(
+                    segments, folder, self.get_token()
+                )
+        files = (
+            list(map(lambda el: "/" + el["name"], objects.json())) if objects else None
+        )
+        return files

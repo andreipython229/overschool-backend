@@ -2,10 +2,10 @@ import datetime
 import logging
 import os
 import time
-
-import sentry_sdk
 from channels.auth import AuthMiddlewareStack
+import sentry_sdk
 from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import SentryHandler
@@ -40,12 +40,12 @@ django_asgi_app = get_asgi_application()
 import chats.routing
 
 
-websocket_application = AuthMiddlewareStack(
-    URLRouter(chats.routing.websocket_urlpatterns)
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": AllowedHostsOriginValidator(
+            AuthMiddlewareStack(URLRouter(chats.routing.websocket_urlpatterns))
+        ),
+    }
 )
-
-application = ProtocolTypeRouter({
-    'http': django_asgi_app,
-    'websocket': websocket_application
-})
 

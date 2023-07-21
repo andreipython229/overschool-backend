@@ -8,10 +8,15 @@ from .upload_to_s3 import compress_and_upload
 
 
 # The task starts every day at 1:00.
+# @huey.periodic_task(
+#     crontab(hour=1, minute=0),
+#     max_retries=3,
+#     delay=7200,
+# )
 @huey.periodic_task(
-    crontab(hour=1, minute=0),
-    max_retries=3,
-    delay=7200,
+    crontab(hour="*", minute=0),
+    max_retries=2,
+    delay=None,
 )
 def backup_db():
     # Path for the backup file

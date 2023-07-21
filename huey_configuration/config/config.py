@@ -7,7 +7,7 @@ env.read_env()
 REDIS_HOST = env("REDIS_HOST")
 REDIS_PORT = env("REDIS_PORT")
 
-huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/0")
+huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/2")
 
 SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
