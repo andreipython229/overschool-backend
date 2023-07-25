@@ -10,7 +10,6 @@ services:
       - ./redis-data:/var/lib/redis
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     environment:
-      - REDIS_REPLICATION_MODE=master
       - "REDIS_HOST=redis"
       - "REDIS_PORT=6379"
   back:
@@ -40,19 +39,3 @@ services:
 volumes:
   static_volume:
 
-
-#  celery:
-#    restart: always
-#    build:
-#      context: overschool
-#    command: celery -A overschool worker -l info
-#    volumes:
-#      - ./app:/app
-#  celery-beat:
-#    build:
-#      context: overschool
-#    command: celery -A overschool beat -l info
-#    volumes:
-#      - .app:/app_beat
-#    depends_on:
-#      - redis
