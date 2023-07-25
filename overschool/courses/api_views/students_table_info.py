@@ -23,7 +23,7 @@ class StudentsTableInfoViewSet(
 
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "put", "patch", "head"]
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")

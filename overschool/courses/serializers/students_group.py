@@ -31,14 +31,6 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Поле 'teacher_id' обязательно для заполнения."
             )
-        elif (
-            request.method in ["PUT", "PATCH"]
-            and view.get_object().teacher_id != teacher
-            or request.method == "POST"
-        ) and teacher.teacher_group_fk.filter(course_id=course).exists():
-            raise serializers.ValidationError(
-                "Учитель не может преподавать в нескольких группах одного и того же курса."
-            )
         elif teacher in students:
             raise serializers.ValidationError(
                 "Учитель не может учиться в группе, в которой преподает."
