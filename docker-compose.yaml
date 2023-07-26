@@ -35,19 +35,19 @@ services:
       - "8002:8002"
     depends_on:
       - redis
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - static_volume:/code/staticfiles
-    depends_on:
-      - back
-      - huey
-      - redis
+#  nginx:
+#    image: nginx:latest
+#    container_name: nginx
+#    restart: always
+#    ports:
+#      - "80:80"
+#    volumes:
+#      - ./nginx/conf.d:/etc/nginx/conf.d
+#      - static_volume:/code/staticfiles
+#    depends_on:
+#      - back
+#      - huey
+#      - redis
 
 volumes:
   static_volume:
