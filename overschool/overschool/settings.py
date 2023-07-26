@@ -86,6 +86,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://45.135.234.137:8000",
     "https://dev.overschool.by",
     "http://apidev.overschool.by",
+    "http://dev.api.overschool.by",
 
 ]
 
