@@ -19,7 +19,7 @@ services:
     command: bash -c "cd overschool && make back"
     container_name: backendDjango
     ports:
-      - "80:8000"
+      - "8000:8000"
     depends_on:
       - redis
     volumes:
