@@ -87,7 +87,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://dev.overschool.by",
     "http://apidev.overschool.by",
     "http://dev.api.overschool.by",
-
+    "http://apidev.overschool.by:8000",
 ]
 
 SESSION_COOKIE_SECURE = False
