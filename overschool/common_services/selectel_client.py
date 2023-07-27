@@ -20,11 +20,11 @@ class SelectelClient:
     BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)
     URL = BASE_URL + "/{}".format(CONTAINER_NAME)
     REDIS_INSTANCE = redis.StrictRedis(
-        # host=REDIS_HOST,
-        host="localhost",
+        host=REDIS_HOST,
+        # host="localhost",
         port=REDIS_PORT,
         db=0,
-        password="sOmE_sEcUrE_pAsS",
+        # password="sOmE_sEcUrE_pAsS",
     )
 
     # Получение токена для работы с хранилищем
