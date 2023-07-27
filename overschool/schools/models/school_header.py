@@ -2,9 +2,8 @@ from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
 from common_services.services import limit_size
 from django.db import models
-from oauthlib.common import urldecode
 from schools.models import School
-
+from urllib.parse import urlparse, unquote
 
 class SchoolHeader(TimeStampMixin, models.Model):
     """Модель шапки школы"""
@@ -65,26 +64,32 @@ class SchoolHeader(TimeStampMixin, models.Model):
 
     def logo_school_url(self):
         if self.logo_school:
-            url = urldecode(self.logo_school.url)
-            return url[0][0]
+            parsed_url = urlparse(self.logo_school.url)
+            decoded_name = unquote(parsed_url.path.split('/')[-1])
+            return decoded_name.split('@', 1)[-1]
         return None
 
     def logo_header_url(self):
         if self.logo_header:
-            url = urldecode(self.logo_header.url)
-            return url[0][0]
+            parsed_url = urlparse(self.logo_header.url)
+            decoded_name = unquote(parsed_url.path.split('/')[-1])
+            return decoded_name.split('@', 1)[-1]
         return None
 
     def photo_background_url(self):
         if self.photo_background:
-            url = urldecode(self.photo_background.url)
-            return url[0][0]
+            parsed_url = urlparse(self.photo_background.url)
+            decoded_name = unquote(parsed_url.path.split('/')[-1])
+
+            return decoded_name.split('@', 1)[-1]
         return None
 
     def favicon_url(self):
         if self.favicon:
-            url = urldecode(self.favicon.url)
-            return url[0][0]
+            parsed_url = urlparse(self.favicon.url)
+            decoded_name = unquote(parsed_url.path.split('/')[-1])
+
+            return decoded_name.split('@', 1)[-1]
         return None
 
     def __str__(self):
