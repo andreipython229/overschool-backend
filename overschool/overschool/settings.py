@@ -63,7 +63,7 @@ MANAGERS = ADMINS
 
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
-BROKER_BACKEND = "redis"
+
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"

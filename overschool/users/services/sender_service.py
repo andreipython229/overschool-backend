@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import random
 from typing import Optional
 
@@ -10,24 +9,21 @@ from django.conf import settings
 from django.core.mail import send_mail
 from users.models import User
 
-from .redis_data_mixin import RedisDataMixin
 
-
-class SenderServiceMixin(RedisDataMixin):
+class SenderServiceMixin:
     """Functionalities for sending registration messages to students and managers"""
 
-    RUSSIAN_SERVICE_ENDPOINT = "https://smsc.ru/sys/send.php"
-    BELARUSIAN_SERVICE_ENDPOINT = "http://app.sms.by/api/v1/sendQuickSMS"
-    BY_TOKEN = os.getenv("BY_TOKEN")
-    ALFA_SMS = os.getenv("ALFA_SMS")
-    RUSSIAN_LOGIN = os.getenv("RUSSIAN_LOGIN")
-    RUSSIAN_PASS = os.getenv("RUSSIAN_PASSWORD")
-    REDIS_INSTANCE = redis.StrictRedis(
-        host=settings.REDIS_HOST,
-        port=settings.REDIS_PORT,
-        db=0,
-        password="sOmE_sEcUrE_pAsS",
-    )
+    # RUSSIAN_SERVICE_ENDPOINT = "https://smsc.ru/sys/send.php"
+    # BELARUSIAN_SERVICE_ENDPOINT = "http://app.sms.by/api/v1/sendQuickSMS"
+    # BY_TOKEN = os.getenv("BY_TOKEN")
+    # ALFA_SMS = os.getenv("ALFA_SMS")
+    # RUSSIAN_LOGIN = os.getenv("RUSSIAN_LOGIN")
+    # RUSSIAN_PASS = os.getenv("RUSSIAN_PASSWORD")
+    # REDIS_INSTANCE = redis.StrictRedis(
+    #     host=settings.REDIS_HOST,
+    #     port=settings.REDIS_PORT,
+    #     db=0,
+    # )
 
     def generate_confirmation_code(self) -> str:
         """
@@ -45,7 +41,7 @@ class SenderServiceMixin(RedisDataMixin):
             user.confirmation_code = confirmation_code
             user.save()
 
-    def send_code_by_email(self, email: str) -> Optional[str]:
+    def send_code_by_email(self, email: str) -> str | None:
         """
         Send code by email
         """
@@ -112,44 +108,44 @@ class SenderServiceMixin(RedisDataMixin):
 #         ={"content-type": "application/json"},
 #     )
 #     print(response)
-def send_code_for_password_reset_by_email(self, email):
-    # Generate password reset code
-    reset_code = self.generate_confirmation_code()
+# def send_code_for_password_reset_by_email(self, email):
+#     # Generate password reset code
+#     reset_code = self.generate_confirmation_code()
+#
+#     # Send password reset code via email
+#     subject = 'Password Reset Code'
+#     message = f'Your password reset code is: {reset_code}'
+#     from_email = settings.DEFAULT_FROM_EMAIL
+#     recipient_list = [email]
+#
+#     send_mail(subject, message, from_email, recipient_list)
+#
+#     # Save password reset code in Redis or other storage
+#     self.save_reset_code(email, reset_code)
+#
+#     return reset_code
+#
+#
+# def send_code_for_password_reset_by_phone(self, phone_number):
+#     # Generate password reset code
+#     reset_code = self.generate_confirmation_code()
+#
+#     # Send password reset code to phone
+#     params = {
+#         "token": SenderServiceMixin.BY_TOKEN,
+#         "message": f"Your password reset code: {reset_code}",
+#         "phone_number": phone_number,
+#         "alphaname_id": SenderServiceMixin.ALFA_SMS,
+#     }
+#     response = requests.post(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params)
 
-    # Send password reset code via email
-    subject = 'Password Reset Code'
-    message = f'Your password reset code is: {reset_code}'
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [email]
-
-    send_mail(subject, message, from_email, recipient_list)
-
-    # Save password reset code in Redis or other storage
-    self.save_reset_code(email, reset_code)
-
-    return reset_code
-
-
-def send_code_for_password_reset_by_phone(self, phone_number):
-    # Generate password reset code
-    reset_code = self.generate_confirmation_code()
-
-    # Send password reset code to phone
-    params = {
-        "token": SenderServiceMixin.BY_TOKEN,
-        "message": f"Your password reset code: {reset_code}",
-        "phone_number": phone_number,
-        "alphaname_id": SenderServiceMixin.ALFA_SMS,
-    }
-    response = requests.post(SenderServiceMixin.BELARUSIAN_SERVICE_ENDPOINT, params)
-
-    if response.status_code == 200:
-        # Save password reset code in Redis or other storage
-        self.save_reset_code(phone_number, reset_code)
-        return reset_code
-    else:
-        # Error handling for SMS sending
-        return None
+# if response.status_code == 200:
+# Save password reset code in Redis or other storage
+#     self.save_reset_code(phone_number, reset_code)
+#     return reset_code
+# else:
+# Error handling for SMS sending
+# return None
 
 # def check_num(self, phone_number: str):
 #     """
