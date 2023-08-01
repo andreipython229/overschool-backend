@@ -7,6 +7,7 @@ from django.views.static import serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from utils.utils_view import subscribe_client, unsubscribe_client, recalculate_cost, get_next_payment_time
 from users.api_views import (
     AccessDistributionView,
     ConfirmationView,
@@ -48,6 +49,12 @@ urlpatterns = [
         UserSchoolsView.as_view(actions={"get": "list"}),
         name="user_schools",
     ),
+
+    path('api/subscribe-client/<int:user_id>/', subscribe_client, name='subscribe_client'),
+    path('api/unsubscribe-client/<int:user_id>/', unsubscribe_client, name='unsubscribe_client'),
+    path('api/recalculate-cost/<int:user_id>/', recalculate_cost, name='recalculate_cost'),
+    path('api/get-next-payment-time/<int:user_id>/', get_next_payment_time, name='get_next_payment_time'),
+
     path(
         "api/code/confirm/",
         ConfirmationView.as_view(actions={"post": "post"}),
