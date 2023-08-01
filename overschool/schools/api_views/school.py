@@ -4,6 +4,7 @@ from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -11,7 +12,11 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
-from schools.serializers import SchoolGetSerializer, SchoolSerializer
+from schools.serializers import (
+    SchoolGetSerializer,
+    SchoolSerializer,
+    SelectTrialSerializer,
+)
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
@@ -36,6 +41,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return SchoolGetSerializer
+        if self.action in ["select_trial"]:
+            return SelectTrialSerializer
         else:
             return SchoolSerializer
 
@@ -138,6 +145,33 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"])
+    def select_trial(self, request, pk=None):
+        school = self.get_object()
+
+        # Проверка разрешений для выбора пробного тарифа
+        if school.owner != request.user:
+            return Response(
+                {
+                    "error": "У вас нет прав на установку пробного периода для этой школы"
+                },
+                status=403,
+            )
+
+        # Проверка, что пробный тариф еще не использован
+        if not school.used_trial:
+            serializer = SelectTrialSerializer(school, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            school = serializer.save()
+            school.used_trial = True
+            school.trial_end_date = timezone.now() + timezone.timedelta(days=14)
+            school.save()
+            return Response(
+                {"message": "Пробный период успешно установлен"}, status=200
+            )
+        else:
+            return Response({"error": "Пробный период уже был использован"}, status=400)
 
     @action(detail=True)
     def stats(self, request, pk, *args, **kwargs):
