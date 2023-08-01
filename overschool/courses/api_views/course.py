@@ -153,7 +153,7 @@ class CourseViewSet(
 
         instance = self.get_object()
         serializer = CourseSerializer(instance, data=request.data)
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("photo"):
             if instance.photo:
@@ -165,7 +165,6 @@ class CourseViewSet(
             serializer.validated_data["photo"] = instance.photo
 
         self.perform_update(serializer)
-
         course = Course.objects.filter(pk=instance.course_id).first()
         serializer = CourseGetSerializer(course)
 
@@ -179,10 +178,18 @@ class CourseViewSet(
         files_to_delete = s.get_folder_files(
             "{}_school/{}_course".format(school_id, instance.pk)
         )
-        # Удаляем все файлы, связанные с удаляемой школой
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        # Получаем список сегментов файлов удаляемого курса
+        segments_to_delete = s.get_folder_files(
+            "{}_school/{}_course".format(school_id, instance.pk), "_segments"
         )
+        # Удаляем все файлы и сегменты, связанные с удаляемым курсом
+        remove_resp = None
+        if files_to_delete:
+            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
+                remove_resp = "Error"
+        if segments_to_delete:
+            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 

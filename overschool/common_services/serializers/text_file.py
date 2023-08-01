@@ -23,7 +23,7 @@ class TextFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author", "file"]
+        read_only_fields = ["author"]
 
     def validate(self, attrs):
         if (

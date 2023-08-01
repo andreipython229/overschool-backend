@@ -90,7 +90,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://45.135.234.137:8000",
     "https://dev.overschool.by",
     "http://apidev.overschool.by",
-
 ]
 
 SESSION_COOKIE_SECURE = False
@@ -405,5 +404,5 @@ YANDEX_SECRET = env.str("YANDEX_SECRET")
 # selectel credentials
 SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
-CONTAINER_NAME = "overschool"
+CONTAINER_NAME = "overschool_dev" if DEBUG else "overschool"
 CONTAINER_KEY = env.str("CONTAINER_KEY")

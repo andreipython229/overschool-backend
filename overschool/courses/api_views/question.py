@@ -34,7 +34,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
-        if self.action in ["list", "retrieve", "update", "partial_update"]:
+        if self.action in ["list", "retrieve"]:
             return QuestionGetSerializer
         else:
             return QuestionSerializer
@@ -71,7 +71,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = QuestionGetSerializer(instance, data=request.data)
+        serializer = QuestionSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("picture"):

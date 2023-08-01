@@ -69,7 +69,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 School.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
-        queryset = School.objects.filter(groups__user=user)
+        queryset = School.objects.filter(groups__user=user).distinct()
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -103,16 +103,21 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         user = self.request.user
         if not user.groups.filter(group__name="Admin", school=school).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        school_id = school.school_id
+
+        serializer = SchoolSerializer(school, data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("avatar"):
             if school.avatar:
                 s.remove_from_selectel(str(school.avatar))
-            school.avatar = s.upload_school_image(request.FILES["avatar"], school_id)
-        school.order = request.data.get("order", school.order)
-        school.name = request.data.get("name", school.name)
+            school_id = school.school_id
+            serializer.validated_data["avatar"] = s.upload_school_image(
+                request.FILES["avatar"], school_id
+            )
+        else:
+            serializer.validated_data["avatar"] = school.avatar
 
-        school.save()
+        self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -124,10 +129,18 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         # Получаем список файлов, хранящихся в папке удаляемой школы
         files_to_delete = s.get_folder_files("{}_school".format(instance.pk))
-        # Удаляем все файлы, связанные с удаляемой школой
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
+        # Получаем список сегментов файлов удаляемой школы
+        segments_to_delete = s.get_folder_files(
+            "{}_school".format(instance.pk), "_segments"
         )
+        # Удаляем все файлы и сегменты, связанные с удаляемой школой
+        remove_resp = None
+        if files_to_delete:
+            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
+                remove_resp = "Error"
+        if segments_to_delete:
+            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 
