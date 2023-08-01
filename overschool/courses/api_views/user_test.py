@@ -17,7 +17,7 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def create(self, request, *args, **kwargs):
 
