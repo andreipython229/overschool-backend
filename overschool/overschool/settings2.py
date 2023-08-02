@@ -64,7 +64,6 @@ MANAGERS = ADMINS
 
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
-BROKER_BACKEND = "redis"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
@@ -90,7 +89,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://45.135.234.137:8000",
     "https://dev.overschool.by",
     "http://apidev.overschool.by",
-
 ]
 
 SESSION_COOKIE_SECURE = False
@@ -142,6 +140,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "users.services.middleware.AuthOptionalMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "schools.services.middleware.CheckTrialStatusMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

@@ -24,7 +24,6 @@ class SelectelClient:
         # host="localhost",
         port=REDIS_PORT,
         db=0,
-        # password="sOmE_sEcUrE_pAsS",
     )
 
     # Получение токена для работы с хранилищем
@@ -68,7 +67,7 @@ class SelectelClient:
 
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file):
-        if file.size <= 90 * 1024 * 1024:
+        if file.size <= 5 * 1024 * 1024:
             file_data = file.read()
             try:
                 r = self.upload_request(
@@ -85,7 +84,7 @@ class SelectelClient:
                     )
         else:
             # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-            for num, chunk in enumerate(file.chunks(chunk_size=90 * 1024 * 1024)):
+            for num, chunk in enumerate(file.chunks(chunk_size=5 * 1024 * 1024)):
                 try:
                     r = self.upload_request(
                         "_segments" + path + "/{}".format(num + 1),

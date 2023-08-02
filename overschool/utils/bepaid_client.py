@@ -1,5 +1,6 @@
-import requests
 import json
+
+import requests
 
 
 class BePaidClient:
@@ -7,60 +8,62 @@ class BePaidClient:
         self.shop_id = shop_id
         self.secret_key = secret_key
         self.is_test = is_test
-        self.headers = {'Content-Type': 'application/json'}
+        self.headers = {"Content-Type": "application/json"}
 
     # Добавить параметр trial период
-    def subscribe_client(self, to_pay_sum, days_interval, pays_count, first_name, last_name, email, phone):
+    def subscribe_client(
+        self, to_pay_sum, days_interval, pays_count, first_name, last_name, email, phone
+    ):
         to_pay_sum = float(to_pay_sum)
         days_interval = float(days_interval)
         pays_count = float(pays_count)
 
-        payload = json.dumps({
-            "test": self.is_test,
-            "plan": {
-                "currency": "BYN",
+        payload = json.dumps(
+            {
+                "test": self.is_test,
                 "plan": {
-                    "amount": to_pay_sum,
-                    "interval": days_interval,
-                    "interval_unit": "day"
+                    "currency": "BYN",
+                    "plan": {
+                        "amount": to_pay_sum,
+                        "interval": days_interval,
+                        "interval_unit": "day",
+                    },
+                    "shop_id": self.shop_id,
+                    "title": "Подписка Тест 123",
                 },
-                "shop_id": self.shop_id,
-                "title": "Подписка Тест 123"
-            },
-            "settings": {
-                "language": "ru"
-            },
-            "customer": {
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "phone": phone,
-                "ip": "127.0.0.1"
-            },
-            "billing_cycles": pays_count,
-            "number_payment_attempts": 10
-        })
+                "settings": {"language": "ru"},
+                "customer": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                    "phone": phone,
+                    "ip": "127.0.0.1",
+                },
+                "billing_cycles": pays_count,
+                "number_payment_attempts": 10,
+            }
+        )
         response = requests.post(
-            'https://api.bepaid.by/subscriptions',
+            "https://api.bepaid.by/subscriptions",
             data=payload,
             auth=(self.shop_id, self.secret_key),
-            headers=self.headers
+            headers=self.headers,
         )
         return response.json()
 
     def get_clients_info(self):
         response = requests.get(
-            'https://api.bepaid.by/customers',
+            "https://api.bepaid.by/customers",
             auth=(self.shop_id, self.secret_key),
-            headers=self.headers
+            headers=self.headers,
         )
         return response.json()
 
     def get_subscription_info(self):
         response = requests.get(
-            'https://api.bepaid.by/subscriptions',
+            "https://api.bepaid.by/subscriptions",
             auth=(self.shop_id, self.secret_key),
-            headers=self.headers
+            headers=self.headers,
         )
         return response.json()
 
@@ -72,7 +75,6 @@ class BePaidClient:
         :return: Ответ от API.
         """
         # логика для подписки на тариф с демо-версией.
-        pass
 
     def unsubscribe(self, user_id):
         """
@@ -81,7 +83,6 @@ class BePaidClient:
         :return: Ответ от API.
         """
         # логика для отписки от тарифа.
-        pass
 
     def recalculate_cost(self, user_id, new_plan_id):
         """
@@ -91,7 +92,6 @@ class BePaidClient:
         :return: Ответ от API с новой стоимостью и пропорциональной сменой тарифа.
         """
         # логика для перерасчета стоимости при смене тарифа.
-        pass
 
     def get_next_payment_time(self, user_id):
         """
@@ -100,12 +100,12 @@ class BePaidClient:
         :return: Ответ от API с информацией о времени до следующего платежа.
         """
         # логика для получения информации о времени до следующего платежа.
-        pass
+
 
 bepaid_client = BePaidClient(
-    shop_id='21930',
-    secret_key='0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02',
-    is_test=True
+    shop_id="21930",
+    secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+    is_test=True,
 )
 
 # 1. Инфо о клиентах
@@ -129,23 +129,23 @@ bepaid_client = BePaidClient(
 # res = bepaid_client.get_subscription_info()
 # print(res)
 
-'''
+"""
 Логика оплаты
 1. 4 тарифа с ограничением по количеству новых учеников в месяц и учеников всего.
 Один из этих тарифов полностью бесплатный
-2. На бесплатном тарифе есть возможность использовать TRIAL период 14 дней 1 раз 
+2. На бесплатном тарифе есть возможность использовать TRIAL период 14 дней 1 раз
 для аккаунта. Для использования нужно подписаться на 1 из 3-х платных тарифов.
-3. Все оплаты делаем через реккурентные платежи/подписочные. Т.Е если карту не отвязать, 
+3. Все оплаты делаем через реккурентные платежи/подписочные. Т.Е если карту не отвязать,
 то будут автосписания
 
 Какая логика нужна от API клиента:
 1. Подписать клиентна тариф + (Подписать на тариф с демо версией)
 2. Отписать клиента от тарифа
-3. Логика перерасчёта при смене тарифа (пропорционально стоимостям, 
+3. Логика перерасчёта при смене тарифа (пропорционально стоимостям,
 как с меньшего на больший, так и в обратном порядке)
 4. Узнать сколько времени осталось клиенту до следюущего платежа
 
 Скорее всего нам не нужно хранить информацию о сроках платежей и т.д в своей БД,
-нам нужно только зафиксировать id тарифного плана для клиента и менять его при смене плана, 
+нам нужно только зафиксировать id тарифного плана для клиента и менять его при смене плана,
 также нужно сделать API для фронта по пунктам выше
-'''
+"""
