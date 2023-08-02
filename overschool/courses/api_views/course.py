@@ -365,9 +365,9 @@ class CourseViewSet(
                     "lessons": [],
                 }
             )
-            a = Homework.objects.filter(section=value["section"])
-            b = Lesson.objects.filter(section=value["section"])
-            c = SectionTest.objects.filter(section=value["section"])
+            a = Homework.objects.filter(section=value["section"], active=True)
+            b = Lesson.objects.filter(section=value["section"], active=True)
+            c = SectionTest.objects.filter(section=value["section"], active=True)
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
                     dict_obj = model_to_dict(obj)
