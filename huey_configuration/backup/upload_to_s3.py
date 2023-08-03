@@ -10,17 +10,9 @@ selectel_client = SelectelClient()
 
 def compress_and_upload(backup_path, zip_file_path, db):
     try:
-        # Compress backup file into a zip archive
-        with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            zip_file.write(backup_path)
-
         # Upload compressed backup file to Selectel Cloud Storage
-        with open(zip_file_path, 'rb') as f:
-            file_data = f.read()
-
         selectel_client.upload_to_selectel(
-            f"{CONTAINER_NAME}/{db}/{zip_file_path}",
-            file_data
+            f"{CONTAINER_NAME}/{db}/{zip_file_path}", backup_path
         )
     except Exception as e:
         logger.error(f"Error compressing and uploading {db} database backup: {e}")
