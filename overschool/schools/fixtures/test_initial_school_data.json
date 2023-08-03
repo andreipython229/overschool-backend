@@ -4,6 +4,7 @@
     "school_id": 1,
     "fields": {
       "name": "School_1",
+      "tariff": 1,
       "avatar": "",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",
@@ -16,6 +17,7 @@
     "school_id": 2,
     "fields": {
       "name": "School_2",
+      "tariff": 1,
       "avatar": "",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",
@@ -28,6 +30,7 @@
     "school_id": 3,
     "fields": {
       "name": "School_3",
+      "tariff": 1,
       "avatar": "",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",
@@ -40,6 +43,7 @@
     "school_id": 4,
     "fields": {
       "name": "School_4",
+      "tariff": 1,
       "avatar": "",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",
@@ -52,6 +56,7 @@
     "school_id": 5,
     "fields": {
       "name": "School_5",
+      "tariff": 1,
       "avatar": "",
       "created_at": "2022-08-02 12:34:37.000000-03:00",
       "updated_at": "2022-08-02 12:34:37.000000-03:00",

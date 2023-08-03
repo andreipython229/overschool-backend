@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School
+from schools.models import School, Tariff, TariffPlan
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
@@ -90,7 +90,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        school = serializer.save(avatar=None, owner=request.user)
+        school = serializer.save(
+            avatar=None,
+            owner=request.user,
+            tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+        )
         # Создание записи в модели UserGroup для добавления пользователя в качестве администратора
         group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
@@ -163,10 +167,19 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if not school.used_trial:
             serializer = SelectTrialSerializer(school, data=request.data)
             serializer.is_valid(raise_exception=True)
-            school = serializer.save()
+            tariff_choice = serializer.validated_data["tariff"]
+
+            # Получение объекта Tariff по выбранному тарифу
+            try:
+                tariff = Tariff.objects.get(name=tariff_choice)
+            except Tariff.DoesNotExist:
+                return Response({"error": "Указан некорректный тариф"}, status=400)
+            # Установка выбранного тарифа для школы
+            school.tariff = tariff
             school.used_trial = True
             school.trial_end_date = timezone.now() + timezone.timedelta(days=14)
             school.save()
+
             return Response(
                 {"message": "Пробный период успешно установлен"}, status=200
             )

@@ -17,6 +17,31 @@ class TariffPlan(models.TextChoices):
     SENIOR = "Senior", "Senior"
 
 
+class Tariff(models.Model):
+    id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID тарифа",
+        help_text="Уникальный идентификатор тарифа",
+    )
+    name = models.CharField(
+        max_length=10, choices=TariffPlan.choices, default=TariffPlan.INTERN
+    )
+    number_of_courses = models.IntegerField(
+        null=True, blank=True, verbose_name="Количество курсов"
+    )
+    students_per_month = models.IntegerField(
+        null=True, blank=True, verbose_name="Количество учеников в месяц"
+    )
+    total_students = models.IntegerField(
+        null=True, blank=True, verbose_name="Общее количество учеников"
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
+
+    def __str__(self):
+        return f"{self.name} - {self.price}"
+
+
 class School(TimeStampMixin, OrderMixin):
     """Модель школы"""
 
@@ -32,10 +57,11 @@ class School(TimeStampMixin, OrderMixin):
         help_text="Название школы",
         unique=True,
     )
-    tariff = models.CharField(
-        max_length=256,
-        choices=TariffPlan.choices,
-        default=TariffPlan.INTERN,
+    tariff = models.ForeignKey(
+        Tariff,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         verbose_name="Тариф",
         help_text="Тариф школы",
     )
@@ -78,22 +104,21 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-            self.trial_end_date
+            self.used_trial
+            and self.trial_end_date
             and self.trial_end_date <= timezone.now()
-            and self.used_trial
         ):
-            self.tariff = TariffPlan.INTERN
+            self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.trial_end_date = None
             self.used_trial = True
-
         # Проверка оплаты тарифа
         if (
             self.purchased_tariff_end_date
             and self.purchased_tariff_end_date <= timezone.now()
         ):
-            # Если оплаченный тариф истек, вернуться на базовый тариф
-            self.tariff = TariffPlan.INTERN
+            self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.purchased_tariff_end_date = None
+
         self.save()
 
     def avatar_url(self):

@@ -32,6 +32,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
  test:
 #-----------------overschool-base/overschool/courses/fixtures------------------------------
 	${DOCKER_LOAD_DATA}  test_initial_role_data.json
+	${DOCKER_LOAD_DATA}  test_initial_tariff.json
 	${DOCKER_LOAD_DATA}  test_initial_user_data.json
 	${DOCKER_LOAD_DATA}  test_initial_school_data.json
 	${DOCKER_LOAD_DATA}  test_initial_school_header.json
