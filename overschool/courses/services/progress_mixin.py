@@ -46,7 +46,7 @@ class LessonProgressMixin:
                 UserProgressLogs.objects.get(user=user, lesson=instance)
             except UserProgressLogs.DoesNotExist:
                 course_lessons = BaseLesson.objects.filter(
-                    section__course_id=baselesson.section.course
+                    section__course_id=baselesson.section.course, active=True
                 ).order_by("section__order", "order")
                 # Если урок стоит первым в курсе - то отдаём урок
                 if baselesson == course_lessons.first():
@@ -54,7 +54,7 @@ class LessonProgressMixin:
                     return None
                 # Проверяем является ли урок минимальным в секции
                 is_minimum_order = not BaseLesson.objects.filter(
-                    section=instance.section, order__lt=instance.order
+                    section=instance.section, order__lt=instance.order, active=True
                 ).exists()
                 if is_minimum_order:
                     # берём последний урок из предыдущей секции
@@ -67,7 +67,7 @@ class LessonProgressMixin:
                         .first()
                     )
                     previous_section_lessons = BaseLesson.objects.filter(
-                        section=previous_section
+                        section=previous_section, active=True
                     )
                     last_lesson_previous_section = previous_section_lessons.order_by(
                         "-order"
@@ -88,7 +88,7 @@ class LessonProgressMixin:
                 # Берем предыдущий урок по порядку поля order
                 previous_lesson = (
                     BaseLesson.objects.filter(
-                        section=instance.section, order__lt=instance.order
+                        section=instance.section, order__lt=instance.order, active=True
                     )
                     .order_by("-order")
                     .first()
