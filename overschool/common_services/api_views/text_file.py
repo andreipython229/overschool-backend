@@ -108,7 +108,12 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework.homework
                             )
-                            serializer = self.get_serializer(data=request.data)
+                            serializer = self.get_serializer(
+                                data={
+                                    "user_homework": user_homework_id,
+                                    "file": uploaded_file,
+                                }
+                            )
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище
                             file_path = s.upload_file(uploaded_file, base_lesson)
@@ -144,7 +149,12 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework_check.user_homework.homework
                             )
-                            serializer = self.get_serializer(data=request.data)
+                            serializer = self.get_serializer(
+                                data={
+                                    "user_homework_check": user_homework_check_id,
+                                    "file": uploaded_file,
+                                }
+                            )
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище
                             file_path = s.upload_file(uploaded_file, base_lesson)
@@ -184,8 +194,11 @@ class TextFileViewSet(
                 created_files = []
                 if files_list:
                     for uploaded_file in files_list:
+                        print({**request.data, "file": uploaded_file})
                         base_lesson = BaseLesson.objects.get(id=base_lesson_id)
-                        serializer = self.get_serializer(data=request.data)
+                        serializer = self.get_serializer(
+                            data={"base_lesson": base_lesson_id, "file": uploaded_file}
+                        )
                         serializer.is_valid(raise_exception=True)
                         # Загружаем файл в Selectel и получаем путь к файлу в хранилище
                         file_path = s.upload_file(uploaded_file, base_lesson)

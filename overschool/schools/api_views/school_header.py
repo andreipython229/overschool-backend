@@ -110,35 +110,48 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         ).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
+        serializer = SchoolHeaderSerializer(school_header, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         if request.FILES.get("logo_school"):
             if school_header.logo_school:
                 s.remove_from_selectel(str(school_header.logo_school))
-            school_header.logo_school = s.upload_school_image(
+            serializer.validated_data["logo_school"] = s.upload_school_image(
                 request.FILES["logo_school"], school_id
             )
+        else:
+            serializer.validated_data["logo_school"] = school_header.logo_school
+
         if request.FILES.get("logo_header"):
             if school_header.logo_header:
                 s.remove_from_selectel(str(school_header.logo_header))
-            school_header.logo_header = s.upload_school_image(
+            serializer.validated_data["logo_header"] = s.upload_school_image(
                 request.FILES["logo_header"], school_id
             )
+        else:
+            serializer.validated_data["logo_header"] = school_header.logo_header
+
         if request.FILES.get("photo_background"):
             if school_header.photo_background:
                 s.remove_from_selectel(str(school_header.photo_background))
-            school_header.photo_background = s.upload_school_image(
+            serializer.validated_data["photo_background"] = s.upload_school_image(
                 request.FILES["photo_background"], school_id
             )
+        else:
+            serializer.validated_data[
+                "photo_background"
+            ] = school_header.photo_background
+
         if request.FILES.get("favicon"):
             if school_header.favicon:
                 s.remove_from_selectel(str(school_header.favicon))
-            school_header.favicon = s.upload_school_image(
+            serializer.validated_data["favicon"] = s.upload_school_image(
                 request.FILES["favicon"], school_id
             )
-        school_header.description = request.data.get(
-            "description", school_header.description
-        )
-        school_header.name = request.data.get("name", school_header.name)
-        school_header.save()
+        else:
+            serializer.validated_data["favicon"] = school_header.favicon
+
+        self.perform_update(serializer)
         serializer = SchoolHeaderDetailSerializer(school_header)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

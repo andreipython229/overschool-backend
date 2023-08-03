@@ -1,6 +1,8 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.selectel_client import SelectelClient
 from courses.models import (
+    BaseLesson,
     Course,
     Homework,
     Lesson,
@@ -13,7 +15,7 @@ from courses.serializers import SectionSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import MultiPartParser
@@ -22,6 +24,8 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
+
+s = SelectelClient()
 
 
 @method_decorator(
@@ -129,9 +133,45 @@ class SectionViewSet(
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-        section = self.get_object()
-        self.perform_destroy(section)
-        return Response(status=204)
+        instance = self.get_object()
+        course = instance.course
+        school_id = course.school.school_id
+        base_lessons_ids = list(
+            map(
+                lambda el: el["id"],
+                list(BaseLesson.objects.filter(section=instance).values("id")),
+            )
+        )
+        remove_resp = None
+
+        # Получаем, а затем удаляем файлы и сегменты всех уроков удаляемого раздела
+        for id in base_lessons_ids:
+            files_to_delete = s.get_folder_files(
+                "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id)
+            )
+            segments_to_delete = s.get_folder_files(
+                "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id),
+                "_segments",
+            )
+            if files_to_delete:
+                if s.bulk_remove_from_selectel(files_to_delete) == "Error":
+                    remove_resp = "Error"
+            if segments_to_delete:
+                if (
+                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                    == "Error"
+                ):
+                    remove_resp = "Error"
+
+        self.perform_destroy(instance)
+
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True)
     def lessons(self, request, pk, *args, **kwargs):
