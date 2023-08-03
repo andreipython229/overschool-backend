@@ -4,7 +4,6 @@ import random
 from typing import Optional
 
 import redis
-import requests
 from django.conf import settings
 from django.core.mail import send_mail
 from users.models import User
@@ -41,7 +40,7 @@ class SenderServiceMixin:
             user.confirmation_code = confirmation_code
             user.save()
 
-    def send_code_by_email(self, email: str) -> str | None:
+    def send_code_by_email(self, email: str) -> Optional[str]:
         """
         Send code by email
         """

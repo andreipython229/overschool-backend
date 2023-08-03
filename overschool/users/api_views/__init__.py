@@ -5,7 +5,6 @@ from .logout import LogoutView
 from .profile import ProfileViewSet
 from .register import (
     ConfirmationView,
-    PasswordResetConfirmView,
     PasswordResetView,
     SignupView,
 )

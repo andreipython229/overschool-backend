@@ -1,4 +1,3 @@
-from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from users.models import User
 from users.services import SenderServiceMixin
@@ -78,50 +77,17 @@ class ConfirmationSerializer(serializers.Serializer):
 
 
 class PasswordResetSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    phone_number = PhoneNumberField()
+    email = serializers.EmailField(required=True)
+    new_password = serializers.CharField(required=True)
 
     def validate(self, attrs):
         email = attrs.get("email")
-        phone_number = attrs.get("phone_number")
-
-        if not email and not phone_number:
-            raise serializers.ValidationError("Either 'email' or 'phone_number' is required.")
-
-        if email and not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError("Email does not exist.")
-
-        if phone_number and not User.objects.filter(phone_number=phone_number).exists():
-            raise serializers.ValidationError("Phone number does not exist.")
-
-        return attrs
-
-    def save(self, **kwargs):
-        email = self.validated_data.get("email")
-        phone_number = self.validated_data.get("phone_number")
-
-        if email:
-            sender_service = SenderServiceMixin()
-            sender_service.send_code_by_email(email)
-
-        if phone_number:
-            sender_service = SenderServiceMixin()
-            sender_service.send_code_by_phone_number(phone_number, user_type=0)  # Provide the appropriate user_type
-
-        return super().save(**kwargs)
-
-
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    reset_code = serializers.CharField()
-    new_password = serializers.CharField()
-    confirm_password = serializers.CharField()
-
-    def validate(self, attrs):
         new_password = attrs.get("new_password")
-        confirm_password = attrs.get("confirm_password")
 
-        if new_password and confirm_password and new_password != confirm_password:
-            raise serializers.ValidationError("New passwords do not match.")
+        if not email:
+            raise serializers.ValidationError("Email is required.")
+
+        if not new_password:
+            raise serializers.ValidationError("New password is required.")
 
         return attrs
