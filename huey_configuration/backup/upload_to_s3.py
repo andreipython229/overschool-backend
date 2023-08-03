@@ -15,7 +15,7 @@ def compress_and_upload(backup_path, zip_file_path, db):
             zip_file.write(backup_path)
 
         # Upload compressed backup file to Selectel Cloud Storage
-        with open(zip_file_path, 'rb') as f:
+        with open(zip_file_path, 'rt') as f:
             selectel_client.upload_to_selectel(
                 f"{CONTAINER_NAME}/{db}/{zip_file_path}", f
             )
