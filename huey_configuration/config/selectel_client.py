@@ -55,18 +55,33 @@ class SelectelClient:
             raise ValueError('Invalid file type')
         if file_size <= 90 * 1024 * 1024:
             try:
-                r = self.upload_request(
-                    path,
-                    self.REDIS_INSTANCE.get("selectel_token"),
-                    file_data,
-                    file.content_type,
-                )
-                r.raise_for_status()
+                if isinstance(file, bytes):
+                    r = self.upload_request(
+                        path,
+                        self.REDIS_INSTANCE.get("selectel_token"),
+                        file_data,
+                        'application/octet-stream',
+                    )
+                    r.raise_for_status()
+                else:
+                    r = self.upload_request(
+                        path,
+                        self.REDIS_INSTANCE.get("selectel_token"),
+                        file_data,
+                        file.content_type,
+                    )
+                    r.raise_for_status()
+
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 401:
-                    self.upload_request(
-                        path, self.get_token(), file_data, file.content_type
-                    )
+                    if isinstance(file, bytes):
+                        self.upload_request(
+                            path, self.get_token(), file_data, 'application/octet-stream'
+                        )
+                    else:
+                        self.upload_request(
+                            path, self.get_token(), file_data, file.content_type
+                        )
         else:
 
             if isinstance(file, bytes):
