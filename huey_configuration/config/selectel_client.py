@@ -43,9 +43,17 @@ class SelectelClient:
         )
 
     # Загрузка файла непосредственно в хранилище
-    def upload_to_selectel(self, path, file):
-        if file.size <= 90 * 1024 * 1024:
+    def upload_to_selectel(self, path, file, size):
+
+        if isinstance(file, bytes):
+            file_size = size
+            file_data = file
+        elif hasattr(file, 'size'):
+            file_size = file.size
             file_data = file.read()
+        else:
+            raise ValueError('Invalid file type')
+        if file_size <= 90 * 1024 * 1024:
             try:
                 r = self.upload_request(
                     path,
@@ -60,22 +68,27 @@ class SelectelClient:
                         path, self.get_token(), file_data, file.content_type
                     )
         else:
-            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-            for num, chunk in enumerate(file.chunks(chunk_size=90 * 1024 * 1024)):
-                try:
-                    r = self.upload_request(
-                        "_segments" + path + "/{}".format(num + 1),
-                        self.REDIS_INSTANCE.get("selectel_token"),
-                        chunk,
-                    )
-                    r.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    if e.response.status_code == 401:
+
+            if isinstance(file, bytes):
+                self.upload_request(path, self.get_token(), file)
+            else:
+                CHUNK_SIZE = 90 * 1024 * 1024
+                # Сегментированная загрузка файла
+                for num in range(0, len(file_data), CHUNK_SIZE):
+                    chunk = file_data[num:num + CHUNK_SIZE]
+                    try:
                         self.upload_request(
                             "_segments" + path + "/{}".format(num + 1),
-                            self.get_token(),
-                            chunk,
+                            self.REDIS_INSTANCE.get("selectel_token"),
+                            chunk
                         )
+                    except requests.exceptions.HTTPError as e:
+                        if e.response.status_code == 401:
+                            self.upload_request(
+                                "_segments" + path + "/{}".format(num + 1),
+                                self.get_token(),
+                                chunk
+                            )
             # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
             requests.put(
                 self.URL + path,
