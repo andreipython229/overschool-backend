@@ -109,7 +109,7 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s.upload_file(request.FILES["video"], base_lesson)
+            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -144,7 +144,7 @@ class HomeworkViewSet(
                     s.bulk_remove_from_selectel(segments_to_delete, "_segments")
             base_lesson = BaseLesson.objects.get(homeworks=instance)
             serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson
+                request.FILES["video"], base_lesson, "inline"
             )
         else:
             serializer.validated_data["video"] = instance.video
