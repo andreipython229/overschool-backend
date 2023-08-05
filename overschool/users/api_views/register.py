@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -10,11 +10,13 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.serializers import (
     ConfirmationSerializer,
-    PasswordResetConfirmSerializer,
     PasswordResetSerializer,
     SignupSerializer,
 )
+from drf_yasg.utils import swagger_auto_schema
+from django.core.mail import send_mail
 from users.services import JWTHandler, SenderServiceMixin
+from rest_framework.decorators import action
 
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -106,60 +108,42 @@ class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
 
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
-    """Эндпоинт сброса пароля\n
-    <ul>
-        <li>Отправляем код для сброса пароля по электронной почте или Отправляем код для сброса пароля на телефон</li>
-        <li>Сохраняем код для сброса пароля и другие данные в Redis</li>
-    </ul>"""
-
-    permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetSerializer
-    parser_classes = (MultiPartParser,)
+    sender_service = SenderServiceMixin()  # Создаем экземпляр SenderServiceMixin
 
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+    @swagger_auto_schema(method='post', request_body=PasswordResetSerializer)
+    @action(detail=False, methods=["POST"])
+    def send_reset_link(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
-        phone_number = serializer.validated_data["phone_number"]
 
-        if email:
-            # Отправляем код для сброса пароля по электронной почте
-            reset_code = sender_service.send_code_for_password_reset_by_email(email)
-        elif phone_number:
-            # Отправляем код для сброса пароля на телефон
+        # Проверяем, существует ли пользователь с такой почтой
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response("User with this email does not exist.", status=404)
 
-            reset_code = sender_service.send_code_for_password_reset_by_phone_number(
-                phone_number
-            )
-        else:
-            return HttpResponse("Email or phone number is required.", status=400)
+        # Отправляем код подтверждения на почту пользователя
+        self.sender_service.send_code_by_email(email=email)
 
-        # Сохраняем код для сброса пароля и другие данные в Redis
+        return Response("Reset password link sent successfully.")
 
-        response = HttpResponse("Password reset code has been sent.", status=200)
-        return response
-
-
-class PasswordResetConfirmView(WithHeadersViewSet, generics.GenericAPIView):
-    """Эндпоинт проверки кода для сброса пароля\n
-    <ul>
-        <li>Проверяем код для сброса пароля в Redis</li>
-        <li>Обновляем пароль</li>
-    </ul>"""
-
-    permission_classes = [permissions.AllowAny]
-    serializer_class = PasswordResetConfirmSerializer
-    parser_classes = (MultiPartParser,)
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+    @swagger_auto_schema(method='post', request_body=PasswordResetSerializer)
+    @action(detail=False, methods=["POST"])
+    def reset_password(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.validated_data["email"]
-        serializer.validated_data["reset_code"]
-        serializer.validated_data["new_password"]
+        email = serializer.validated_data["email"]
+        new_password = serializer.validated_data["new_password"]
 
-        # Проверяем код для сброса пароля в Redis
+        # Проверяем, существует ли пользователь с такой почтой
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response("User with this email does not exist.", status=404)
 
-        # Обновляем пароль
-
-        return HttpResponse("Password has been reset.", status=200)
+        # Устанавливаем новый пароль и сохраняем пользователя
+        user.set_password(new_password)
+        user.save()
+        return Response("Password reset successfully.")

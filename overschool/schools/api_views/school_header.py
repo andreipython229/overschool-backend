@@ -3,7 +3,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
@@ -36,7 +36,6 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         if user.groups.filter(group__name="Admin").exists():
             return permissions
         if self.action in ["list", "retrieve"]:
-            # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if user.groups.filter(group__name__in=["Teacher", "Student"]).exists():
                 return permissions
             else:
@@ -67,6 +66,12 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         if school is not None:
             if not user.groups.filter(group__name="Admin", school=school).exists():
                 raise PermissionDenied("Вы не являетесь администратором данной школы.")
+
+        # Проверяем, существует ли уже шапка для указанной школы
+        existing_header = SchoolHeader.objects.filter(school=school).first()
+        if existing_header:
+            raise ValidationError("Для данной школы уже существует шапка.")
+
         serializer = SchoolHeaderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         school_id = request.data.get("school")

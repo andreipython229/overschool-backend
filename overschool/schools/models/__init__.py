@@ -1,2 +1,2 @@
-from .school import School, TariffPlan
+from .school import School, Tariff, TariffPlan
 from .school_header import SchoolHeader
