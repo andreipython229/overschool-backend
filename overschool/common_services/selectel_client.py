@@ -54,19 +54,19 @@ class SelectelClient:
 
     # Запрос на загрузку файла либо сегмента файла
     @staticmethod
-    def upload_request(path, token, data, content_type=None):
+    def upload_request(path, token, data, disposition, content_type=None):
         return requests.put(
             SelectelClient.URL + path,
             headers={
                 "X-Auth-Token": token,
                 "Content-Type": content_type,
-                "Content-Disposition": "attachment",
+                "Content-Disposition": disposition,
             },
             data=data,
         )
 
     # Загрузка файла непосредственно в хранилище
-    def upload_to_selectel(self, path, file):
+    def upload_to_selectel(self, path, file, disposition="attachment"):
         if file.size <= 10 * 1024 * 1024:
             file_data = file.read()
             try:
@@ -74,13 +74,18 @@ class SelectelClient:
                     path,
                     self.REDIS_INSTANCE.get("selectel_token"),
                     file_data,
+                    disposition,
                     file.content_type,
                 )
                 r.raise_for_status()
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 401:
                     self.upload_request(
-                        path, self.get_token(), file_data, file.content_type
+                        path,
+                        self.get_token(),
+                        file_data,
+                        disposition,
+                        file.content_type,
                     )
         else:
             # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
@@ -90,6 +95,7 @@ class SelectelClient:
                         "_segments" + path + "/{}".format(num + 1),
                         self.REDIS_INSTANCE.get("selectel_token"),
                         chunk,
+                        disposition,
                     )
                     r.raise_for_status()
                 except requests.exceptions.HTTPError as e:
@@ -98,6 +104,7 @@ class SelectelClient:
                             "_segments" + path + "/{}".format(num + 1),
                             self.get_token(),
                             chunk,
+                            disposition,
                         )
             # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
             requests.put(
@@ -108,14 +115,14 @@ class SelectelClient:
                 },
             )
 
-    def upload_file(self, uploaded_file, base_lesson):
+    def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "/{}_school/{}_course/{}_lesson/{}@{}".format(
             school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
         ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_file)
+        self.upload_to_selectel(file_path, uploaded_file, disposition)
         return file_path
 
     def upload_school_image(self, uploaded_image, school_id):

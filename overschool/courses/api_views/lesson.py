@@ -56,7 +56,9 @@ class LessonViewSet(
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return Lesson.objects.none()  # Возвращаем пустой queryset при генерации схемы
+            return (
+                Lesson.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -68,17 +70,13 @@ class LessonViewSet(
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
             ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(
-                active=True, section__course_id__in=course_ids
-            )
+            return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
                 course_id_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(
-                active=True, section__course_id__in=course_ids
-            )
+            return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
 
         return Lesson.objects.none()
 
@@ -101,7 +99,7 @@ class LessonViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s.upload_file(request.FILES["video"], base_lesson)
+            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
             lesson.video = video
             lesson.save()
             serializer = LessonDetailSerializer(lesson)
@@ -136,7 +134,7 @@ class LessonViewSet(
                     s.bulk_remove_from_selectel(segments_to_delete, "_segments")
             base_lesson = BaseLesson.objects.get(lessons=instance)
             serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson
+                request.FILES["video"], base_lesson, "inline"
             )
         else:
             serializer.validated_data["video"] = instance.video
