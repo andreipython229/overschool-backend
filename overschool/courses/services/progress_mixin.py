@@ -13,7 +13,10 @@ from rest_framework.response import Response
 
 class LessonProgressMixin:
     def create_log(self, user, instance):
-        UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
+        try:
+            UserProgressLogs.objects.get(user=user, lesson=instance)
+        except UserProgressLogs.DoesNotExist:
+            UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 
     def check_lesson_progress(self, instance, user, baselesson):
         if user.groups.filter(
