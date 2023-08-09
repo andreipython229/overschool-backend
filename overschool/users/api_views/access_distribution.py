@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup
@@ -7,8 +9,9 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
-from schools.models import School
+from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
+from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
 
 User = get_user_model()
@@ -50,6 +53,61 @@ class AccessDistributionView(
         user = User.objects.get(pk=user_id)
         group = Group.objects.get(name=role)
         school = self.get_school()
+
+        # Получение текущей даты и времени
+        current_datetime = datetime.now()
+        current_month = current_datetime.month
+        current_year = current_datetime.year
+        if role == "Student":
+            if school.tariff.name == TariffPlan.INTERN:
+                student_count_by_month = UserGroup.objects.filter(
+                    group__name="Student",
+                    school=school,
+                    created_at__year=current_year,
+                    created_at__month=current_month,
+                ).count()
+                if student_count_by_month >= school.tariff.students_per_month:
+                    return HttpResponse(
+                        "Превышено количество новых учеников в месяц для выбранного тарифа",
+                        status=400,
+                    )
+                student_count = UserGroup.objects.filter(
+                    group__name="Student", school=school
+                ).count()
+                if student_count >= school.tariff.total_students:
+                    return HttpResponse(
+                        "Превышено количество учеников для выбранного тарифа",
+                        status=400,
+                    )
+            elif school.tariff.name in [
+                TariffPlan.JUNIOR,
+                TariffPlan.MIDDLE,
+                TariffPlan.SENIOR,
+            ]:
+                student_count_by_month = UserGroup.objects.filter(
+                    group__name="Student",
+                    school=school,
+                    created_at__year=current_year,
+                    created_at__month=current_month,
+                ).count()
+                if student_count_by_month >= school.tariff.students_per_month:
+                    return HttpResponse(
+                        "Превышено количество новых учеников в месяц для выбранного тарифа",
+                        status=400,
+                    )
+        elif role in ["Teacher", "Admin"]:
+            staff_count = UserGroup.objects.filter(
+                group__name__in=["Teacher", "Admin"], school=school
+            ).count()
+            if (
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and staff_count >= school.tariff.number_of_staff
+            ):
+                return HttpResponse(
+                    "Превышено количество cотрудников для выбранного тарифа",
+                    status=400,
+                )
         if not user.groups.filter(group=group, school=school).exists():
             user.groups.create(group=group, school=school)
 
@@ -113,7 +171,6 @@ class AccessDistributionView(
                     "Группу нельзя оставить без преподавателя", status=400
                 )
             elif role == "Admin" and school.owner == user:
-                print("uuuuuuuu")
                 return HttpResponse(
                     "Владельца школы нельзя лишать его прав", status=400
                 )

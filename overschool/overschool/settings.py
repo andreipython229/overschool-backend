@@ -409,3 +409,5 @@ SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
 CONTAINER_NAME = "overschool_dev" if DEBUG else "overschool"
 CONTAINER_KEY = env.str("CONTAINER_KEY")
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')

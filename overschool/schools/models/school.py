@@ -30,6 +30,9 @@ class Tariff(models.Model):
     number_of_courses = models.IntegerField(
         null=True, blank=True, verbose_name="Количество курсов"
     )
+    number_of_staff = models.IntegerField(
+        null=True, blank=True, verbose_name="Количество сотрудников"
+    )
     students_per_month = models.IntegerField(
         null=True, blank=True, verbose_name="Количество учеников в месяц"
     )

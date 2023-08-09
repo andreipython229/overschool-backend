@@ -28,7 +28,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School
+from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
@@ -128,7 +128,17 @@ class CourseViewSet(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        school_obj = School.objects.get(school_id=school_id)
+        print(school_obj.course_school.count())
+        if (
+            school_obj.tariff.name
+            in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+            and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
+        ):
+            return Response(
+                "Превышено количество курсов для выбранного тарифа",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         course = serializer.save(photo=None)
