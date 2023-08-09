@@ -30,6 +30,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "points",
             "type",
             "all_components",
+            "active",
         ]
 
     def create(self, validated_data):
@@ -61,6 +62,7 @@ class LessonSerializer(serializers.ModelSerializer):
         instance.description = validated_data.get("description", instance.description)
         instance.video = validated_data.get("video", instance.video)
         instance.points = validated_data.get("points", instance.points)
+        instance.active = validated_data.get("active", instance.active)
 
         instance.save()
 
@@ -94,6 +96,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "audio_files",
             "type",
             "all_components",
+            "active",
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
 

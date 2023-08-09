@@ -35,6 +35,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "points",
             "type",
             "all_components",
+            "active",
         ]
 
     def create(self, validated_data):
@@ -70,6 +71,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "automate_accept", instance.automate_accept
         )
         instance.time_accept = validated_data.get("time_accept", instance.time_accept)
+        instance.active = validated_data.get("active", instance.active)
 
         instance.save()
 
@@ -105,6 +107,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "user_mark",
             "user_homework_checks",
             "all_components",
+            "active",
         ]
         read_only_fields = [
             "type",
