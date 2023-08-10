@@ -31,7 +31,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Question.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
