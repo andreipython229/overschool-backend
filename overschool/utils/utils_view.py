@@ -2,16 +2,15 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from users.models import User
 from utils.serializers import SubscriptionSerializer
-
+from schools.models import Tariff
 from .bepaid_client import BePaidClient
 
 
 @swagger_auto_schema(method="post", request_body=SubscriptionSerializer)
 @api_view(["POST"])
-def subscribe_client(request, user_id):
-    user = User.objects.filter(id=user_id).first()
+def subscribe_client(request,):
+    user = request.user
     if not user:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -19,13 +18,9 @@ def subscribe_client(request, user_id):
     serializer = SubscriptionSerializer(data=request.data, context={"user": user})
     if serializer.is_valid():
         data = serializer.validated_data
-        to_pay_sum = data["to_pay_sum"]
-        days_interval = data["days_interval"]
+        tariff = data["tariff"]
         pays_count = data["pays_count"]
-        first_name = data["first_name"]
-        last_name = data["last_name"]
-        email = data["email"]
-        phone = data["phone"]
+
 
         bepaid_client = BePaidClient(
             shop_id="21930",
@@ -35,17 +30,18 @@ def subscribe_client(request, user_id):
 
         # логика для работы с тарифами, смены тарифов и т.д.
         subscribe_res = bepaid_client.subscribe_client(
-            to_pay_sum=to_pay_sum,
-            days_interval=days_interval,
+            to_pay_sum=Tariff.objects.values_list('price', flat=True).get(name=tariff),
+            days_interval=serializer.fields["days_interval"].default,
             pays_count=pays_count,
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            phone=phone,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            phone=str(user.phone_number),
         )
 
         return Response(subscribe_res, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(["POST"])

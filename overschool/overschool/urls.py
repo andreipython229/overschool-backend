@@ -49,10 +49,10 @@ urlpatterns = [
                       name="user_schools",
                   ),
 
-                  path('api/subscribe-client/<int:user_id>/', subscribe_client, name='subscribe_client'),
-                  path('api/unsubscribe-client/<int:user_id>/', unsubscribe_client, name='unsubscribe_client'),
-                  path('api/recalculate-cost/<int:user_id>/', recalculate_cost, name='recalculate_cost'),
-                  path('api/get-next-payment-time/<int:user_id>/', get_next_payment_time, name='get_next_payment_time'),
+                  path('api/subscribe-client/', subscribe_client, name='subscribe_client'),
+                  path('api/unsubscribe-client/', unsubscribe_client, name='unsubscribe_client'),
+                  path('api/recalculate-cost/', recalculate_cost, name='recalculate_cost'),
+                  path('api/get-next-payment-time/', get_next_payment_time, name='get_next_payment_time'),
 
                   path(
                       "api/code/confirm/",

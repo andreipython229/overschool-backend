@@ -67,14 +67,6 @@ class BePaidClient:
         )
         return response.json()
 
-    def subscribe_trial_period(self, user_id, plan_id):
-        """
-        Подписать клиента на тариф с демо-версией.
-        :param user_id: Идентификатор пользователя.
-        :param plan_id: Идентификатор тарифного плана с демо-версией.
-        :return: Ответ от API.
-        """
-        # логика для подписки на тариф с демо-версией.
 
     def unsubscribe(self, user_id):
         """
