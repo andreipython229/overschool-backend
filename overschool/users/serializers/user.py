@@ -23,6 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
             "groups",
             "schools",
+
         ]
 
     def get_groups(self, obj):
