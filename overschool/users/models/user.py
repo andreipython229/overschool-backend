@@ -1,11 +1,13 @@
+from datetime import datetime, timedelta
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-from users.managers import UserManager
-from datetime import datetime, timedelta
-from django.conf import settings
 from rest_framework import serializers
+from users.managers import UserManager
+
 
 class User(AbstractBaseUser):
     """Модель пользователя"""
@@ -57,6 +59,7 @@ class User(AbstractBaseUser):
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
+    subscription_id = models.CharField(max_length=255, null=True, blank=True)
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
     is_active = models.BooleanField(verbose_name="Активный", default=False)
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)
@@ -69,8 +72,6 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = ["email", "phone_number"]
 
     objects = UserManager()
-
-
 
     def has_perm(self, perm, obj=None):
         if self.is_active and self.is_superuser:

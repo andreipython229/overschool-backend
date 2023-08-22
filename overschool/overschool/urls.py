@@ -17,7 +17,7 @@ from users.api_views import (
     SignupView,
     UserSchoolsView,
 )
-from utils.utils_view import subscribe_client, unsubscribe_client, recalculate_cost, get_next_payment_time
+from utils.utils_view import subscribe_client, unsubscribe_client
 
 from .main_router import router, school_router, user_router
 
@@ -51,8 +51,7 @@ urlpatterns = [
 
                   path('api/subscribe-client/', subscribe_client, name='subscribe_client'),
                   path('api/unsubscribe-client/', unsubscribe_client, name='unsubscribe_client'),
-                  path('api/recalculate-cost/', recalculate_cost, name='recalculate_cost'),
-                  path('api/get-next-payment-time/', get_next_payment_time, name='get_next_payment_time'),
+
 
                   path(
                       "api/code/confirm/",
