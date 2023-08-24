@@ -25,6 +25,9 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     description = RichTextField(
         verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
     )
+    code = RichTextField(
+        verbose_name="Код", help_text="Примеры кода к уроку", blank=True, null=True
+    )
     video = models.FileField(
         verbose_name="Видео",
         help_text="Видеофайл размером до 2 ГБ",

@@ -26,10 +26,12 @@ class LessonSerializer(serializers.ModelSerializer):
             "order",
             "author_id",
             "description",
+            "code",
             "video",
             "points",
             "type",
             "all_components",
+            "active",
         ]
 
     def create(self, validated_data):
@@ -59,8 +61,10 @@ class LessonSerializer(serializers.ModelSerializer):
         instance.name = validated_data.get("name", instance.name)
         instance.order = validated_data.get("order", instance.order)
         instance.description = validated_data.get("description", instance.description)
+        instance.code = validated_data.get("code", instance.code)
         instance.video = validated_data.get("video", instance.video)
         instance.points = validated_data.get("points", instance.points)
+        instance.active = validated_data.get("active", instance.active)
 
         instance.save()
 
@@ -88,12 +92,14 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "order",
             "author_id",
             "description",
+            "code",
             "video",
             "points",
             "text_files",
             "audio_files",
             "type",
             "all_components",
+            "active",
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
 

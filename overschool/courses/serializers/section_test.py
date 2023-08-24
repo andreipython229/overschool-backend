@@ -44,6 +44,7 @@ class TestSerializer(serializers.ModelSerializer):
             "order",
             "author_id",
             "type",
+            "active",
         ]
         read_only_fields = ["type"]
 

@@ -8,6 +8,7 @@ class ComponentTypeChoices(models.TextChoices):
     """Типы компонентов урока"""
 
     TEXT = "Текст", "Текст"
+    CODE = "Код", "Код"
     VIDEO = "Видео", "Видео"
     TEXT_FILE = "Текстовый файл", "Текстовый файл"
     AUDIO_FILE = "Аудиофайл", "Аудиофайл"
