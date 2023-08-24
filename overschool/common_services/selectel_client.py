@@ -111,7 +111,9 @@ class SelectelClient:
                 self.URL + path,
                 headers={
                     "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-                    "X-Object-Manifest": "{}_segments{}/".format(CONTAINER_NAME, path),
+                    "X-Object-Manifest": "{}_segments{}/".format(
+                        CONTAINER_NAME, path.encode(encoding="UTF-8", errors="strict")
+                    ),
                 },
             )
 

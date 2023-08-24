@@ -21,7 +21,7 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
     def list(self, request, *args, **kwargs):
         user_schools = self.get_queryset()
         if user_schools.first():
-            data = user_schools.values("name")
+            data = user_schools.values("school_id", "name", "header_school")
             return Response(data)
         else:
             return Response(
