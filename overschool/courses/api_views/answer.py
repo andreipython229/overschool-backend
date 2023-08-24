@@ -14,10 +14,10 @@ from .schemas.answer import AnswersSchemas
 s = SelectelClient()
 
 
-@method_decorator(
-    name="partial_update",
-    decorator=AnswersSchemas.partial_update_schema(),
-)
+# @method_decorator(
+#     name="partial_update",
+#     decorator=AnswersSchemas.partial_update_schema(),
+# )
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
     <h2>/api/{school_name}/answers/</h2>\n
@@ -28,7 +28,7 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -106,5 +106,5 @@ AnswerViewSet = apply_swagger_auto_schema(
     tags=[
         "answers",
     ],
-    excluded_methods=["partial_update"],
+    # excluded_methods=["partial_update"],
 )(AnswerViewSet)

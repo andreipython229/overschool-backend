@@ -14,14 +14,14 @@ from .schemas.question import QuestionsSchemas
 s = SelectelClient()
 
 
-@method_decorator(
-    name="update",
-    decorator=QuestionsSchemas.question_update_schema(),
-)
-@method_decorator(
-    name="partial_update",
-    decorator=QuestionsSchemas.question_update_schema(),
-)
+# @method_decorator(
+#     name="update",
+#     decorator=QuestionsSchemas.question_update_schema(),
+# )
+# @method_decorator(
+#     name="partial_update",
+#     decorator=QuestionsSchemas.question_update_schema(),
+# )
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления вопросов \n
     <h2>/api/{school_name}/questions/</h2>\n
@@ -31,7 +31,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Question.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -115,5 +115,5 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
 QuestionViewSet = apply_swagger_auto_schema(
     default_schema=QuestionsSchemas.default_schema(),
-    excluded_methods=["update", "partial_update"],
+    # excluded_methods=["update", "partial_update"],
 )(QuestionViewSet)
