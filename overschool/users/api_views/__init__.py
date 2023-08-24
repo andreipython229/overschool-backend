@@ -10,4 +10,4 @@ from .register import (
 )
 from .register_school_owner import SignupSchoolOwnerView
 from .user_schools import UserSchoolsView
-from .users import UserViewSet
+from .users import UserViewSet, AllUsersViewSet

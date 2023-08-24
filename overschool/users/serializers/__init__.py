@@ -8,5 +8,5 @@ from .register import (
     ConfirmationSerializer,
 )
 from .register_school_owner import SignupSchoolOwnerSerializer
-from .user import UserSerializer
+from .user import UserSerializer, AllUsersSerializer
 from .user_role import UserRoleSerializer

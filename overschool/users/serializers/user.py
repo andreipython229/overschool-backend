@@ -31,3 +31,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_schools(self, obj):
         return obj.groups.values_list("school_id", flat=True)
+
+
+class AllUsersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "username"
+        ]
