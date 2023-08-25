@@ -201,15 +201,17 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 all_lessons=all_lessons.count(),
                 completed_lessons=completed_lessons.count(),
             )
+
             course["homeworks"] = dict(
                 completed_perсent=round(
                     completed_homeworks.count() / all_homeworks.count() * 100, 2
                 )
-                if completed_lessons.count() != 0
+                if completed_homeworks.count() != 0
                 else 0,
                 all_homeworks=all_homeworks.count(),
                 completed_homeworks=completed_homeworks.count(),
             )
+
             course["tests"] = dict(
                 completed_perсent=round(
                     completed_tests.count() / all_tests.count() * 100, 2
