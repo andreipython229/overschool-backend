@@ -80,14 +80,14 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://localhost:3000",
-    "http://85.209.148.157:3000",
-    "http://45.135.234.137:8000",
+    "https://127.0.0.1:8000",
+    "https://localhost:3000",
+    "https://85.209.148.157:3000",
+    "https://45.135.234.137:8000",
     "https://dev.overschool.by",
-    "http://apidev.overschool.by",
-    "http://dev.api.overschool.by",
-    "http://apidev.overschool.by:8000",
+    "https://apidev.overschool.by",
+    "https://dev.api.overschool.by",
+    "https://apidev.overschool.by:8000",
 ]
 
 SESSION_COOKIE_SECURE = False

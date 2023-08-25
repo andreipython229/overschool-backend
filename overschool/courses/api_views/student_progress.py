@@ -196,25 +196,27 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 completed_perсent=round(
                     completed_lessons.count() / all_lessons.count() * 100, 2
                 )
-                if completed_lessons.count() != 0
+                if all_lessons.count() != 0
                 else 0,
                 all_lessons=all_lessons.count(),
                 completed_lessons=completed_lessons.count(),
             )
+
             course["homeworks"] = dict(
                 completed_perсent=round(
                     completed_homeworks.count() / all_homeworks.count() * 100, 2
                 )
-                if completed_lessons.count() != 0
+                if all_homeworks.count() != 0
                 else 0,
                 all_homeworks=all_homeworks.count(),
                 completed_homeworks=completed_homeworks.count(),
             )
+
             course["tests"] = dict(
                 completed_perсent=round(
                     completed_tests.count() / all_tests.count() * 100, 2
                 )
-                if completed_tests.count() != 0
+                if all_tests.count() != 0
                 else 0,
                 all_tests=all_tests.count(),
                 completed_tests=completed_tests.count(),
