@@ -92,7 +92,9 @@ class SelectelClient:
             for num, chunk in enumerate(file.chunks(chunk_size=10 * 1024 * 1024)):
                 try:
                     r = self.upload_request(
-                        "_segments" + path + "/{}".format(num + 1),
+                        "_segments"
+                        + path
+                        + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
                         self.REDIS_INSTANCE.get("selectel_token"),
                         chunk,
                         disposition,
@@ -101,7 +103,9 @@ class SelectelClient:
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 401:
                         self.upload_request(
-                            "_segments" + path + "/{}".format(num + 1),
+                            "_segments"
+                            + path
+                            + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
                             self.get_token(),
                             chunk,
                             disposition,

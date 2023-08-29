@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
@@ -46,11 +46,21 @@ class AccessDistributionView(
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         user_id = serializer.validated_data.get("user_id")
+        email = serializer.validated_data.get("email")
+        if user_id:
+            user = User.objects.get(pk=user_id)
+        elif email:
+            user = User.objects.get(email=email)
+        else:
+            return HttpResponse(
+                "Не указан id или email пользователя",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
-
-        user = User.objects.get(pk=user_id)
         group = Group.objects.get(name=role)
         school = self.get_school()
 
