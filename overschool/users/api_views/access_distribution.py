@@ -112,8 +112,6 @@ class AccessDistributionView(
                     "Превышено количество cотрудников для выбранного тарифа",
                     status=400,
                 )
-        if UserGroup.objects.filter(user=user_id, school_id=school).exists():
-            return HttpResponse("Пользователь уже имеет роль в этой школе.", status=400)
 
         if not user.groups.filter(group=group, school=school).exists():
             user.groups.create(group=group, school=school)
