@@ -90,6 +90,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://apidev.overschool.by:8000",
 ]
 
+USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
 SWAGGER_SETTINGS = {
     "SECURITY_SCHEME": "https",
