@@ -5,6 +5,7 @@ from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
 from drf_yasg import openapi
+from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from users.api_views import (
@@ -52,7 +53,6 @@ urlpatterns = [
                   path('api/subscribe-client/', subscribe_client, name='subscribe_client'),
                   path('api/unsubscribe-client/', unsubscribe_client, name='unsubscribe_client'),
 
-
                   path(
                       "api/code/confirm/",
                       ConfirmationView.as_view(actions={"post": "post"}),
@@ -78,6 +78,14 @@ urlpatterns = [
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+
+class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
+    def get_schema(self, request=None, public=False):
+        schema = super().get_schema(request, public)
+        schema.schemes = ["https", "http"]
+        return schema
+
+
 schema_view = get_schema_view(
     openapi.Info(
         title="Snippets API",
@@ -88,6 +96,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     public=True,
+    generator_class=BothHttpAndHttpsSchemaGenerator,
     permission_classes=[permissions.AllowAny],
 )
 
