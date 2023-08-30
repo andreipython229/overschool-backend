@@ -92,6 +92,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://dev.api.overschool.by",
     "https://apidev.overschool.by:8000",
 ]
+
+USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
 
 SESSION_COOKIE_SECURE = False
