@@ -27,6 +27,7 @@ class AccessDistributionView(
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
+
     parser_classes = (MultiPartParser,)
 
     def get_school(self):
@@ -47,17 +48,15 @@ class AccessDistributionView(
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_id = serializer.validated_data.get("user_id")
-        email = serializer.validated_data.get("email")
-        if user_id:
-            user = User.objects.get(pk=user_id)
-        elif email:
-            user = User.objects.get(email=email)
-        else:
-            return HttpResponse(
-                "Не указан id или email пользователя",
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        user_ids = serializer.validated_data.get("user_ids")
+        emails = serializer.validated_data.get("emails")
+        users_by_id = (
+            User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
+        )
+        users_by_email = (
+            User.objects.filter(email__in=emails) if emails else User.objects.none()
+        )
+        users = (users_by_id | users_by_email).distinct()
 
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
@@ -118,9 +117,8 @@ class AccessDistributionView(
                     "Превышено количество cотрудников для выбранного тарифа",
                     status=400,
                 )
-        if not user.groups.filter(group=group, school=school).exists():
-            user.groups.create(group=group, school=school)
 
+        student_groups = StudentsGroup.objects.none()
         if student_groups_ids:
             student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
             groups_count = student_groups.count()
@@ -130,81 +128,117 @@ class AccessDistributionView(
                     "Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
                     status=400,
                 )
-            for group in student_groups:
-                if group.course_id.school != school:
+            for student_group in student_groups:
+                if student_group.course_id.school != school:
                     return HttpResponse(
                         "Проверьте принадлежность студенческих групп к вашей школе",
                         status=400,
                     )
-            if role == "Teacher":
-                if user.students_group_fk.filter(pk__in=student_groups_ids).exists():
-                    return HttpResponse(
-                        "Преподавателем группы не может стать студент данной группы",
-                        status=400,
-                    )
-                else:
-                    for group in student_groups:
-                        user.teacher_group_fk.add(group)
-            if role == "Student":
-                if user.teacher_group_fk.filter(pk__in=student_groups_ids).exists():
-                    return HttpResponse(
-                        "Студентом группы не может быть преподаватель данной группы",
-                        status=400,
-                    )
-                else:
-                    for group in student_groups:
-                        user.students_group_fk.add(group)
+        courses_ids = list(
+            map(lambda el: el["course_id"], list(student_groups.values("course_id")))
+        )
+
+        for user in users:
+            if not user.groups.filter(group=group, school=school).exists():
+                user.groups.create(group=group, school=school)
+
+            if student_groups_ids:
+                if role == "Teacher":
+                    if user.students_group_fk.filter(
+                        pk__in=student_groups_ids
+                    ).exists():
+                        return HttpResponse(
+                            f"Преподавателем группы не может стать студент данной группы (id={user.id}, email={user.email})",
+                            status=400,
+                        )
+                    if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
+                        return HttpResponse(
+                            f"Нельзя преподавать в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            status=400,
+                        )
+                    for student_group in student_groups:
+                        user.teacher_group_fk.add(student_group)
+                if role == "Student":
+                    if user.teacher_group_fk.filter(pk__in=student_groups_ids).exists():
+                        return HttpResponse(
+                            f"Студентом группы не может быть преподаватель данной группы (id={user.id}, email={user.email})",
+                            status=400,
+                        )
+                    if user.students_group_fk.filter(
+                        course_id__in=courses_ids
+                    ).exists():
+                        return HttpResponse(
+                            f"Нельзя учиться в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            status=400,
+                        )
+                    for student_group in student_groups:
+                        user.students_group_fk.add(student_group)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
     def delete(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_id = serializer.validated_data.get("user_id")
+
+        user_ids = serializer.validated_data.get("user_ids")
+        emails = serializer.validated_data.get("emails")
+        users_by_id = (
+            User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
+        )
+        users_by_email = (
+            User.objects.filter(email__in=emails) if emails else User.objects.none()
+        )
+        users = (users_by_id | users_by_email).distinct()
+
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
-
-        user = User.objects.get(pk=user_id)
         group = Group.objects.get(name=role)
         school = self.get_school()
 
-        if not user.groups.filter(group=group, school=school).exists():
-            return HttpResponse(
-                "У пользователя нет такой роли в вашей школе", status=400
-            )
-        if not student_groups_ids or role in ["Admin", "Manager"]:
-            if (
-                role == "Teacher"
-                and user.teacher_group_fk.filter(course_id__school=school).first()
-            ):
+        student_groups = StudentsGroup.objects.none()
+        if student_groups_ids:
+            student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
+            for student_group in student_groups:
+                if student_group.course_id.school != school:
+                    return HttpResponse(
+                        "Проверьте принадлежность студенческих групп к вашей школе",
+                        status=400,
+                    )
+
+        for user in users:
+            if not user.groups.filter(group=group, school=school).exists():
                 return HttpResponse(
-                    "Группу нельзя оставить без преподавателя", status=400
+                    f"У пользователя нет такой роли в вашей школе (id={user.id}, email={user.email})",
+                    status=400,
                 )
-            elif role == "Admin" and school.owner == user:
-                return HttpResponse(
-                    "Владельца школы нельзя лишать его прав", status=400
-                )
+            if not student_groups_ids or role in ["Admin", "Manager"]:
+                if (
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
+                ):
+                    return HttpResponse(
+                        f"Группу нельзя оставить без преподавателя (id={user.id}, email={user.email})",
+                        status=400,
+                    )
+                elif role == "Admin" and school.owner == user:
+                    return HttpResponse(
+                        f"Владельца школы нельзя лишать его прав (id={user.id}, email={user.email})",
+                        status=400,
+                    )
+                else:
+                    user.groups.get(group=group, school=school).delete()
+                    if role == "Student":
+                        user.students_group_fk.filter(course_id__school=school).delete()
             else:
-                user.groups.get(group=group, school=school).delete()
-                if role == "Student":
-                    user.students_group_fk.filter(course_id__school=school).delete()
-                return HttpResponse("Доступ успешно заблокирован", status=201)
-        else:
-            if role == "Teacher":
-                return HttpResponse(
-                    "Группу нельзя оставить без преподавателя", status=400
-                )
-            elif role == "Student":
-                student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
-                for group in student_groups:
-                    if group.course_id.school != school:
-                        return HttpResponse(
-                            "Проверьте принадлежность студенческих групп к вашей школе",
-                            status=400,
-                        )
-                for group in student_groups:
-                    user.students_group_fk.remove(group)
-                return HttpResponse("Доступ успешно заблокирован", status=201)
+                if role == "Teacher":
+                    return HttpResponse(
+                        "Группу нельзя оставить без преподавателя", status=400
+                    )
+                elif role == "Student":
+                    for student_group in student_groups:
+                        user.students_group_fk.remove(student_group)
+
+        return HttpResponse("Доступ успешно заблокирован", status=201)
 
 
 AccessDistributionView = apply_swagger_auto_schema(tags=["access_distribution"])(

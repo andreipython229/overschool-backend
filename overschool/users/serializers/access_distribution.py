@@ -3,8 +3,8 @@ from users.models import UserRole
 
 
 class AccessDistributionSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=False)
-    email = serializers.EmailField(required=False)
+    user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
+    emails = serializers.ListField(child=serializers.EmailField(), required=False)
     role = serializers.ChoiceField(required=True, choices=[])
     student_groups = serializers.ListField(
         child=serializers.IntegerField(), required=False
@@ -17,6 +17,8 @@ class AccessDistributionSerializer(serializers.Serializer):
         self.fields["role"].choices = role_choices
 
     def validate(self, attrs):
-        if not attrs.get("user_id") and not attrs.get("email"):
-            raise serializers.ValidationError("Укажите id либо email пользователя")
+        if not attrs.get("user_ids") and not attrs.get("emails"):
+            raise serializers.ValidationError(
+                "Укажите id либо email хотя бы одного пользователя"
+            )
         return attrs
