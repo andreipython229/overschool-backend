@@ -64,7 +64,6 @@ MANAGERS = ADMINS
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False
@@ -80,15 +79,18 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://127.0.0.1:8000",
-    "https://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+    "http://85.209.148.157",
     "https://85.209.148.157:3000",
-    "https://45.135.234.137:8000",
+    "http://45.135.234.137:8000",
     "https://dev.overschool.by",
     "https://apidev.overschool.by",
     "https://dev.api.overschool.by",
     "https://apidev.overschool.by:8000",
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
 
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = True
@@ -409,5 +411,3 @@ SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
 CONTAINER_NAME = "overschool_dev" if DEBUG else "overschool"
 CONTAINER_KEY = env.str("CONTAINER_KEY")
-
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')

@@ -11,7 +11,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
-from users.models import UserGroup
+from users.models import UserGroup, UserRole
 from users.serializers import AccessDistributionSerializer
 
 User = get_user_model()
@@ -27,7 +27,6 @@ class AccessDistributionView(
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-
     parser_classes = (MultiPartParser,)
 
     def get_school(self):
@@ -62,6 +61,10 @@ class AccessDistributionView(
         student_groups_ids = serializer.validated_data.get("student_groups")
         group = Group.objects.get(name=role)
         school = self.get_school()
+
+        # # Проверка на то что у пользователя в этой школе уже есть роль
+        # if UserGroup.objects.filter(user=user_id, school_id=school).exists():
+        #     return HttpResponse("Пользователь уже имеет роль в этой школе.", status=400)
 
         # Получение текущей даты и времени
         current_datetime = datetime.now()

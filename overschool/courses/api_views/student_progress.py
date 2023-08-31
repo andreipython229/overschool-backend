@@ -163,7 +163,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 section_id__course_id=course_id, active=True
             )
             all_base_completed_lesson = BaseLesson.objects.filter(
-                pk__in=all_base_lesson_ids, section_id__course_id=course_id
+                pk__in=all_base_lesson_ids, section_id__course_id=course_id, active=True
             )
 
             course["course_id"] = course_obj.pk
