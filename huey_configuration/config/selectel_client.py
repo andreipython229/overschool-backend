@@ -68,17 +68,17 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
 
-        with open(file, 'rb') as f:
+        with open(file, 'r+b') as f:
             file_data = f.read()
         headers = {
             "Content-Type": "application/octet-stream",
-            "Content-Disposition": disposition
         }
         try:
             r = self.upload_request(
                 path,
                 self.REDIS_INSTANCE.get("selectel_token"),
                 file_data,
+                disposition,
                 headers=headers
             )
             r.raise_for_status()
@@ -91,6 +91,7 @@ class SelectelClient:
                     path,
                     token,
                     file_data,
+                    disposition,
                     headers=headers
                 )
                 r.raise_for_status()
