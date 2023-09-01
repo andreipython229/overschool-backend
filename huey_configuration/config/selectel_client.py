@@ -68,8 +68,8 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
 
-        with open(file, 'r+b') as f:
-            file_data = f.read()
+        with open(file, 'rb') as f:
+            file_data = f.read().replace(b'\x00', b'')
         headers = {
             "Content-Type": "application/octet-stream",
         }
