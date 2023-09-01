@@ -54,12 +54,12 @@ class SelectelClient:
 
     # Запрос на загрузку файла либо сегмента файла
     @staticmethod
-    def upload_request(path, token, data, disposition, headers):
+    def upload_request(path, token, data, disposition, headers_str):
         return requests.put(
             SelectelClient.URL + path,
             headers={
                 "X-Auth-Token": token,
-                "Content-Type": headers,
+                "Content-Type": headers_str,
                 "Content-Disposition": disposition,
             },
             data=data,
@@ -68,16 +68,14 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
 
-        headers = {
-            "Content-Type": "application/octet-stream",
-        }
+        headers_str = "Content-Type: application/octet-stream"
         try:
             r = self.upload_request(
                 path,
                 self.REDIS_INSTANCE.get("selectel_token"),
                 file,
                 disposition,
-                headers=headers
+                headers_str
             )
             r.raise_for_status()
 
@@ -90,7 +88,7 @@ class SelectelClient:
                     token,
                     file,
                     disposition,
-                    headers=headers
+                    headers_str
                 )
                 r.raise_for_status()
 
