@@ -4,7 +4,7 @@ from config.config import huey
 from huey import crontab
 
 from .pg_dump_config import db_config, run_pg_dump
-from .upload_to_s3 import compress_and_upload
+from .upload_to_s3 import compress_and_upload_backup, delete_old_backups
 
 
 # The task starts every day at 1:00.
@@ -30,5 +30,5 @@ def backup_db():
     run_pg_dump(db, backup_path)
 
     # Perform compression and upload of the backup file
-    zip_file_path = f"{db}_{timestamp}.zip"
-    compress_and_upload(backup_path, zip_file_path, db)
+    compress_and_upload_backup(backup_path, db)
+    delete_old_backups(db)
