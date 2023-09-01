@@ -54,12 +54,12 @@ class SelectelClient:
 
     # Запрос на загрузку файла либо сегмента файла
     @staticmethod
-    def upload_request(path, token, data, disposition, content_type=None):
+    def upload_request(path, token, data, disposition, headers):
         return requests.put(
             SelectelClient.URL + path,
             headers={
                 "X-Auth-Token": token,
-                "Content-Type": content_type,
+                "Content-Type": headers,
                 "Content-Disposition": disposition,
             },
             data=data,
@@ -67,59 +67,33 @@ class SelectelClient:
 
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
-        if file.size <= 10 * 1024 * 1024:
-            file_data = file.read()
-            try:
+
+        with open(file, 'rb') as f:
+            file_data = f.read()
+        headers = {
+            "Content-Type": "application/octet-stream",
+            "Content-Disposition": disposition
+        }
+        try:
+            r = self.upload_request(
+                path,
+                self.REDIS_INSTANCE.get("selectel_token"),
+                file_data,
+                headers=headers
+            )
+            r.raise_for_status()
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                # запрос нового токена
+                token = self.get_token()
                 r = self.upload_request(
                     path,
-                    self.REDIS_INSTANCE.get("selectel_token"),
+                    token,
                     file_data,
-                    disposition,
-                    file.content_type,
+                    headers=headers
                 )
                 r.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 401:
-                    self.upload_request(
-                        path,
-                        self.get_token(),
-                        file_data,
-                        disposition,
-                        file.content_type,
-                    )
-        else:
-            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-            for num, chunk in enumerate(file.chunks(chunk_size=10 * 1024 * 1024)):
-                try:
-                    r = self.upload_request(
-                        "_segments"
-                        + path
-                        + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-                        self.REDIS_INSTANCE.get("selectel_token"),
-                        chunk,
-                        disposition,
-                    )
-                    r.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    if e.response.status_code == 401:
-                        self.upload_request(
-                            "_segments"
-                            + path
-                            + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-                            self.get_token(),
-                            chunk,
-                            disposition,
-                        )
-            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
-            requests.put(
-                self.URL + path,
-                headers={
-                    "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-                    "X-Object-Manifest": "{}_segments{}/".format(
-                        CONTAINER_NAME, path
-                    ).encode(encoding="UTF-8", errors="strict"),
-                },
-            )
 
     def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
         course = base_lesson.section.course
@@ -219,9 +193,9 @@ class SelectelClient:
     def get_selectel_link(self, file_path):
         sig, expires = self.create_access_key(CONTAINER_KEY, file_path)
         link = (
-            self.URL
-            + file_path
-            + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
+                self.URL
+                + file_path
+                + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
         )
         return link
 
