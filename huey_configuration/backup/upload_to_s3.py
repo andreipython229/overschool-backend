@@ -18,9 +18,11 @@ def compress_and_upload_backup(backup_path, db_name):
         zip_file.write(backup_path)
 
     # Загружаем в Selectel
-    selectel_client.upload_to_selectel(
-        f"{CONTAINER_NAME}/{db_name}/{zip_file_path}"
-    )
+    with open(zip_file_path, "rb") as f:
+        selectel_client.upload_to_selectel(
+            f"{CONTAINER_NAME}/{db_name}/{zip_file_path}",
+            f.read()
+        )
 
     # Удаляем локальные файлы
     os.remove(backup_path)
