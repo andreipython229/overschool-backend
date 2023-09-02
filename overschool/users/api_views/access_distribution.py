@@ -6,9 +6,8 @@ from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
 from django.http import HttpResponse
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
@@ -19,7 +18,7 @@ User = get_user_model()
 
 
 class AccessDistributionView(
-    # LoggingMixin,
+    LoggingMixin,
     WithHeadersViewSet,
     SchoolMixin,
     generics.GenericAPIView,
@@ -29,24 +28,23 @@ class AccessDistributionView(
     Ендпоинт распределения ролей и доступов к группам
     в зависимости от роли пользователя"""
 
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-    # parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         return school
 
-    # def get_permissions(self):
-    #     permissions = super().get_permissions()
-    #     user = self.request.user
-    #
-    #     if user.groups.filter(school=self.get_school(), group__name="Admin").exists():
-    #         return permissions
-    #     else:
-    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        user = self.request.user
+
+        if user.groups.filter(school=self.get_school(), group__name="Admin").exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
