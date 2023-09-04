@@ -129,7 +129,6 @@ class CourseViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
         school_obj = School.objects.get(school_id=school_id)
-        print(school_obj.course_school.count())
         if (
             school_obj.tariff.name
             in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
