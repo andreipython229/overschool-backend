@@ -25,9 +25,9 @@ def compress_and_upload_backup(backup_path, db_name):
                 f"{CONTAINER_NAME}/{db_name}/{zip_file_path}",
                 f.read()
             )
-            logger.info(f"Successfully compressed and uploaded {db} database backup")
+            logger.info(f"Successfully compressed and uploaded database backup")
     except Exception as e:
-        logger.error(f"Error compressing and uploading {db} database backup: {e}")
+        logger.error(f"Error compressing and uploading database backup: {e}")
     finally:
         # Удаляем локальные файлы
         os.remove(backup_path)
