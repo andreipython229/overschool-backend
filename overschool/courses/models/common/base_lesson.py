@@ -40,7 +40,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         default=0,
     )
     active = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name="Активный",
         help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
         blank=False,
