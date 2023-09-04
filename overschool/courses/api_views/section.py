@@ -113,12 +113,11 @@ class SectionViewSet(
                 raise NotFound("Указанный курс не относится к этой школе.")
 
         order = generate_order(Section)
-        section = Section(order=order, **request.data)
 
-        serializer = self.get_serializer(section)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=201)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(order=order)
+            return Response(serializer.data, status=201)
 
     def update(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
