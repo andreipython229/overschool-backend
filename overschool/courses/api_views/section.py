@@ -112,7 +112,8 @@ class SectionViewSet(
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
 
-        generate_order(Section)
+        order = generate_order(Section)
+        request.data["order"] = order
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

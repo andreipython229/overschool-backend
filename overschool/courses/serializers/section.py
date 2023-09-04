@@ -8,7 +8,7 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ("section_id", "course", "name", "lessons")
+        fields = ["order", "section_id", "course", "name", "lessons"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
