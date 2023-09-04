@@ -8,7 +8,12 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ("section_id", "course", "name", "lessons")
+        fields = ("order", "section_id", "course", "name", "lessons")
+
+    def create(self, validated_data):
+        # Удаляем order из validated_data, чтобы не пытаться передавать его явно
+        validated_data.pop('order', None)
+        return super().create(validated_data)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
