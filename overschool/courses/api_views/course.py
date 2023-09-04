@@ -2,6 +2,7 @@ from datetime import datetime
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import (
     Course,
@@ -138,9 +139,10 @@ class CourseViewSet(
                 "Превышено количество курсов для выбранного тарифа",
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        order = generate_order(Section)
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save(photo=None)
+        course = serializer.save(order=order, photo=None)
 
         if request.FILES.get("photo"):
             photo = s.upload_course_image(request.FILES["photo"], course)
@@ -385,7 +387,12 @@ class CourseViewSet(
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(group__name__in=["Student", "Teacher",]).exists():
+            elif user.groups.filter(
+                group__name__in=[
+                    "Student",
+                    "Teacher",
+                ]
+            ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)

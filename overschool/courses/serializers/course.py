@@ -25,6 +25,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "photo_url",
             "school",
         ]
+        read_only_fields = ["order"]
 
 
 class CourseGetSerializer(serializers.ModelSerializer):
