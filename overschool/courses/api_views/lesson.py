@@ -1,5 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Course, Lesson, Section, StudentsGroup
 from courses.serializers import LessonDetailSerializer, LessonSerializer
@@ -92,10 +93,10 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-
+        order = generate_order(Lesson)
         serializer = LessonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        lesson = serializer.save(video=None)
+        lesson = serializer.save(order=order, video=None)
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)

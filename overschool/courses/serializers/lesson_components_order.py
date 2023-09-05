@@ -11,3 +11,4 @@ class LessonComponentsOrderSerializer(serializers.ModelSerializer):
             "order",
             "component_type",
         ]
+        read_only_fields = ["order"]

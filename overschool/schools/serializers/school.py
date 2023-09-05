@@ -38,6 +38,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = [
+            "order",
             "tariff",
             "purchased_tariff_end_date",
             "used_trial",

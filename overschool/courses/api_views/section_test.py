@@ -2,6 +2,7 @@ from random import sample
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import (
     Answer,
@@ -18,7 +19,6 @@ from django.db.models import Prefetch
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -104,9 +104,10 @@ class TestViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
+        order = generate_order(SectionTest)
         serializer = TestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(order=order)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

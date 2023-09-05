@@ -1,5 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
@@ -87,10 +88,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
-
+        order = generate_order(School)
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         school = serializer.save(
+            order=order,
             avatar=None,
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),

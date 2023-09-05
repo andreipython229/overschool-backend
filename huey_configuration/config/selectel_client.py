@@ -21,9 +21,8 @@ class SelectelClient:
     URL = BASE_URL + "/{}".format(CONTAINER_NAME)
     REDIS_INSTANCE = redis.StrictRedis(
         host=REDIS_HOST,
-        # host="localhost",
         port=REDIS_PORT,
-        db=0,
+        db=3,
     )
 
     # Получение токена для работы с хранилищем
