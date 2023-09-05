@@ -124,6 +124,9 @@ class LessonViewSet(
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        if not request.data.get("active"):
+            serializer.validated_data["active"] = instance.active
+
         if request.FILES.get("video"):
             if instance.video:
                 s.remove_from_selectel(str(instance.video))
