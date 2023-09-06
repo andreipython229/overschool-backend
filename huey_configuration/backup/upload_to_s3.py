@@ -1,7 +1,6 @@
 import os
-from datetime import datetime
-
 import zipfile
+from datetime import datetime
 
 from config.config import CONTAINER_NAME
 from config.selectel_client import SelectelClient
@@ -21,10 +20,7 @@ def compress_and_upload_backup(backup_path, db_name):
 
         # Загружаем в Selectel
         with open(zip_file_path, "rb") as f:
-            selectel_client.upload_to_selectel(
-                f"{CONTAINER_NAME}/{db_name}/{zip_file_path}",
-                f.read()
-            )
+            selectel_client.upload_to_selectel(f"/{db_name}/{zip_file_path}", f.read())
             logger.info(f"Successfully compressed and uploaded database backup")
     except Exception as e:
         logger.error(f"Error compressing and uploading database backup: {e}")
@@ -37,14 +33,14 @@ def compress_and_upload_backup(backup_path, db_name):
 def delete_old_backups(db_name, max_backups=7):
     try:
         # Получаем список файлов бэкапов
-        files = selectel_client.get_folder_files(f"{CONTAINER_NAME}/{db_name}/")
+        files = selectel_client.get_folder_files(f"/{db_name}/")
     except Exception as e:
         logger.debug(
             f"{e} The errors were caused by trying to connect to Selectel Cloud Storage"
         )
 
     # Сортируем по дате изменения
-    sorted_files = sorted(files, key=lambda f: f['last_modified'], reverse=True)
+    sorted_files = sorted(files, key=lambda f: f["last_modified"], reverse=True)
     num_backups = len(sorted_files)
     logger.debug(f"Has {num_backups} backups")
 
