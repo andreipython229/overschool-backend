@@ -1,10 +1,13 @@
 import hmac
+import io
 from datetime import datetime
 from hashlib import sha1
 from time import time
 
 import redis
 import requests
+from django.core.files.base import ContentFile, File
+from PIL import Image
 
 from overschool.settings import (
     ACCOUNT_ID,
@@ -65,10 +68,22 @@ class SelectelClient:
             data=data,
         )
 
+    # Сжатие изображения
+    @staticmethod
+    def get_compressed_image(img):
+        image = Image.open(img)
+        image_io = io.BytesIO()
+        image.save(image_io, format=image.format, quality=20, optimize=True)
+        return image_io.getvalue()
+
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
         if file.size <= 10 * 1024 * 1024:
-            file_data = file.read()
+            if file.content_type.startswith("image") and file.size >= 300 * 1024:
+                file_data = self.get_compressed_image(file)
+            else:
+                file_data = file.read()
+
             try:
                 r = self.upload_request(
                     path,
