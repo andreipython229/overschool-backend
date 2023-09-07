@@ -1,4 +1,5 @@
 import json
+import uuid
 
 import jwt
 from asgiref.sync import sync_to_async
@@ -9,7 +10,7 @@ from users.models import User
 
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
-import uuid
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
@@ -60,7 +61,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             raise DenyConnection(CustomResponses.chat_not_exist)
 
         self.token = self.get_token_from_headers()
-        print(self.token)
         user_id = await self.get_user_id_from_token(self.token)
         if user_id is None:
             raise DenyConnection(CustomResponses.invalid_cookie)
@@ -94,11 +94,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_send(
             self.room_group_name,
-            {"type": "chat_message",
-             "content": message,
-             "sender": self.user.id,
-             "id": str(uuid.uuid4()),
-             },
+            {
+                "type": "chat_message",
+                "content": message,
+                "sender": self.user.id,
+                "id": str(uuid.uuid4()),
+            },
         )
 
     async def chat_message(self, event):

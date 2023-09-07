@@ -35,6 +35,7 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
             httponly=True,
             samesite=None,
             secure=False,
+            domain=".overschool.by",
         )
 
         response.set_cookie(
@@ -45,6 +46,7 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
             httponly=True,
             samesite=None,
             secure=False,
+            domain=".overschool.by",
         )
 
         return response

@@ -77,4 +77,9 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_avatar(self, obj):
-        return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
+        if obj.avatar:
+            return s.get_selectel_link(str(obj.avatar))
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "/users/avatars/base_avatar.jpg"
+            return s.get_selectel_link(base_avatar_path)

@@ -1,11 +1,9 @@
 import hmac
-from datetime import datetime
 from hashlib import sha1
 from time import time
 
 import redis
 import requests
-
 from config.config import (
     ACCOUNT_ID,
     CONTAINER_KEY,
@@ -67,14 +65,14 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
 
-        headers_str = "Content-Type: application/octet-stream"
+        headers_str = "application/octet-stream"
         try:
             r = self.upload_request(
                 path,
                 self.REDIS_INSTANCE.get("selectel_token"),
                 file,
                 disposition,
-                headers_str
+                headers_str,
             )
             r.raise_for_status()
 
@@ -82,47 +80,8 @@ class SelectelClient:
             if e.response.status_code == 401:
                 # запрос нового токена
                 token = self.get_token()
-                r = self.upload_request(
-                    path,
-                    token,
-                    file,
-                    disposition,
-                    headers_str
-                )
+                r = self.upload_request(path, token, file, disposition, headers_str)
                 r.raise_for_status()
-
-    def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
-        course = base_lesson.section.course
-        course_id = course.course_id
-        school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}_lesson/{}@{}".format(
-            school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
-        ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_file, disposition)
-        return file_path
-
-    def upload_school_image(self, uploaded_image, school_id):
-        file_path = "/{}_school/school_data/images/{}@{}".format(
-            school_id, datetime.now(), uploaded_image.name
-        ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_image)
-        return file_path
-
-    def upload_course_image(self, uploaded_image, course):
-        course_id = course.course_id
-        school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}@{}".format(
-            school_id, course_id, datetime.now(), uploaded_image.name
-        ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_image)
-        return file_path
-
-    def upload_user_avatar(self, avatar, user_id):
-        file_path = "/users/avatars/{}@{}".format(user_id, avatar.name).replace(
-            " ", "_"
-        )
-        self.upload_to_selectel(file_path, avatar)
-        return file_path
 
     # Запрос на удаление файла
     @staticmethod
@@ -189,9 +148,9 @@ class SelectelClient:
     def get_selectel_link(self, file_path):
         sig, expires = self.create_access_key(CONTAINER_KEY, file_path)
         link = (
-                self.URL
-                + file_path
-                + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
+            self.URL
+            + file_path
+            + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
         )
         return link
 

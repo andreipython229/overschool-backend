@@ -52,7 +52,12 @@ class CourseGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_photo(self, obj):
-        return s.get_selectel_link(str(obj.photo)) if obj.photo else None
+        if obj.photo:
+            return s.get_selectel_link(str(obj.photo))
+        else:
+            # Если нет загруженной картинки, вернуть ссылку на дефолтное изображение
+            default_image_path = "/base_course.jpg"
+            return s.get_selectel_link(default_image_path)
 
 
 class CourseStudentsSerializer(serializers.Serializer):
