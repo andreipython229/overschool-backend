@@ -64,7 +64,12 @@ class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
         return s.get_selectel_link(str(obj.logo_school)) if obj.logo_school else None
 
     def get_logo_header_link(self, obj):
-        return s.get_selectel_link(str(obj.logo_header)) if obj.logo_header else None
+        if obj.logo_header:
+            return s.get_selectel_link(str(obj.logo_header))
+        else:
+            # Если нет загруженного изображения, вернуть ссылку на изображение по умолчанию
+            default_image_path = "/base_school.jpg"
+            return s.get_selectel_link(default_image_path)
 
     def get_photo_background_link(self, obj):
         return (
