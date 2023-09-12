@@ -1,0 +1,47 @@
+[
+  {
+    "model": "courses.HomeWork",
+    "pk": 1,
+    "fields": {
+      "baselesson_ptr_id": 6,
+      "automate_accept": true,
+      "time_accept": "04 06:00:00"
+    }
+  },
+  {
+    "model": "courses.HomeWork",
+    "pk": 2,
+    "fields": {
+      "baselesson_ptr_id": 7,
+      "automate_accept": true,
+      "time_accept": "01:00:00"
+    }
+  },
+  {
+    "model": "courses.HomeWork",
+    "pk": 3,
+    "fields": {
+      "baselesson_ptr_id": 8,
+      "automate_accept": true,
+      "time_accept": "05 06:00:00"
+    }
+  },
+  {
+    "model": "courses.HomeWork",
+    "pk": 4,
+    "fields": {
+      "baselesson_ptr_id": 9,
+      "automate_accept": false,
+      "time_accept": "3 days 07:00:00"
+    }
+  },
+  {
+    "model": "courses.HomeWork",
+    "pk": 5,
+    "fields": {
+      "baselesson_ptr_id": 10,
+      "automate_accept": false,
+      "time_accept": null
+    }
+  }
+]
