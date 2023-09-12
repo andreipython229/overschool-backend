@@ -143,9 +143,8 @@ class HomeworkCheckViewSet(
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        headers = self.get_success_headers(serializer.data)
         return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+            serializer.data, status=status.HTTP_201_CREATED
         )
 
     def update(self, request, *args, **kwargs):
