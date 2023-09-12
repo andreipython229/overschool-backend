@@ -1,0 +1,84 @@
+import json
+
+import requests
+
+
+class BePaidClient:
+    def __init__(self, shop_id, secret_key, is_test):
+        self.shop_id = shop_id
+        self.secret_key = secret_key
+        self.is_test = is_test
+        self.headers = {"Content-Type": "application/json"}
+
+    def subscribe_client(
+            self, to_pay_sum, days_interval, pays_count, first_name, last_name, email, phone
+    ):
+        to_pay_sum = float(to_pay_sum)
+        days_interval = float(days_interval)
+        pays_count = float(pays_count)
+
+        payload = json.dumps(
+            {
+                "test": self.is_test,
+                "plan": {
+                    "currency": "BYN",
+                    "plan": {
+                        "amount": to_pay_sum,
+                        "interval": days_interval,
+                        "interval_unit": "day",
+                    },
+                    "shop_id": self.shop_id,
+                    "title": "Подписка прошла успешно",
+                },
+                "settings": {"language": "ru"},
+                "customer": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                    "phone": phone,
+                    "ip": "127.0.0.1",
+                },
+                "billing_cycles": pays_count,
+                "number_payment_attempts": 10,
+            }
+        )
+        response = requests.post(
+            "https://api.bepaid.by/subscriptions",
+            data=payload,
+            auth=(self.shop_id, self.secret_key),
+            headers=self.headers,
+        )
+        return response.json()
+
+    def get_clients_info(self):
+        response = requests.get(
+            "https://api.bepaid.by/customers",
+            auth=(self.shop_id, self.secret_key),
+            headers=self.headers,
+        )
+        return response.json()
+
+    def get_subscription_info(self):
+        response = requests.get(
+            "https://api.bepaid.by/subscriptions",
+            auth=(self.shop_id, self.secret_key),
+            headers=self.headers,
+        )
+        return response.json()
+
+    def unsubscribe(self, subscription_id):
+        response = requests.delete(
+            f"https://api.bepaid.by/subscriptions/{subscription_id}",
+            auth=(self.shop_id, self.secret_key),
+            headers=self.headers,
+        )
+        # Возвращаем пустой словарь, так как отписка не возвращает данные
+        return {}
+
+
+
+bepaid_client = BePaidClient(
+    shop_id="21930",
+    secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+    is_test=True,
+)

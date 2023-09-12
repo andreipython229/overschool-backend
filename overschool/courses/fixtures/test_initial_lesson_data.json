@@ -1,0 +1,37 @@
+[
+  {
+    "model": "courses.Lesson",
+    "pk": 1,
+    "fields": {
+      "baselesson_ptr_id": 1
+    }
+  },
+  {
+    "model": "courses.Lesson",
+    "pk": 2,
+    "fields": {
+      "baselesson_ptr_id": 2
+    }
+  },
+  {
+    "model": "courses.Lesson",
+    "pk": 3,
+    "fields": {
+      "baselesson_ptr_id": 3
+    }
+  },
+  {
+    "model": "courses.Lesson",
+    "pk": 4,
+    "fields": {
+      "baselesson_ptr_id": 4
+    }
+  },
+  {
+    "model": "courses.Lesson",
+    "pk": 5,
+    "fields": {
+      "baselesson_ptr_id": 5
+    }
+  }
+]

@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:14.1
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: overone
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: it@overone.by
+      PGADMIN_DEFAULT_PASSWORD: overone
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin:/root/.pgadmin
+    ports:
+      - "8080:80"
+    restart: always
+    links:
+      - "db:pgsql-server"
+
+volumes:
+  postgres:
+  pgadmin:

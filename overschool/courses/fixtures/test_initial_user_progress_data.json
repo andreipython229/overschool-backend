@@ -1,0 +1,62 @@
+[
+  {
+    "model": "courses.UserProgressLogs",
+    "pk": 1,
+    "fields": {
+      "user": 9,
+      "lesson": 1,
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "viewed": true,
+      "completed": false
+    }
+  },
+  {
+    "model": "courses.UserProgressLogs",
+    "pk": 2,
+    "fields": {
+      "user": 9,
+      "lesson": 2,
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "viewed": true,
+      "completed": false
+    }
+  },
+  {
+    "model": "courses.UserProgressLogs",
+    "pk": 3,
+    "fields": {
+      "user": 9,
+      "lesson": 3,
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "viewed": true,
+      "completed": false
+    }
+  },
+  {
+    "model": "courses.UserProgressLogs",
+    "pk": 3,
+    "fields": {
+      "user": 9,
+      "lesson": 9,
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "viewed": true,
+      "completed": false
+    }
+  } ,
+  {
+    "model": "courses.UserProgressLogs",
+    "pk": 3,
+    "fields": {
+      "user": 9,
+      "lesson": 10,
+      "created_at": "2022-08-02 15:34:37+00",
+      "updated_at": "2022-08-02 15:34:37+00",
+      "viewed": true,
+      "completed": false
+    }
+  }
+]

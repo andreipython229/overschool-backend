@@ -1,0 +1,21 @@
+from environs import Env
+from huey import RedisHuey
+
+env = Env()
+env.read_env()
+
+REDIS_HOST = env("REDIS_HOST")
+REDIS_PORT = env("REDIS_PORT")
+
+huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/2")
+
+SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
+ACCOUNT_ID = env.str("ACCOUNT_ID")
+CONTAINER_KEY = env.str("CONTAINER_KEY")
+CONTAINER_NAME = env.str("CONTAINER_NAME")
+
+POSTGRES_DB_NAME = env("POSTGRES_DB_NAME")
+POSTGRES_USER = env("POSTGRES_USER")
+POSTGRES_USER_PASSWORD = env("POSTGRES_USER_PASSWORD")
+POSTGRES_HOST = env("POSTGRES_HOST")
+POSTGRES_PORT = env("POSTGRES_PORT")

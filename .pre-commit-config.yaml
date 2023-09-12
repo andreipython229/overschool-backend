@@ -1,0 +1,39 @@
+repos:
+  # python import sorting - will amend files
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.10.1
+    hooks:
+      - id: isort
+        language_version: python3
+        args: [ "--profile", "black" ]
+
+  # python code formatting - will amend files
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+        exclude: ^dist/
+
+  # removes unused imports and unused variables - will amend files
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.0.0
+    hooks:
+      - id: autoflake
+        language_version: python3
+
+  # automatically upgrade syntax for newer versions of the language - will amend files
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        language_version: python3
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-ast
+      - id: end-of-file-fixer
+        exclude: requirements.txt
+      - id: mixed-line-ending
+        exclude: requirements.txt
