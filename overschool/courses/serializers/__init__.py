@@ -1,7 +1,7 @@
 from .answer import AnswerGetSerializer, AnswerListGetSerializer, AnswerSerializer
 from .course import CourseGetSerializer, CourseSerializer, CourseStudentsSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
-from .lesson import LessonDetailSerializer, LessonSerializer
+from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer
 from .lesson_components_order import LessonComponentsOrderSerializer
 from .question import (
     QuestionGetSerializer,

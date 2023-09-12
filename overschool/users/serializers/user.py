@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import User
+from users.models import User, UserGroup
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -34,11 +34,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class AllUsersSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             "username",
             "email",
             "id",
-
+            "roles",
         ]
+
+    def get_roles(self, user):
+        # Получите все записи UserGroup, связанные с данным пользователем
+        user_groups = UserGroup.objects.filter(user=user)
+        # Извлеките текстовые идентификаторы групп, связанных с пользователем
+        role_names = [user_group.group.name for user_group in user_groups]
+        return role_names

@@ -8,6 +8,7 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from courses.api_views import LessonUpdateViewSet
 from users.api_views import (
     AccessDistributionView,
     ConfirmationView,
@@ -17,6 +18,7 @@ from users.api_views import (
     SignupSchoolOwnerView,
     SignupView,
     UserSchoolsView,
+
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
 
@@ -66,6 +68,12 @@ urlpatterns = [
                       LogoutView.as_view(actions={"get": "get"}),
                       name="logout",
                   ),
+                  path(
+                      "api/lesson_order",
+                      LessonUpdateViewSet.as_view(actions={"post": "shuffle_lessons"}),
+                      name="lesson_order",
+                  ),
+
                   path("api/chats/", include("chats.urls")),
                   path("api/", include(user_router.urls)),
                   path("api/", include(school_router.urls)),

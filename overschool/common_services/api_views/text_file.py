@@ -116,7 +116,7 @@ class TextFileViewSet(
                             )
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                            file_path = s.upload_file(uploaded_file, base_lesson)
+                            file_path = s.upload_file(uploaded_file, base_lesson, disposition="attachment")
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)

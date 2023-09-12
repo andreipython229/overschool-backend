@@ -1,5 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
+from django.db import connection
 from django.db import models
 from model_clone import CloneMixin
 
@@ -49,6 +50,43 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
 
     def __str__(self):
         return f"{self.section}. {self.name}"
+
+    @classmethod
+    def disable_constraint(cls, constraint_name):
+        """
+        Метод для отключения ограничения базы данных.
+
+        Args:
+            constraint_name (str): Название ограничения для отключения.
+
+        Returns:
+            bool: True, если ограничение успешно отключено, иначе False.
+        """
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};")
+            return True
+        except Exception as e:
+            return False
+
+    @classmethod
+    def enable_constraint(cls, constraint_name):
+        """
+        Метод для включения ограничения базы данных.
+
+        Args:
+            constraint_name (str): Название ограничения для включения.
+
+        Returns:
+            bool: True, если ограничение успешно включено, иначе False.
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(f"ALTER TABLE {cls._meta.db_table} ADD CONSTRAINT {constraint_name};")
+            return True
+        except Exception as e:
+            return False
 
     class Meta:
         constraints = [
