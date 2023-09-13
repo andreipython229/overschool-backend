@@ -28,6 +28,30 @@ class SchoolHeaderSerializer(serializers.ModelSerializer):
         ]
 
 
+class SchoolHeaderUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели шапки школы
+    """
+
+    class Meta:
+        model = SchoolHeader
+        fields = [
+            "header_id",
+            "name",
+            "description",
+            "logo_school",
+            "logo_header",
+            "photo_background",
+            "favicon",
+            "logo_school_url",
+            "logo_header_url",
+            "photo_background_url",
+            "favicon_url",
+        ]
+        read_only_fields = [
+            "school",
+        ]
+
 class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра конкретной шапки школы

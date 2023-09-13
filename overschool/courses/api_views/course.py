@@ -406,6 +406,9 @@ class CourseViewSet(
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
+                            "baselesson_ptr_id": obj.baselesson_ptr_id,
+                            "section_id": obj.section_id,
+                            "active": obj.active,
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),
