@@ -194,7 +194,7 @@ class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
     @swagger_auto_schema(method='post', request_body=LessonUpdateSerializer)
     @action(detail=False, methods=["POST"])
     @transaction.atomic
-    def shuffle_lessons(self, request):
+    def shuffle_lessons(self, request, *args, **kwargs):
 
         data = request.data  # Получите данные из запроса
 
