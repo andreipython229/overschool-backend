@@ -1,0 +1,48 @@
+version: "3.3"
+
+services:
+  redis:
+    image: "redis:alpine"
+    restart: always
+    expose:
+      - 6379
+    volumes:
+      - ./redis-data:/var/lib/redis
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+  back:
+    build: overschool
+    image: back
+    restart: always
+    command: bash -c "cd overschool && make back"
+    container_name: backendDjango
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - .:/code/
+      - static_volume:/code/staticfiles
+  huey:
+    build:
+      context: .
+      dockerfile: huey_task.Dockerfile
+    image: huey
+    restart: always
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/code/staticfiles
+    depends_on:
+      - back
+
+volumes:
+  static_volume:

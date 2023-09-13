@@ -1,0 +1,50 @@
+[
+  {
+    "model": "schools.Tariff",
+    "id": 1,
+    "fields": {
+      "name": "Intern",
+      "number_of_courses": 1,
+      "number_of_staff": 1,
+      "students_per_month": 5,
+      "total_students": 10,
+      "price": 0
+    }
+  },
+  {
+    "model": "schools.Tariff",
+    "id": 2,
+    "fields": {
+      "name": "Junior",
+      "number_of_courses": 3,
+      "number_of_staff": 3,
+      "students_per_month": 30,
+      "total_students": null,
+      "price": 970
+    }
+  },
+  {
+    "model": "schools.Tariff",
+    "id": 3,
+    "fields": {
+      "name": "Middle",
+      "number_of_staff": 10,
+      "number_of_courses": 10,
+      "students_per_month": 100,
+      "total_students": null,
+      "price": 1570
+    }
+  },
+  {
+    "model": "schools.Tariff",
+    "id": 4,
+    "fields": {
+      "name": "Senior",
+      "number_of_staff": null,
+      "number_of_courses": null,
+      "students_per_month": 500,
+      "total_students": null,
+      "price": 4570
+    }
+  }
+]

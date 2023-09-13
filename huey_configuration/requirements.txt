@@ -1,0 +1,11 @@
+certifi==2022.12.7
+environs==9.5.0
+huey==2.4.5
+marshmallow==3.19.0
+selectel-api==0.1.5
+packaging==23.0
+python-dotenv==0.21.1
+redis==4.5.1
+urllib3==1.26.14
+loguru==0.6.0
+
