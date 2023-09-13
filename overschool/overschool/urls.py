@@ -69,7 +69,7 @@ urlpatterns = [
                       name="logout",
                   ),
                   path(
-                      "api/lesson_order",
+                      "api/<str:school_name>/lesson_order/",
                       LessonUpdateViewSet.as_view(actions={"post": "shuffle_lessons"}),
                       name="lesson_order",
                   ),
