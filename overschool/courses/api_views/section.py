@@ -24,7 +24,8 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
-from common_services.mixins.order_mixin import generate_order
+
+# from common_services.mixins.order_mixin import generate_order
 
 s = SelectelClient()
 
@@ -44,55 +45,57 @@ class SectionViewSet(
 
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     parser_classes = (MultiPartParser,)
 
-    def get_permissions(self, *args, **kwargs):
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
-
-        permissions = super().get_permissions()
-        user = self.request.user
-        if user.is_anonymous:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return permissions
-        if self.action in ["list", "retrieve", "lessons"]:
-            # Разрешения для просмотра секций (любой пользователь школы)
-            if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
-            ).exists():
-                return permissions
-            else:
-                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        else:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    # def get_permissions(self, *args, **kwargs):
+    #     school_name = self.kwargs.get("school_name")
+    #     school_id = School.objects.get(name=school_name).school_id
+    #
+    #     permissions = super().get_permissions()
+    #     user = self.request.user
+    #     if user.is_anonymous:
+    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    #     if user.groups.filter(group__name="Admin", school=school_id).exists():
+    #         return permissions
+    #     if self.action in ["list", "retrieve", "lessons"]:
+    #         # Разрешения для просмотра секций (любой пользователь школы)
+    #         if user.groups.filter(
+    #                 group__name__in=["Student", "Teacher"], school=school_id
+    #         ).exists():
+    #             return permissions
+    #         else:
+    #             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    #     else:
+    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
                 Section.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
-        user = self.request.user
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
-
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Section.objects.filter(course__school__name=school_name)
-
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
-                course_id__school__name=school_name, students=user
-            ).values_list("course_id", flat=True)
-            return Section.objects.filter(course_id__in=course_ids)
-
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
-            ).values_list("course_id", flat=True)
-            return Section.objects.filter(course_id__in=course_ids)
-
-        return Section.objects.none()
+        # user = self.request.user
+        # school_name = self.kwargs.get("school_name")
+        # school_id = School.objects.get(name=school_name).school_id
+        #
+        # if user.groups.filter(group__name="Admin", school=school_id).exists():
+        #     return Section.objects.filter(course__school__name=school_name)
+        #
+        # if user.groups.filter(group__name="Student", school=school_id).exists():
+        #     course_ids = StudentsGroup.objects.filter(
+        #         course_id__school__name=school_name, students=user
+        #     ).values_list("course_id", flat=True)
+        #     return Section.objects.filter(course_id__in=course_ids)
+        #
+        # if user.groups.filter(group__name="Teacher", school=school_id).exists():
+        #     course_ids = StudentsGroup.objects.filter(
+        #         course_id_id__school__name=school_name, teacher_id=user.pk
+        #     ).values_list("course_id", flat=True)
+        #     return Section.objects.filter(course_id__in=course_ids)
+        #
+        # return Section.objects.none()
+        return Section.objects.all()
 
     def retrieve(self, request, pk=None, school_name=None):
         queryset = self.get_queryset()
@@ -112,11 +115,12 @@ class SectionViewSet(
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
 
-        order = generate_order(Section)
+        # order = generate_order(Section)
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            serializer.save(order=order)
+            serializer.save()
+            # serializer.save(order=order)
             return Response(serializer.data, status=201)
 
     def update(self, request, *args, **kwargs):
@@ -161,8 +165,8 @@ class SectionViewSet(
                     remove_resp = "Error"
             if segments_to_delete:
                 if (
-                        s.bulk_remove_from_selectel(segments_to_delete, "_segments")
-                        == "Error"
+                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                    == "Error"
                 ):
                     remove_resp = "Error"
 
@@ -201,7 +205,12 @@ class SectionViewSet(
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(group__name__in=["Student", "Teacher", ]).exists():
+            elif user.groups.filter(
+                group__name__in=[
+                    "Student",
+                    "Teacher",
+                ]
+            ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)

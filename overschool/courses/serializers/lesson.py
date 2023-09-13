@@ -1,4 +1,4 @@
-from common_services.mixins.order_mixin import generate_order
+# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Lesson, LessonComponentsOrder
@@ -40,11 +40,11 @@ class LessonSerializer(serializers.ModelSerializer):
         components_data = validated_data.pop("all_components", None)
         lesson = Lesson.objects.create(**validated_data)
         if components_data:
-            order = generate_order(LessonComponentsOrder)
+            # order = generate_order(LessonComponentsOrder)
             base_lesson = BaseLesson.objects.get(lessons=lesson)
             for component_data in components_data:
                 LessonComponentsOrder.objects.create(
-                    base_lesson=base_lesson, order=order, **component_data
+                    base_lesson=base_lesson, **component_data
                 )
         return lesson
 
