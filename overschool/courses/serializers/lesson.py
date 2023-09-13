@@ -108,3 +108,8 @@ class LessonDetailSerializer(serializers.ModelSerializer):
 
     def get_video(self, obj):
         return s.get_selectel_link(str(obj.video)) if obj.video else None
+
+
+class LessonUpdateSerializer(serializers.Serializer):
+    baselesson_ptr_id = serializers.IntegerField()
+    order = serializers.IntegerField()

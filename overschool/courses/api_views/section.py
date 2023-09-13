@@ -45,57 +45,55 @@ class SectionViewSet(
 
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser,)
 
-    # def get_permissions(self, *args, **kwargs):
-    #     school_name = self.kwargs.get("school_name")
-    #     school_id = School.objects.get(name=school_name).school_id
-    #
-    #     permissions = super().get_permissions()
-    #     user = self.request.user
-    #     if user.is_anonymous:
-    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-    #     if user.groups.filter(group__name="Admin", school=school_id).exists():
-    #         return permissions
-    #     if self.action in ["list", "retrieve", "lessons"]:
-    #         # Разрешения для просмотра секций (любой пользователь школы)
-    #         if user.groups.filter(
-    #                 group__name__in=["Student", "Teacher"], school=school_id
-    #         ).exists():
-    #             return permissions
-    #         else:
-    #             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-    #     else:
-    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        if self.action in ["list", "retrieve", "lessons"]:
+            # Разрешения для просмотра секций (любой пользователь школы)
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
                 Section.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
-        # user = self.request.user
-        # school_name = self.kwargs.get("school_name")
-        # school_id = School.objects.get(name=school_name).school_id
-        #
-        # if user.groups.filter(group__name="Admin", school=school_id).exists():
-        #     return Section.objects.filter(course__school__name=school_name)
-        #
-        # if user.groups.filter(group__name="Student", school=school_id).exists():
-        #     course_ids = StudentsGroup.objects.filter(
-        #         course_id__school__name=school_name, students=user
-        #     ).values_list("course_id", flat=True)
-        #     return Section.objects.filter(course_id__in=course_ids)
-        #
-        # if user.groups.filter(group__name="Teacher", school=school_id).exists():
-        #     course_ids = StudentsGroup.objects.filter(
-        #         course_id_id__school__name=school_name, teacher_id=user.pk
-        #     ).values_list("course_id", flat=True)
-        #     return Section.objects.filter(course_id__in=course_ids)
-        #
-        # return Section.objects.none()
-        return Section.objects.all()
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return Section.objects.filter(course__school__name=school_name)
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, students=user
+            ).values_list("course_id", flat=True)
+            return Section.objects.filter(course_id__in=course_ids)
+
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id_id__school__name=school_name, teacher_id=user.pk
+            ).values_list("course_id", flat=True)
+            return Section.objects.filter(course_id__in=course_ids)
+
+        return Section.objects.none()
 
     def retrieve(self, request, pk=None, school_name=None):
         queryset = self.get_queryset()
@@ -225,6 +223,8 @@ class SectionViewSet(
                             "name": dict_obj["name"],
                             "id": obj.pk,
                             "baselesson_ptr_id": obj.baselesson_ptr_id,
+                            "section_id": obj.section_id,
+                            "active": obj.active,
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),

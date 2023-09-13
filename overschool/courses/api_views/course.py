@@ -6,7 +6,6 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 # from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import (
-    BaseLesson,
     Course,
     Homework,
     Lesson,
@@ -50,10 +49,7 @@ s = SelectelClient()
     decorator=CoursesSchemas.courses_update_schema(),
 )
 class CourseViewSet(
-    # LoggingMixin,
-    WithHeadersViewSet,
-    SchoolMixin,
-    viewsets.ModelViewSet,
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
     <h2>/api/{school_name}/courses/</h2>\n
@@ -61,8 +57,7 @@ class CourseViewSet(
     Создавать, изменять, удалять - пользователь с правами группы Admin."""
 
     serializer_class = CourseSerializer
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
     parser_classes = (MultiPartParser,)
 
@@ -72,60 +67,59 @@ class CourseViewSet(
         else:
             return CourseSerializer
 
-    # def get_permissions(self, *args, **kwargs):
-    #     school_name = self.kwargs.get("school_name")
-    #     school_id = School.objects.get(name=school_name).school_id
-    #
-    #     permissions = super().get_permissions()
-    #     user = self.request.user
-    #     if user.is_anonymous:
-    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-    #     if user.groups.filter(group__name="Admin", school=school_id).exists():
-    #         return permissions
-    #     if self.action in [
-    #         "list",
-    #         "retrieve",
-    #         "sections",
-    #         "get_students_for_course",
-    #         "user_count_by_month",
-    #         "student_groups",
-    #     ]:
-    #         # Разрешения для просмотра курсов (любой пользователь школы)
-    #         if user.groups.filter(
-    #             group__name__in=["Student", "Teacher"], school=school_id
-    #         ).exists():
-    #             return permissions
-    #         else:
-    #             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-    #     else:
-    #         raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        if self.action in [
+            "list",
+            "retrieve",
+            "sections",
+            "get_students_for_course",
+            "user_count_by_month",
+            "student_groups",
+        ]:
+            # Разрешения для просмотра курсов (любой пользователь школы)
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
-        # if getattr(self, "swagger_fake_view", False):
-        #     return (
-        #         Course.objects.none()
-        #     )  # Возвращаем пустой queryset при генерации схемы
-        # user = self.request.user
-        # school_name = self.kwargs.get("school_name")
-        # school_id = School.objects.get(name=school_name).school_id
-        #
-        # if user.groups.filter(group__name="Admin", school=school_id).exists():
-        #     return Course.objects.filter(school__name=school_name)
-        #
-        # if user.groups.filter(group__name="Student", school=school_id).exists():
-        #     course_ids = StudentsGroup.objects.filter(
-        #         course_id__school__name=school_name, students=user
-        #     ).values_list("course_id", flat=True)
-        #     return Course.objects.filter(course_id__in=course_ids)
-        #
-        # if user.groups.filter(group__name="Teacher", school=school_id).exists():
-        #     course_ids = StudentsGroup.objects.filter(
-        #         course_id__school__name=school_name, teacher_id=user.pk
-        #     ).values_list("course_id", flat=True)
-        #     return Course.objects.filter(course_id__in=course_ids)
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Course.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
 
-        # return Course.objects.none()
-        return Course.objects.all()
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return Course.objects.filter(school__name=school_name)
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, students=user
+            ).values_list("course_id", flat=True)
+            return Course.objects.filter(course_id__in=course_ids)
+
+        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+            course_ids = StudentsGroup.objects.filter(
+                course_id__school__name=school_name, teacher_id=user.pk
+            ).values_list("course_id", flat=True)
+            return Course.objects.filter(course_id__in=course_ids)
+
+        return Course.objects.none()
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -417,6 +411,9 @@ class CourseViewSet(
                             "order": dict_obj["order"],
                             "name": dict_obj["name"],
                             "id": obj.pk,
+                            "baselesson_ptr_id": obj.baselesson_ptr_id,
+                            "section_id": obj.section_id,
+                            "active": obj.active,
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),

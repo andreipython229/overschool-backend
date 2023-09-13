@@ -7,7 +7,11 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
-from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer
+from schools.serializers import (
+    SchoolHeaderDetailSerializer,
+    SchoolHeaderSerializer,
+    SchoolHeaderUpdateSerializer,
+)
 
 from .schemas.school_header import SchoolHeaderSchemas
 
@@ -55,6 +59,8 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
     def get_serializer_class(self):
         if self.action == "retrieve":
             return SchoolHeaderDetailSerializer
+        elif self.action == "update":
+            return SchoolHeaderUpdateSerializer
         else:
             return SchoolHeaderSerializer
 
@@ -115,7 +121,7 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         ).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-        serializer = SchoolHeaderSerializer(school_header, data=request.data)
+        serializer = SchoolHeaderUpdateSerializer(school_header, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("logo_school"):

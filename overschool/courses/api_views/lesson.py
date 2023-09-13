@@ -1,13 +1,19 @@
-from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 
 # from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
-from courses.models import BaseLesson, Course, Lesson, Section, StudentsGroup
-from courses.serializers import LessonDetailSerializer, LessonSerializer
+from courses.models import BaseLesson, Lesson, Section, StudentsGroup
+from courses.serializers import (
+    LessonDetailSerializer,
+    LessonSerializer,
+    LessonUpdateSerializer,
+)
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
-from rest_framework import permissions, status, viewsets
+from django.db import transaction
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
@@ -187,8 +193,46 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-LessonViewSet = apply_swagger_auto_schema(
-    tags=[
-        "lessons",
-    ]
-)(LessonViewSet)
+class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
+    serializer_class = None
+
+    @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)
+    @action(detail=False, methods=["POST"])
+    @transaction.atomic
+    def shuffle_lessons(self, request, *args, **kwargs):
+
+        data = request.data  # Получите данные из запроса
+
+        # Создайте сериализатор с полученными данными
+        serializer = LessonUpdateSerializer(data=data, many=True)
+
+        if serializer.is_valid():
+            # BaseLesson.disable_constraint('unique_section_lesson_order')
+            for lesson_data in serializer.validated_data:
+                baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
+                new_order = lesson_data["order"]
+
+                # Обновите порядок урока в базе данных
+                try:
+                    lesson1 = BaseLesson.objects.get(id=baselesson_ptr_id)
+                    lesson2 = BaseLesson.objects.get(order=new_order)
+
+                    order1 = lesson1.order
+                    order2 = lesson2.order
+
+                    BaseLesson.objects.bulk_update(
+                        [
+                            BaseLesson(id=lesson1.id, order=order2),
+                            BaseLesson(id=lesson2.id, order=order1),
+                        ],
+                        ["order"],
+                    )
+
+                except Exception as e:
+                    return Response(str(e), status=500)
+
+            # BaseLesson.enable_constraint('unique_section_lesson_order')
+            return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
+
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

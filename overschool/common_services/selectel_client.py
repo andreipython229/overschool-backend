@@ -1,12 +1,14 @@
 import hmac
 import io
+import os
+import uuid
+import zipfile
 from datetime import datetime
 from hashlib import sha1
 from time import time
 
 import redis
 import requests
-from django.core.files.base import ContentFile, File
 from PIL import Image
 
 from overschool.settings import (
@@ -140,11 +142,32 @@ class SelectelClient:
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}_lesson/{}@{}".format(
-            school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
+
+        # Проверяем расширение файла
+        filename, file_extension = os.path.splitext(uploaded_file.name)
+        allowed_extensions = [".txt", ".py", ".rtf"]
+
+        if file_extension.lower() in allowed_extensions:
+            # Файл с разрешенным расширением, создаем zip-архив
+            zip_buffer = io.BytesIO()
+            unique_filename = str(uuid.uuid4()) + ".zip"
+
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+                zipf.writestr(uploaded_file.name, uploaded_file.read())
+
+            file_data = zip_buffer.getvalue()
+            file_name = unique_filename
+        else:
+            # Файл с неразрешенным расширением, загружаем без архивации
+            file_data = uploaded_file.read()
+            file_name = uploaded_file.name
+
+        # Генерируем путь и имя файла на Selectel
+        file_path = "/{}_school/{}_course/{}_lesson/{}".format(
+            school_id, course_id, base_lesson.id, file_name
         ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_file, disposition)
-        return file_path
+
+        self.upload_to_selectel(file_path, io.BytesIO(file_data), disposition)
 
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "/{}_school/school_data/images/{}@{}".format(
