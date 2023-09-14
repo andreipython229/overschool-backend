@@ -31,14 +31,22 @@ class AllUsersViewSet(viewsets.GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-        print(school_name)
+
         # Найти объект школы по имени
         try:
             school = School.objects.get(name=school_name)
         except School.DoesNotExist:
             return Response({'error': 'School not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Фильтровать пользователей по школе
-        queryset = User.objects.filter(groups__school=school)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        # Проверить, является ли текущий пользователь администратором указанной школы
+        user = request.user
+        is_admin = user.groups.filter(group__name="Admin", school=school).exists()
+
+        if is_admin:
+            # Если пользователь - админ, вернуть только пользователей из этой школы
+            queryset = User.objects.filter(groups__school=school)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            # В противном случае вернуть ошибку доступа
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
