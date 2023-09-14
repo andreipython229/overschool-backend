@@ -196,7 +196,6 @@ class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
 
     @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)
     @action(detail=False, methods=["POST"])
-    @transaction.atomic
     def shuffle_lessons(self, request, *args, **kwargs):
 
         data = request.data
@@ -205,7 +204,7 @@ class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
         serializer = LessonUpdateSerializer(data=data, many=True)
 
         if serializer.is_valid():
-            # BaseLesson.disable_constraint('unique_section_lesson_order')
+            BaseLesson.disable_constraint('unique_section_lesson_order')
             for lesson_data in serializer.validated_data:
                 baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
                 new_order = lesson_data["order"]
@@ -229,7 +228,7 @@ class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
                 except Exception as e:
                     return Response(str(e), status=500)
 
-            # BaseLesson.enable_constraint('unique_section_lesson_order')
+            BaseLesson.enable_constraint()
             return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
 
         else:

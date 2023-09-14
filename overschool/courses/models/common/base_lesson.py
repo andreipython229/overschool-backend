@@ -71,15 +71,27 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         """
         try:
             with connection.cursor() as cursor:
+                # Проверяем наличие ограничения
                 cursor.execute(
-                    f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
+                    f"SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = %s AND constraint_name = %s;",
+                    (cls._meta.db_table, constraint_name),
                 )
-            return True
+                if cursor.fetchone():
+                    # Ограничение существует, отключаем его
+                    cursor.execute(
+                        f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
+                    )
+                    return True
+                else:
+                    # Ограничение не существует
+                    return False
         except Exception as e:
+            # Обработка ошибок
+            print(f"Error: {e}")
             return False
 
     @classmethod
-    def enable_constraint(cls, constraint_name):
+    def enable_constraint(cls):
         """
         Метод для включения ограничения базы данных.
 
@@ -93,7 +105,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"ALTER TABLE {cls._meta.db_table} ADD CONSTRAINT {constraint_name};"
+                    'ALTER TABLE courses_baselesson ADD CONSTRAINT unique_section_lesson_order UNIQUE (section_id, "order");'
                 )
             return True
         except Exception as e:
