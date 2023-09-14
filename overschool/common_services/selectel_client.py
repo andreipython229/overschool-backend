@@ -10,6 +10,7 @@ from time import time
 import redis
 import requests
 from PIL import Image
+
 from overschool.settings import (
     ACCOUNT_ID,
     CONTAINER_KEY,
@@ -144,14 +145,14 @@ class SelectelClient:
 
         # Проверяем расширение файла
         filename, file_extension = os.path.splitext(uploaded_file.name)
-        allowed_extensions = ['.txt', '.py', '.rtf']
+        allowed_extensions = [".txt", ".py", ".rtf"]
 
         if file_extension.lower() in allowed_extensions:
             # Файл с разрешенным расширением, создаем zip-архив
             zip_buffer = io.BytesIO()
             unique_filename = str(uuid.uuid4()) + ".zip"
 
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
                 zipf.writestr(uploaded_file.name, uploaded_file.read())
 
             file_data = zip_buffer.getvalue()
@@ -256,9 +257,9 @@ class SelectelClient:
     def get_selectel_link(self, file_path):
         sig, expires = self.create_access_key(CONTAINER_KEY, file_path)
         link = (
-                self.URL
-                + file_path
-                + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
+            self.URL
+            + file_path
+            + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
         )
         return link
 

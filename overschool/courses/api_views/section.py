@@ -24,7 +24,8 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
-from common_services.mixins.order_mixin import generate_order
+
+# from common_services.mixins.order_mixin import generate_order
 
 s = SelectelClient()
 
@@ -60,7 +61,7 @@ class SectionViewSet(
         if self.action in ["list", "retrieve", "lessons"]:
             # Разрешения для просмотра секций (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -112,11 +113,12 @@ class SectionViewSet(
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
 
-        order = generate_order(Section)
+        # order = generate_order(Section)
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            serializer.save(order=order)
+            serializer.save()
+            # serializer.save(order=order)
             return Response(serializer.data, status=201)
 
     def update(self, request, *args, **kwargs):
@@ -161,8 +163,8 @@ class SectionViewSet(
                     remove_resp = "Error"
             if segments_to_delete:
                 if (
-                        s.bulk_remove_from_selectel(segments_to_delete, "_segments")
-                        == "Error"
+                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                    == "Error"
                 ):
                     remove_resp = "Error"
 
@@ -201,7 +203,12 @@ class SectionViewSet(
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(group__name__in=["Student", "Teacher", ]).exists():
+            elif user.groups.filter(
+                group__name__in=[
+                    "Student",
+                    "Teacher",
+                ]
+            ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)

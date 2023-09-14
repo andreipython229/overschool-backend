@@ -1,2 +1,6 @@
 from .school import SchoolGetSerializer, SchoolSerializer, SelectTrialSerializer
-from .school_header import SchoolHeaderDetailSerializer, SchoolHeaderSerializer, SchoolHeaderUpdateSerializer
+from .school_header import (
+    SchoolHeaderDetailSerializer,
+    SchoolHeaderSerializer,
+    SchoolHeaderUpdateSerializer,
+)

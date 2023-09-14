@@ -2,7 +2,8 @@ from datetime import datetime
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
+
+# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import (
     Course,
@@ -21,7 +22,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, OuterRef, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -139,10 +140,11 @@ class CourseViewSet(
                 "Превышено количество курсов для выбранного тарифа",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        order = generate_order(Section)
+        # order = generate_order(Course)
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save(order=order, photo=None)
+        # course = serializer.save(order=order, photo=None)
+        course = serializer.save(photo=None)
 
         if request.FILES.get("photo"):
             photo = s.upload_course_image(request.FILES["photo"], course)
@@ -347,7 +349,10 @@ class CourseViewSet(
         Клонирование курса"""
 
         course = self.get_object()
-        course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
+        max_order = Course.objects.all().aggregate(Max("order"))["order__max"]
+        course_copy = course.make_clone(
+            attrs={"name": f"{course.name}-копия", "order": max_order + 1}
+        )
         queryset = Course.objects.filter(pk=course_copy.pk)
         return Response(queryset.values())
 

@@ -1,7 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from django.db import connection
-from django.db import models
+from django.db import connection, models
 from model_clone import CloneMixin
 
 from ..courses.section import Section
@@ -47,9 +46,17 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=False,
     )
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
+    _clone_m2o_or_o2m_fields = ["text_files", "audio_files"]
 
     def __str__(self):
         return f"{self.section}. {self.name}"
+
+    def save(self, *args, **kwargs):
+        if self.__class__ is not BaseLesson:
+            baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
+            self.section_id = baselesson.section.pk
+
+        super().save(*args, **kwargs)
 
     @classmethod
     def disable_constraint(cls, constraint_name):
@@ -64,7 +71,9 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         """
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};")
+                cursor.execute(
+                    f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
+                )
             return True
         except Exception as e:
             return False
@@ -83,7 +92,9 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f"ALTER TABLE {cls._meta.db_table} ADD CONSTRAINT {constraint_name};")
+                cursor.execute(
+                    f"ALTER TABLE {cls._meta.db_table} ADD CONSTRAINT {constraint_name};"
+                )
             return True
         except Exception as e:
             return False

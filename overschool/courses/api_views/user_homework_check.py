@@ -143,9 +143,7 @@ class HomeworkCheckViewSet(
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         user_homework_check = self.get_object()

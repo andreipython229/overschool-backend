@@ -52,6 +52,7 @@ class SchoolHeaderUpdateSerializer(serializers.ModelSerializer):
             "school",
         ]
 
+
 class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра конкретной шапки школы
@@ -88,8 +89,7 @@ class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
         return s.get_selectel_link(str(obj.logo_school)) if obj.logo_school else None
 
     def get_logo_header_link(self, obj):
-        if obj.logo_header:
-            return s.get_selectel_link(str(obj.logo_header))
+        return s.get_selectel_link(str(obj.logo_header)) if obj.logo_header else None
 
     def get_photo_background_link(self, obj):
 

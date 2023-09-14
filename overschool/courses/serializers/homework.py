@@ -1,4 +1,4 @@
-from common_services.mixins.order_mixin import generate_order
+# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Homework, LessonComponentsOrder
@@ -45,11 +45,11 @@ class HomeworkSerializer(serializers.ModelSerializer):
         components_data = validated_data.pop("all_components", None)
         homework = Homework.objects.create(**validated_data)
         if components_data:
-            order = generate_order(LessonComponentsOrder)
+            # order = generate_order(LessonComponentsOrder)
             base_lesson = BaseLesson.objects.get(homeworks=homework)
             for component_data in components_data:
                 LessonComponentsOrder.objects.create(
-                    base_lesson=base_lesson, order=order, **component_data
+                    base_lesson=base_lesson, **component_data
                 )
         return homework
 

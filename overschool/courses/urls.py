@@ -14,11 +14,8 @@ from courses.api_views import (
     TestViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
-
 )
 from rest_framework import routers
-
-
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")

@@ -7,7 +7,11 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
-from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer, SchoolHeaderUpdateSerializer
+from schools.serializers import (
+    SchoolHeaderDetailSerializer,
+    SchoolHeaderSerializer,
+    SchoolHeaderUpdateSerializer,
+)
 
 from .schemas.school_header import SchoolHeaderSchemas
 
@@ -113,7 +117,7 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         user = self.request.user
         school_id = school_header.school.school_id
         if not user.groups.filter(
-                group__name="Admin", school=school_header.school
+            group__name="Admin", school=school_header.school
         ).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
