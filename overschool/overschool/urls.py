@@ -18,6 +18,7 @@ from users.api_views import (
     SignupSchoolOwnerView,
     SignupView,
     UserSchoolsView,
+    AllUsersViewSet,
 
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
@@ -26,6 +27,7 @@ from .main_router import router, school_router, user_router
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
+                  path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
                   path(
                       "api/register/",
                       SignupView.as_view(actions={"post": "post"}),
@@ -51,7 +53,7 @@ urlpatterns = [
                       UserSchoolsView.as_view(actions={"get": "list"}),
                       name="user_schools",
                   ),
-
+                  # path("api/<str:school_name>/all_users", AllUsersViewSet.as_view, name="all_users"),
                   path('api/subscribe-client/', subscribe_client, name='subscribe_client'),
                   path('api/unsubscribe-client/', unsubscribe_client, name='unsubscribe_client'),
 

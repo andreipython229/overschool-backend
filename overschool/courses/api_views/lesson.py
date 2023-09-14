@@ -196,9 +196,9 @@ class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
     @transaction.atomic
     def shuffle_lessons(self, request, *args, **kwargs):
 
-        data = request.data  # Получите данные из запроса
+        data = request.data
 
-        # Создайте сериализатор с полученными данными
+        # сериализатор с полученными данными
         serializer = LessonUpdateSerializer(data=data, many=True)
 
         if serializer.is_valid():
