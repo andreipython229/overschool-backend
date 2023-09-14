@@ -1,6 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 
-# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Lesson, Section, StudentsGroup
 from courses.serializers import (
@@ -100,7 +99,6 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        # order = generate_order(Lesson)
         serializer = LessonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save(video=None)

@@ -25,8 +25,6 @@ from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
 
-# from common_services.mixins.order_mixin import generate_order
-
 s = SelectelClient()
 
 
@@ -113,12 +111,10 @@ class SectionViewSet(
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
 
-        # order = generate_order(Section)
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            # serializer.save(order=order)
             return Response(serializer.data, status=201)
 
     def update(self, request, *args, **kwargs):
