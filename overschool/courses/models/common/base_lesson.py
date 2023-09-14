@@ -51,12 +51,12 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     def __str__(self):
         return f"{self.section}. {self.name}"
 
-    def save(self, *args, **kwargs):
-        if self.__class__ is not BaseLesson:
-            baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
-            self.section_id = baselesson.section.pk
-
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.__class__ is not BaseLesson:
+    #         baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
+    #         self.section_id = baselesson.section.pk
+    #
+    #     super().save(*args, **kwargs)
 
     @classmethod
     def disable_constraint(cls, constraint_name):

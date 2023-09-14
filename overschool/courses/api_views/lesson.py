@@ -9,7 +9,6 @@ from courses.serializers import (
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -191,7 +190,7 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
+class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     serializer_class = None
 
     @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)

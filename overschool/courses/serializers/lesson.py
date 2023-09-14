@@ -40,7 +40,6 @@ class LessonSerializer(serializers.ModelSerializer):
         components_data = validated_data.pop("all_components", None)
         lesson = Lesson.objects.create(**validated_data)
         if components_data:
-            # order = generate_order(LessonComponentsOrder)
             base_lesson = BaseLesson.objects.get(lessons=lesson)
             for component_data in components_data:
                 LessonComponentsOrder.objects.create(
