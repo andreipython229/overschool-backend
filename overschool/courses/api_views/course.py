@@ -3,7 +3,6 @@ from datetime import datetime
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 
-# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import (
     Course,
@@ -140,10 +139,8 @@ class CourseViewSet(
                 "Превышено количество курсов для выбранного тарифа",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # order = generate_order(Course)
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # course = serializer.save(order=order, photo=None)
         course = serializer.save(photo=None)
 
         if request.FILES.get("photo"):

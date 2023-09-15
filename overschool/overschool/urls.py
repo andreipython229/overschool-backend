@@ -1,4 +1,3 @@
-from courses.api_views import LessonUpdateViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -9,6 +8,7 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from courses.api_views import LessonUpdateViewSet
 from users.api_views import (
     AccessDistributionView,
     ConfirmationView,
@@ -18,6 +18,8 @@ from users.api_views import (
     SignupSchoolOwnerView,
     SignupView,
     UserSchoolsView,
+    AllUsersViewSet,
+
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
 
@@ -25,6 +27,7 @@ from .main_router import router, school_router, user_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
     path(
         "api/register/",
         SignupView.as_view(actions={"post": "post"}),
