@@ -210,21 +210,11 @@ class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIV
 
                 # Обновите порядок урока в базе данных
                 try:
-                    lesson1 = BaseLesson.objects.get(id=baselesson_ptr_id)
-                    lesson2 = BaseLesson.objects.get(order=new_order)
-
-                    order1 = lesson1.order
-                    order2 = lesson2.order
-
-                    BaseLesson.objects.bulk_update(
-                        [
-                            BaseLesson(id=lesson1.id, order=order2),
-                            BaseLesson(id=lesson2.id, order=order1),
-                        ],
-                        ["order"],
-                    )
-
+                    lesson = BaseLesson.objects.get(id=baselesson_ptr_id)
+                    lesson.order = new_order
+                    lesson.save()
                 except Exception as e:
+                    BaseLesson.enable_constraint()
                     return Response(str(e), status=500)
 
             BaseLesson.enable_constraint()
