@@ -1,7 +1,6 @@
 import hmac
 import io
 import os
-import uuid
 import zipfile
 from datetime import datetime
 from hashlib import sha1
@@ -70,6 +69,14 @@ class SelectelClient:
             data=data,
         )
 
+    # Архивация файла
+    @staticmethod
+    def get_zip_file(file):
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr(file.name, file.read())
+        return zip_buffer.getvalue()
+
     # Сжатие изображения
     @staticmethod
     def get_compressed_image(img):
@@ -81,7 +88,14 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
         if file.size <= 10 * 1024 * 1024:
-            if file.content_type.startswith("image") and file.size >= 300 * 1024:
+            # Проверяем расширение файла
+            path_without_ext, file_extension = os.path.splitext(path)
+            if file_extension.lower() in [".txt", ".py", ".rtf"]:
+                # Файл с разрешенным расширением, создаем zip-архив
+                file_data = self.get_zip_file(file)
+                path = path_without_ext + ".zip"
+            elif file.content_type.startswith("image") and file.size >= 300 * 1024:
+                # Файл-изображение, превышает разрешенный без сжатия размер, сжимаем изображение
                 file_data = self.get_compressed_image(file)
             else:
                 file_data = file.read()
@@ -137,37 +151,19 @@ class SelectelClient:
                     ).encode(encoding="UTF-8", errors="strict"),
                 },
             )
+        return path
 
     def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id
-
-        # Проверяем расширение файла
-        filename, file_extension = os.path.splitext(uploaded_file.name)
-        allowed_extensions = [".txt", ".py", ".rtf"]
-
-        if file_extension.lower() in allowed_extensions:
-            # Файл с разрешенным расширением, создаем zip-архив
-            zip_buffer = io.BytesIO()
-            unique_filename = str(uuid.uuid4()) + ".zip"
-
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-                zipf.writestr(uploaded_file.name, uploaded_file.read())
-
-            file_data = zip_buffer.getvalue()
-            file_name = unique_filename
-        else:
-            # Файл с неразрешенным расширением, загружаем без архивации
-            file_data = uploaded_file.read()
-            file_name = uploaded_file.name
-
-        # Генерируем путь и имя файла на Selectel
-        file_path = "/{}_school/{}_course/{}_lesson/{}".format(
-            school_id, course_id, base_lesson.id, file_name
+        file_path = "/{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
         ).replace(" ", "_")
-
-        self.upload_to_selectel(file_path, io.BytesIO(file_data), disposition)
+        # Отправляем файл на загрузку с предварительной обработкой в случае необходимости
+        # Получаем измененный путь файла в случае его архивации
+        file_path = self.upload_to_selectel(file_path, uploaded_file, disposition)
+        return file_path
 
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "/{}_school/school_data/images/{}@{}".format(
