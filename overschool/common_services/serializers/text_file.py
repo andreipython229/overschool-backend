@@ -23,7 +23,7 @@ class TextFileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file"]
 
     def validate(self, attrs):
         if (
@@ -35,6 +35,27 @@ class TextFileSerializer(serializers.ModelSerializer):
                 "Укажите base_lesson либо user_homework либо user_homework_check"
             )
         return attrs
+
+
+class TextFileCheckSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для проверки каждого добавляемого текстового файла в отдельности
+    """
+
+    class Meta:
+        model = TextFile
+        fields = [
+            "id",
+            "file",
+            "file_url",
+            "author",
+            "base_lesson",
+            "user_homework",
+            "user_homework_check",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["author"]
 
 
 class TextFileGetSerializer(serializers.ModelSerializer):

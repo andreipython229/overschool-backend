@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import TextFile
 from common_services.selectel_client import SelectelClient
-from common_services.serializers import TextFileSerializer
+from common_services.serializers import TextFileCheckSerializer, TextFileSerializer
 from common_services.services.request_params import FileParams
 from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
@@ -108,7 +108,7 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework.homework
                             )
-                            serializer = self.get_serializer(
+                            serializer = TextFileCheckSerializer(
                                 data={
                                     "user_homework": user_homework_id,
                                     "file": uploaded_file,
@@ -149,7 +149,7 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework_check.user_homework.homework
                             )
-                            serializer = self.get_serializer(
+                            serializer = TextFileCheckSerializer(
                                 data={
                                     "user_homework_check": user_homework_check_id,
                                     "file": uploaded_file,
@@ -194,9 +194,8 @@ class TextFileViewSet(
                 created_files = []
                 if files_list:
                     for uploaded_file in files_list:
-                        print({**request.data, "file": uploaded_file})
                         base_lesson = BaseLesson.objects.get(id=base_lesson_id)
-                        serializer = self.get_serializer(
+                        serializer = TextFileCheckSerializer(
                             data={"base_lesson": base_lesson_id, "file": uploaded_file}
                         )
                         serializer.is_valid(raise_exception=True)
