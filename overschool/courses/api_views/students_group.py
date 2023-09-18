@@ -1,22 +1,24 @@
 from datetime import datetime
 
+from asgiref.sync import async_to_sync
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
+from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, StudentsGroup, UserTest
+from courses.models import StudentsGroup
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
-    GroupStudentsSerializer,
-    GroupUsersByMonthSerializer,
     SectionSerializer,
     StudentsGroupSerializer,
 )
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
+from django.http import Http404
 from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-
 # from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
@@ -25,9 +27,9 @@ from users.models import Profile, UserGroup
 from users.serializers import UserProfileGetSerializer
 
 
-class StudentsGroupViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class StudentsGroupViewSet(AsyncWebsocketConsumer,
+                           LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+                           ):
     """Эндпоинт получения, создания, изменения групп студентов\n
     <h2>/api/{school_name}/students_group/</h2>\n
     Разрешения для просмотра групп (любой пользователь)
@@ -37,12 +39,23 @@ class StudentsGroupViewSet(
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
-    # parser_classes = (MultiPartParser,)
 
-    def get_school(self):
-        school_name = self.kwargs.get("school_name")
-        school = School.objects.get(name=school_name)
-        return school
+    # parser_classes = (MultiPartParser,)
+    # async def async_dispatch(self, request, *args, **kwargs):
+    #     school_name = kwargs.get("school_name")
+    #     school = self.get_school(school_name)
+    #     self.school = school
+    #     response = await super().async_dispatch(request, *args, **kwargs)
+    #     return response
+    #
+    # def dispatch(self, request, *args, **kwargs):
+    #     return self.async_dispatch(request, *args, **kwargs)
+
+    def get_school(self, school_name):
+        if not School.objects.filter(name=school_name).exists():
+            raise Http404("Школа не найдена")
+        return School.objects.get(name=school_name)
+
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -79,7 +92,7 @@ class StudentsGroupViewSet(
             "user_count_by_month",
         ]:
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
+                    group__name__in=["Student", "Teacher"], school=school
             ).exists():
                 return permissions
             else:
@@ -108,16 +121,35 @@ class StudentsGroupViewSet(
         serializer.save(group_settings=group_settings)
 
         # Сохраняем группу студентов
-        serializer.save()
+        group = serializer.save()
+
         # Получаем всех студентов, которые были добавлены в группу
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
+
+        # Создаем чат и добавляем учителя и студентов
+        chat = Chat.objects.create()
+        UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
-            # Создаем роли студентов для конкретной школы
-            if not UserGroup.objects.filter(
-                user=student, group=group, school=school
-            ).exists():
-                UserGroup.objects.create(user=student, group=group, school=school)
+            UserChat.objects.create(user=student, chat=chat)
+
+        # Отправляем информацию о чате клиентам, например, через WebSocket
+        channel_layer = get_channel_layer()
+        room_group_name = f"chat_{chat.id}"
+        async_to_sync(channel_layer.group_add)(room_group_name, self.channel_name)
+
+        # Отправляем информацию о созданном чате клиентам
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                "type": "chat_created",
+                "chat_id": chat.id,
+                "group_id": group.id,
+                "group_name": group.name,
+            },
+        )
+
+        return group
 
     def perform_update(self, serializer):
         course = serializer.validated_data["course_id"]
@@ -133,13 +165,22 @@ class StudentsGroupViewSet(
 
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
+
+        # Добавляем новых учеников в чат
         for student in students:
-            # Создаем роли вновь добавленных студентов для конкретной школы
             if not student.students_group_fk.filter(pk=self.get_object().pk).exists():
                 if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
+                        user=student, group=group, school=school
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
+
+            # Получаем или создаем чат
+            try:
+                chat = Chat.objects.get(group=self.get_object())
+            except Chat.DoesNotExist:
+                chat = Chat.objects.create(group=self.get_object())
+
+            UserChat.objects.create(user=student, chat=chat)
 
         serializer.save()
 
@@ -252,7 +293,7 @@ class StudentsGroupViewSet(
         group = self.get_object()
         school = self.get_school()
         if user.groups.filter(
-            group__name__in=["Admin", "Teacher"], school=school
+                group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(group_id=group.pk)
 
