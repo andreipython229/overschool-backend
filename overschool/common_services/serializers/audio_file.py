@@ -27,14 +27,35 @@ class AudioFileSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if (
-                not attrs.get("base_lesson")
-                and not attrs.get("user_homework")
-                and not attrs.get("user_homework_check")
+            not attrs.get("base_lesson")
+            and not attrs.get("user_homework")
+            and not attrs.get("user_homework_check")
         ):
             raise serializers.ValidationError(
                 "Укажите base_lesson либо user_homework либо user_homework_check"
             )
         return attrs
+
+
+class AudioFileCheckSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для проверки каждого добавляемого аудио файла в отдельности
+    """
+
+    class Meta:
+        model = AudioFile
+        fields = [
+            "id",
+            "file",
+            "file_url",
+            "author",
+            "base_lesson",
+            "user_homework",
+            "user_homework_check",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["author"]
 
 
 class AudioFileGetSerializer(serializers.ModelSerializer):

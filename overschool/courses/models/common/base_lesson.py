@@ -51,12 +51,18 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     def __str__(self):
         return f"{self.section}. {self.name}"
 
-    # def save(self, *args, **kwargs):
-    #     if self.__class__ is not BaseLesson:
-    #         baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
-    #         self.section_id = baselesson.section.pk
-    #
-    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        if not self.order:
+            max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
+                "order__max"
+            ]
+            order = max_order + 1 if max_order is not None else 1
+            self.order = order
+        if self.__class__ is not BaseLesson:
+            if self.baselesson_ptr_id:
+                baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
+                self.section_id = baselesson.section.pk
+        super().save(*args, **kwargs)
 
     @classmethod
     def disable_constraint(cls, constraint_name):
