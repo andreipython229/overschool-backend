@@ -15,7 +15,6 @@ from courses.serializers import (
 )
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
-from django.http import Http404
 from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -27,7 +26,7 @@ from users.models import Profile, UserGroup
 from users.serializers import UserProfileGetSerializer
 
 
-class StudentsGroupViewSet(AsyncWebsocketConsumer,
+class StudentsGroupViewSet(
                            LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
                            ):
     """Эндпоинт получения, создания, изменения групп студентов\n
@@ -41,21 +40,20 @@ class StudentsGroupViewSet(AsyncWebsocketConsumer,
     pagination_class = UserHomeworkPagination
 
     # parser_classes = (MultiPartParser,)
+
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
     # async def async_dispatch(self, request, *args, **kwargs):
-    #     school_name = kwargs.get("school_name")
-    #     school = self.get_school(school_name)
+    #     school = self.get_school()
     #     self.school = school
     #     response = await super().async_dispatch(request, *args, **kwargs)
     #     return response
     #
     # def dispatch(self, request, *args, **kwargs):
     #     return self.async_dispatch(request, *args, **kwargs)
-
-    def get_school(self, school_name):
-        if not School.objects.filter(name=school_name).exists():
-            raise Http404("Школа не найдена")
-        return School.objects.get(name=school_name)
-
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
