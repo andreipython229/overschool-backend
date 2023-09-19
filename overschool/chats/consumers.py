@@ -47,8 +47,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def update_message(self, message, users):
-        for user in users:
-            message.read_by.add(user)
+        if message:
+            for user in users:
+                message.read_by.add(user)
             message.save()
 
     def set_room_group_name(self):
@@ -122,6 +123,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "id": str(uuid.uuid4()),
             },
         )
+        print(new_message)
         await self.update_message(new_message, self.connected_users)
 
     async def chat_message(self, event):
@@ -139,6 +141,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+        print(message_id)
         await self.update_message(message_id, self.connected_users)
 
     async def chat_created(self, event):
