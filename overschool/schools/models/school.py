@@ -102,6 +102,14 @@ class School(TimeStampMixin, OrderMixin):
         help_text="ID владельца школы",
     )
 
+    offer_url = models.URLField(
+        max_length=200,
+        default='',
+        blank=True,
+        null=True,
+        verbose_name="url договора оферты"
+    )
+
     objects = SchoolManager()
 
     def check_trial_status(self):
