@@ -40,6 +40,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_messages(self, messages):
         for message in messages:
+            message.read_by.add(self.user)
             message.save()
 
     def set_room_group_name(self):
@@ -84,8 +85,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
         if user_is_chat_participant:
             messages = await self.get_chat_messages(self.chat)
-            for message in messages:
-                message.read_by.add(self.user)
             await self.update_messages(messages)
         else:
             raise DenyConnection(CustomResponses.no_permission)
