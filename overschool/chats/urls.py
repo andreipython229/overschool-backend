@@ -16,4 +16,9 @@ urlpatterns = [
         MessageList.as_view(actions={"get": "get"}),
         name="messages",
     ),
+    path(
+        "create_personal_chat/",
+        ChatListCreate.as_view(actions={"post": "create_personal_chat"}),
+        name="create_personal_chat",
+    ),
 ]

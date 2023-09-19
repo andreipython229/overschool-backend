@@ -2,10 +2,11 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, serializers, status
+from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from drf_yasg import openapi
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 from .request_params import ChatParams, UserParams
@@ -40,7 +41,7 @@ def is_object_exist(pk, object):
         return False
 
 
-class EmptySerializer(serializers.Serializer):
+class AllChatSerializer(serializers.Serializer):
     pass
 
 
@@ -50,7 +51,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     - Создание чата
     """
 
-    serializer_class = EmptySerializer
+    serializer_class = AllChatSerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
@@ -111,6 +112,59 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+    @action(detail=False, methods=['POST'])
+    @swagger_auto_schema(
+        responses=ChatSchemas.chat_uuid_schema,
+        manual_parameters=[
+            openapi.Parameter(
+                'teacher_id',
+                openapi.IN_QUERY,
+                description='ID учителя',
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'student_id',
+                openapi.IN_QUERY,
+                description='ID ученика',
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'message',
+                openapi.IN_QUERY,
+                description='Сообщение для чата',
+                type=openapi.TYPE_STRING,
+                required=False,  # Установите на True, если параметр обязателен
+            ),
+        ],
+        operation_description="Get or create chat with user",
+        operation_summary="Get or create chat with user",
+        tags=["chats"])
+    def create_personal_chat(self, request):
+        teacher_id = request.data.get('teacher_id')
+        student_id = request.data.get('student_id')
+        message = request.data.get('message', '')  # Если сообщение не передано, оставляем пустым
+
+        # Валидация и проверка существования учителя и ученика
+        teacher = User.objects.filter(id=teacher_id, groups__name="Teacher", school=request.user.school).first()
+        student = User.objects.filter(id=student_id, groups__name="Student", school=request.user.school).first()
+
+        if not teacher or not student:
+            return Response({'detail': 'Неверные идентификаторы учителя и/или ученика.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Создаем чат
+        chat = Chat.objects.create()
+
+        # Добавляем учителя и ученика в чат
+        UserChat.objects.create(user=teacher, chat=chat)
+        UserChat.objects.create(user=student, chat=chat)
+
+        # Если передано сообщение, создаем первое сообщение в чате
+        if message:
+            Message.objects.create(chat=chat, sender=teacher, content=message)
+
+        return Response({'detail': 'Персональный чат успешно создан.'}, status=status.HTTP_201_CREATED)
+
 
 class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
     """
@@ -118,7 +172,7 @@ class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
     - Удаление / восстановление чата
     """
 
-    serializer_class = EmptySerializer
+    serializer_class = AllChatSerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
@@ -186,7 +240,7 @@ class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
     - Сообщения чата
     """
 
-    serializer_class = EmptySerializer
+    serializer_class = AllChatSerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
