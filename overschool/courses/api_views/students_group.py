@@ -1,8 +1,5 @@
 from datetime import datetime
 
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.layers import get_channel_layer
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
@@ -27,8 +24,8 @@ from users.serializers import UserProfileGetSerializer
 
 
 class StudentsGroupViewSet(
-                           LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-                           ):
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт получения, создания, изменения групп студентов\n
     <h2>/api/{school_name}/students_group/</h2>\n
     Разрешения для просмотра групп (любой пользователь)
@@ -45,15 +42,6 @@ class StudentsGroupViewSet(
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         return school
-
-    # async def async_dispatch(self, request, *args, **kwargs):
-    #     school = self.get_school()
-    #     self.school = school
-    #     response = await super().async_dispatch(request, *args, **kwargs)
-    #     return response
-    #
-    # def dispatch(self, request, *args, **kwargs):
-    #     return self.async_dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -130,22 +118,6 @@ class StudentsGroupViewSet(
         UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
             UserChat.objects.create(user=student, chat=chat)
-
-        # Отправляем информацию о чате клиентам, например, через WebSocket
-        channel_layer = get_channel_layer()
-        room_group_name = f"chat_{chat.id}"
-        async_to_sync(channel_layer.group_add)(room_group_name, self.channel_name)
-
-        # Отправляем информацию о созданном чате клиентам
-        async_to_sync(channel_layer.group_send)(
-            room_group_name,
-            {
-                "type": "chat_created",
-                "chat_id": chat.id,
-                "group_id": group.id,
-                "group_name": group.name,
-            },
-        )
 
         return group
 
