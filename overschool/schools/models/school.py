@@ -101,7 +101,6 @@ class School(TimeStampMixin, OrderMixin):
         verbose_name="Владелец школы",
         help_text="ID владельца школы",
     )
-
     offer_url = models.URLField(
         max_length=200,
         default='',

@@ -44,7 +44,6 @@ class Message(models.Model):
         User,
         related_name="read_messages",
         blank=True,
-        null=True,
     )
     sent_at = models.DateTimeField(
         auto_now_add=True
