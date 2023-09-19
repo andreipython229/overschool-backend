@@ -40,6 +40,7 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name="messages"
     )
+    is_read = models.BooleanField(default=False)
     sent_at = models.DateTimeField(
         auto_now_add=True
     )

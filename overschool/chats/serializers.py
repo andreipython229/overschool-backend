@@ -2,8 +2,10 @@ from django.db.models import Max
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Chat, Message
+from common_services.selectel_client import SelectelClient
 
 User = get_user_model()
+s = SelectelClient()
 
 
 class UserChatSerializer(serializers.ModelSerializer):
@@ -22,7 +24,12 @@ class UserChatSerializer(serializers.ModelSerializer):
         ]
 
     def get_avatar(self, obj):
-        return obj.profile.avatar_url()
+        if obj.profile.avatar:
+            return s.get_selectel_link(str(obj.profile.avatar))
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "/users/avatars/base_avatar.jpg"
+            return s.get_selectel_link(base_avatar_path)
 
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -62,6 +69,7 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "sender",
+            "is_read",
             "sent_at",
             "content",
         ]
