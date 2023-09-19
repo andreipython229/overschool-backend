@@ -67,7 +67,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
 
         chats = Chat.objects.filter(id__in=chats_list)
 
-        serializer = ChatSerializer(chats, many=True)
+        serializer = ChatSerializer(chats, many=True, context={'request': self.request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -91,7 +91,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
         if existed_chat_id:
             existed_chat = Chat.objects.get(id=existed_chat_id)
-            user_chat_serializer = ChatSerializer(existed_chat)
+            user_chat_serializer = ChatSerializer(existed_chat, context={'request': self.request})
             return Response(user_chat_serializer.data, status=status.HTTP_200_OK)
         else:
             chat = Chat.objects.create()
@@ -101,7 +101,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
             if existed_chat_id:
                 existed_chat = Chat.objects.get(id=existed_chat_id)
-                user_chat_serializer = ChatSerializer(existed_chat)
+                user_chat_serializer = ChatSerializer(existed_chat, context={'request': self.request})
                 return Response(
                     user_chat_serializer.data, status=status.HTTP_201_CREATED
                 )
@@ -144,7 +144,7 @@ class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
                 CustomResponses.no_permission, status=status.HTTP_403_FORBIDDEN
             )
 
-        serializer = ChatSerializer(chat)
+        serializer = ChatSerializer(chat, context={'request': self.request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -176,7 +176,7 @@ class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
         if request.data.get("is_deleted") == "false":
             chat.is_deleted = False
         chat.save()
-        serializer = ChatSerializer(chat)
+        serializer = ChatSerializer(chat, context={'request': self.request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -213,6 +213,6 @@ class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
             )
 
         messages = Message.objects.filter(chat=chat)
-        serializer = MessageSerializer(messages, many=True)
+        serializer = MessageSerializer(messages, many=True, context={'request': self.request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)

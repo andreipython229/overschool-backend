@@ -33,6 +33,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def save_message(self, chat, user, message):
         message = Message.objects.create(chat=chat, sender=user, content=message)
 
+    @database_sync_to_async
+    def get_chat_messages(self, chat):
+        return Message.objects.filter(chat=chat)
+
+    @database_sync_to_async
+    def update_messages(self, messages):
+        for message in messages:
+            message.save()
+
     def set_room_group_name(self):
         self.room_group_name = f"chat_{self.chat_uuid}"
 
@@ -69,12 +78,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.user = await sync_to_async(User.objects.get)(id=user_id)
         except User.DoesNotExist:
             raise DenyConnection(CustomResponses.invalid_cookie)
-        print(self.user)
         if self.user is None:
             raise DenyConnection(CustomResponses.invalid_cookie)
 
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
-        if user_is_chat_participant is False:
+        if user_is_chat_participant:
+            messages = await self.get_chat_messages(self.chat)
+            for message in messages:
+                message.read_by.add(self.user)
+            await self.update_messages(messages)
+        else:
             raise DenyConnection(CustomResponses.no_permission)
 
         self.set_room_group_name()
