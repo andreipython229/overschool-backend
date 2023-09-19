@@ -117,6 +117,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def chat_created(self, event):
+        chat_id = event["chat_id"]
+        group_id = event["group_id"]
+        group_name = event["group_name"]
+
+        # Отправляем информацию о созданном чате клиенту
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "chat_created",
+                    "chat_id": chat_id,
+                    "group_id": group_id,
+                    "group_name": group_name,
+                }
+            )
+        )
+
     async def disconnect(self, close_code):
         self.set_room_group_name()
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
