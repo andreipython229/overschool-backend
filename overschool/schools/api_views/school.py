@@ -1,7 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 
-# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
