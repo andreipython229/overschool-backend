@@ -35,7 +35,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, chat, user, message):
         message = Message.objects.create(chat=chat, sender=user, content=message)
-        return message
+        return message.id
 
     @database_sync_to_async
     def get_chat_messages(self, chat):
@@ -48,8 +48,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message.save()
 
     @database_sync_to_async
-    def update_message(self, message, users):
-        if message:
+    def update_message(self, message_id, users):
+        if message_id:
+            message = Message.objects.get(id=message_id)
             for user in users:
                 message.read_by.add(user)
             message.save()
