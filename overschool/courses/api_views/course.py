@@ -314,7 +314,7 @@ class CourseViewSet(
         serialized_data = []
         for item in data:
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile)
+            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
             courses = Course.objects.filter(school=school)
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
