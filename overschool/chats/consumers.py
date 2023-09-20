@@ -35,7 +35,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, chat, user, message):
         message = Message.objects.create(chat=chat, sender=user, content=message)
-        # return message.id
+        return message.id
 
     @database_sync_to_async
     def get_chat_messages(self, chat):
@@ -106,21 +106,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
-        # Отправляем информацию о чате  через WebSocket
-        channel_layer = get_channel_layer()
-        room_group_name = f"chat_{self.chat.id}"
-        async_to_sync(channel_layer.group_add)(room_group_name, self.channel_name)
-
-        # Отправляем информацию о созданном чате
-        async_to_sync(channel_layer.group_send)(
-            room_group_name,
-            {
-                "type": "chat_created",
-                "chat_id": self.chat.id,
-                "group_id": self.chat.group.id,
-                "group_name": self.chat.group.name,
-            },
-        )
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -141,7 +126,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "id": str(uuid.uuid4()),
             },
         )
-        print(new_message)
         print(self.connected_users)
         await self.update_message(new_message, self.connected_users)
 
@@ -160,7 +144,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
-        print(message_id)
         await self.update_message(message_id, self.connected_users)
 
     async def chat_created(self, event):
