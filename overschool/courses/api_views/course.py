@@ -380,7 +380,6 @@ class CourseViewSet(
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
-                print(course.pk)
                 group = StudentsGroup.objects.get(
                      students=user, course_id_id=course.pk
                 )

@@ -197,7 +197,6 @@ class SectionViewSet(
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
-                print("TEST = ", pk)
                 group = StudentsGroup.objects.get(
                     students=user, course_id_id__sections=pk
                 )
