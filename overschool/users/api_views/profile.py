@@ -22,11 +22,17 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]
     http_method_names = ["get", "put", "patch", "head"]
+
     # parser_classes = (MultiPartParser,)
 
     def get_queryset(self):
         # Возвращаем только объекты пользователя, сделавшего запрос
         return Profile.objects.filter(user=self.request.user.id)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:

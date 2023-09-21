@@ -2,10 +2,11 @@ import json
 import uuid
 
 import jwt
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
 from users.models import User
 
 from .constants import CustomResponses
@@ -46,8 +47,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message.save()
 
     @database_sync_to_async
-    def update_message(self, message, users):
-        if message:
+    def update_message(self, message_id, users):
+        if message_id:
+            message = Message.objects.get(id=message_id)
             for user in users:
                 message.read_by.add(user)
             message.save()
@@ -102,6 +104,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
+        await self.accept()
+
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json.get("message")
@@ -121,7 +125,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "id": str(uuid.uuid4()),
             },
         )
-        print(new_message)
+        print(self.connected_users)
         await self.update_message(new_message, self.connected_users)
 
     async def chat_message(self, event):
@@ -139,7 +143,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
-        print(message_id)
         await self.update_message(message_id, self.connected_users)
 
     async def chat_created(self, event):

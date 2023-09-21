@@ -2,6 +2,8 @@ from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from users.models import Profile, User
 
+from chats.models import Message, Chat
+
 s = SelectelClient()
 
 
@@ -63,6 +65,7 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
     user = ProfileSerializer()
     avatar = serializers.SerializerMethodField()
+    total_unread = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -74,6 +77,7 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             "sex",
             "description",
             "user",
+            "total_unread",
         ]
 
     def get_avatar(self, obj):
@@ -83,3 +87,11 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "/users/avatars/base_avatar.jpg"
             return s.get_selectel_link(base_avatar_path)
+
+    def get_total_unread(self, obj):
+        user = self.context['request'].user
+        user_chats = Chat.objects.filter(userchat__user=user)
+
+        total_unread = Message.objects.filter(chat__in=user_chats).exclude(read_by=user).count()
+
+        return total_unread

@@ -222,7 +222,7 @@ class StudentsGroupViewSet(
         student_data = []
         for student in students:
             profile = Profile.objects.get(user_id=student)
-            serializer = UserProfileGetSerializer(profile)
+            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
 
             student_data.append(
                 {
