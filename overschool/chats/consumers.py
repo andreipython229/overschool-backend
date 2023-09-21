@@ -2,11 +2,10 @@ import json
 import uuid
 
 import jwt
-from asgiref.sync import sync_to_async, async_to_sync
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.layers import get_channel_layer
 from users.models import User
 
 from .constants import CustomResponses
@@ -102,23 +101,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.set_room_group_name()
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
-        await self.accept()
-        # Отправляем информацию о чате  через WebSocket
-        channel_layer = get_channel_layer()
-        room_group_name = f"chat_{self.chat.id}"
-        async_to_sync(channel_layer.group_add)(room_group_name, self.channel_name)
-
-        # Отправляем информацию о созданном чате
-        async_to_sync(channel_layer.group_send)(
-            room_group_name,
-            {
-                "type": "chat_created",
-                "chat_id": self.chat.id,
-                "group_id": self.chat.group.id,
-                "group_name": self.chat.group.name,
-            },
-        )
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
