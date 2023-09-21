@@ -29,11 +29,6 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         # Возвращаем только объекты пользователя, сделавшего запрос
         return Profile.objects.filter(user=self.request.user.id)
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
-
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return UserProfileGetSerializer

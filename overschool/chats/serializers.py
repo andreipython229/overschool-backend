@@ -89,3 +89,41 @@ class MessageSerializer(serializers.ModelSerializer):
             return True
         else:
             return False
+
+
+class MessageInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = [
+            "sent_at",
+            "content",
+        ]
+
+
+class ChatInfoSerializer(serializers.ModelSerializer):
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Chat
+        fields = [
+            "id",
+            "name",
+            "is_deleted",
+            "unread_count",
+            "last_message",
+        ]
+
+    def get_last_message(self, obj):
+        last_message = obj.message_set.aggregate(max_sent_at=Max('sent_at'))['max_sent_at']
+        if last_message:
+            message = obj.message_set.filter(sent_at=last_message).first()
+            serializer = MessageInfoSerializer(message)
+            return serializer.data
+        return None
+
+    def get_unread_count(self, obj):
+        user = self.context['request'].user
+
+        unread_count = obj.message_set.exclude(read_by=user).count()
+        return unread_count

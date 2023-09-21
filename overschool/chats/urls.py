@@ -1,10 +1,13 @@
 from django.urls import path
 
-from .views import ChatDetailDelete, ChatListCreate, MessageList
+from .views import ChatDetailDelete, ChatListCreate, MessageList, ChatListInfo
 
 urlpatterns = [
     path(
         "", ChatListCreate.as_view(actions={"get": "get", "post": "post"}), name="chats"
+    ),
+    path(
+        "info/", ChatListInfo.as_view(actions={"get": "list"}), name="info"
     ),
     path(
         "<uuid:chat_uuid>/",

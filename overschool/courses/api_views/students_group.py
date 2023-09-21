@@ -230,7 +230,7 @@ class StudentsGroupViewSet(
                     "course_name": group.course_id.name,
                     "group_id": group.group_id,
                     "group_name": group.name,
-                    "id": student.id,
+                    "student_id": student.id,
                     "username": student.username,
                     "first_name": student.first_name,
                     "last_name": student.last_name,
@@ -244,7 +244,7 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "section": SectionSerializer(
+                    "sections": SectionSerializer(
                         group.course_id.sections.all(), many=True
                     ).data,
                 }
