@@ -133,20 +133,19 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                 openapi.IN_QUERY,
                 description='Сообщение для чата',
                 type=openapi.TYPE_STRING,
-                required=False,  # Установите на True, если параметр обязателен
+                required=False,  # Установить на True, если параметр обязателен
             ),
         ],
         operation_description="Get or create chat with user",
         operation_summary="Get or create chat with user",
         tags=["chats"])
     def create_personal_chat(self, request):
-        teacher_id = request.data.get('teacher_id')
-        student_id = request.data.get('student_id')
+        teacher_id = self.request.query_params.get('teacher_id')
+        student_id = self.request.query_params.get('student_id')
         message = request.data.get('message', '')  # Если сообщение не передано, оставляем пустым
-
         # Валидация и проверка существования учителя и ученика
-        teacher = User.objects.filter(id=teacher_id, groups__name="Teacher", school=request.user.school).first()
-        student = User.objects.filter(id=student_id, groups__name="Student", school=request.user.school).first()
+        teacher = User.objects.filter(id=teacher_id).first()
+        student = User.objects.filter(id=student_id).first()
 
         if not teacher or not student:
             return Response({'detail': 'Неверные идентификаторы учителя и/или ученика.'},
