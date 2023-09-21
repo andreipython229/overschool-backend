@@ -36,6 +36,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "trial_end_date",
             "created_at",
             "updated_at",
+            "offer_url",
         ]
         read_only_fields = [
             "order",
@@ -68,6 +69,7 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "owner",
+            "offer_url",
         ]
 
     def get_avatar(self, obj):

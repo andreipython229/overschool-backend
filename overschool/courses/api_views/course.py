@@ -25,7 +25,7 @@ from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
@@ -313,8 +313,8 @@ class CourseViewSet(
         serialized_data = []
         for item in data:
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile)
-            courses = Course.objects.filter(school=school)
+            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
+            courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
@@ -361,6 +361,9 @@ class CourseViewSet(
         course = self.get_object()
         queryset = Course.objects.filter(course_id=course.pk)
 
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+
         data = queryset.values(
             course=F("course_id"),
             course_name=F("name"),
@@ -371,9 +374,31 @@ class CourseViewSet(
         result_data = dict(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
-            sections=[],
         )
-        user = self.request.user
+
+        group = None
+        if user.groups.filter(group__name="Student").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    course_id__school__name=school_name, students=user
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+        elif user.groups.filter(group__name="Teacher").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    course_id__school__name=school_name, teacher_id=user.pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+
+        if group:
+            result_data['group_settings'] = {
+                "task_submission_lock" :group.group_settings.task_submission_lock,
+                "strict_task_order" : group.group_settings.strict_task_order,}
+
+        result_data["sections"] = []
+
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):

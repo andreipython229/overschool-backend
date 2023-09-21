@@ -2,6 +2,8 @@ from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from users.models import Profile, User
 
+from chats.models import Message, Chat
+
 s = SelectelClient()
 
 

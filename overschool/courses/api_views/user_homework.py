@@ -1,7 +1,7 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
-from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
+from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, StudentsGroup
 from courses.models.homework.homework import Homework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -112,7 +112,18 @@ class UserHomeworkViewSet(
             course_id=baselesson.section.course
         ).first()
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
-        if teacher_group.group_settings.task_submission_lock:
+
+
+        group = None
+        if user.groups.filter(group__name="Student").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    course_id__school__name=school_name, students=user
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+
+        if group.group_settings.task_submission_lock:
             return Response(
                 {
                     "status": "Error",

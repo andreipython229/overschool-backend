@@ -22,6 +22,7 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]
     http_method_names = ["get", "put", "patch", "head"]
+
     # parser_classes = (MultiPartParser,)
 
     def get_queryset(self):

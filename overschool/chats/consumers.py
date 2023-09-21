@@ -13,6 +13,8 @@ from .models import Chat, Message, UserChat
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    connected_users = []
+
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
         try:
@@ -32,6 +34,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, chat, user, message):
         message = Message.objects.create(chat=chat, sender=user, content=message)
+        return message.id
+
+    @database_sync_to_async
+    def get_chat_messages(self, chat):
+        return Message.objects.filter(chat=chat)
+
+    @database_sync_to_async
+    def update_messages(self, messages):
+        for message in messages:
+            message.read_by.add(self.user)
+            message.save()
+
+    @database_sync_to_async
+    def update_message(self, message_id, users):
+        if message_id:
+            message = Message.objects.get(id=message_id)
+            for user in users:
+                message.read_by.add(user)
+            message.save()
 
     def set_room_group_name(self):
         self.room_group_name = f"chat_{self.chat_uuid}"
@@ -69,14 +90,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.user = await sync_to_async(User.objects.get)(id=user_id)
         except User.DoesNotExist:
             raise DenyConnection(CustomResponses.invalid_cookie)
-        print(self.user)
         if self.user is None:
             raise DenyConnection(CustomResponses.invalid_cookie)
 
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
-        if user_is_chat_participant is False:
+        if user_is_chat_participant:
+            messages = await self.get_chat_messages(self.chat)
+            await self.update_messages(messages)
+        else:
             raise DenyConnection(CustomResponses.no_permission)
-
+        self.connected_users.append(self.user)
         self.set_room_group_name()
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -86,7 +109,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json.get("message")
-        await self.save_message(
+        new_message = await self.save_message(
             chat=self.chat,
             user=self.user,
             message=message,
@@ -97,15 +120,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "chat_message",
                 "content": message,
+                "message_id": new_message,
                 "sender": self.user.id,
                 "id": str(uuid.uuid4()),
             },
         )
+        await self.update_message(new_message, self.connected_users)
 
     async def chat_message(self, event):
         message = event["content"]
         user = event["sender"]
         id_key = event["id"]
+        message_id = event['message_id']
 
         await self.send(
             text_data=json.dumps(
@@ -116,7 +142,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+        await self.update_message(message_id, self.connected_users)
+
+    async def chat_created(self, event):
+        chat_id = event["chat_id"]
+        group_id = event["group_id"]
+        group_name = event["group_name"]
+
+        # Отправляем информацию о созданном чате клиенту
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "chat_created",
+                    "chat_id": chat_id,
+                    "group_id": group_id,
+                    "group_name": group_name,
+                }
+            )
+        )
 
     async def disconnect(self, close_code):
         self.set_room_group_name()
+        self.connected_users.remove(self.user)
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)

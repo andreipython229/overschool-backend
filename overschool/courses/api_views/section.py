@@ -182,6 +182,9 @@ class SectionViewSet(
         queryset = self.get_queryset()
         section = queryset.filter(pk=pk)
 
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+
         data = section.values(
             section_name=F("name"),
             section=F("section_id"),
@@ -189,9 +192,32 @@ class SectionViewSet(
         result_data = dict(
             section_name=data[0]["section_name"],
             section_id=data[0]["section"],
-            lessons=[],
         )
-        user = self.request.user
+
+        group = None
+        if user.groups.filter(group__name="Student").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    course_id__school__name=school_name, students=user
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+        elif user.groups.filter(group__name="Teacher").exists():
+
+            try:
+                group = StudentsGroup.objects.get(
+                    course_id__school__name=school_name, teacher_id=user.pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+        if group:
+            result_data['group_settings'] = {
+                "task_submission_lock": group.group_settings.task_submission_lock,
+                "strict_task_order": group.group_settings.strict_task_order,
+            }
+
+        result_data["lessons"] = []
+
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):

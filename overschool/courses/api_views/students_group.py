@@ -1,13 +1,12 @@
 from datetime import datetime
 
+from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, StudentsGroup, UserTest
+from courses.models import StudentsGroup
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
-    GroupStudentsSerializer,
-    GroupUsersByMonthSerializer,
     SectionSerializer,
     StudentsGroupSerializer,
 )
@@ -16,7 +15,6 @@ from django.db.models import Avg, Count, F, Sum
 from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-
 # from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
@@ -37,6 +35,7 @@ class StudentsGroupViewSet(
     serializer_class = StudentsGroupSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+
     # parser_classes = (MultiPartParser,)
 
     def get_school(self):
@@ -79,7 +78,7 @@ class StudentsGroupViewSet(
             "user_count_by_month",
         ]:
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
+                    group__name__in=["Student", "Teacher"], school=school
             ).exists():
                 return permissions
             else:
@@ -108,16 +107,19 @@ class StudentsGroupViewSet(
         serializer.save(group_settings=group_settings)
 
         # Сохраняем группу студентов
-        serializer.save()
+        group = serializer.save()
+
         # Получаем всех студентов, которые были добавлены в группу
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
+
+        # Создаем чат и добавляем учителя и студентов
+        chat = Chat.objects.create()
+        UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
-            # Создаем роли студентов для конкретной школы
-            if not UserGroup.objects.filter(
-                user=student, group=group, school=school
-            ).exists():
-                UserGroup.objects.create(user=student, group=group, school=school)
+            UserChat.objects.create(user=student, chat=chat)
+
+        return group
 
     def perform_update(self, serializer):
         course = serializer.validated_data["course_id"]
@@ -133,13 +135,22 @@ class StudentsGroupViewSet(
 
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
+
+        # Добавляем новых учеников в чат
         for student in students:
-            # Создаем роли вновь добавленных студентов для конкретной школы
             if not student.students_group_fk.filter(pk=self.get_object().pk).exists():
                 if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
+                        user=student, group=group, school=school
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
+
+            # Получаем или создаем чат
+            try:
+                chat = Chat.objects.get(group=self.get_object())
+            except Chat.DoesNotExist:
+                chat = Chat.objects.create(group=self.get_object())
+
+            UserChat.objects.create(user=student, chat=chat)
 
         serializer.save()
 
@@ -211,7 +222,7 @@ class StudentsGroupViewSet(
         student_data = []
         for student in students:
             profile = Profile.objects.get(user_id=student)
-            serializer = UserProfileGetSerializer(profile)
+            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
 
             student_data.append(
                 {
@@ -219,7 +230,7 @@ class StudentsGroupViewSet(
                     "course_name": group.course_id.name,
                     "group_id": group.group_id,
                     "group_name": group.name,
-                    "id": student.id,
+                    "student_id": student.id,
                     "username": student.username,
                     "first_name": student.first_name,
                     "last_name": student.last_name,
@@ -233,7 +244,7 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "section": SectionSerializer(
+                    "sections": SectionSerializer(
                         group.course_id.sections.all(), many=True
                     ).data,
                 }
@@ -252,7 +263,7 @@ class StudentsGroupViewSet(
         group = self.get_object()
         school = self.get_school()
         if user.groups.filter(
-            group__name__in=["Admin", "Teacher"], school=school
+                group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(group_id=group.pk)
 

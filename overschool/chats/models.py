@@ -40,6 +40,11 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name="messages"
     )
+    read_by = models.ManyToManyField(
+        User,
+        related_name="read_messages",
+        blank=True,
+    )
     sent_at = models.DateTimeField(
         auto_now_add=True
     )

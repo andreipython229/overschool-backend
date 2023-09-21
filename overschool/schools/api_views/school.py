@@ -1,7 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 
-# from common_services.mixins.order_mixin import generate_order
 from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
@@ -303,8 +302,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serialized_data = []
         for item in data:
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile)
-            courses = Course.objects.filter(school=school)
+            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
+            courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
