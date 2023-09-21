@@ -2,11 +2,10 @@ import json
 import uuid
 
 import jwt
-from asgiref.sync import sync_to_async, async_to_sync
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.layers import get_channel_layer
 from users.models import User
 
 from .constants import CustomResponses
