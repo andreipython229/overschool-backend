@@ -380,15 +380,16 @@ class CourseViewSet(
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
+                print(course.pk)
                 group = StudentsGroup.objects.get(
-                    course_id__school__name=school_name, students=user
+                     students=user, course_id_id=course.pk
                 )
             except Exception:
-                raise NotFound("Ошибка поиска группы пользователя.")
+                raise NotFound("Ошибка поиска группы пользователя 1.")
         elif user.groups.filter(group__name="Teacher").exists():
             try:
                 group = StudentsGroup.objects.get(
-                    course_id__school__name=school_name, teacher_id=user.pk
+                    teacher_id=user.pk, course_id_id=course.pk
                 )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
