@@ -145,18 +145,24 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         teacher_id = self.request.query_params.get('teacher_id')
         student_id = self.request.query_params.get('student_id')
         message = request.data.get('message', '')  # Если сообщение не передано, оставляем пустым
-        print(f"teacher_id: {teacher_id}, student_id: {student_id}")
+
         # Валидация и проверка существования учителя и ученика
         teacher = User.objects.filter(id=teacher_id).first()
         student = User.objects.filter(id=student_id).first()
-        print(f"teacher: {teacher}, student: {student}")
 
         if not teacher or not student:
             return Response({'detail': 'Неверные идентификаторы учителя и/или ученика.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        chat_name = _("Чат с {}").format(student.username)  # Создаем название чата
-        chat = Chat.objects.create(name=chat_name)  # Указываем название чата при создании
+        # Получаем имена учителя и студента
+        teacher_name = teacher.username
+        student_name = student.username
+
+        # Создаем название чата с именами учителя и студента
+        chat_name = _("Чат с {} и {}").format(student_name, teacher_name)
+
+        # Создаем чат с указанным названием
+        chat = Chat.objects.create(name=chat_name)
 
         # Добавляем учителя и ученика в чат
         UserChat.objects.create(user=teacher, chat=chat)
@@ -167,7 +173,6 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             Message.objects.create(chat=chat, sender=teacher, content=message)
 
         return Response({'detail': 'Персональный чат успешно создан.'}, status=status.HTTP_201_CREATED)
-
 
 class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
     """
