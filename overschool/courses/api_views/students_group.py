@@ -117,7 +117,7 @@ class StudentsGroupViewSet(
 
         # Создаем чат с названием "Чат с [имя группы]"
         chat_name = f"Чат с {groupname}"
-        chat = Chat.objects.create(name=chat_name)
+        chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Добавляем учителя и студентов в чат
         UserChat.objects.create(user=teacher, chat=chat)
