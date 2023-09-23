@@ -17,10 +17,11 @@ from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
+    CourseWithGroupsSerializer,
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Prefetch, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -62,6 +63,8 @@ class CourseViewSet(
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return CourseGetSerializer
+        elif self.action == "with_student_groups":
+            return CourseWithGroupsSerializer
         else:
             return CourseSerializer
 
@@ -313,7 +316,9 @@ class CourseViewSet(
         serialized_data = []
         for item in data:
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
+            serializer = UserProfileGetSerializer(
+                profile, context={"request": self.request}
+            )
             courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
@@ -393,9 +398,10 @@ class CourseViewSet(
                 raise NotFound("Ошибка поиска группы пользователя.")
 
         if group:
-            result_data['group_settings'] = {
-                "task_submission_lock" :group.group_settings.task_submission_lock,
-                "strict_task_order" : group.group_settings.strict_task_order,}
+            result_data["group_settings"] = {
+                "task_submission_lock": group.group_settings.task_submission_lock,
+                "strict_task_order": group.group_settings.strict_task_order,
+            }
 
         result_data["sections"] = []
 
@@ -504,6 +510,21 @@ class CourseViewSet(
             serializer = StudentsGroupSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = StudentsGroupSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"])
+    def with_student_groups(self, request, *args, **kwargs):
+        """Список курсов вместе с группами\n
+        <h2>/api/{school_name}/courses/with_student_groups/</h2>\n
+        Список курсов вместе с группами"""
+
+        # Отбираем курсы, в которых есть студенческие группы
+        queryset = (
+            self.get_queryset()
+            .annotate(groups_count=Count("group_course_fk__group_id"))
+            .exclude(groups_count=0)
+        )
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 

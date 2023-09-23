@@ -2,6 +2,8 @@ from common_services.selectel_client import SelectelClient
 from courses.models import Course
 from rest_framework import serializers
 
+from .students_group import GroupsInCourseSerializer
+
 s = SelectelClient()
 
 
@@ -69,3 +71,35 @@ class CourseStudentsSerializer(serializers.Serializer):
 
     class Meta:
         fields = "__all__"
+
+
+class CourseWithGroupsSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели курса со студенческими группами
+    """
+
+    group_course_fk = GroupsInCourseSerializer(many=True)
+
+    class Meta:
+        model = Course
+        fields = [
+            "course_id",
+            "public",
+            "name",
+            "format",
+            "duration_days",
+            "price",
+            "description",
+            "photo",
+            "order",
+            "photo_url",
+            "school",
+            "group_course_fk",
+        ]
+        read_only_fields = ["order"]
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["student_groups"] = representation["group_course_fk"]
+        del representation["group_course_fk"]
+        return representation
