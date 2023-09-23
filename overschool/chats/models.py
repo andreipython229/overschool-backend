@@ -22,6 +22,16 @@ class Chat(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True
     )
+    TYPE_CHOICES = (
+        ('GROUP', 'Group'),
+        ('PERSONAL', 'Personal'),
+    )
+
+    type = models.CharField(
+        max_length=10,
+        choices=TYPE_CHOICES,
+        default='GROUP',  # Установите значение по умолчанию
+    )
 
     def __str__(self):
         return str(self.id)

@@ -12,6 +12,8 @@ from .models import Chat, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatSerializer, MessageSerializer, ChatInfoSerializer
+from django.utils.translation import gettext as _
+
 
 User = get_user_model()
 
@@ -143,6 +145,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         teacher_id = self.request.query_params.get('teacher_id')
         student_id = self.request.query_params.get('student_id')
         message = request.data.get('message', '')  # Если сообщение не передано, оставляем пустым
+
         # Валидация и проверка существования учителя и ученика
         teacher = User.objects.filter(id=teacher_id).first()
         student = User.objects.filter(id=student_id).first()
@@ -151,8 +154,15 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             return Response({'detail': 'Неверные идентификаторы учителя и/или ученика.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Создаем чат
-        chat = Chat.objects.create()
+        # Получаем имена учителя и студента
+        teacher_name = teacher.username
+        student_name = student.username
+
+        # Создаем название чата с именами учителя и студента
+        chat_name = _("{} : {}").format(student_name, teacher_name)
+
+        # Создаем чат с указанным названием
+        chat = Chat.objects.create(name=chat_name, type="PERSONAL")
 
         # Добавляем учителя и ученика в чат
         UserChat.objects.create(user=teacher, chat=chat)

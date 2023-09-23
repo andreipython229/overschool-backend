@@ -99,6 +99,11 @@ class StudentsGroupViewSet(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
             )
 
+        # Проверяем, что студенты не дублируются
+        students = serializer.validated_data.get("students", [])
+        if len(students) != len(set(students)):
+            raise serializers.ValidationError("Студенты не могут дублироваться в списке.")
+
         # Создаём модель настроек группы
         group_settings_data = self.request.data.get("group_settings")
         if not group_settings_data:
@@ -113,8 +118,13 @@ class StudentsGroupViewSet(
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
 
-        # Создаем чат и добавляем учителя и студентов
-        chat = Chat.objects.create()
+        groupname = serializer.validated_data.get("name", "")
+
+        # Создаем чат с названием "Чат с [имя группы]"
+        chat_name = f"{groupname}"
+        chat = Chat.objects.create(name=chat_name, type="GROUP")
+
+        # Добавляем учителя и студентов в чат
         UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
             UserChat.objects.create(user=student, chat=chat)
@@ -144,15 +154,8 @@ class StudentsGroupViewSet(
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
 
-            # Получаем или создаем чат
-            try:
-                chat = Chat.objects.get(group=self.get_object())
-            except Chat.DoesNotExist:
-                chat = Chat.objects.create(group=self.get_object())
 
-            UserChat.objects.create(user=student, chat=chat)
-
-        serializer.save()
+            serializer.save()
 
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):

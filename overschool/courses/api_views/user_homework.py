@@ -117,8 +117,8 @@ class UserHomeworkViewSet(
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
-                group = StudentsGroup.objects.get(
-                    course_id__school__name=school_name, students=user
+                group = user.students_group_fk.filter(
+                    course_id=baselesson.section.course, students=user
                 )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
