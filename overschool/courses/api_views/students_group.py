@@ -116,7 +116,7 @@ class StudentsGroupViewSet(
         groupname = serializer.validated_data.get("name", "")
 
         # Создаем чат с названием "Чат с [имя группы]"
-        chat_name = f"Чат с {groupname}"
+        chat_name = f"{groupname}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Добавляем учителя и студентов в чат
@@ -148,22 +148,7 @@ class StudentsGroupViewSet(
                         user=student, group=group, school=school
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
-            groupname = serializer.validated_data.get("name", "")
 
-            # Получаем или создаем чат
-            try:
-                chat = Chat.objects.get(group=self.get_object())
-            except Chat.DoesNotExist:
-                chat = Chat.objects.create(group=self.get_object())
-
-            # Обновляем название чата
-            chat_name = f"Чат с {groupname}"
-            chat.name = chat_name
-            chat.save()
-
-            # Добавляем новых учеников в чат
-            for student in students:
-                UserChat.objects.create(user=student, chat=chat)
 
             serializer.save()
 

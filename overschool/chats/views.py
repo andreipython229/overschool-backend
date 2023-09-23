@@ -159,7 +159,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         student_name = student.username
 
         # Создаем название чата с именами учителя и студента
-        chat_name = _("Чат с {} и {}").format(student_name, teacher_name)
+        chat_name = _("{} : {}").format(student_name, teacher_name)
 
         # Создаем чат с указанным названием
         chat = Chat.objects.create(name=chat_name, type="PERSONAL")
