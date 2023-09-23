@@ -99,6 +99,11 @@ class StudentsGroupViewSet(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
             )
 
+        # Проверяем, что студенты не дублируются
+        students = serializer.validated_data.get("students", [])
+        if len(students) != len(set(students)):
+            raise serializers.ValidationError("Студенты не могут дублироваться в списке.")
+
         # Создаём модель настроек группы
         group_settings_data = self.request.data.get("group_settings")
         if not group_settings_data:

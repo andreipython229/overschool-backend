@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from users.models import User
 from courses.models import StudentsGroup, StudentsGroupSettings
 from rest_framework import serializers
 
@@ -12,6 +12,11 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     """
 
     group_settings = StudentsGroupSettingsSerializer(required=False)
+    students = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        many=True,
+        required=False  # Сделать поле необязательным
+    )
 
     class Meta:
         model = StudentsGroup
