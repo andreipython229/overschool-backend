@@ -100,3 +100,13 @@ class GroupUsersByMonthSerializer(serializers.Serializer):
 
     class Meta:
         fields = "__all__"
+
+
+class GroupsInCourseSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для передачи групп вместе с курсами
+    """
+
+    class Meta:
+        model = StudentsGroup
+        fields = ["group_id", "name"]
