@@ -55,3 +55,5 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        return HttpResponse("/api/user/", status=201)
