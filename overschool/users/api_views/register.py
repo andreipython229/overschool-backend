@@ -2,10 +2,13 @@ from datetime import timedelta
 
 from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
+from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.serializers import (
@@ -13,10 +16,7 @@ from users.serializers import (
     PasswordResetSerializer,
     SignupSerializer,
 )
-from drf_yasg.utils import swagger_auto_schema
-from django.core.mail import send_mail
 from users.services import JWTHandler, SenderServiceMixin
-from rest_framework.decorators import action
 
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -33,10 +33,13 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
     parser_classes = (MultiPartParser,)
 
     def post(self, request):
+        email = request.data.get("email")
+        if User.objects.filter(email=email).exists():
+            return HttpResponse("User already exists")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
 
+        serializer.save()
         response = HttpResponse("/api/user/", status=201)
         return response
 
@@ -111,7 +114,7 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     serializer_class = PasswordResetSerializer
     sender_service = SenderServiceMixin()  # Создаем экземпляр SenderServiceMixin
 
-    @swagger_auto_schema(method='post', request_body=PasswordResetSerializer)
+    @swagger_auto_schema(method="post", request_body=PasswordResetSerializer)
     @action(detail=False, methods=["POST"])
     def send_reset_link(self, request):
         serializer = PasswordResetSerializer(data=request.data)
@@ -129,7 +132,7 @@ class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
 
         return Response("Reset password link sent successfully.")
 
-    @swagger_auto_schema(method='post', request_body=PasswordResetSerializer)
+    @swagger_auto_schema(method="post", request_body=PasswordResetSerializer)
     @action(detail=False, methods=["POST"])
     def reset_password(self, request):
         serializer = PasswordResetSerializer(data=request.data)

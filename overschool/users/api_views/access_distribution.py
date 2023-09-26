@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
@@ -46,6 +46,10 @@ class AccessDistributionView(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
+    @swagger_auto_schema(
+        request_body=AccessDistributionSerializer,
+        tags=["access_distribution"],
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -80,8 +84,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                    school.tariff.students_per_month - student_count_by_month
-                    < new_user_count
+                        school.tariff.students_per_month - student_count_by_month
+                        < new_user_count
                 ):
                     return HttpResponse(
                         "Превышено количество новых учеников в месяц для выбранного тарифа",
@@ -107,8 +111,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                    school.tariff.students_per_month - student_count_by_month
-                    < new_user_count
+                        school.tariff.students_per_month - student_count_by_month
+                        < new_user_count
                 ):
                     return HttpResponse(
                         "Превышено количество новых учеников в месяц для выбранного тарифа",
@@ -119,9 +123,9 @@ class AccessDistributionView(
                 group__name__in=["Teacher", "Admin"], school=school
             ).count()
             if (
-                school.tariff.name
-                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                and school.tariff.number_of_staff - staff_count < new_user_count
+                    school.tariff.name
+                    in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                    and school.tariff.number_of_staff - staff_count < new_user_count
             ):
                 return HttpResponse(
                     "Превышено количество cотрудников для выбранного тарифа",
@@ -151,9 +155,9 @@ class AccessDistributionView(
         for user in users:
             # Проверка на то что у пользователя в этой школе уже есть роль
             if (
-                UserGroup.objects.filter(user=user, school=school)
-                .exclude(group=group)
-                .exists()
+                    UserGroup.objects.filter(user=user, school=school)
+                            .exclude(group=group)
+                            .exists()
             ):
                 return HttpResponse(
                     f"Пользователь уже имеет другую роль в этой школе (id={user.id}, email={user.email})",
@@ -174,7 +178,7 @@ class AccessDistributionView(
                         user.teacher_group_fk.add(student_group)
                 if role == "Student":
                     if user.students_group_fk.filter(
-                        course_id__in=courses_ids
+                            course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
                             f"Нельзя учиться в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
@@ -185,6 +189,10 @@ class AccessDistributionView(
 
         return HttpResponse("Доступы предоставлены", status=201)
 
+    @swagger_auto_schema(
+        request_body=AccessDistributionSerializer,
+        tags=["access_distribution"],
+    )
     def delete(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -222,8 +230,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                    role == "Teacher"
-                    and user.teacher_group_fk.filter(course_id__school=school).first()
+                        role == "Teacher"
+                        and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (id={user.id}, email={user.email})",
@@ -237,7 +245,9 @@ class AccessDistributionView(
                 else:
                     user.groups.get(group=group, school=school).delete()
                     if role == "Student":
-                        user.students_group_fk.filter(course_id__school=school).delete()
+                        student_groups = StudentsGroup.objects.filter(students=user, course_id__school=school)
+                        for student_group in student_groups:
+                            student_group.students.remove(user)
             else:
                 if role == "Teacher":
                     return HttpResponse(
@@ -248,8 +258,3 @@ class AccessDistributionView(
                         user.students_group_fk.remove(student_group)
 
         return HttpResponse("Доступ успешно заблокирован", status=201)
-
-
-AccessDistributionView = apply_swagger_auto_schema(tags=["access_distribution"])(
-    AccessDistributionView
-)
