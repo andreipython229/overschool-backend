@@ -101,8 +101,13 @@ class StudentsGroupViewSet(
 
         # Проверяем, что студенты не дублируются
         students = serializer.validated_data.get("students", [])
+
         if len(students) != len(set(students)):
             raise serializers.ValidationError("Студенты не могут дублироваться в списке.")
+            # Создаем чат с названием "Чат с [имя группы]"
+        groupname = serializer.validated_data.get("name", "")
+        chat_name = f"{groupname}"
+        chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Создаём модель настроек группы
         group_settings_data = self.request.data.get("group_settings")
@@ -112,24 +117,18 @@ class StudentsGroupViewSet(
         serializer.save(group_settings=group_settings)
 
         # Сохраняем группу студентов
-        group = serializer.save()
+        student_group = serializer.save(chat=chat)
 
         # Получаем всех студентов, которые были добавлены в группу
         students = serializer.validated_data.get("students")
-        group = Group.objects.get(name="Student")
 
-        groupname = serializer.validated_data.get("name", "")
-
-        # Создаем чат с названием "Чат с [имя группы]"
-        chat_name = f"{groupname}"
-        chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Добавляем учителя и студентов в чат
         UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
             UserChat.objects.create(user=student, chat=chat)
 
-        return group
+        return student_group
 
     def perform_update(self, serializer):
         course = serializer.validated_data["course_id"]
@@ -153,7 +152,6 @@ class StudentsGroupViewSet(
                         user=student, group=group, school=school
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
-
 
             serializer.save()
 

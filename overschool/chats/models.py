@@ -30,7 +30,7 @@ class Chat(models.Model):
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
-        default='GROUP',  # Установите значение по умолчанию
+        default=None,  # Установите значение по умолчанию
     )
 
     def __str__(self):

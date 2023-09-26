@@ -1,7 +1,8 @@
 from datetime import datetime
-from users.models import User
-from courses.models import StudentsGroup, StudentsGroupSettings
+
+from courses.models import StudentsGroup
 from rest_framework import serializers
+from users.models import User
 
 from .students_group_settings import StudentsGroupSettingsSerializer
 
@@ -15,12 +16,12 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     students = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         many=True,
-        required=False  # Сделать поле необязательным
+        required=False
     )
 
     class Meta:
         model = StudentsGroup
-        fields = "__all__"
+        fields = ["name", 'group_id', 'course_id', 'teacher_id', 'students', 'group_settings']
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -52,8 +53,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                    .exclude(pk=view.get_object().pk)
-                    .count()
+                        .exclude(pk=view.get_object().pk)
+                        .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
