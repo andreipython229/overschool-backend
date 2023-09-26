@@ -104,7 +104,8 @@ class StudentsGroupViewSet(
 
         if len(students) != len(set(students)):
             raise serializers.ValidationError("Студенты не могут дублироваться в списке.")
-            # Создаем чат с названием "Чат с [имя группы]"
+
+        # Создаем чат с названием "Чат с [имя группы]"
         groupname = serializer.validated_data.get("name", "")
         chat_name = f"{groupname}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
@@ -121,7 +122,6 @@ class StudentsGroupViewSet(
 
         # Получаем всех студентов, которые были добавлены в группу
         students = serializer.validated_data.get("students")
-
 
         # Добавляем учителя и студентов в чат
         UserChat.objects.create(user=teacher, chat=chat)
@@ -142,18 +142,29 @@ class StudentsGroupViewSet(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
             )
 
+        # Получите текущую группу перед сохранением изменений
+        current_group = self.get_object()
+
         students = serializer.validated_data.get("students")
         group = Group.objects.get(name="Student")
 
         # Добавляем новых учеников в чат
         for student in students:
-            if not student.students_group_fk.filter(pk=self.get_object().pk).exists():
+            if not student.students_group_fk.filter(pk=current_group.pk).exists():
                 if not UserGroup.objects.filter(
                         user=student, group=group, school=school
                 ).exists():
                     UserGroup.objects.create(user=student, group=group, school=school)
 
-            serializer.save()
+        serializer.save()
+
+        # обновляем чат с участниками группы
+        chat = current_group.chat
+        teacher = serializer.validated_data["teacher_id"]
+        students = serializer.validated_data.get("students", [])
+        UserChat.objects.create(user=teacher, chat=chat)
+        for student in students:
+            UserChat.objects.create(user=student, chat=chat)
 
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
