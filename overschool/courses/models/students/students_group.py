@@ -1,7 +1,7 @@
 from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models.user import User
-
+from chats.models import Chat
 from ..courses.course import Course
 from .students_group_settings import StudentsGroupSettings
 
@@ -46,6 +46,13 @@ class StudentsGroup(TimeStampMixin, models.Model):
         StudentsGroupSettings,
         on_delete=models.CASCADE,
         related_name='students_group_settings_fk',
+        null=True,
+        blank=True
+    )
+    chat = models.OneToOneField(
+        Chat,
+        on_delete=models.CASCADE,
+        related_name='group',
         null=True,
         blank=True
     )
