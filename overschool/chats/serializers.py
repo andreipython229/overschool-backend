@@ -133,8 +133,7 @@ class ChatInfoSerializer(serializers.ModelSerializer):
         return unread_count
 
     def get_senders(self, obj):
-        if obj.type == 'PERSONAL':
-            user_chats = obj.userchat_set.all()
-            users = [user_chat.user for user_chat in user_chats]
-            serializer = UserChatSerializer(users, many=True)
-            return serializer.data
+        user_chats = obj.userchat_set.all()
+        users = [user_chat.user for user_chat in user_chats]
+        serializer = UserChatSerializer(users, many=True)
+        return serializer.data

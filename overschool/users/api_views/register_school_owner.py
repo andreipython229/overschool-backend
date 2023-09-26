@@ -18,7 +18,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     необходимых данных уже зарегистрированного пользователя,
     для регистрации школы"""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
@@ -55,5 +55,3 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
-        return HttpResponse("/api/user/", status=201)
