@@ -10,6 +10,8 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserProgressLogs,
+    StudentsGroup,
+    StudentsGroupSettings,
 )
 from courses.serializers import SectionSerializer
 from django.db.models import F
@@ -46,6 +48,7 @@ class SectionViewSet(
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser,)
 
+
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -66,6 +69,14 @@ class SectionViewSet(
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
+    def get_serializer_class(self):
+        return SectionSerializer
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -98,7 +109,8 @@ class SectionViewSet(
         section = queryset.filter(pk=pk).first()
         if not section:
             return Response("Раздел не найден или у вас нет необходимых прав.")
-        serializer = SectionSerializer(section)
+        context = {'request': request}
+        serializer = SectionSerializer(section, context=context)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
