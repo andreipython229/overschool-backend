@@ -70,14 +70,6 @@ class SectionViewSet(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
-
-    def get_serializer_class(self):
-        return SectionSerializer
-
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
