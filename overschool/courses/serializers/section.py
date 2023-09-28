@@ -3,6 +3,7 @@ from courses.serializers import LessonSerializer, HomeworkSerializer
 from rest_framework import serializers
 from .students_group_settings import StudentsGroupSettingsSerializer
 
+
 class TestSectionSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели теста
@@ -36,6 +37,40 @@ class TestSectionSerializer(serializers.ModelSerializer):
 
 
 class SectionSerializer(serializers.ModelSerializer):
+    lessons = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Section
+        fields = ["order", "section_id", "course", "name", "lessons"]
+        read_only_fields = ["order"]
+
+    def get_lessons(self, instance):
+        lessons_data = instance.lessons.all()
+        serialized_lessons = []
+
+        for lesson_data in lessons_data:
+            try:
+                homework_data = Homework.objects.get(baselesson_ptr=lesson_data.id)
+                serializer = HomeworkSerializer(homework_data)
+            except Homework.DoesNotExist:
+                pass
+            try:
+                lesson_data = Lesson.objects.get(baselesson_ptr=lesson_data.id)
+                serializer = LessonSerializer(lesson_data)
+            except Lesson.DoesNotExist:
+                pass
+            try:
+                test_data = SectionTest.objects.get(baselesson_ptr=lesson_data.id)
+                serializer = TestSectionSerializer(test_data)
+            except SectionTest.DoesNotExist:
+                pass
+
+            serialized_lessons.append(serializer.data)
+
+        return serialized_lessons
+
+
+class SectionRetrieveSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()
     group_settings = serializers.SerializerMethodField()
 

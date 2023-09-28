@@ -13,7 +13,7 @@ from courses.models import (
     StudentsGroup,
     StudentsGroupSettings,
 )
-from courses.serializers import SectionSerializer
+from courses.serializers import SectionSerializer, SectionRetrieveSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -102,7 +102,7 @@ class SectionViewSet(
         if not section:
             return Response("Раздел не найден или у вас нет необходимых прав.")
         context = {'request': request}
-        serializer = SectionSerializer(section, context=context)
+        serializer = SectionRetrieveSerializer(section, context=context)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
