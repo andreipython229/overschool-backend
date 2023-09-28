@@ -1,7 +1,7 @@
-from courses.models import Section, Lesson, SectionTest, Homework
+from courses.models import Section, Lesson, SectionTest, Homework, StudentsGroupSettings, StudentsGroup
 from courses.serializers import LessonSerializer, HomeworkSerializer
 from rest_framework import serializers
-
+from .students_group_settings import StudentsGroupSettingsSerializer
 
 class TestSectionSerializer(serializers.ModelSerializer):
     """
@@ -37,10 +37,11 @@ class TestSectionSerializer(serializers.ModelSerializer):
 
 class SectionSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()
+    group_settings = serializers.SerializerMethodField()
 
     class Meta:
         model = Section
-        fields = ["order", "section_id", "course", "name", "lessons"]
+        fields = ["order", "section_id", "course", "name", "group_settings", "lessons"]
         read_only_fields = ["order"]
 
     def get_lessons(self, instance):
@@ -67,3 +68,17 @@ class SectionSerializer(serializers.ModelSerializer):
             serialized_lessons.append(serializer.data)
 
         return serialized_lessons
+
+    def get_group_settings(self, obj):
+        user = self.context["request"].user
+        if user.groups.filter(group__name="Student", school=obj.course.school_id).exists():
+            try:
+                group = StudentsGroup.objects.get(course_id=obj.course_id, students=user.pk)
+                group_settings = StudentsGroupSettings.objects.get(pk=group.group_settings_id)
+                group_settings_data = StudentsGroupSettingsSerializer(group_settings).data
+                return group_settings_data
+            except StudentsGroup.DoesNotExist:
+                return None
+            except StudentsGroupSettings.DoesNotExist:
+                return None
+        return None
