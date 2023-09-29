@@ -1,7 +1,8 @@
+from django.contrib.auth.models import Group
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
-from users.models import User
 from schools.models import School, Tariff, TariffPlan
+from users.models import User
 
 
 class SignupSchoolOwnerSerializer(serializers.Serializer):
@@ -13,17 +14,11 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not attrs.get("email"):
-            raise serializers.ValidationError(
-                "'email' is required."
-            )
+            raise serializers.ValidationError("'email' is required.")
         if not attrs.get("phone_number"):
-            raise serializers.ValidationError(
-                "'phone_number' is required."
-            )
+            raise serializers.ValidationError("'phone_number' is required.")
         if not attrs.get("school_name"):
-            raise serializers.ValidationError(
-                "'school_name' is required."
-            )
+            raise serializers.ValidationError("'school_name' is required.")
         password = attrs.get("password")
         password_confirmation = attrs.get("password_confirmation")
         if password and password != password_confirmation:
@@ -42,14 +37,21 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
 
-        school = School(name=school_name, owner=user, tariff=Tariff.objects.get(name=TariffPlan.INTERN.value))
+        school = School(
+            name=school_name,
+            owner=user,
+            tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+        )
 
         school.save()
-
+        group = Group.objects.get(name="Admin")
+        user.groups.create(group=group, school=school)
         return user
 
     def update(self, instance, validated_data):
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.email = validated_data.get("email", instance.email)
+        instance.phone_number = validated_data.get(
+            "phone_number", instance.phone_number
+        )
         instance.save()
         return instance

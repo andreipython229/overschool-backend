@@ -1,6 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
@@ -43,11 +44,17 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 return HttpResponse("School_name already exists.", status=400)
 
             if (
-                    user.phone_number != phone_number
-                    and User.objects.filter(phone_number=phone_number).exists()
+                user.phone_number != phone_number
+                and User.objects.filter(phone_number=phone_number).exists()
             ):
                 return HttpResponse("Phone number already exists.", status=400)
-            School.objects.create(name=school_name, owner=user, tariff=Tariff.objects.get(name=TariffPlan.INTERN.value))
+            school = School.objects.create(
+                name=school_name,
+                owner=user,
+                tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+            )
+            group = Group.objects.get(name="Admin")
+            user.groups.create(group=group, school=school)
         else:
             if email and User.objects.filter(email=email).exists():
                 return HttpResponse("Email already exists.", status=400)
