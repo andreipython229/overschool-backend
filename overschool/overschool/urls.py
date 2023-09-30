@@ -27,12 +27,13 @@ from .main_router import router, school_router, user_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
+    path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
     path(
         "api/register/",
         SignupView.as_view(actions={"post": "post"}),
         name="register",
     ),
+
     path(
         "api/register-school-owner/",
         SignupSchoolOwnerView.as_view(actions={"post": "post"}),

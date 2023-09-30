@@ -45,8 +45,7 @@ class AllUsersSerializer(serializers.ModelSerializer):
         ]
 
     def get_roles(self, user):
-        # Получите все записи UserGroup, связанные с данным пользователем
         user_groups = UserGroup.objects.filter(user=user)
-        # Извлеките текстовые идентификаторы групп, связанных с пользователем
+
         role_names = [user_group.group.name for user_group in user_groups]
         return role_names

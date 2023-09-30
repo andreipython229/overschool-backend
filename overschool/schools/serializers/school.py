@@ -1,6 +1,6 @@
 from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
-from schools.models import School, TariffPlan
+from schools.models import School, TariffPlan, Tariff
 
 s = SelectelClient()
 
@@ -74,3 +74,9 @@ class SchoolGetSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
+
+
+class TariffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tariff
+        fields = '__all__'

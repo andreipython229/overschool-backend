@@ -14,15 +14,15 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not attrs.get("email"):
-            raise serializers.ValidationError("'email' is required.")
+            raise serializers.ValidationError("'email' обязателеное поле.")
         if not attrs.get("phone_number"):
-            raise serializers.ValidationError("'phone_number' is required.")
+            raise serializers.ValidationError("'phone_number' обязателеное поле.")
         if not attrs.get("school_name"):
-            raise serializers.ValidationError("'school_name' is required.")
+            raise serializers.ValidationError("'school_name' обязателеное поле.")
         password = attrs.get("password")
         password_confirmation = attrs.get("password_confirmation")
         if password and password != password_confirmation:
-            raise serializers.ValidationError("Passwords do not match.")
+            raise serializers.ValidationError("Пароли не совпадают.")
 
         return attrs
 
