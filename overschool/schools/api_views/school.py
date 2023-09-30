@@ -1,15 +1,16 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-
 from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, Tariff, TariffPlan
@@ -17,6 +18,7 @@ from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SelectTrialSerializer,
+    TariffSerializer
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -58,8 +60,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats"]
-            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+                self.action in ["stats"]
+                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -271,16 +273,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-            .values("user_id")
-            .annotate(mark_sum=Sum("mark"))
-            .values("mark_sum")
+                .values("user_id")
+                .annotate(mark_sum=Sum("mark"))
+                .values("mark_sum")
         )
 
         subquery_average_mark = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-            .values("user_id")
-            .annotate(avg=Avg("mark"))
-            .values("avg")
+                .values("user_id")
+                .annotate(avg=Avg("mark"))
+                .values("avg")
         )
 
         data = queryset.values(
@@ -331,3 +333,15 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 SchoolViewSet = apply_swagger_auto_schema(
     tags=["schools"], excluded_methods=["partial_update"]
 )(SchoolViewSet)
+
+
+class TariffViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint для тарифов.
+
+    """
+    queryset = Tariff.objects.all()
+    serializer_class = TariffSerializer
+
+    allowed_methods = ['GET']
+

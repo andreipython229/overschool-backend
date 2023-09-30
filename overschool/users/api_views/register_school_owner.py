@@ -30,36 +30,35 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         phone_number = request.data.get("phone_number")
 
         if not all([email, phone_number]):
-            return HttpResponse("Email and phone number is required", status=400)
+            return HttpResponse("Требуется указать email и номер телефона", status=400)
 
         if request.user.is_authenticated:
             user = self.request.user
 
             if not check_password(request.data.get("password"), user.password):
-                return HttpResponse("Invalid password credentials", status=401)
+                return HttpResponse("Неверные учетные данные пароля", status=401)
 
             if user.email != email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email already exists.", status=400)
+                return HttpResponse("Email уже существует.", status=400)
             if School.objects.filter(name=school_name).exists():
-                return HttpResponse("School_name already exists.", status=400)
+                return HttpResponse("Название школы уже существует.", status=400)
 
             if (
                     user.phone_number != phone_number
                     and User.objects.filter(phone_number=phone_number).exists()
             ):
-                return HttpResponse("Phone number already exists.", status=400)
+                return HttpResponse("Номер телефона уже существует.", status=400)
             School.objects.create(name=school_name, owner=user, tariff=Tariff.objects.get(name=TariffPlan.INTERN.value))
         else:
             if email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email already exists.", status=400)
+                return HttpResponse("Email уже существует.", status=400)
 
             if phone_number and User.objects.filter(phone_number=phone_number).exists():
-                return HttpResponse("Phone number already exists.", status=400)
+                return HttpResponse("Номер телефона уже существует.", status=400)
             if School.objects.filter(name=school_name).exists():
-                return HttpResponse("School_name already exists.", status=400)
+                return HttpResponse("Название школы уже существует.", status=400)
 
             serializer = self.get_serializer(data=request.data)
-
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
