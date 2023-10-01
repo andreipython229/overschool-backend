@@ -20,6 +20,7 @@ from users.api_views import (
     UserSchoolsView,
 
 )
+from users.api_views.forgot_password import ForgotPasswordView
 from utils.utils_view import subscribe_client, unsubscribe_client
 
 from .main_router import router, school_router, user_router
@@ -30,6 +31,11 @@ urlpatterns = [
                       "api/register/",
                       SignupView.as_view(actions={"post": "post"}),
                       name="register",
+                  ),
+                  path(
+                      "api/forgot_password/",
+                      ForgotPasswordView.as_view(actions={"post": "post"}),
+                      name="forgot_password",
                   ),
                   path(
                       "api/register-school-owner/",
