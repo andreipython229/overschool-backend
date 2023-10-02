@@ -44,6 +44,10 @@ class Tariff(models.Model):
     def __str__(self):
         return f"{self.name} - {self.price}"
 
+    class Meta:
+        verbose_name = "Тариф"
+        verbose_name_plural = "Тарифы"
+
 
 class School(TimeStampMixin, OrderMixin):
     """Модель школы"""
@@ -103,10 +107,10 @@ class School(TimeStampMixin, OrderMixin):
     )
     offer_url = models.URLField(
         max_length=200,
-        default='',
+        default="",
         blank=True,
         null=True,
-        verbose_name="url договора оферты"
+        verbose_name="url договора оферты",
     )
 
     objects = SchoolManager()

@@ -343,5 +343,4 @@ class TariffViewSet(viewsets.ModelViewSet):
 
     queryset = Tariff.objects.all()
     serializer_class = TariffSerializer
-
-    allowed_methods = ["GET"]
+    http_method_names = ["get", "head"]

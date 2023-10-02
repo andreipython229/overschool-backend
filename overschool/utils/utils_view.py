@@ -2,8 +2,9 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from schools.models import PromoCode, Tariff
 from utils.serializers import SubscriptionSerializer
-from schools.models import Tariff
+
 from .bepaid_client import BePaidClient
 
 
@@ -16,22 +17,35 @@ def subscribe_client(request):
 
     # Проверяем, есть ли у пользователя активная подписка
     if user.subscription_id:
-        return Response({"error": "User already has an active subscription"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "User already has an active subscription"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     serializer = SubscriptionSerializer(data=request.data, context={"user": user})
     if serializer.is_valid():
         data = serializer.validated_data
         tariff = data["tariff"]
         pays_count = data["pays_count"]
+        promo_code = request.data.get("promo_code")
 
         bepaid_client = BePaidClient(
             shop_id="21930",
             secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
             is_test=True,
         )
+        to_pay_sum = Tariff.objects.values_list("price", flat=True).get(name=tariff)
+        if promo_code:
+            try:
+                promo_code_obj = PromoCode.objects.get(name=promo_code)
+            except PromoCode.DoesNotExist:
+                return Response(
+                    {"error": "Промокод не найден"}, status=status.HTTP_404_NOT_FOUND
+                )
+            to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
 
         subscribe_res = bepaid_client.subscribe_client(
-            to_pay_sum=Tariff.objects.values_list('price', flat=True).get(name=tariff),
+            to_pay_sum=to_pay_sum,
             days_interval=serializer.fields["days_interval"].default,
             pays_count=pays_count,
             first_name=user.first_name,
@@ -44,6 +58,7 @@ def subscribe_client(request):
 
         return Response(subscribe_res, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["POST"])
 def unsubscribe_client(request):
@@ -60,7 +75,9 @@ def unsubscribe_client(request):
     subscription_id = user.subscription_id
 
     if not subscription_id:
-        return Response({"error": "User is not subscribed"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "User is not subscribed"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     bepaid_client.unsubscribe(subscription_id)
 
@@ -68,4 +85,3 @@ def unsubscribe_client(request):
     user.save(update_fields=["subscription_id"])
 
     return Response({"message": "Unsubscribed successfully"}, status=status.HTTP_200_OK)
-
