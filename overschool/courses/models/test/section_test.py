@@ -24,6 +24,7 @@ class SectionTest(BaseLesson, CloneMixin):
         help_text="Количество вопросов для генерации теста",
     )
     success_percent = models.IntegerField(
+        default=0,
         verbose_name="Проходной балл",
         help_text="Процент правильных ответов для успешно пройденного теста",
     )

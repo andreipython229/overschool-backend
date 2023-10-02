@@ -45,10 +45,8 @@ class AllUsersSerializer(serializers.ModelSerializer):
         ]
 
     def get_role(self, user):
-        # Получите запись UserGroup, связанную с данным пользователем и школой
         user_group = UserGroup.objects.filter(
             user=user, school=self.context["school"]
         ).first()
-        # Извлеките текстовый идентификатор найденной группы пользователя
         role_name = user_group.group.name
         return role_name

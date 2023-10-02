@@ -10,8 +10,10 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserProgressLogs,
+    StudentsGroup,
+    StudentsGroupSettings,
 )
-from courses.serializers import SectionSerializer
+from courses.serializers import SectionSerializer, SectionRetrieveSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -45,6 +47,7 @@ class SectionViewSet(
     serializer_class = SectionSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser,)
+
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -98,7 +101,8 @@ class SectionViewSet(
         section = queryset.filter(pk=pk).first()
         if not section:
             return Response("Раздел не найден или у вас нет необходимых прав.")
-        serializer = SectionSerializer(section)
+        context = {'request': request}
+        serializer = SectionRetrieveSerializer(section, context=context)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):

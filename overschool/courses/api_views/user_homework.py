@@ -1,7 +1,7 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import SelectelClient
-from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, StudentsGroup
+from courses.models import BaseLesson, StudentsGroup, UserHomework, UserHomeworkCheck
 from courses.models.homework.homework import Homework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -113,11 +113,10 @@ class UserHomeworkViewSet(
         ).first()
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
-
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
-                group = user.students_group_fk.filter(
+                group = user.students_group_fk.get(
                     course_id=baselesson.section.course, students=user
                 )
             except Exception:

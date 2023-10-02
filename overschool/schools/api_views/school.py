@@ -1,15 +1,16 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-
 from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, Tariff, TariffPlan
@@ -17,6 +18,7 @@ from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SelectTrialSerializer,
+    TariffSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -88,11 +90,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
-        # order = generate_order(School)
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         school = serializer.save(
-            # order=order,
             avatar=None,
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
@@ -302,7 +302,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serialized_data = []
         for item in data:
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
+            serializer = UserProfileGetSerializer(
+                profile, context={"request": self.request}
+            )
             courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
@@ -331,3 +333,14 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 SchoolViewSet = apply_swagger_auto_schema(
     tags=["schools"], excluded_methods=["partial_update"]
 )(SchoolViewSet)
+
+
+class TariffViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint для тарифов.
+
+    """
+
+    queryset = Tariff.objects.all()
+    serializer_class = TariffSerializer
+    http_method_names = ["get", "head"]
