@@ -11,7 +11,6 @@ from rest_framework import permissions
 from courses.api_views import LessonUpdateViewSet
 from users.api_views import (
     AccessDistributionView,
-    ConfirmationView,
     LoginView,
     LogoutView,
     PasswordResetView,
@@ -19,6 +18,7 @@ from users.api_views import (
     SignupView,
     UserSchoolsView,
     AllUsersViewSet,
+    SendPasswordView
 
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
@@ -28,6 +28,11 @@ from .main_router import router, school_router, user_router
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
+    path(
+        "api/register_user/",
+        SendPasswordView.as_view(actions={"post": "post"}),
+        name="register_user",
+    ),
     path(
         "api/register/",
         SignupView.as_view(actions={"post": "post"}),
@@ -56,11 +61,7 @@ urlpatterns = [
     ),
     path("api/subscribe-client/", subscribe_client, name="subscribe_client"),
     path("api/unsubscribe-client/", unsubscribe_client, name="unsubscribe_client"),
-    path(
-        "api/code/confirm/",
-        ConfirmationView.as_view(actions={"post": "post"}),
-        name="code",
-    ),
+
     path(
         "api/reset-password/send-link/",
         PasswordResetView.as_view({"post": "send_reset_link"}),

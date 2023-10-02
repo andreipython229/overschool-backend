@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from users.models import User
-from users.services import SenderServiceMixin
 
 
 class SignupSerializer(serializers.Serializer):
@@ -37,43 +36,6 @@ class SignupSerializer(serializers.Serializer):
         user.set_password(password)  # Установка пароля с помощью set_password
         user.save()
         return user
-
-    def save(self, **kwargs):
-        instance = super().save(**kwargs)
-        email = instance.email
-
-        if email:
-            sender_service = SenderServiceMixin()
-            confirmation_code = sender_service.send_code_by_email(email=email)
-            instance.confirmation_code = confirmation_code
-
-        instance.save()
-        return instance
-
-
-class ConfirmationSerializer(serializers.Serializer):
-    code = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
-    phone_number = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        code = attrs.get("code")
-        email = attrs.get("email")
-        phone_number = attrs.get("phone_number")
-
-        if not code:
-            raise serializers.ValidationError("Code is required.")
-
-        # Дополнительные проверки для почты и номера телефона
-        if not email:
-            raise serializers.ValidationError("Email is required.")
-
-        if not phone_number:
-            raise serializers.ValidationError("Phone number is required.")
-
-        # Вы можете добавить дополнительные проверки на формат почты или номера телефона
-
-        return attrs
 
 
 class PasswordResetSerializer(serializers.Serializer):

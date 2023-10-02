@@ -4,9 +4,9 @@ from .login import LoginView
 from .logout import LogoutView
 from .profile import ProfileViewSet
 from .register import (
-    ConfirmationView,
     PasswordResetView,
     SignupView,
+    SendPasswordView,
 )
 from .register_school_owner import SignupSchoolOwnerView
 from .user_schools import UserSchoolsView

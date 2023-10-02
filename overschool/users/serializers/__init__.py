@@ -5,7 +5,7 @@ from .profile import UserProfileGetSerializer, UserProfileSerializer
 from .register import (
     PasswordResetSerializer,
     SignupSerializer,
-    ConfirmationSerializer,
+
 )
 from .register_school_owner import SignupSchoolOwnerSerializer
 from .user import UserSerializer, AllUsersSerializer

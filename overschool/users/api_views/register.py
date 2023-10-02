@@ -1,26 +1,25 @@
-from datetime import timedelta
-
 from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.serializers import (
-    ConfirmationSerializer,
     PasswordResetSerializer,
     SignupSerializer,
 )
-from users.services import JWTHandler, SenderServiceMixin
+from rest_framework import serializers
+import random
+import string
+from users.services import JWTHandler
+from overschool import settings
+from django.contrib.auth.hashers import make_password
 
 User = get_user_model()
 jwt_handler = JWTHandler()
-sender_service = SenderServiceMixin()  # Создаем экземпляр SenderServiceMixin
 
 
 class SignupView(WithHeadersViewSet, generics.GenericAPIView):
@@ -44,75 +43,54 @@ class SignupView(WithHeadersViewSet, generics.GenericAPIView):
         return response
 
 
-class ConfirmationView(WithHeadersViewSet, generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = ConfirmationSerializer
-    allowed_methods = ["POST"]  # Only allow the "POST" method
-    parser_classes = (MultiPartParser,)
+def generate_random_password(length=10):
+    # Создаем строку, содержащую цифры и буквы в верхнем и нижнем регистре
+    characters = string.ascii_letters + string.digits
 
-    def post(self, request, school_name=None):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data["code"]
-        email = serializer.validated_data.get("email")
-        phone_number = serializer.validated_data.get("phone_number")
+    # Генерируем пароль с указанной длиной
+    password = ''.join(random.choice(characters) for _ in range(length))
 
-        # Проверка кода подтверждения и остальных данных
+    return password
 
-        saved_code = User.objects.filter(
-            confirmation_code=code, is_active=False
-        ).exists()
 
-        if saved_code:
-            # Код подтверждения совпадает, выполняем дополнительные проверки
-            user = get_object_or_404(User, confirmation_code=code, is_active=False)
+class SendPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
 
-            is_valid_email = (
-                User.objects.filter(email=email).exists() if email else False
-            )
-            is_valid_phone_number = (
-                User.objects.filter(phone_number=phone_number).exists()
-                if phone_number
-                else False
-            )
 
-            if (email and is_valid_email) or (phone_number and is_valid_phone_number):
-                # Почта или номер телефона совпадают с данными в базе
+class SendPasswordView(WithHeadersViewSet, generics.GenericAPIView):
+    serializer_class = SendPasswordSerializer
 
-                user.is_active = True  # Устанавливаем статус активации пользователя
-                user.confirmation_code = (
-                    None  # Удаляем код подтверждения из модели пользователя
-                )
-                user.confirmation_code_created_at = (
-                    timezone.now()
-                )  # Устанавливаем время создания кода подтверждения
-                user.save(
-                    update_fields=[
-                        "is_active",
-                        "confirmation_code",
-                        "confirmation_code_created_at",
-                    ]
-                )
+    def post(self, request):
+        email = request.data.get("email")
 
-                return Response(
-                    "Confirmation code is valid. User authenticated successfully and activated."
-                )
-            else:
-                return Response("Invalid email or phone number.", status=400)
-        else:
-            expiry_time = timezone.now() - timedelta(
-                minutes=User.CONFIRMATION_CODE_EXPIRY_MINUTES
-            )
-            User.objects.filter(confirmation_code_created_at__lt=expiry_time).delete()
-            return Response(
-                "Invalid confirmation code. Please check the code or request a new one.",
-                status=400,
-            )
+        # Генерируем пароль
+        password = generate_random_password()
+
+        # Создаем пользователя и устанавливаем ему пароль
+        user = User(email=email)
+        user.password = make_password(password)
+        user.save()
+
+        # Отправляем пароль на почту
+        subject = "Your New Password"
+        message = f"Your new password is: {password}"
+
+        # Замените жестко закодированные значения на настройки из settings.py
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [email]
+
+        try:
+            send_mail(subject, message, from_email, recipient_list, auth_user=settings.EMAIL_HOST_USER,
+                      auth_password=settings.EMAIL_HOST_PASSWORD)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "Password sent successfully"}, status=status.HTTP_200_OK)
 
 
 class PasswordResetView(WithHeadersViewSet, generics.GenericAPIView):
     serializer_class = PasswordResetSerializer
-    sender_service = SenderServiceMixin()  # Создаем экземпляр SenderServiceMixin
+
 
     @swagger_auto_schema(method="post", request_body=PasswordResetSerializer)
     @action(detail=False, methods=["POST"])
