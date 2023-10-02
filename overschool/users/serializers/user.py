@@ -33,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class AllUsersSerializer(serializers.ModelSerializer):
-    roles = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,12 +41,14 @@ class AllUsersSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "id",
-            "roles",
+            "role",
         ]
 
-    def get_roles(self, user):
-        # Получите все записи UserGroup, связанные с данным пользователем
-        user_groups = UserGroup.objects.filter(user=user)
-        # Извлеките текстовые идентификаторы групп, связанных с пользователем
-        role_names = [user_group.group.name for user_group in user_groups]
-        return role_names
+    def get_role(self, user):
+        # Получите запись UserGroup, связанную с данным пользователем и школой
+        user_group = UserGroup.objects.filter(
+            user=user, school=self.context["school"]
+        ).first()
+        # Извлеките текстовый идентификатор найденной группы пользователя
+        role_name = user_group.group.name
+        return role_name
