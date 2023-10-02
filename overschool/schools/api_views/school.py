@@ -6,11 +6,9 @@ from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import ListAPIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, Tariff, TariffPlan
@@ -335,7 +333,7 @@ SchoolViewSet = apply_swagger_auto_schema(
 )(SchoolViewSet)
 
 
-class TariffViewSet(viewsets.ModelViewSet):
+class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
     API endpoint для тарифов.
 

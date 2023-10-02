@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import random
-from typing import Optional
-
 import redis
 from django.conf import settings
 from django.core.mail import send_mail
-from users.models import User
+from rest_framework import status
+from rest_framework.response import Response
 
 
 class SenderServiceMixin:
@@ -24,42 +22,31 @@ class SenderServiceMixin:
     #     db=0,
     # )
 
-    def generate_confirmation_code(self) -> str:
-        """
-        Generate a 4-digit confirmation code
-        """
-        code = random.randint(1000, 9999)
-        return str(code)
-
-    def save_confirmation_code(self, email: str, confirmation_code: str):
-        """
-        Save the confirmation code in the user's confirmation_code field
-        """
-        user = User.objects.filter(email=email).first()
-        if user:
-            user.confirmation_code = confirmation_code
-            user.save()
-
-    def send_code_by_email(self, email: str) -> Optional[str]:
+    def send_code_by_email(self, email: str, message: str, subject: str):
         """
         Send code by email
         """
-        confirmation_code = self.generate_confirmation_code()
-        self.save_confirmation_code(email, confirmation_code)
-
         # Send the confirmation code via email
-        subject = "Confirmation Code"
-        message = f"Your confirmation code is: {confirmation_code}"
+        subject = subject
+        message = message
         from_email = settings.DEFAULT_FROM_EMAIL
         recipient_list = [email]
 
         try:
-            send_mail(subject, message, from_email, recipient_list)
+            send_mail(
+                subject,
+                message,
+                from_email,
+                recipient_list,
+            )
         except Exception as e:
-            # Handle the error or raise an exception
-            print(f"Failed to send email: {e}")
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        return confirmation_code
+        return Response(
+            {"message": "Email sent successfully"}, status=status.HTTP_200_OK
+        )
 
 
 # def send_code_by_phone(self, phone_number: str, user: User) -> Optional[str]:
