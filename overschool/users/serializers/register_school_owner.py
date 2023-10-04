@@ -1,7 +1,7 @@
 from django.contrib.auth.models import Group
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, Tariff, TariffPlan, SchoolHeader
 from users.models import User
 
 
@@ -44,6 +44,14 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         )
 
         school.save()
+
+        if school:
+            school_header = SchoolHeader(
+                school=school,
+                name=school.name
+            )
+            school_header.save()
+
         group = Group.objects.get(name="Admin")
         user.groups.create(group=group, school=school)
         return user
