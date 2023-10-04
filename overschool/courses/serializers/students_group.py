@@ -14,14 +14,19 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
     group_settings = StudentsGroupSettingsSerializer(required=False)
     students = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        many=True,
-        required=False
+        queryset=User.objects.all(), many=True, required=False
     )
 
     class Meta:
         model = StudentsGroup
-        fields = ["name", 'group_id', 'course_id', 'teacher_id', 'students', 'group_settings']
+        fields = [
+            "name",
+            "group_id",
+            "course_id",
+            "teacher_id",
+            "students",
+            "group_settings",
+        ]
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -53,8 +58,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                        .exclude(pk=view.get_object().pk)
-                        .count()
+                    .exclude(pk=view.get_object().pk)
+                    .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
@@ -110,4 +115,4 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentsGroup
-        fields = ["group_id", "name"]
+        fields = ["group_id", "name", "teacher_id"]
