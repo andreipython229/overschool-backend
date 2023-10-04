@@ -299,10 +299,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(
-                profile, context={"request": self.request}
-            )
+            if not item["students__id"]:
+                continue
+            profile = Profile.objects.filter(user_id=item["students__id"]).first()
+            if profile is not None:
+                serializer = UserProfileGetSerializer(
+                    profile, context={"request": self.request}
+                )
             courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
