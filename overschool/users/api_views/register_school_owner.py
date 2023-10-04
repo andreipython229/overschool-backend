@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, Tariff, TariffPlan, SchoolHeader
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler
 
@@ -53,6 +53,9 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 owner=user,
                 tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
             )
+            if school:
+                SchoolHeader.objects.create(school=school, name=school.name)
+
             group = Group.objects.get(name="Admin")
             user.groups.create(group=group, school=school)
         else:
