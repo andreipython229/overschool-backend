@@ -91,7 +91,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         school = serializer.save(
-            avatar=None,
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
         )
@@ -100,12 +99,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
 
-        school_id = school.school_id
-        if request.FILES.get("avatar"):
-            avatar = s.upload_school_image(request.FILES["avatar"], school_id)
-            school.avatar = avatar
-            school.save()
-            serializer = SchoolGetSerializer(school)
+        school.school_id
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -117,16 +111,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serializer = SchoolSerializer(school, data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        if request.FILES.get("avatar"):
-            if school.avatar:
-                s.remove_from_selectel(str(school.avatar))
-            school_id = school.school_id
-            serializer.validated_data["avatar"] = s.upload_school_image(
-                request.FILES["avatar"], school_id
-            )
-        else:
-            serializer.validated_data["avatar"] = school.avatar
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)

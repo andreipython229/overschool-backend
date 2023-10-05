@@ -19,6 +19,7 @@ from users.api_views import (
     SendPasswordView,
     SignupSchoolOwnerView,
     SignupView,
+    TariffSchoolOwner,
     UserSchoolsView,
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
@@ -31,6 +32,11 @@ urlpatterns = [
         "api/<str:school_name>/all_users/",
         AllUsersViewSet.as_view({"get": "list"}),
         name="all_users",
+    ),
+    path(
+        "api/<str:school_name>/current_tariff/",
+        TariffSchoolOwner.as_view({"get": "get"}),
+        name="current_tariff",
     ),
     path(
         "api/register_user/",

@@ -33,12 +33,12 @@ def compress_and_upload_backup(backup_path, db_name):
 def delete_old_backups(db_name, max_backups=7):
     try:
         # Получаем список файлов бэкапов
-        files = selectel_client.get_folder_files(f"/{db_name}/")
+        files = selectel_client.get_folder_files(f"/{db_name}/", "_segments")
     except Exception as e:
         logger.debug(
             f"{e} The errors were caused by trying to connect to Selectel Cloud Storage"
         )
-
+    logger.debug(f"Has {len(files)} backups")
     # Сортируем по дате изменения
     sorted_files = sorted(files, key=lambda f: f["last_modified"], reverse=True)
     num_backups = len(sorted_files)
