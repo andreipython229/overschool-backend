@@ -22,7 +22,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 
  back:
 	${MANAGE} collectstatic --noinput
-	${MANAGE} makemigrations --merge
+	${MANAGE} makemigrations
 	${MANAGE} migrate
 	daphne -b 0.0.0.0 -p 8000 overschool.asgi:application
 
