@@ -1,6 +1,6 @@
 from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
-from schools.models import School, TariffPlan, Tariff
+from schools.models import School, Tariff, TariffPlan
 
 s = SelectelClient()
 
@@ -27,8 +27,6 @@ class SchoolSerializer(serializers.ModelSerializer):
         fields = [
             "school_id",
             "name",
-            "avatar",
-            "avatar_url",
             "order",
             "tariff",
             "purchased_tariff_end_date",
@@ -52,15 +50,11 @@ class SchoolGetSerializer(serializers.ModelSerializer):
     Сериализатор просмотра школы
     """
 
-    avatar = serializers.SerializerMethodField()
-
     class Meta:
         model = School
         fields = [
             "school_id",
             "name",
-            "avatar",
-            "avatar_url",
             "order",
             "tariff",
             "purchased_tariff_end_date",
@@ -72,11 +66,8 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "offer_url",
         ]
 
-    def get_avatar(self, obj):
-        return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
-
 
 class TariffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tariff
-        fields = '__all__'
+        fields = "__all__"

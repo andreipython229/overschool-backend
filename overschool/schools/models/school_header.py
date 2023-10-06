@@ -35,23 +35,9 @@ class SchoolHeader(TimeStampMixin, models.Model):
         blank=True,
         null=True,
     )
-    logo_header = models.ImageField(
-        verbose_name="Фотография",
-        help_text="Фотография заголовка",
-        validators=[limit_size],
-        blank=True,
-        null=True,
-    )
     photo_background = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография фона",
-        validators=[limit_size],
-        blank=True,
-        null=True,
-    )
-    favicon = models.ImageField(
-        verbose_name="Фотография",
-        help_text="Значок веб-сайта",
         validators=[limit_size],
         blank=True,
         null=True,
@@ -71,24 +57,9 @@ class SchoolHeader(TimeStampMixin, models.Model):
             return decoded_name.split("@", 1)[-1]
         return None
 
-    def logo_header_url(self):
-        if self.logo_header:
-            parsed_url = urlparse(self.logo_header.url)
-            decoded_name = unquote(parsed_url.path.split("/")[-1])
-            return decoded_name.split("@", 1)[-1]
-        return None
-
     def photo_background_url(self):
         if self.photo_background:
             parsed_url = urlparse(self.photo_background.url)
-            decoded_name = unquote(parsed_url.path.split("/")[-1])
-
-            return decoded_name.split("@", 1)[-1]
-        return None
-
-    def favicon_url(self):
-        if self.favicon:
-            parsed_url = urlparse(self.favicon.url)
             decoded_name = unquote(parsed_url.path.split("/")[-1])
 
             return decoded_name.split("@", 1)[-1]

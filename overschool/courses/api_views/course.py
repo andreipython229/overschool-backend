@@ -21,7 +21,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Prefetch, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
