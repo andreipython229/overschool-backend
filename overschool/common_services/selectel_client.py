@@ -24,8 +24,8 @@ class SelectelClient:
     BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)
     URL = BASE_URL + "/{}".format(CONTAINER_NAME)
     REDIS_INSTANCE = redis.StrictRedis(
-        host=REDIS_HOST,
-        # host="localhost",
+        # host=REDIS_HOST,
+        host="localhost",
         port=REDIS_PORT,
         db=0,
     )
@@ -75,7 +75,7 @@ class SelectelClient:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.writestr(file.name, file.read())
-        return zip_buffer.getvalue()
+        return zip_buffer.getvalue(), zip_buffer.getbuffer().nbytes
 
     # Сжатие изображения
     @staticmethod
@@ -83,20 +83,22 @@ class SelectelClient:
         image = Image.open(img)
         image_io = io.BytesIO()
         image.save(image_io, format=image.format, quality=20, optimize=True)
-        return image_io.getvalue()
+        return image_io.getvalue(), image_io.getbuffer().nbytes
 
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
-        if file.size <= 10 * 1024 * 1024:
+        size = file.size
+        print("size", size)
+        if size <= 10 * 1024 * 1024:
             # Проверяем расширение файла
             path_without_ext, file_extension = os.path.splitext(path)
             if file_extension.lower() in [".txt", ".py", ".rtf"]:
                 # Файл с разрешенным расширением, создаем zip-архив
-                file_data = self.get_zip_file(file)
+                file_data, size = self.get_zip_file(file)
                 path = path_without_ext + ".zip"
             elif file.content_type.startswith("image") and file.size >= 300 * 1024:
                 # Файл-изображение, превышает разрешенный без сжатия размер, сжимаем изображение
-                file_data = self.get_compressed_image(file)
+                file_data, size = self.get_compressed_image(file)
             else:
                 file_data = file.read()
 
@@ -151,7 +153,8 @@ class SelectelClient:
                     ).encode(encoding="UTF-8", errors="strict"),
                 },
             )
-        return path
+        print("end size", size)
+        return path, size
 
     def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
         course = base_lesson.section.course
@@ -161,9 +164,11 @@ class SelectelClient:
             school_id, course_id, base_lesson.id, datetime.now(), uploaded_file.name
         ).replace(" ", "_")
         # Отправляем файл на загрузку с предварительной обработкой в случае необходимости
-        # Получаем измененный путь файла в случае его архивации
-        file_path = self.upload_to_selectel(file_path, uploaded_file, disposition)
-        return file_path
+        # Получаем измененный путь файла и размер в случае его архивации
+        file_path, file_size = self.upload_to_selectel(
+            file_path, uploaded_file, disposition
+        )
+        return file_path, file_size
 
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "/{}_school/school_data/images/{}@{}".format(
