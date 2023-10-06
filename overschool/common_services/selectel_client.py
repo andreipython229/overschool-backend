@@ -24,8 +24,8 @@ class SelectelClient:
     BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)
     URL = BASE_URL + "/{}".format(CONTAINER_NAME)
     REDIS_INSTANCE = redis.StrictRedis(
-        # host=REDIS_HOST,
-        host="localhost",
+        host=REDIS_HOST,
+        # host="localhost",
         port=REDIS_PORT,
         db=0,
     )
@@ -88,7 +88,6 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
         size = file.size
-        print("size", size)
         if size <= 10 * 1024 * 1024:
             # Проверяем расширение файла
             path_without_ext, file_extension = os.path.splitext(path)
@@ -153,7 +152,6 @@ class SelectelClient:
                     ).encode(encoding="UTF-8", errors="strict"),
                 },
             )
-        print("end size", size)
         return path, size
 
     def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
