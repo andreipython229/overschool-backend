@@ -1,10 +1,10 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from schools.models import School
 from users.models import User
 from users.permissions import OwnerUserPermissions
-from users.serializers import UserSerializer, AllUsersSerializer
+from users.serializers import AllUsersSerializer, UserSerializer
 
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -23,8 +23,8 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
 class AllUsersViewSet(viewsets.GenericViewSet):
     """Возвращаем всех пользователей\n
-        <h2>/api/user/</h2>\n
-        Возвращаем всех пользователей"""
+    <h2>/api/user/</h2>\n
+    Возвращаем всех пользователей"""
 
     queryset = User.objects.all()
     serializer_class = AllUsersSerializer
@@ -36,7 +36,9 @@ class AllUsersViewSet(viewsets.GenericViewSet):
         try:
             school = School.objects.get(name=school_name)
         except School.DoesNotExist:
-            return Response({'error': 'School not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "School not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         # Проверить, является ли текущий пользователь администратором указанной школы
         user = request.user
@@ -45,8 +47,12 @@ class AllUsersViewSet(viewsets.GenericViewSet):
         if is_admin:
             # Если пользователь - админ, вернуть только пользователей из этой школы
             queryset = User.objects.filter(groups__school=school)
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = self.get_serializer(
+                queryset, many=True, context={"school": school}
+            )
             return Response(serializer.data)
         else:
             # В противном случае вернуть ошибку доступа
-            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN
+            )

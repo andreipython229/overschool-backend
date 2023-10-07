@@ -1,11 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics
-from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, Tariff, TariffPlan, SchoolHeader
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler
 
@@ -13,7 +13,6 @@ User = get_user_model()
 jwt_handler = JWTHandler()
 
 
-@permission_classes([AllowAny])
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт регистрации владельца школы\n
     <h2>/api/{school_name}/register-school-owner/</h2>\n
@@ -22,6 +21,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     необходимых данных уже зарегистрированного пользователя,
     для регистрации школы"""
 
+    permission_classes = [AllowAny]
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
@@ -44,11 +44,20 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 return HttpResponse("Название школы уже существует.", status=400)
 
             if (
-                    user.phone_number != phone_number
-                    and User.objects.filter(phone_number=phone_number).exists()
+                user.phone_number != phone_number
+                and User.objects.filter(phone_number=phone_number).exists()
             ):
                 return HttpResponse("Номер телефона уже существует.", status=400)
-            School.objects.create(name=school_name, owner=user, tariff=Tariff.objects.get(name=TariffPlan.INTERN.value))
+            school = School.objects.create(
+                name=school_name,
+                owner=user,
+                tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+            )
+            if school:
+                SchoolHeader.objects.create(school=school, name=school.name)
+
+            group = Group.objects.get(name="Admin")
+            user.groups.create(group=group, school=school)
         else:
             if email and User.objects.filter(email=email).exists():
                 return HttpResponse("Email уже существует.", status=400)
@@ -59,6 +68,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 return HttpResponse("Название школы уже существует.", status=400)
 
             serializer = self.get_serializer(data=request.data)
+
             serializer.is_valid(raise_exception=True)
             serializer.save()
 

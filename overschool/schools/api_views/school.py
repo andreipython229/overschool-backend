@@ -6,11 +6,9 @@ from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import ListAPIView
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, Tariff, TariffPlan
@@ -18,7 +16,7 @@ from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SelectTrialSerializer,
-    TariffSerializer
+    TariffSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -60,8 +58,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -90,12 +88,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
-        # order = generate_order(School)
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         school = serializer.save(
-            # order=order,
-            avatar=None,
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
         )
@@ -104,12 +99,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
 
-        school_id = school.school_id
-        if request.FILES.get("avatar"):
-            avatar = s.upload_school_image(request.FILES["avatar"], school_id)
-            school.avatar = avatar
-            school.save()
-            serializer = SchoolGetSerializer(school)
+        school.school_id
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -121,16 +111,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serializer = SchoolSerializer(school, data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        if request.FILES.get("avatar"):
-            if school.avatar:
-                s.remove_from_selectel(str(school.avatar))
-            school_id = school.school_id
-            serializer.validated_data["avatar"] = s.upload_school_image(
-                request.FILES["avatar"], school_id
-            )
-        else:
-            serializer.validated_data["avatar"] = school.avatar
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)
@@ -273,16 +253,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(mark_sum=Sum("mark"))
-                .values("mark_sum")
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
         )
 
         subquery_average_mark = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(avg=Avg("mark"))
-                .values("avg")
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
         )
 
         data = queryset.values(
@@ -303,8 +283,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile, context={'request': self.request})
+            if not item["students__id"]:
+                continue
+            profile = Profile.objects.filter(user_id=item["students__id"]).first()
+            if profile is not None:
+                serializer = UserProfileGetSerializer(
+                    profile, context={"request": self.request}
+                )
             courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
@@ -335,13 +320,12 @@ SchoolViewSet = apply_swagger_auto_schema(
 )(SchoolViewSet)
 
 
-class TariffViewSet(viewsets.ModelViewSet):
+class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
     API endpoint для тарифов.
 
     """
+
     queryset = Tariff.objects.all()
     serializer_class = TariffSerializer
-
-    allowed_methods = ['GET']
-
+    http_method_names = ["get", "head"]

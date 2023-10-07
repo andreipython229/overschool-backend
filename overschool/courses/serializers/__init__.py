@@ -13,7 +13,7 @@ from .question import (
     QuestionListGetSerializer,
     QuestionSerializer,
 )
-from .section import SectionSerializer
+from .section import SectionSerializer, SectionRetrieveSerializer
 from .section_test import TestSerializer
 from .students_group import (
     GroupsInCourseSerializer,

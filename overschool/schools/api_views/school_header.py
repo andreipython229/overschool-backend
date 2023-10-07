@@ -87,26 +87,14 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             if request.FILES.get("logo_school")
             else None
         )
-        logo_header = (
-            s.upload_school_image(request.FILES["logo_header"], school_id)
-            if request.FILES.get("logo_header")
-            else None
-        )
         photo_background = (
             s.upload_school_image(request.FILES["photo_background"], school_id)
             if request.FILES.get("photo_background")
             else None
         )
-        favicon = (
-            s.upload_school_image(request.FILES["favicon"], school_id)
-            if request.FILES.get("favicon")
-            else None
-        )
         school_header = serializer.save(
             logo_school=logo_school,
-            logo_header=logo_header,
             photo_background=photo_background,
-            favicon=favicon,
         )
         serializer = SchoolHeaderDetailSerializer(school_header)
 
@@ -133,15 +121,6 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         else:
             serializer.validated_data["logo_school"] = school_header.logo_school
 
-        if request.FILES.get("logo_header"):
-            if school_header.logo_header:
-                s.remove_from_selectel(str(school_header.logo_header))
-            serializer.validated_data["logo_header"] = s.upload_school_image(
-                request.FILES["logo_header"], school_id
-            )
-        else:
-            serializer.validated_data["logo_header"] = school_header.logo_header
-
         if request.FILES.get("photo_background"):
             if school_header.photo_background:
                 s.remove_from_selectel(str(school_header.photo_background))
@@ -152,15 +131,6 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
             serializer.validated_data[
                 "photo_background"
             ] = school_header.photo_background
-
-        if request.FILES.get("favicon"):
-            if school_header.favicon:
-                s.remove_from_selectel(str(school_header.favicon))
-            serializer.validated_data["favicon"] = s.upload_school_image(
-                request.FILES["favicon"], school_id
-            )
-        else:
-            serializer.validated_data["favicon"] = school_header.favicon
 
         self.perform_update(serializer)
         serializer = SchoolHeaderDetailSerializer(school_header)
@@ -176,12 +146,8 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         remove_resp = []
         if instance.logo_school:
             remove_resp.append(s.remove_from_selectel(str(instance.logo_school)))
-        if instance.logo_header:
-            remove_resp.append(s.remove_from_selectel(str(instance.logo_header)))
         if instance.photo_background:
             remove_resp.append(s.remove_from_selectel(str(instance.photo_background)))
-        if instance.favicon:
-            remove_resp.append(s.remove_from_selectel(str(instance.favicon)))
 
         if "Error" in remove_resp:
             return Response(

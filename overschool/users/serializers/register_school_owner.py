@@ -1,7 +1,8 @@
+from django.contrib.auth.models import Group
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
+from schools.models import School, Tariff, TariffPlan, SchoolHeader
 from users.models import User
-from schools.models import School, Tariff, TariffPlan
 
 
 class SignupSchoolOwnerSerializer(serializers.Serializer):
@@ -13,17 +14,11 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not attrs.get("email"):
-            raise serializers.ValidationError(
-                "'email' обязателеное поле."
-            )
+            raise serializers.ValidationError("'email' обязателеное поле.")
         if not attrs.get("phone_number"):
-            raise serializers.ValidationError(
-                "'phone_number' обязателеное поле."
-            )
+            raise serializers.ValidationError("'phone_number' обязателеное поле.")
         if not attrs.get("school_name"):
-            raise serializers.ValidationError(
-                "'school_name' обязателеное поле."
-            )
+            raise serializers.ValidationError("'school_name' обязателеное поле.")
         password = attrs.get("password")
         password_confirmation = attrs.get("password_confirmation")
         if password and password != password_confirmation:
@@ -42,14 +37,29 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
 
-        school = School(name=school_name, owner=user, tariff=Tariff.objects.get(name=TariffPlan.INTERN.value))
+        school = School(
+            name=school_name,
+            owner=user,
+            tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+        )
 
         school.save()
 
+        if school:
+            school_header = SchoolHeader(
+                school=school,
+                name=school.name
+            )
+            school_header.save()
+
+        group = Group.objects.get(name="Admin")
+        user.groups.create(group=group, school=school)
         return user
 
     def update(self, instance, validated_data):
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.email = validated_data.get("email", instance.email)
+        instance.phone_number = validated_data.get(
+            "phone_number", instance.phone_number
+        )
         instance.save()
         return instance

@@ -44,6 +44,10 @@ class Tariff(models.Model):
     def __str__(self):
         return f"{self.name} - {self.price}"
 
+    class Meta:
+        verbose_name = "Тариф"
+        verbose_name_plural = "Тарифы"
+
 
 class School(TimeStampMixin, OrderMixin):
     """Модель школы"""
@@ -85,13 +89,6 @@ class School(TimeStampMixin, OrderMixin):
         verbose_name="Дата окончания пробного периода",
         help_text="Дата, когда пробный период истекает",
     )
-    avatar = models.ImageField(
-        verbose_name="Фотография",
-        help_text="Фотография школы",
-        validators=[limit_size],
-        blank=True,
-        null=True,
-    )
     owner = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -103,10 +100,10 @@ class School(TimeStampMixin, OrderMixin):
     )
     offer_url = models.URLField(
         max_length=200,
-        default='',
+        default="",
         blank=True,
         null=True,
-        verbose_name="url договора оферты"
+        verbose_name="url договора оферты",
     )
 
     objects = SchoolManager()
@@ -130,12 +127,6 @@ class School(TimeStampMixin, OrderMixin):
             self.purchased_tariff_end_date = None
 
         self.save()
-
-    def avatar_url(self):
-        if self.avatar:
-            url = urldecode(self.avatar.url)
-            return url[0][0]
-        return None
 
     def __str__(self):
         return str(self.school_id) + " " + str(self.name)

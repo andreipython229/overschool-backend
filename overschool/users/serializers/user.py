@@ -1,5 +1,8 @@
+from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from users.models import User, UserGroup
+
+s = SelectelClient()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -33,7 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class AllUsersSerializer(serializers.ModelSerializer):
-    roles = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,11 +45,23 @@ class AllUsersSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "id",
-            "roles",
+            "role",
+            "first_name",
+            "last_name",
+            "avatar",
         ]
 
-    def get_roles(self, user):
-        user_groups = UserGroup.objects.filter(user=user)
+    def get_role(self, user):
+        user_group = UserGroup.objects.filter(
+            user=user, school=self.context["school"]
+        ).first()
+        role_name = user_group.group.name
+        return role_name
 
-        role_names = [user_group.group.name for user_group in user_groups]
-        return role_names
+    def get_avatar(self, obj):
+        if obj.profile.avatar:
+            return s.get_selectel_link(str(obj.profile.avatar))
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "/users/avatars/base_avatar.jpg"
+            return s.get_selectel_link(base_avatar_path)

@@ -21,7 +21,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Prefetch, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -296,7 +296,7 @@ class CourseViewSet(
             .annotate(avg=Avg("mark"))
             .values("avg")
         )
-
+        print(queryset, "-------")
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -315,6 +315,8 @@ class CourseViewSet(
 
         serialized_data = []
         for item in data:
+            if not item["students__id"]:
+                continue
             profile = Profile.objects.get(user_id=item["students__id"])
             serializer = UserProfileGetSerializer(
                 profile, context={"request": self.request}
@@ -367,7 +369,7 @@ class CourseViewSet(
         queryset = Course.objects.filter(course_id=course.pk)
 
         user = self.request.user
-        school_name = self.kwargs.get("school_name")
+        self.kwargs.get("school_name")
 
         data = queryset.values(
             course=F("course_id"),
@@ -384,9 +386,7 @@ class CourseViewSet(
         group = None
         if user.groups.filter(group__name="Student").exists():
             try:
-                group = StudentsGroup.objects.get(
-                     students=user, course_id_id=course.pk
-                )
+                group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя 1.")
         elif user.groups.filter(group__name="Teacher").exists():

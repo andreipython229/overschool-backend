@@ -38,18 +38,15 @@ class SignupSerializer(serializers.Serializer):
         return user
 
 
-class PasswordResetSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+class PasswordChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
+    new_password_again = serializers.CharField(required=True)
 
     def validate(self, attrs):
-        email = attrs.get("email")
         new_password = attrs.get("new_password")
+        new_password_again = attrs.get("new_password_again")
 
-        if not email:
-            raise serializers.ValidationError("Email is required.")
-
-        if not new_password:
-            raise serializers.ValidationError("New password is required.")
+        if new_password != new_password_again:
+            raise serializers.ValidationError("Пароли не совпадают")
 
         return attrs

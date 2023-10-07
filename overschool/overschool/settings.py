@@ -90,7 +90,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://apidev.overschool.by:8000",
 ]
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
 
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = True
@@ -230,8 +230,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
 
-# Длительность жизни кода подтверждения в минутах
-CONFIRMATION_CODE_EXPIRY_MINUTES = 1
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

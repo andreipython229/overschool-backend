@@ -1,3 +1,4 @@
+from courses.api_views import LessonUpdateViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -8,18 +9,18 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from courses.api_views import LessonUpdateViewSet
 from users.api_views import (
     AccessDistributionView,
+    AllUsersViewSet,
+    ForgotPasswordView,
     LoginView,
     LogoutView,
-    PasswordResetView,
+    PasswordChangeView,
+    SendPasswordView,
     SignupSchoolOwnerView,
     SignupView,
+    TariffSchoolOwner,
     UserSchoolsView,
-    AllUsersViewSet,
-    SendPasswordView
-
 )
 from utils.utils_view import subscribe_client, unsubscribe_client
 
@@ -27,7 +28,16 @@ from .main_router import router, school_router, user_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/<str:school_name>/all_users/", AllUsersViewSet.as_view({"get": "list"}), name="all_users"),
+    path(
+        "api/<str:school_name>/all_users/",
+        AllUsersViewSet.as_view({"get": "list"}),
+        name="all_users",
+    ),
+    path(
+        "api/<str:school_name>/current_tariff/",
+        TariffSchoolOwner.as_view({"get": "get"}),
+        name="current_tariff",
+    ),
     path(
         "api/register_user/",
         SendPasswordView.as_view(actions={"post": "post"}),
@@ -38,7 +48,11 @@ urlpatterns = [
         SignupView.as_view(actions={"post": "post"}),
         name="register",
     ),
-
+    path(
+        "api/forgot_password/",
+        ForgotPasswordView.as_view(actions={"post": "post"}),
+        name="forgot_password",
+    ),
     path(
         "api/register-school-owner/",
         SignupSchoolOwnerView.as_view(actions={"post": "post"}),
@@ -61,14 +75,9 @@ urlpatterns = [
     ),
     path("api/subscribe-client/", subscribe_client, name="subscribe_client"),
     path("api/unsubscribe-client/", unsubscribe_client, name="unsubscribe_client"),
-
     path(
-        "api/reset-password/send-link/",
-        PasswordResetView.as_view({"post": "send_reset_link"}),
-    ),
-    path(
-        "api/reset-password/reset/",
-        PasswordResetView.as_view({"post": "reset_password"}),
+        "api/change-password/",
+        PasswordChangeView.as_view({"post": "change_password"}),
     ),
     path(
         "api/logout/",
