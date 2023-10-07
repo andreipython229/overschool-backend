@@ -1,6 +1,5 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
@@ -110,7 +109,7 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
+            video = s.upload_file(request.FILES["video"], base_lesson, "inline")[0]
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -146,7 +145,7 @@ class HomeworkViewSet(
             base_lesson = BaseLesson.objects.get(homeworks=instance)
             serializer.validated_data["video"] = s.upload_file(
                 request.FILES["video"], base_lesson, "inline"
-            )
+            )[0]
         else:
             serializer.validated_data["video"] = instance.video
 

@@ -1,5 +1,4 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-
 from common_services.selectel_client import SelectelClient
 from courses.models import BaseLesson, Lesson, Section, StudentsGroup
 from courses.serializers import (
@@ -104,7 +103,7 @@ class LessonViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
+            video = s.upload_file(request.FILES["video"], base_lesson, "inline")[0]
             lesson.video = video
             lesson.save()
             serializer = LessonDetailSerializer(lesson)
@@ -143,7 +142,7 @@ class LessonViewSet(
             base_lesson = BaseLesson.objects.get(lessons=instance)
             serializer.validated_data["video"] = s.upload_file(
                 request.FILES["video"], base_lesson, "inline"
-            )
+            )[0]
         else:
             serializer.validated_data["video"] = instance.video
 
@@ -203,7 +202,7 @@ class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIV
         serializer = LessonUpdateSerializer(data=data, many=True)
 
         if serializer.is_valid():
-            BaseLesson.disable_constraint('unique_section_lesson_order')
+            BaseLesson.disable_constraint("unique_section_lesson_order")
             for lesson_data in serializer.validated_data:
                 baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
                 new_order = lesson_data["order"]
