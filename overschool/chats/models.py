@@ -30,7 +30,16 @@ class Chat(models.Model):
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
-        default=None,  # Установите значение по умолчанию
+        default=None,
+    )
+    personal_chats = models.ManyToManyField(
+        'self',
+        through='ChatLink',
+        symmetrical=False,
+        related_name='group_chats',
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE
     )
 
     def __str__(self):
@@ -38,6 +47,11 @@ class Chat(models.Model):
 
     def get_absolute_url(self):
         return reverse('chat_detail', args=[str(self.id)])
+
+
+class ChatLink(models.Model):
+    parent = models.ForeignKey(Chat, related_name='links_to', on_delete=models.CASCADE)
+    child = models.ForeignKey(Chat, related_name='links_from', on_delete=models.CASCADE)
 
 
 class Message(models.Model):
