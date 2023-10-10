@@ -16,7 +16,7 @@ class TariffOwner(serializers.Serializer):
     pass
 
 
-class TariffSchoolOwner(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
     """
     Эндпоинт тарифа школы владельца
     """
