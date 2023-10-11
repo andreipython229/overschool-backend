@@ -1,17 +1,17 @@
 from django.urls import path
 
-from .views import ChatDetailDelete, ChatListCreate, MessageList, ChatListInfo
+from .views import ChatDetailDelete, ChatListCreate, ChatListInfo, MessageList
 
 urlpatterns = [
     path(
         "", ChatListCreate.as_view(actions={"get": "get", "post": "post"}), name="chats"
     ),
-    path(
-        "info/", ChatListInfo.as_view(actions={"get": "list"}), name="info"
-    ),
+    path("info/", ChatListInfo.as_view(actions={"get": "list"}), name="info"),
     path(
         "<uuid:chat_uuid>/",
-        ChatDetailDelete.as_view(actions={"get": "get", "patch": "patch"}),
+        ChatDetailDelete.as_view(
+            actions={"get": "get", "patch": "patch", "delete": "delete"}
+        ),
         name="chat_detail",
     ),
     path(
