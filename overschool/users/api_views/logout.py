@@ -19,7 +19,15 @@ class LogoutView(LoggingMixin, WithHeadersViewSet, View):
 
     def get(self, request):
         logout(request)
-        response = HttpResponse(status=200)
-        response.delete_cookie(settings.ACCESS)
-        response.delete_cookie(settings.REFRESH)
-        return response
+        development_mode_header = request.META.get("HTTP_X_DEVELOPMENT_MODE")
+        if development_mode_header and development_mode_header == "false":
+            SESSION_COOKIE_DOMAIN = ".overschool.by"
+            response = HttpResponse(status=200)
+            response.delete_cookie(settings.ACCESS, domain=SESSION_COOKIE_DOMAIN)
+            response.delete_cookie(settings.REFRESH, domain=SESSION_COOKIE_DOMAIN)
+            return response
+        else:
+            response = HttpResponse(status=200)
+            response.delete_cookie(settings.ACCESS)
+            response.delete_cookie(settings.REFRESH)
+            return response
