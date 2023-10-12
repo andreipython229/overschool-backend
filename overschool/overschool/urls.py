@@ -22,6 +22,7 @@ from users.api_views import (
     TariffSchoolOwner,
     UserSchoolsView,
 )
+from utils.notification import PaymentNotificationView
 from utils.utils_view import subscribe_client, unsubscribe_client
 
 from .main_router import router, school_router, user_router
@@ -75,6 +76,11 @@ urlpatterns = [
     ),
     path("api/subscribe-client/", subscribe_client, name="subscribe_client"),
     path("api/unsubscribe-client/", unsubscribe_client, name="unsubscribe_client"),
+    path(
+        "api/payment-notification/",
+        PaymentNotificationView.as_view(actions={"post": "post"}),
+        name="payment_notification",
+    ),
     path(
         "api/change-password/",
         PasswordChangeView.as_view({"post": "change_password"}),

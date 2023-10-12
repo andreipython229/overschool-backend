@@ -13,12 +13,14 @@ from .bepaid_client import BePaidClient
 def subscribe_client(request):
     user = request.user
     if not user:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
+        )
 
     # Проверяем, есть ли у пользователя активная подписка
     if user.subscription_id:
         return Response(
-            {"error": "User already has an active subscription"},
+            {"error": "Пользователь уже имеет активную подписку"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -37,7 +39,9 @@ def subscribe_client(request):
         to_pay_sum = Tariff.objects.values_list("price", flat=True).get(name=tariff)
         if promo_code:
             try:
-                promo_code_obj = PromoCode.objects.get(name=promo_code)
+                promo_code_obj = PromoCode.objects.get(
+                    name=promo_code, uses_count__gt=0
+                )
             except PromoCode.DoesNotExist:
                 return Response(
                     {"error": "Промокод не найден"}, status=status.HTTP_404_NOT_FOUND
@@ -45,6 +49,7 @@ def subscribe_client(request):
             to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
 
         subscribe_res = bepaid_client.subscribe_client(
+            request=request,
             to_pay_sum=to_pay_sum,
             days_interval=serializer.fields["days_interval"].default,
             pays_count=pays_count,
@@ -52,6 +57,8 @@ def subscribe_client(request):
             last_name=user.last_name,
             email=user.email,
             phone=str(user.phone_number),
+            tariff=tariff,
+            promo_code=promo_code,
         )
         user.subscription_id = subscribe_res.get("id")
         user.save(update_fields=["subscription_id"])
@@ -64,7 +71,9 @@ def subscribe_client(request):
 def unsubscribe_client(request):
     user = request.user
     if not user:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
+        )
 
     bepaid_client = BePaidClient(
         shop_id="21930",
@@ -76,7 +85,8 @@ def unsubscribe_client(request):
 
     if not subscription_id:
         return Response(
-            {"error": "User is not subscribed"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": "Пользователь не имеет подписки"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     bepaid_client.unsubscribe(subscription_id)
@@ -84,4 +94,4 @@ def unsubscribe_client(request):
     user.subscription_id = None
     user.save(update_fields=["subscription_id"])
 
-    return Response({"message": "Unsubscribed successfully"}, status=status.HTTP_200_OK)
+    return Response({"message": "Подписка отменена"}, status=status.HTTP_200_OK)
