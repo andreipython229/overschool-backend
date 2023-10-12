@@ -29,13 +29,15 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
             notification = request.data
             print(notification)
 
-            return Response({"received": notification})
+            return Response({"received": notification["additional_data"]})
         else:
             notification = request.data
+            n = notification["additional_data"]
+            a = n["tariff"]
             print("ошибка", notification)
             print(signature)
             print(digest)
             return Response(
-                {"error": f"Invalid Signature {digest}!={signature}"},
+                {"error": f"Invalid Signature {digest}!={signature}, {n}, {a}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
