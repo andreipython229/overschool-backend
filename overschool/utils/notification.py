@@ -17,29 +17,22 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
     serializer_class = PaymentNotificationSerializer
 
     def post(self, request):
-        signature = request.META.get("X-Signature")
-        a = request.META
-        print(request.META)
-        print(a)
-        shop_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAybT85/HNo9IXHRBoA32wgrnvUZaWK2RcNXoKZju2hRM+3B9KR5qD1aDXnKN2VzLe47XLhKaiiwbAAToThBAxVHhKh25PlerP9iAKLYDypihrbuJEq1QHQzPFRjIliE66NXKh6KGB0wv3ZCakaqAJgx3GH9fZKU5QdmSlYIwyfOI+z01T4cLmdDPOz/NAsgFBU0RwvPJd9aXXb7O8fm8MIxahksvU337BUSZjBbGUKWNIJ+6t4dLXQqv4o9axejRMkGmSY3Puq06t4nBqCgXdgwM3ovk5L6KjxaIw/Vc0edbf6bcLpj/GpML0k49GAisnn4jJaTiW2LzI2up8pj5uQwIDAQAB"
+        signature = request.META["HTTP_AUTHORIZATION"]
+        SECRET_KEY = "0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02"
         body_bytes = bytes(request.body)
         digest = (
-            hmac.new(shop_public_key.encode(), msg=body_bytes, digestmod=hashlib.sha256)
+            hmac.new(SECRET_KEY.encode(), msg=body_bytes, digestmod=hashlib.sha256)
             .hexdigest()
             .lower()
         )
         if digest == signature:
             notification = request.data
-            print(notification)
 
             return Response({"received": notification["additional_data"]})
         else:
             notification = request.data
             n = notification["additional_data"]
             a = n["tariff"]
-            print("ошибка", notification)
-            print(signature)
-            print(digest)
             return Response(
                 {
                     "error": f"Invalid Signature {digest}!={signature}!={request.META}!={a}, {n}, {a}"
