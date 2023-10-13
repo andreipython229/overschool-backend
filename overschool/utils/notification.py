@@ -16,13 +16,14 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
     serializer_class = PaymentNotificationSerializer
 
     def post(self, request):
-        signature = request.META["HTTP_AUTHORIZATION"]
-        auth_type, auth_b64_string = signature.split(" ")
+        auth_header = request.META["HTTP_AUTHORIZATION"]
+        auth_type, auth_b64_string = auth_header.split(" ")
         auth_bytes = base64.b64decode(auth_b64_string)
         auth_string = auth_bytes.decode("utf-8")
+        signature = auth_string.split(":")[1]
         SECRET_KEY = "0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02"
 
-        if SECRET_KEY == auth_string:
+        if SECRET_KEY == signature:
             notification = request.data
 
             return Response(status=status.HTTP_200_OK)
