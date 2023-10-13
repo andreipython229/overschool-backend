@@ -17,10 +17,10 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
     serializer_class = PaymentNotificationSerializer
 
     def post(self, request):
-        signature = request.headers.get("Content-Signature")
-        signature_other = request.headers.get("Signature")
-        signature_3 = request.META.get("Content-Signature")
-        signature_4 = request.META.get("Signature")
+        signature = request.META.get("X-Signature")
+        a = request.META
+        print(request.META)
+        print(a)
         shop_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAybT85/HNo9IXHRBoA32wgrnvUZaWK2RcNXoKZju2hRM+3B9KR5qD1aDXnKN2VzLe47XLhKaiiwbAAToThBAxVHhKh25PlerP9iAKLYDypihrbuJEq1QHQzPFRjIliE66NXKh6KGB0wv3ZCakaqAJgx3GH9fZKU5QdmSlYIwyfOI+z01T4cLmdDPOz/NAsgFBU0RwvPJd9aXXb7O8fm8MIxahksvU337BUSZjBbGUKWNIJ+6t4dLXQqv4o9axejRMkGmSY3Puq06t4nBqCgXdgwM3ovk5L6KjxaIw/Vc0edbf6bcLpj/GpML0k49GAisnn4jJaTiW2LzI2up8pj5uQwIDAQAB"
         body_bytes = bytes(request.body)
         digest = (
@@ -42,7 +42,7 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
             print(digest)
             return Response(
                 {
-                    "error": f"Invalid Signature {digest}!={signature}!={signature_other}!={signature_3}!={signature_4}, {n}, {a}"
+                    "error": f"Invalid Signature {digest}!={signature}!={request.META}!={a}, {n}, {a}"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
