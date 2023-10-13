@@ -1,10 +1,16 @@
 import base64
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from schools.models import PromoCode, School, Tariff
+
+User = get_user_model()
 
 
 class PaymentNotificationSerializer(serializers.Serializer):
@@ -21,19 +27,36 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
         auth_bytes = base64.b64decode(auth_b64_string)
         auth_string = auth_bytes.decode("utf-8")
         signature = auth_string.split(":")[1]
-        SECRET_KEY = "0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02"
 
-        if SECRET_KEY == signature:
+        if settings.BEPAID_SECRET_KEY == signature:
             notification = request.data
-
+            if notification["state"] == "active":
+                if notification["additional_data"]["promo_code"]:
+                    try:
+                        promo_code_obj = PromoCode.objects.get(
+                            name=notification["additional_data"]["promo_code"]
+                        )
+                        promo_code_obj.uses_count -= 1
+                        promo_code_obj.save()
+                    except PromoCode.DoesNotExist:
+                        pass
+                user = User.objects.get(subscription_id=notification["id"])
+                school = School.objects.get(owner=user)
+                tariff = Tariff.objects.get(
+                    name=notification["additional_data"]["tariff"]
+                )
+                school.tariff = tariff
+                school.purchased_tariff_end_date = timezone.now() + timezone.timedelta(
+                    days=30
+                )
+                school.save()
+            else:
+                user = User.objects.get(subscription_id=notification["id"])
+                user.subscription_id = None
+                user.save()
             return Response(status=status.HTTP_200_OK)
         else:
-            notification = request.data
-            n = notification["additional_data"]
-            n["tariff"]
             return Response(
-                {
-                    "error": f"Invalid Signature {SECRET_KEY}!={auth_string}!={auth_bytes}"
-                },
+                {"error": "Invalid Signature"},
                 status=status.HTTP_400_BAD_REQUEST,
             )

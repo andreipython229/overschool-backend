@@ -29,7 +29,9 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
         response = HttpResponse("/api/user/", status=200)
         development_mode_header = request.META.get("HTTP_X_DEVELOPMENT_MODE")
         if development_mode_header and development_mode_header == "false":
-            SESSION_COOKIE_DOMAIN = ".overschool.by"
+            SESSION_COOKIE_DOMAIN = settings.SESSION_COOKIE_DOMAIN
+            response.delete_cookie(settings.ACCESS, domain=SESSION_COOKIE_DOMAIN)
+            response.delete_cookie(settings.REFRESH, domain=SESSION_COOKIE_DOMAIN)
             response.set_cookie(
                 key=settings.ACCESS,
                 value=access_token,
@@ -52,6 +54,8 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
                 domain=SESSION_COOKIE_DOMAIN,
             )
         else:
+            response.delete_cookie(settings.ACCESS)
+            response.delete_cookie(settings.REFRESH)
             response.set_cookie(
                 key=settings.ACCESS,
                 value=access_token,

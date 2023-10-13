@@ -252,6 +252,11 @@ REST_FRAMEWORK = {
     ],
 }
 
+# bepaid
+BEPAID_SHOP_ID: str = os.getenv("BEPAID_SHOP_ID")
+BEPAID_SECRET_KEY: str = os.getenv("BEPAID_SECRET_KEY")
+NOTIFICATION_URL_BEPAID: str = os.getenv("NOTIFICATION_URL_BEPAID")
+
 # jwt
 ALGORITHM: str = os.getenv("ALGORITHM")
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
@@ -263,6 +268,8 @@ REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
 ACCESS: str = os.getenv("ACCESS")
 REFRESH: str = os.getenv("REFRESH")
+SESSION_COOKIE_DOMAIN: str = os.getenv("SESSION_COOKIE_DOMAIN")
+
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 

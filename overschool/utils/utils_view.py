@@ -1,3 +1,4 @@
+from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -32,8 +33,8 @@ def subscribe_client(request):
         promo_code = request.data.get("promo_code")
 
         bepaid_client = BePaidClient(
-            shop_id="21930",
-            secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+            shop_id=settings.BEPAID_SHOP_ID,
+            secret_key=settings.BEPAID_SECRET_KEY,
             is_test=True,
         )
         to_pay_sum = Tariff.objects.values_list("price", flat=True).get(name=tariff)
@@ -50,7 +51,7 @@ def subscribe_client(request):
 
         subscribe_res = bepaid_client.subscribe_client(
             request=request,
-            to_pay_sum=to_pay_sum,
+            to_pay_sum=to_pay_sum * 100,
             days_interval=serializer.fields["days_interval"].default,
             pays_count=pays_count,
             first_name=user.first_name,
@@ -76,8 +77,8 @@ def unsubscribe_client(request):
         )
 
     bepaid_client = BePaidClient(
-        shop_id="21930",
-        secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+        shop_id=settings.BEPAID_SHOP_ID,
+        secret_key=settings.BEPAID_SECRET_KEY,
         is_test=True,
     )
 

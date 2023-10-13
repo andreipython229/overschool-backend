@@ -1,6 +1,7 @@
 import json
 
 import requests
+from django.conf import settings
 
 
 def get_client_ip(request):
@@ -43,7 +44,7 @@ class BePaidClient:
                     "tariff": tariff,
                     "promo_code": promo_code,
                 },
-                "notification_url": "https://apidev.overschool.by/api/payment-notification/",
+                "notification_url": settings.NOTIFICATION_URL_BEPAID,
                 "plan": {
                     "currency": "BYN",
                     "plan": {
@@ -52,7 +53,7 @@ class BePaidClient:
                         "interval_unit": "day",
                     },
                     "shop_id": self.shop_id,
-                    "title": "Подписка прошла успешно",
+                    "title": "Подписка на тарифный план школы",
                 },
                 "settings": {"language": "ru"},
                 "customer": {
@@ -109,7 +110,7 @@ class BePaidClient:
 
 
 bepaid_client = BePaidClient(
-    shop_id="21930",
-    secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+    shop_id=settings.BEPAID_SHOP_ID,
+    secret_key=settings.BEPAID_SECRET_KEY,
     is_test=True,
 )
