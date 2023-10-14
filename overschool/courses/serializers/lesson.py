@@ -16,6 +16,12 @@ class LessonSerializer(serializers.ModelSerializer):
 
     type = serializers.CharField(default="lesson", read_only=True)
     all_components = LessonComponentsOrderSerializer(many=True, required=False)
+    url = serializers.URLField(
+
+        required=False,
+        allow_blank=True,
+        help_text="Ссылка на видео из YouTube",
+    )
 
     class Meta:
         model = Lesson
@@ -33,12 +39,19 @@ class LessonSerializer(serializers.ModelSerializer):
             "type",
             "all_components",
             "active",
+            "url"
         ]
         read_only_fields = ["order"]
 
     def create(self, validated_data):
         components_data = validated_data.pop("all_components", None)
         lesson = Lesson.objects.create(**validated_data)
+
+        # url = validated_data.get("url")
+        # if url:
+        #     lesson.url = url
+        #     lesson.save()
+
         if components_data:
             base_lesson = BaseLesson.objects.get(lessons=lesson)
             for component_data in components_data:
@@ -67,6 +80,7 @@ class LessonSerializer(serializers.ModelSerializer):
         instance.video = validated_data.get("video", instance.video)
         instance.points = validated_data.get("points", instance.points)
         instance.active = validated_data.get("active", instance.active)
+        instance.active = validated_data.get("url", instance.url)
 
         instance.save()
 
@@ -102,6 +116,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "type",
             "all_components",
             "active",
+            "url"
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
 

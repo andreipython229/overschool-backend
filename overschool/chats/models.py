@@ -14,6 +14,7 @@ class Chat(models.Model):
     TYPE_CHOICES = (
         ("GROUP", "Group"),
         ("PERSONAL", "Personal"),
+        ("COURSE", "Course"),
     )
 
     type = models.CharField(

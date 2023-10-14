@@ -34,6 +34,12 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=True,
         null=True,
     )
+    url = models.URLField(
+        verbose_name="URL видео",
+        help_text="Ссылка на видео из YouTube",
+        blank=True,
+        null=True,
+    )
     points = models.PositiveIntegerField(
         verbose_name="Баллы за прохождение",
         help_text="Баллы за прохождение",
@@ -46,7 +52,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=False,
     )
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
-    _clone_m2o_or_o2m_fields = ["text_files", "audio_files"]
+    _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]
 
     def __str__(self):
         return f"{self.section}. {self.name}"

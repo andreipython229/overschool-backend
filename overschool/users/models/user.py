@@ -1,9 +1,7 @@
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-from rest_framework import serializers
 from users.managers import UserManager
 
 
