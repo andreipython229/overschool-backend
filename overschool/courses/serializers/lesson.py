@@ -47,11 +47,6 @@ class LessonSerializer(serializers.ModelSerializer):
         components_data = validated_data.pop("all_components", None)
         lesson = Lesson.objects.create(**validated_data)
 
-        # url = validated_data.get("url")
-        # if url:
-        #     lesson.url = url
-        #     lesson.save()
-
         if components_data:
             base_lesson = BaseLesson.objects.get(lessons=lesson)
             for component_data in components_data:

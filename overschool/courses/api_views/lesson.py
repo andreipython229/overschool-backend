@@ -98,7 +98,6 @@ class LessonViewSet(
                 )
 
         url = self.request.data.get("url")
-        print(url)
         serializer = LessonSerializer(data={**request.data, "url": url})
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save(video=None)
