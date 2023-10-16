@@ -45,7 +45,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -87,7 +87,6 @@ class LessonViewSet(
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-
         section = self.request.data.get("section")
         if section is not None:
             sections = Section.objects.filter(course__school__name=school_name)
@@ -95,9 +94,11 @@ class LessonViewSet(
                 sections.get(pk=section)
             except sections.model.DoesNotExist:
                 raise NotFound(
-                    "Указанная секция не относится не к одному курсу этой школы."
+                    "Указанная секция не относится ни к одному курсу этой школы."
                 )
-        serializer = LessonSerializer(data=request.data)
+
+        url = self.request.data.get("url")
+        serializer = LessonSerializer(data={**request.data, "url": url})
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save(video=None)
 
