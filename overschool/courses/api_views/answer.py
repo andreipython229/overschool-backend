@@ -14,10 +14,6 @@ from .schemas.answer import AnswersSchemas
 s = SelectelClient()
 
 
-# @method_decorator(
-#     name="partial_update",
-#     decorator=AnswersSchemas.partial_update_schema(),
-# )
 class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
     <h2>/api/{school_name}/answers/</h2>\n
