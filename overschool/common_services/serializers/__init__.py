@@ -3,6 +3,7 @@ from .audio_file import (
     AudioFileGetSerializer,
     AudioFileSerializer,
 )
+from .subscription import SubscriptionSerializer
 from .text_file import (
     TextFileCheckSerializer,
     TextFileGetSerializer,

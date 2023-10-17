@@ -1,18 +1,19 @@
+from common_services.bepaid_client import BePaidClient
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.serializers import SubscriptionSerializer
 from django.conf import settings
-from rest_framework import status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import PromoCode, Tariff
-from utils.serializers import SubscriptionSerializer
-
-from .bepaid_client import BePaidClient
+from schools.school_mixin import SchoolMixin
 
 
-class SubscribeClientView(WithHeadersViewSet, LoggingMixin, APIView):
+class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
     serializer_class = SubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         user = request.user
         if not user:
             return Response(
@@ -26,7 +27,7 @@ class SubscribeClientView(WithHeadersViewSet, LoggingMixin, APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = SubscriptionSerializer(data=request.data, context={"user": user})
+        serializer = SubscriptionSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
             tariff = data["tariff"]
@@ -46,7 +47,8 @@ class SubscribeClientView(WithHeadersViewSet, LoggingMixin, APIView):
                     )
                 except PromoCode.DoesNotExist:
                     return Response(
-                        {"error": "Промокод не найден"}, status=status.HTTP_404_NOT_FOUND
+                        {"error": "Промокод не найден"},
+                        status=status.HTTP_404_NOT_FOUND,
                     )
                 to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
 
@@ -69,10 +71,14 @@ class SubscribeClientView(WithHeadersViewSet, LoggingMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UnsubscribeClientView(WithHeadersViewSet, LoggingMixin, APIView):
-    serializer_class = SubscriptionSerializer
+class UnsubscribeSerializer(serializers.Serializer):
+    pass
 
-    def post(self, request):
+
+class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+    # serializer_class = UnsubscribeSerializer
+
+    def post(self, request, *args, **kwargs):
         user = request.user
         if not user:
             return Response(

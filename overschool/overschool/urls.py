@@ -1,3 +1,8 @@
+from common_services.api_views import (
+    PaymentNotificationView,
+    SubscribeClientView,
+    UnsubscribeClientView,
+)
 from courses.api_views import LessonUpdateViewSet
 from django.conf import settings
 from django.conf.urls.static import static
@@ -22,8 +27,6 @@ from users.api_views import (
     TariffSchoolOwner,
     UserSchoolsView,
 )
-from utils.notification import PaymentNotificationView
-from utils.utils_view import SubscribeClientView, UnsubscribeClientView
 
 from .main_router import router, school_router, user_router
 
@@ -31,12 +34,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path(
         "api/<str:school_name>/all_users/",
-        AllUsersViewSet.as_view({"get": "list"}),
+        AllUsersViewSet.as_view(actions={"get": "list"}),
         name="all_users",
     ),
     path(
         "api/<str:school_name>/current_tariff/",
-        TariffSchoolOwner.as_view({"get": "get"}),
+        TariffSchoolOwner.as_view(actions={"get": "get"}),
         name="current_tariff",
     ),
     path(
@@ -74,8 +77,16 @@ urlpatterns = [
         UserSchoolsView.as_view(actions={"get": "list"}),
         name="user_schools",
     ),
-    path('api/subscribe/', SubscribeClientView.as_view({'post': 'post'}), name='subscribe-client'),
-    path('api/unsubscribe/', UnsubscribeClientView.as_view({'post': 'post'}), name='unsubscribe-client'),
+    path(
+        "api/<str:school_name>/subscribe/",
+        SubscribeClientView.as_view(actions={"post": "post"}),
+        name="subscribe-client",
+    ),
+    path(
+        "api/<str:school_name>/unsubscribe/",
+        UnsubscribeClientView.as_view(actions={"post": "post"}),
+        name="unsubscribe-client",
+    ),
     path(
         "api/payment-notification/",
         PaymentNotificationView.as_view(actions={"post": "post"}),
@@ -83,7 +94,7 @@ urlpatterns = [
     ),
     path(
         "api/change-password/",
-        PasswordChangeView.as_view({"post": "change_password"}),
+        PasswordChangeView.as_view(actions={"post": "change_password"}),
     ),
     path(
         "api/logout/",

@@ -48,3 +48,6 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
             days_left = (school.trial_end_date - timezone.now()).days
             data = {"tariff_name": school.tariff.name, "days_left": days_left}
             return Response(data)
+        else:
+            data = {"tariff_name": school.tariff.name, "days_left": None}
+            return Response(data)
