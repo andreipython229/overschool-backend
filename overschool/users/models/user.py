@@ -42,7 +42,6 @@ class User(AbstractBaseUser):
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
-    subscription_id = models.CharField(max_length=255, null=True, blank=True)
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
     is_active = models.BooleanField(verbose_name="Активный", default=True)
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)

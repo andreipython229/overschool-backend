@@ -2,11 +2,12 @@ from common_services.bepaid_client import BePaidClient
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.serializers import SubscriptionSerializer
 from django.conf import settings
-from rest_framework import permissions, serializers, status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from schools.models import PromoCode, Tariff
+from schools.models import PromoCode, School, Tariff
 from schools.school_mixin import SchoolMixin
+from users.models import UserSubscription
 
 
 class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
@@ -15,15 +16,26 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
 
     def post(self, request, *args, **kwargs):
         user = request.user
+        school = kwargs.get("school_name")
         if not user:
             return Response(
                 {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
             )
+        school_obj = School.objects.get(name=school)
+        if user != school_obj.owner:
+            return Response(
+                {"error": "Пользователь не является владельцем школы"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Проверяем, есть ли у пользователя активная подписка
-        if user.subscription_id:
+        user_subscription = UserSubscription.objects.filter(
+            user=user, school=school_obj
+        ).first()
+
+        if user_subscription:
             return Response(
-                {"error": "Пользователь уже имеет активную подписку"},
+                {"error": "Пользователь уже имеет активную подписку для этой школы"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -48,7 +60,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
                 except PromoCode.DoesNotExist:
                     return Response(
                         {"error": "Промокод не найден"},
-                        status=status.HTTP_404_NOT_FOUND,
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
                 to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
 
@@ -62,27 +74,27 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
                 email=user.email,
                 phone=str(user.phone_number),
                 tariff=tariff,
+                school=school,
                 promo_code=promo_code,
             )
-            user.subscription_id = subscribe_res.get("id")
-            user.save(update_fields=["subscription_id"])
 
             return Response(subscribe_res, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UnsubscribeSerializer(serializers.Serializer):
-    pass
-
-
 class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
-    # serializer_class = UnsubscribeSerializer
-
     def post(self, request, *args, **kwargs):
         user = request.user
+        school = kwargs.get("school_name")
         if not user:
             return Response(
                 {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
+            )
+        school_obj = School.objects.get(name=school)
+        if user != school_obj.owner:
+            return Response(
+                {"error": "Пользователь не является владельцем школы"},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         bepaid_client = BePaidClient(
@@ -91,17 +103,18 @@ class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIVi
             is_test=True,
         )
 
-        subscription_id = user.subscription_id
+        user_subscription = UserSubscription.objects.filter(
+            user=user, school=school_obj
+        ).first()
 
-        if not subscription_id:
+        if not user_subscription:
             return Response(
                 {"error": "Пользователь не имеет подписки"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        subscription_id = user_subscription.subscription_id
         bepaid_client.unsubscribe(subscription_id)
 
-        user.subscription_id = None
-        user.save(update_fields=["subscription_id"])
+        user_subscription.delete()
 
         return Response({"message": "Подписка отменена"}, status=status.HTTP_200_OK)

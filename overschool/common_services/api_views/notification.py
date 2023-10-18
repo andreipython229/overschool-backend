@@ -3,12 +3,14 @@ import base64
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import PromoCode, School, Tariff
+from users.models import UserSubscription
 
 User = get_user_model()
 
@@ -40,20 +42,20 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                         promo_code_obj.save()
                     except PromoCode.DoesNotExist:
                         pass
-                user = User.objects.get(subscription_id=notification["id"])
-                school = School.objects.get(owner=user)
-                tariff = Tariff.objects.get(
-                    name=notification["additional_data"]["tariff"]
+                school = get_object_or_404(
+                    School, name=notification["additional_data"]["school"]
+                )
+                tariff = get_object_or_404(
+                    Tariff, name=notification["additional_data"]["tariff"]
                 )
                 school.tariff = tariff
                 school.purchased_tariff_end_date = timezone.now() + timezone.timedelta(
                     days=30
                 )
                 school.save()
-            else:
-                user = User.objects.get(subscription_id=notification["id"])
-                user.subscription_id = None
-                user.save()
+                UserSubscription.objects.create(
+                    user=school.owner, school=school, subscription_id=notification["id"]
+                )
             return Response(status=status.HTTP_200_OK)
         else:
             return Response(

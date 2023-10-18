@@ -31,6 +31,7 @@ class BePaidClient:
         email,
         phone,
         tariff,
+        school,
         promo_code: str | None,
     ):
         to_pay_sum = float(to_pay_sum)
@@ -42,6 +43,7 @@ class BePaidClient:
                 "test": self.is_test,
                 "additional_data": {
                     "tariff": tariff,
+                    "school": school,
                     "promo_code": promo_code,
                 },
                 "notification_url": settings.NOTIFICATION_URL_BEPAID,
