@@ -17,7 +17,6 @@ class LessonSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="lesson", read_only=True)
     all_components = LessonComponentsOrderSerializer(many=True, required=False)
     url = serializers.URLField(
-
         required=False,
         allow_blank=True,
         help_text="Ссылка на видео из YouTube",
@@ -39,7 +38,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "type",
             "all_components",
             "active",
-            "url"
+            "url",
         ]
         read_only_fields = ["order"]
 
@@ -75,7 +74,7 @@ class LessonSerializer(serializers.ModelSerializer):
         instance.video = validated_data.get("video", instance.video)
         instance.points = validated_data.get("points", instance.points)
         instance.active = validated_data.get("active", instance.active)
-        instance.active = validated_data.get("url", instance.url)
+        instance.url = validated_data.get("url", instance.url)
 
         instance.save()
 
@@ -111,7 +110,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "type",
             "all_components",
             "active",
-            "url"
+            "url",
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
 

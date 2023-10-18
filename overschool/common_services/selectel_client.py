@@ -88,7 +88,7 @@ class SelectelClient:
     # Загрузка файла непосредственно в хранилище
     def upload_to_selectel(self, path, file, disposition="attachment"):
         size = file.size
-        if size <= 10 * 1024 * 1024 * 1024:
+        if size <= 10 * 1024 * 1024:
             # Проверяем расширение файла
             path_without_ext, file_extension = os.path.splitext(path)
             if file_extension.lower() in [".txt", ".py", ".rtf"]:
@@ -119,39 +119,39 @@ class SelectelClient:
                         disposition,
                         file.content_type,
                     )
-        # else:
-        #     # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-        #     for num, chunk in enumerate(file.chunks(chunk_size=10 * 1024 * 1024)):
-        #         try:
-        #             r = self.upload_request(
-        #                 "_segments"
-        #                 + path
-        #                 + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-        #                 self.REDIS_INSTANCE.get("selectel_token"),
-        #                 chunk,
-        #                 disposition,
-        #             )
-        #             r.raise_for_status()
-        #         except requests.exceptions.HTTPError as e:
-        #             if e.response.status_code == 401:
-        #                 self.upload_request(
-        #                     "_segments"
-        #                     + path
-        #                     + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-        #                     self.get_token(),
-        #                     chunk,
-        #                     disposition,
-        #                 )
-        #     # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
-        #     requests.put(
-        #         self.URL + path,
-        #         headers={
-        #             "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-        #             "X-Object-Manifest": "{}_segments{}/".format(
-        #                 CONTAINER_NAME, path
-        #             ).encode(encoding="UTF-8", errors="strict"),
-        #         },
-        #     )
+        else:
+            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
+            for num, chunk in enumerate(file.chunks(chunk_size=10 * 1024 * 1024)):
+                try:
+                    r = self.upload_request(
+                        "_segments"
+                        + path
+                        + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
+                        self.REDIS_INSTANCE.get("selectel_token"),
+                        chunk,
+                        disposition,
+                    )
+                    r.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 401:
+                        self.upload_request(
+                            "_segments"
+                            + path
+                            + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
+                            self.get_token(),
+                            chunk,
+                            disposition,
+                        )
+            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
+            requests.put(
+                self.URL + path,
+                headers={
+                    "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
+                    "X-Object-Manifest": "{}_segments{}/".format(
+                        CONTAINER_NAME, path
+                    ).encode(encoding="UTF-8", errors="strict"),
+                },
+            )
         return path, size
 
     def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
