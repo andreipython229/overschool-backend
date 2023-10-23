@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import SelectelClient, UploadToS3
 from courses.models import BaseLesson, Lesson, Section, StudentsGroup
 from courses.serializers import (
     LessonDetailSerializer,
@@ -17,6 +17,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 s = SelectelClient()
+s3 = UploadToS3()
 
 
 class LessonViewSet(
@@ -45,7 +46,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -104,7 +105,7 @@ class LessonViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")[0]
+            video = s3.upload_file(request.FILES["video"], base_lesson)
             lesson.video = video
             lesson.save()
             serializer = LessonDetailSerializer(lesson)
@@ -134,16 +135,11 @@ class LessonViewSet(
 
         if request.FILES.get("video"):
             if instance.video:
-                s.remove_from_selectel(str(instance.video))
-                segments_to_delete = s.get_folder_files(
-                    str(instance.video)[1:], "_segments"
-                )
-                if segments_to_delete:
-                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(lessons=instance)
-            serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson, "inline"
-            )[0]
+            serializer.validated_data["video"] = s3.upload_file(
+                request.FILES["video"], base_lesson
+            )
         else:
             serializer.validated_data["video"] = instance.video
 

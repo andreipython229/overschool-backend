@@ -6,6 +6,7 @@ from datetime import datetime
 from hashlib import sha1
 from time import time
 
+import boto3
 import redis
 import requests
 from PIL import Image
@@ -14,10 +15,48 @@ from overschool.settings import (
     ACCOUNT_ID,
     CONTAINER_KEY,
     CONTAINER_NAME,
+    ENDPOINT_URL,
     REDIS_HOST,
     REDIS_PORT,
+    REGION_NAME,
+    S3_ACCESS_KEY,
+    S3_BUCKET,
+    S3_SECRET_KEY,
     SEL_AUTH_KEY,
 )
+
+
+class UploadToS3:
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=ENDPOINT_URL,
+        region_name=REGION_NAME,
+        aws_access_key_id=S3_ACCESS_KEY,
+        aws_secret_access_key=S3_SECRET_KEY,
+    )
+
+    def get_link(self, filename):
+        url = self.s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET, "Key": filename},
+            ExpiresIn=7200,
+        )
+        return url
+
+    def delete_file(self, filename):
+        self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+
+    def upload_file(self, filename, base_lesson):
+        # Путь
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), filename
+        ).replace(" ", "_")
+
+        self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
+        return file_path
 
 
 class SelectelClient:
