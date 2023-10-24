@@ -133,13 +133,17 @@ class LessonViewSet(
         if not request.data.get("active"):
             serializer.validated_data["active"] = instance.active
 
-        if request.FILES.get("video"):
+        video = request.FILES.get("video")
+        if video:
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(lessons=instance)
             serializer.validated_data["video"] = s3.upload_file(
                 request.FILES["video"], base_lesson
             )
+        elif not video:
+            if instance.video:
+                s3.delete_file(str(instance.video))
         else:
             serializer.validated_data["video"] = instance.video
 
