@@ -58,6 +58,66 @@ class UploadToS3:
         self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
         return file_path
 
+    def upload_large_file(self, filename, base_lesson):
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), filename
+        ).replace(" ", "_")
+
+        # Определите размер файла
+        segment_size = 100 * 1024 * 1024
+        file_size = filename.size
+        if file_size <= segment_size:
+            self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
+            return file_path
+
+        # Создаем загрузочный объект
+        multipart_upload = self.s3.create_multipart_upload(
+            Bucket=S3_BUCKET,
+            Key=file_path,
+        )
+        upload_id = multipart_upload["UploadId"]
+        part_number = 1
+        offset = 0
+        parts = []  # Список для хранения информации о частях
+
+        try:
+            while offset < file_size:
+                # Читаем сегмент файла
+                data = filename.read(segment_size)
+
+                # Загружаем сегмент
+                response = self.s3.upload_part(
+                    Body=data,
+                    Bucket=S3_BUCKET,
+                    Key=file_path,
+                    PartNumber=part_number,
+                    UploadId=upload_id,
+                )
+
+                # Сохраняем информацию о части
+                parts.append({"ETag": response["ETag"], "PartNumber": part_number})
+                part_number += 1
+                offset += len(data)
+
+            # Завершаем многозадачную загрузку, предоставляя информацию о частях
+            self.s3.complete_multipart_upload(
+                Bucket=S3_BUCKET,
+                Key=file_path,
+                UploadId=upload_id,
+                MultipartUpload={"Parts": parts},
+            )
+
+            return file_path
+        except Exception as e:
+            # Произошла ошибка, так что нам нужно отменить многозадачную загрузку
+            self.s3.abort_multipart_upload(
+                Bucket=S3_BUCKET, Key=file_path, UploadId=upload_id
+            )
+            raise e
+
 
 class SelectelClient:
     BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)

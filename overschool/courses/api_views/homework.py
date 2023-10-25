@@ -111,7 +111,7 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s3.upload_file(request.FILES["video"], base_lesson)
+            video = s3.upload_large_file(request.FILES["video"], base_lesson)
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -137,11 +137,11 @@ class HomeworkViewSet(
         serializer.is_valid(raise_exception=True)
 
         video = request.FILES.get("video")
-        if video is not None:
+        if video:
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = s3.upload_file(
+            serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
         elif not video:
@@ -189,10 +189,7 @@ class HomeworkViewSet(
 
         segments_to_delete = []
         if instance.video:
-            files_to_delete += str(instance.video)
-            segments_to_delete = s.get_folder_files(
-                str(instance.video)[1:], "_segments"
-            )
+            s3.delete_file(str(instance.video))
 
         # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
         remove_resp = None

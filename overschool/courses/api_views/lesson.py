@@ -98,14 +98,13 @@ class LessonViewSet(
                     "Указанная секция не относится ни к одному курсу этой школы."
                 )
 
-        url = self.request.data.get("url")
-        serializer = LessonSerializer(data={**request.data, "url": url})
+        serializer = LessonSerializer(data={**request.data})
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save(video=None)
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s3.upload_file(request.FILES["video"], base_lesson)
+            video = s3.upload_large_file(request.FILES["video"], base_lesson)
             lesson.video = video
             lesson.save()
             serializer = LessonDetailSerializer(lesson)
@@ -138,7 +137,7 @@ class LessonViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(lessons=instance)
-            serializer.validated_data["video"] = s3.upload_file(
+            serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
         elif not video:
@@ -163,31 +162,11 @@ class LessonViewSet(
             )
         )
 
-        segments_to_delete = []
         if instance.video:
-            files_to_delete += str(instance.video)
-            segments_to_delete = s.get_folder_files(
-                str(instance.video)[1:], "_segments"
-            )
-
-        # Удаляем сразу все файлы урока и сегменты видео
-        remove_resp = None
-        if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
-                remove_resp = "Error"
+            s3.delete_file(str(instance.video))
 
         self.perform_destroy(instance)
-
-        if remove_resp == "Error":
-            return Response(
-                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
-                status=status.HTTP_204_NO_CONTENT,
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):

@@ -1,11 +1,10 @@
-from common_services.selectel_client import SelectelClient, UploadToS3
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Lesson, LessonComponentsOrder
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
 
-s = SelectelClient()
 s3 = UploadToS3()
 
 
