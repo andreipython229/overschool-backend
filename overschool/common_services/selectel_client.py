@@ -39,12 +39,24 @@ class UploadToS3:
         url = self.s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": S3_BUCKET, "Key": filename},
-            ExpiresIn=7200,
+            ExpiresIn=14400,
         )
         return url
 
     def delete_file(self, filename):
         self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+
+    def upload_school_image(self, uploaded_image, school_id):
+        file_path = "{}_school/school_data/images/{}@{}".format(
+            school_id, datetime.now(), uploaded_image.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
+        return file_path
+
+    def upload_avatar(self, avatar, user_id):
+        file_path = "users/avatars/{}@{}".format(user_id, avatar.name).replace(" ", "_")
+        self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
+        return file_path
 
     def upload_file(self, filename, base_lesson):
         # Путь
