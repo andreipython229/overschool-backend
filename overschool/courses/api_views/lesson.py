@@ -167,7 +167,7 @@ class LessonViewSet(
         remove_resp = None
         objects_to_delete = [{"Key": key} for key in files_to_delete]
         if files_to_delete:
-            if s3.delete_objects(objects_to_delete) == "Error":
+            if s3.delete_files(objects_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)
