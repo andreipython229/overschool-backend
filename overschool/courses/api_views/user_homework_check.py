@@ -13,7 +13,6 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
