@@ -1,6 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import AudioFile
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileCheckSerializer, AudioFileSerializer
 from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework import UserHomework
@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 from common_services.services.request_params import FileParams
 
@@ -118,7 +118,7 @@ class AudioFileViewSet(
                             )
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
-                            file_path, file_size = s.upload_file(
+                            file_path, file_size = s3.upload_file(
                                 uploaded_file, base_lesson
                             )
                             serializer.save(author=user, file=file_path)
@@ -161,7 +161,7 @@ class AudioFileViewSet(
                             )
                             serializer.is_valid(raise_exception=True)
                             # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
-                            file_path, file_size = s.upload_file(
+                            file_path, file_size = s3.upload_file(
                                 uploaded_file, base_lesson
                             )
                             serializer.save(author=user, file=file_path)
@@ -207,7 +207,9 @@ class AudioFileViewSet(
                         )
                         serializer.is_valid(raise_exception=True)
                         # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
-                        file_path, file_size = s.upload_file(uploaded_file, base_lesson)
+                        file_path, file_size = s3.upload_file(
+                            uploaded_file, base_lesson
+                        )
                         serializer.save(author=user, file=file_path)
                         created_files.append(serializer.data)
                     return Response(created_files, status=status.HTTP_201_CREATED)
@@ -243,7 +245,7 @@ class AudioFileViewSet(
             )
 
         self.perform_destroy(instance)
-        if s.remove_from_selectel(str(instance.file)) == "Success":
+        if s3.delete_file(str(instance.file)) == "Success":
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(

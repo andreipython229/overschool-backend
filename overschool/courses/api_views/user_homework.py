@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, StudentsGroup, UserHomework, UserHomeworkCheck
 from courses.models.homework.homework import Homework
 from courses.paginators import UserHomeworkPagination
@@ -19,7 +19,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class UserHomeworkViewSet(
@@ -171,10 +171,10 @@ class UserHomeworkViewSet(
                 )
             )
             # Удаляем сразу все файлы, связанные с домашней работой пользователя и ее доработками
+            objects_to_delete = [{"Key": key} for key in files_to_delete]
+
             remove_resp = (
-                s.bulk_remove_from_selectel(files_to_delete)
-                if files_to_delete
-                else None
+                s3.delete_files(objects_to_delete) if files_to_delete else None
             )
 
             self.perform_destroy(user_homework)

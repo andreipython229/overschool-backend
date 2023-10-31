@@ -1,6 +1,5 @@
 from courses.models import RandomTestTests, SectionTest
 from rest_framework import serializers
-from rest_framework.response import Response
 
 
 class RandomTestTestsSerializer(serializers.ModelSerializer):

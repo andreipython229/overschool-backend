@@ -1,10 +1,10 @@
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from courses.serializers.user_homework_check import UserHomeworkCheckDetailSerializer
 from rest_framework import serializers
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
@@ -97,11 +97,11 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
 
     def get_teacher_avatar(self, obj):
         if obj.teacher.profile.avatar:
-            return s.get_selectel_link(str(obj.teacher.profile.avatar))
+            return s3.get_link(obj.teacher.profile.avatar.name)
         else:
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "/users/avatars/base_avatar.jpg"
-            return s.get_selectel_link(base_avatar_path)
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)
 
 
 class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
@@ -157,8 +157,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
 
     def get_user_avatar(self, obj):
         if obj.user.profile.avatar:
-            return s.get_selectel_link(str(obj.user.profile.avatar))
+            return s3.get_link(obj.user.profile.avatar.name)
         else:
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "/users/avatars/base_avatar.jpg"
-            return s.get_selectel_link(base_avatar_path)
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)
