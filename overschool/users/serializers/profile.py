@@ -1,10 +1,8 @@
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
 from users.models import Profile, User
 
-from chats.models import Message, Chat
-
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -80,8 +78,8 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         if obj.avatar:
-            return s.get_selectel_link(str(obj.avatar))
+            return s3.get_link(obj.avatar.name)
         else:
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "/users/avatars/base_avatar.jpg"
-            return s.get_selectel_link(base_avatar_path)
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)

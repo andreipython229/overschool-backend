@@ -1,16 +1,13 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from rest_framework import permissions, status, viewsets
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.models import Profile
 from users.permissions import OwnerProfilePermissions
 from users.serializers import UserProfileGetSerializer, UserProfileSerializer
 
-from .schemas.profile import profile_schema
-
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -42,8 +39,8 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("avatar"):
             if instance.avatar:
-                s.remove_from_selectel(str(instance.avatar))
-            serializer.validated_data["avatar"] = s.upload_user_avatar(
+                s3.delete_file(str(instance.avatar))
+            serializer.validated_data["avatar"] = s3.upload_avatar(
                 request.FILES["avatar"], instance.user.id
             )
         else:

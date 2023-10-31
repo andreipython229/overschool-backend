@@ -4,7 +4,7 @@ from config.config import huey
 from huey import crontab
 
 from .pg_dump_config import db_config, run_pg_dump
-from .upload_to_s3 import compress_and_upload_backup, delete_old_backups
+from .upload_to_s3 import compress_and_upload_backup
 
 
 @huey.periodic_task(
@@ -25,4 +25,3 @@ def backup_db():
 
     # Perform compression and upload of the backup file
     compress_and_upload_backup(backup_path, db)
-    delete_old_backups(db)

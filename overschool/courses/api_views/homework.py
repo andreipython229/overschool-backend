@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import SelectelClient, UploadToS3
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
@@ -13,6 +13,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 s = SelectelClient()
+s3 = UploadToS3()
 
 
 class HomeworkViewSet(
@@ -28,6 +29,7 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     permission_classes = [permissions.IsAuthenticated]
+
     # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
@@ -109,7 +111,7 @@ class HomeworkViewSet(
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")[0]
+            video = s3.upload_large_file(request.FILES["video"], base_lesson)
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -134,18 +136,17 @@ class HomeworkViewSet(
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
-        if request.FILES.get("video"):
+        video = request.FILES.get("video")
+        if video:
             if instance.video:
-                s.remove_from_selectel(str(instance.video))
-                segments_to_delete = s.get_folder_files(
-                    str(instance.video)[1:], "_segments"
-                )
-                if segments_to_delete:
-                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson, "inline"
-            )[0]
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
+            )
+        elif not video:
+            if instance.video:
+                s3.delete_file(str(instance.video))
         else:
             serializer.validated_data["video"] = instance.video
 
@@ -188,10 +189,7 @@ class HomeworkViewSet(
 
         segments_to_delete = []
         if instance.video:
-            files_to_delete += str(instance.video)
-            segments_to_delete = s.get_folder_files(
-                str(instance.video)[1:], "_segments"
-            )
+            s3.delete_file(str(instance.video))
 
         # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
         remove_resp = None

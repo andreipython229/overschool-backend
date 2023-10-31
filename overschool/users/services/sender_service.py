@@ -44,10 +44,6 @@ class SenderServiceMixin:
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return Response(
-            {"message": "Email sent successfully"}, status=status.HTTP_200_OK
-        )
-
 
 # def send_code_by_phone(self, phone_number: str, user: User) -> Optional[str]:
 #     """

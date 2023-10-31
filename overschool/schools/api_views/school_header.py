@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -15,7 +15,7 @@ from schools.serializers import (
 
 from .schemas.school_header import SchoolHeaderSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -83,12 +83,12 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         school_id = request.data.get("school")
 
         logo_school = (
-            s.upload_school_image(request.FILES["logo_school"], school_id)
+            s3.upload_school_image(request.FILES["logo_school"], school_id)
             if request.FILES.get("logo_school")
             else None
         )
         photo_background = (
-            s.upload_school_image(request.FILES["photo_background"], school_id)
+            s3.upload_school_image(request.FILES["photo_background"], school_id)
             if request.FILES.get("photo_background")
             else None
         )
@@ -114,8 +114,8 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
         if request.FILES.get("logo_school"):
             if school_header.logo_school:
-                s.remove_from_selectel(str(school_header.logo_school))
-            serializer.validated_data["logo_school"] = s.upload_school_image(
+                s3.delete_file(str(school_header.logo_school))
+            serializer.validated_data["logo_school"] = s3.upload_school_image(
                 request.FILES["logo_school"], school_id
             )
         else:
@@ -123,8 +123,8 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
         if request.FILES.get("photo_background"):
             if school_header.photo_background:
-                s.remove_from_selectel(str(school_header.photo_background))
-            serializer.validated_data["photo_background"] = s.upload_school_image(
+                s3.delete_file(str(school_header.photo_background))
+            serializer.validated_data["photo_background"] = s3.upload_school_image(
                 request.FILES["photo_background"], school_id
             )
         else:
@@ -145,9 +145,9 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         self.perform_destroy(instance)
         remove_resp = []
         if instance.logo_school:
-            remove_resp.append(s.remove_from_selectel(str(instance.logo_school)))
+            remove_resp.append(s3.delete_file(str(instance.logo_school)))
         if instance.photo_background:
-            remove_resp.append(s.remove_from_selectel(str(instance.photo_background)))
+            remove_resp.append(s3.delete_file(str(instance.photo_background)))
 
         if "Error" in remove_resp:
             return Response(

@@ -1,8 +1,8 @@
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
 from schools.models import SchoolHeader
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class SchoolHeaderSerializer(serializers.ModelSerializer):
@@ -72,13 +72,13 @@ class SchoolHeaderDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_logo_school_link(self, obj):
-        return s.get_selectel_link(str(obj.logo_school)) if obj.logo_school else None
+        return s3.get_link(obj.logo_school.name) if obj.logo_school else None
 
     def get_photo_background_link(self, obj):
 
         if obj.photo_background:
-            return s.get_selectel_link(str(obj.photo_background))
+            return s3.get_link(obj.photo_background.name)
         else:
             # Если нет загруженного изображения, вернуть ссылку на изображение по умолчанию
-            default_image_path = "/base_school.jpg"
-            return s.get_selectel_link(default_image_path)
+            default_image_path = "base_school.jpg"
+            return s3.get_link(default_image_path)

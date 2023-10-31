@@ -2,7 +2,7 @@ from common_services.bepaid_client import BePaidClient
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.serializers import SubscriptionSerializer
 from django.conf import settings
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import PromoCode, School, Tariff
@@ -82,7 +82,13 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class UnsubscribeClientSerializer(serializers.Serializer):
+    pass
+
+
 class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+    serializer_class = UnsubscribeClientSerializer
+
     def post(self, request, *args, **kwargs):
         user = request.user
         school = kwargs.get("school_name")

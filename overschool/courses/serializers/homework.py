@@ -1,5 +1,4 @@
-# from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Homework, LessonComponentsOrder
 from courses.models.homework.user_homework import UserHomework
@@ -9,7 +8,7 @@ from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
@@ -124,7 +123,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_video(self, obj):
-        return s.get_selectel_link(str(obj.video)) if obj.video else None
+        return s3.get_link(obj.video.name) if obj.video else None
 
     def get_user_homework_checks(self, obj):
         user = self.context["request"].user

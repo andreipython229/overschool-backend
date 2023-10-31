@@ -31,6 +31,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     video = models.FileField(
         verbose_name="Видео",
         help_text="Видеофайл размером до 2 ГБ",
+        max_length=300,
         blank=True,
         null=True,
     )
