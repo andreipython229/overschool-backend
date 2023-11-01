@@ -1,3 +1,5 @@
+import re
+
 from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from schools.models import School, Tariff, TariffPlan
@@ -43,6 +45,14 @@ class SchoolSerializer(serializers.ModelSerializer):
             "used_trial",
             "trial_end_date",
         ]
+
+    def validate(self, attrs):
+        if not attrs.get("name"):
+            raise serializers.ValidationError("'name' обязателеное поле.")
+
+        attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
+
+        return attrs
 
 
 class SchoolGetSerializer(serializers.ModelSerializer):

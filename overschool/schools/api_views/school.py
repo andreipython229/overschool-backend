@@ -4,6 +4,7 @@ from common_services.selectel_client import SelectelClient
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -11,7 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
@@ -88,18 +89,22 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
+
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if School.objects.filter(name=serializer.validated_data["name"]).exists():
+            return HttpResponse("Название школы уже существует.", status=400)
+
         school = serializer.save(
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
         )
+        if school:
+            SchoolHeader.objects.create(school=school, name=school.name)
         # Создание записи в модели UserGroup для добавления пользователя в качестве администратора
         group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
-
-        school.school_id
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -111,6 +116,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serializer = SchoolSerializer(school, data=request.data)
         serializer.is_valid(raise_exception=True)
+        if School.objects.filter(name=serializer.validated_data["name"]).exists():
+            return HttpResponse("Название школы уже существует.", status=400)
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)
