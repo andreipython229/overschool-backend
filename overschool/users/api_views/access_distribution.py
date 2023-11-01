@@ -84,11 +84,11 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
-                        "Превышено количество новых учеников в месяц для выбранного тарифа",
+                        f"Превышено количество новых учеников в месяц для выбранного тарифа. Можно добавить новых учеников: {school.tariff.students_per_month - student_count_by_month}",
                         status=400,
                     )
                 student_count = UserGroup.objects.filter(
@@ -96,7 +96,7 @@ class AccessDistributionView(
                 ).count()
                 if school.tariff.total_students - student_count < new_user_count:
                     return HttpResponse(
-                        "Превышено количество учеников для выбранного тарифа",
+                        f"Превышено количество учеников для выбранного тарифа. Можно добавить новых учеников: {school.tariff.total_students - student_count}",
                         status=400,
                     )
             elif school.tariff.name in [
@@ -111,8 +111,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
                         "Превышено количество новых учеников в месяц для выбранного тарифа",
@@ -123,9 +123,9 @@ class AccessDistributionView(
                 group__name__in=["Teacher", "Admin"], school=school
             ).count()
             if (
-                    school.tariff.name
-                    in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                    and school.tariff.number_of_staff - staff_count < new_user_count
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and school.tariff.number_of_staff - staff_count < new_user_count
             ):
                 return HttpResponse(
                     "Превышено количество cотрудников для выбранного тарифа",
@@ -155,9 +155,9 @@ class AccessDistributionView(
         for user in users:
             # Проверка на то что у пользователя в этой школе уже есть роль
             if (
-                    UserGroup.objects.filter(user=user, school=school)
-                            .exclude(group=group)
-                            .exists()
+                UserGroup.objects.filter(user=user, school=school)
+                .exclude(group=group)
+                .exists()
             ):
                 return HttpResponse(
                     f"Пользователь уже имеет другую роль в этой школе (id={user.id}, email={user.email})",
@@ -178,7 +178,7 @@ class AccessDistributionView(
                         user.teacher_group_fk.add(student_group)
                 if role == "Student":
                     if user.students_group_fk.filter(
-                            course_id__in=courses_ids
+                        course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
                             f"Нельзя учиться в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
@@ -230,8 +230,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (id={user.id}, email={user.email})",
@@ -245,7 +245,9 @@ class AccessDistributionView(
                 else:
                     user.groups.get(group=group, school=school).delete()
                     if role == "Student":
-                        student_groups = StudentsGroup.objects.filter(students=user, course_id__school=school)
+                        student_groups = StudentsGroup.objects.filter(
+                            students=user, course_id__school=school
+                        )
                         for student_group in student_groups:
                             student_group.students.remove(user)
             else:

@@ -1,3 +1,5 @@
+import re
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
@@ -5,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from schools.models import School, Tariff, TariffPlan, SchoolHeader
+from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler
 
@@ -26,14 +28,22 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
     def post(self, request, *args, **kwargs):
         email = request.data.get("email")
-        school_name = request.data.get("school_name")
         phone_number = request.data.get("phone_number")
+        school_name = request.data.get("school_name")
+        school_name = re.sub(r"[^A-Za-z0-9._-]", "", school_name)
 
-        if not all([email, phone_number]):
-            return HttpResponse("Требуется указать email и номер телефона", status=400)
+        if not all([email, phone_number, school_name]):
+            return HttpResponse(
+                "Требуется указать email, номер телефона и название школы", status=400
+            )
 
         if request.user.is_authenticated:
             user = self.request.user
+
+            if School.objects.filter(owner=user).count() >= 2:
+                return HttpResponse(
+                    "Пользователь может быть владельцем только двух школ.", status=400
+                )
 
             if not check_password(request.data.get("password"), user.password):
                 return HttpResponse("Неверные учетные данные пароля", status=401)
