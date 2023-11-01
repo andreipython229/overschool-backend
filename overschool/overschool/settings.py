@@ -66,9 +66,9 @@ REDIS_PORT = "6379"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_PORT = 587
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_PORT = 465
 SERVER_MAIL = os.getenv("EMAIL_NAME")
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
