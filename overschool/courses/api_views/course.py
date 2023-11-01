@@ -3,7 +3,7 @@ from datetime import datetime
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     Course,
     Homework,
@@ -37,7 +37,7 @@ from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -89,7 +89,7 @@ class CourseViewSet(
         ]:
             # Разрешения для просмотра курсов (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -136,9 +136,9 @@ class CourseViewSet(
             )
 
         if (
-                school_obj.tariff.name
-                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
+            school_obj.tariff.name
+            in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+            and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
         ):
             return Response(
                 "Превышено количество курсов для выбранного тарифа",
@@ -150,7 +150,7 @@ class CourseViewSet(
         course = serializer.save(photo=None)
 
         if request.FILES.get("photo"):
-            photo = s.upload_course_image(request.FILES["photo"], course)
+            photo = s3.upload_course_image(request.FILES["photo"], course)
             course.photo = photo
             course.save()
             serializer = CourseGetSerializer(course)
@@ -158,7 +158,7 @@ class CourseViewSet(
         # Создайте чат с типом "COURSE" и именем, связанным с курсом
         chat_name = f"Чат курса '{course.name}'"
         chat = Chat.objects.create(name=chat_name, type="COURSE")
-        
+
         admin = request.user
 
         UserChat.objects.create(user=admin, chat=chat)
@@ -181,8 +181,8 @@ class CourseViewSet(
 
         if request.FILES.get("photo"):
             if instance.photo:
-                s.remove_from_selectel(str(instance.photo))
-            serializer.validated_data["photo"] = s.upload_course_image(
+                s3.delete_file(str(instance.photo))
+            serializer.validated_data["photo"] = s3.upload_course_image(
                 request.FILES["photo"], instance
             )
         else:
@@ -199,20 +199,13 @@ class CourseViewSet(
         school_id = instance.school.school_id
 
         # Получаем список файлов, хранящихся в папке удаляемого курса
-        files_to_delete = s.get_folder_files(
+        files_to_delete = s3.get_list_objects(
             "{}_school/{}_course".format(school_id, instance.pk)
-        )
-        # Получаем список сегментов файлов удаляемого курса
-        segments_to_delete = s.get_folder_files(
-            "{}_school/{}_course".format(school_id, instance.pk), "_segments"
         )
         # Удаляем все файлы и сегменты, связанные с удаляемым курсом
         remove_resp = None
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(files_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)
@@ -297,16 +290,16 @@ class CourseViewSet(
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(mark_sum=Sum("mark"))
-                .values("mark_sum")
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
         )
 
         subquery_average_mark = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(avg=Avg("mark"))
-                .values("avg")
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
         )
         print(queryset, "-------")
         data = queryset.values(
@@ -432,10 +425,10 @@ class CourseViewSet(
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
             elif user.groups.filter(
-                    group__name__in=[
-                        "Student",
-                        "Teacher",
-                    ]
+                group__name__in=[
+                    "Student",
+                    "Teacher",
+                ]
             ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
@@ -479,7 +472,7 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         if user.groups.filter(
-                group__name__in=["Admin", "Teacher"], school=school
+            group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(course_id=course.course_id)
 
@@ -533,8 +526,8 @@ class CourseViewSet(
         # Отбираем курсы, в которых есть студенческие группы
         queryset = (
             self.get_queryset()
-                .annotate(groups_count=Count("group_course_fk__group_id"))
-                .exclude(groups_count=0)
+            .annotate(groups_count=Count("group_course_fk__group_id"))
+            .exclude(groups_count=0)
         )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

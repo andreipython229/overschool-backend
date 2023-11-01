@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient, UploadToS3
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Lesson, Section, StudentsGroup
 from courses.serializers import (
     LessonDetailSerializer,
@@ -16,7 +16,6 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
 s3 = UploadToS3()
 
 
@@ -165,8 +164,20 @@ class LessonViewSet(
         if instance.video:
             s3.delete_file(str(instance.video))
 
+        remove_resp = None
+        objects_to_delete = [{"Key": key} for key in files_to_delete]
+        if files_to_delete:
+            if s3.delete_files(objects_to_delete) == "Error":
+                remove_resp = "Error"
+
         self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if remove_resp == "Error":
+            return Response(
+                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):

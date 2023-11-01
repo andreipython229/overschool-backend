@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient, UploadToS3
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
 s3 = UploadToS3()
 
 
@@ -187,17 +186,14 @@ class HomeworkViewSet(
             )
         )
 
-        segments_to_delete = []
         if instance.video:
             s3.delete_file(str(instance.video))
 
         # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
         remove_resp = None
+        objects_to_delete = [{"Key": key} for key in files_to_delete]
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(objects_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)

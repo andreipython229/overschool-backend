@@ -1,10 +1,10 @@
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import Course
 from rest_framework import serializers
 
 from .students_group import GroupsInCourseSerializer
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -55,11 +55,11 @@ class CourseGetSerializer(serializers.ModelSerializer):
 
     def get_photo(self, obj):
         if obj.photo:
-            return s.get_selectel_link(str(obj.photo))
+            return s3.get_link(obj.photo.name)
         else:
             # Если нет загруженной картинки, вернуть ссылку на дефолтное изображение
-            default_image_path = "/base_course.jpg"
-            return s.get_selectel_link(default_image_path)
+            default_image_path = "base_course.jpg"
+            return s3.get_link(default_image_path)
 
 
 class CourseStudentsSerializer(serializers.Serializer):

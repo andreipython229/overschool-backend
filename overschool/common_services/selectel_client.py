@@ -46,6 +46,24 @@ class UploadToS3:
     def delete_file(self, filename):
         self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
 
+    def delete_files(self, objects_to_delete):
+        self.s3.delete_objects(Bucket=S3_BUCKET, Delete={"Objects": objects_to_delete})
+
+    def get_list_objects(self, prefix):
+        items = self.s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=f"{prefix}")[
+            "Contents"
+        ]
+        return items
+
+    def upload_course_image(self, uploaded_image, course):
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}@{}".format(
+            school_id, course_id, datetime.now(), uploaded_image.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
+        return file_path
+
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "{}_school/school_data/images/{}@{}".format(
             school_id, datetime.now(), uploaded_image.name
@@ -59,7 +77,6 @@ class UploadToS3:
         return file_path
 
     def upload_file(self, filename, base_lesson):
-        # Путь
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id

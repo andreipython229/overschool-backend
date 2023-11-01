@@ -1,8 +1,8 @@
 from common_services.models import AudioFile
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
@@ -80,4 +80,4 @@ class AudioFileGetSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_link(self, obj):
-        return s.get_selectel_link(str(obj.file))
+        return s3.get_link(obj.file.name)
