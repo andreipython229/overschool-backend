@@ -64,7 +64,7 @@ MANAGERS = ADMINS
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "overschool.mailing.MyEmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
@@ -74,8 +74,6 @@ DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-EMAIL_SSL_KEYFILE = os.getenv("EMAIL_SSL_KEYFILE")
-EMAIL_SSL_CERTFILE = os.getenv("EMAIL_SSL_CERTFILE")
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
