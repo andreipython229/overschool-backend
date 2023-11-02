@@ -2,8 +2,7 @@ from random import sample
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     Answer,
     BaseLesson,
@@ -23,7 +22,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class TestViewSet(
@@ -135,15 +134,16 @@ class TestViewSet(
         school_id = course.school.school_id
 
         # Получаем список файлов, хранящихся в папке удаляемого теста
-        files_to_delete = s.get_folder_files(
+        files_to_delete = s3.get_list_objects(
             "{}_school/{}_course/{}_lesson".format(
                 school_id, course.course_id, base_lesson.id
             )
         )
         # Удаляем все файлы, связанные с удаляемым тестом
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
-        )
+        remove_resp = None
+        if files_to_delete:
+            if s3.delete_files(files_to_delete) == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 

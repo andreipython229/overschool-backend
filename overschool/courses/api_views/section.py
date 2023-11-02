@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     BaseLesson,
     Course,
@@ -9,11 +9,10 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
-    UserProgressLogs,
-    StudentsGroup,
     StudentsGroupSettings,
+    UserProgressLogs,
 )
-from courses.serializers import SectionSerializer, SectionRetrieveSerializer
+from courses.serializers import SectionRetrieveSerializer, SectionSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -27,7 +26,7 @@ from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -47,7 +46,6 @@ class SectionViewSet(
     serializer_class = SectionSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser,)
-
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -101,7 +99,7 @@ class SectionViewSet(
         section = queryset.filter(pk=pk).first()
         if not section:
             return Response("Раздел не найден или у вас нет необходимых прав.")
-        context = {'request': request}
+        context = {"request": request}
         serializer = SectionRetrieveSerializer(section, context=context)
         return Response(serializer.data)
 
@@ -114,7 +112,6 @@ class SectionViewSet(
                 courses.get(pk=course)
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
-
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -151,21 +148,12 @@ class SectionViewSet(
 
         # Получаем, а затем удаляем файлы и сегменты всех уроков удаляемого раздела
         for id in base_lessons_ids:
-            files_to_delete = s.get_folder_files(
+            files_to_delete = s3.get_list_objects(
                 "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id)
             )
-            segments_to_delete = s.get_folder_files(
-                "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id),
-                "_segments",
-            )
+
             if files_to_delete:
-                if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                    remove_resp = "Error"
-            if segments_to_delete:
-                if (
-                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
-                    == "Error"
-                ):
+                if s3.delete_files(files_to_delete) == "Error":
                     remove_resp = "Error"
 
         self.perform_destroy(instance)
@@ -187,7 +175,7 @@ class SectionViewSet(
         section = queryset.filter(pk=pk)
 
         user = self.request.user
-        school_name = self.kwargs.get("school_name")
+        self.kwargs.get("school_name")
 
         data = section.values(
             section_name=F("name"),
@@ -214,7 +202,7 @@ class SectionViewSet(
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
         if group:
-            result_data['group_settings'] = {
+            result_data["group_settings"] = {
                 "task_submission_lock": group.group_settings.task_submission_lock,
                 "strict_task_order": group.group_settings.strict_task_order,
             }

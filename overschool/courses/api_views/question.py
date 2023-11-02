@@ -1,27 +1,17 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Question, SectionTest
 from courses.serializers import QuestionGetSerializer, QuestionSerializer
-from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from .schemas.question import QuestionsSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
-# @method_decorator(
-#     name="update",
-#     decorator=QuestionsSchemas.question_update_schema(),
-# )
-# @method_decorator(
-#     name="partial_update",
-#     decorator=QuestionsSchemas.question_update_schema(),
-# )
 class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления вопросов \n
     <h2>/api/{school_name}/questions/</h2>\n
@@ -30,8 +20,6 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = Question.objects.all()
     permission_classes = [permissions.IsAuthenticated]
-
-    # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -61,7 +49,7 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if request.FILES.get("picture"):
             test = SectionTest.objects.get(pk=request.data["test"])
             base_lesson = BaseLesson.objects.get(tests=test)
-            serializer.validated_data["picture"] = s.upload_file(
+            serializer.validated_data["picture"] = s3.upload_file(
                 request.FILES["picture"], base_lesson
             )
 
@@ -76,9 +64,9 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         if request.FILES.get("picture"):
             if instance.picture:
-                s.remove_from_selectel(str(instance.picture))
+                s3.delete_file(str(instance.picture))
             base_lesson = BaseLesson.objects.get(tests=instance.test)
-            serializer.validated_data["picture"] = s.upload_file(
+            serializer.validated_data["picture"] = s3.upload_file(
                 request.FILES["picture"], base_lesson
             )
         else:
@@ -98,9 +86,11 @@ class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         for file_obj in list(instance.answers.exclude(picture="").values("picture")):
             files_to_delete.append(str(file_obj["picture"]))
 
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
-        )
+        remove_resp = None
+        objects_to_delete = [{"Key": key} for key in files_to_delete]
+        if files_to_delete:
+            if s3.delete_files(objects_to_delete) == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 

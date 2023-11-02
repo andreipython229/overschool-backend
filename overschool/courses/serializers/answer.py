@@ -1,8 +1,8 @@
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import Answer
 from rest_framework import serializers
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -27,7 +27,7 @@ class AnswerGetSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_picture(self, obj):
-        return s.get_selectel_link(str(obj.picture)) if obj.picture else None
+        return s3.get_link(obj.picture.name) if obj.picture else None
 
 
 class AnswerListGetSerializer(serializers.ModelSerializer):
@@ -51,4 +51,4 @@ class AnswerListGetSerializer(serializers.ModelSerializer):
         )
 
     def get_picture(self, obj):
-        return s.get_selectel_link(str(obj.picture)) if obj.picture else None
+        return s3.get_link(obj.picture.name) if obj.picture else None
