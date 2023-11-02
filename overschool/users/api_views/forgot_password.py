@@ -43,8 +43,10 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
         message = f"Your new password is: {new_password}"
 
         # send message with new password
-        self.sender_service.send_code_by_email(
+        send = self.sender_service.send_code_by_email(
             email=email, subject=subject, message=message
         )
+        if send and send["status_code"] == 500:
+            return Response(send["error"], status=send["status_code"])
 
         return Response("New password sent successfully. Check your email.")

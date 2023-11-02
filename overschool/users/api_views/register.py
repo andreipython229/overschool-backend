@@ -82,7 +82,11 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         subject = "Your New Password"
         message = f"Your new password is: {password}"
 
-        sender_service.send_code_by_email(email=email, subject=subject, message=message)
+        send = sender_service.send_code_by_email(
+            email=email, subject=subject, message=message
+        )
+        if send and send["status_code"] == 500:
+            return Response(send["error"], status=send["status_code"])
 
         return Response(
             {"message": "Password sent successfully"}, status=status.HTTP_200_OK
