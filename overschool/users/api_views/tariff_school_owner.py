@@ -1,4 +1,4 @@
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.mixins import WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
+from users.models import UserGroup
 
 User = get_user_model()
 
@@ -32,22 +33,42 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
     def get(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         user = self.request.user
-        School.objects.get(name=school_name)
+
         try:
             school = School.objects.get(name=school_name, owner=user)
         except School.DoesNotExist:
             return Response([])
+
         if school.tariff.name == TariffPlan.INTERN.value:
-            data = {"tariff_name": school.tariff.name, "days_left": None}
+            data = {"tariff_name": school.tariff.name, "days_left": None, "students": 0, "staff": 0}
             return Response(data)
+
         if school.purchased_tariff_end_date:
             days_left = (school.purchased_tariff_end_date - timezone.now()).days
-            data = {"tariff_name": school.tariff.name, "days_left": days_left}
-            return Response(data)
-        if school.trial_end_date:
+        elif school.trial_end_date:
             days_left = (school.trial_end_date - timezone.now()).days
-            data = {"tariff_name": school.tariff.name, "days_left": days_left}
-            return Response(data)
         else:
-            data = {"tariff_name": school.tariff.name, "days_left": None}
-            return Response(data)
+            days_left = None
+
+        users = User.objects.filter(groups__school=school)
+
+        students = 0
+        staff = 0
+
+        for user in users:
+            user_group = UserGroup.objects.filter(user=user, school=school).first()
+            if user_group:
+                role_name = user_group.group.name
+                if role_name == "Student":
+                    students += 1
+                else:
+                    staff += 1
+
+        data = {
+            "tariff_name": school.tariff.name,
+            "days_left": days_left,
+            "students": students,
+            "staff": staff,
+        }
+
+        return Response(data)
