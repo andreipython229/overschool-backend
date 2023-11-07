@@ -123,7 +123,7 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-
+        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -132,7 +132,7 @@ class LessonViewSet(
             serializer.validated_data["active"] = instance.active
 
         video = request.FILES.get("video")
-        if video:
+        if video and video_use:
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(lessons=instance)

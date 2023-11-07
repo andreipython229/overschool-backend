@@ -45,6 +45,13 @@ class UploadToS3:
         else:
             return None
 
+    def get_size_object(self, key):
+        response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
+        if "ContentLength" in response:
+            return response["ContentLength"]
+        else:
+            return None
+
     def upload_course_image(self, uploaded_image, course):
         course_id = course.course_id
         school_id = course.school.school_id

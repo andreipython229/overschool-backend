@@ -64,6 +64,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
     """
 
     file = serializers.SerializerMethodField(method_name="get_file_link")
+    size = serializers.SerializerMethodField(method_name="get_file_size")
 
     class Meta:
         model = TextFile
@@ -71,6 +72,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
             "id",
             "file",
             "file_url",
+            "size",
             "author",
             "base_lesson",
             "user_homework",
@@ -81,3 +83,13 @@ class TextFileGetSerializer(serializers.ModelSerializer):
 
     def get_file_link(self, obj):
         return s3.get_link(obj.file.name)
+
+    def get_file_size(self, obj):
+        file_size = s3.get_size_object(obj.file.name)
+        # Преобразуем размер в человекочитаемый формат (например, КБ или МБ)
+        if file_size < 1024:
+            return f"{file_size} bytes"
+        elif file_size < 1024 * 1024:
+            return f"{file_size / 1024:.2f} KB"
+        else:
+            return f"{file_size / (1024 * 1024):.2f} MB"

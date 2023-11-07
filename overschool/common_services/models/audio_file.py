@@ -6,7 +6,9 @@ from .base_lesson_file import BaseLessonFile
 
 
 class AudioFile(BaseLessonFile):
-    file = models.FileField(verbose_name="Ресурс", validators=[limit_size])
+    file = models.FileField(
+        verbose_name="Ресурс", max_length=300, validators=[limit_size]
+    )
 
     def file_url(self):
         if self.file:

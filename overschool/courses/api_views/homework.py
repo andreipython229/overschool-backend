@@ -130,13 +130,14 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
+        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
         video = request.FILES.get("video")
-        if video:
+        if video and video_use:
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(homeworks=instance)
