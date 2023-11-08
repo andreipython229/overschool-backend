@@ -66,13 +66,7 @@ class TextFileCheckSerializer(serializers.ModelSerializer):
 
     def get_file_size(self, obj):
         file_size = s3.get_size_object(obj.file.name)
-        # Преобразуем размер в человекочитаемый формат (например, КБ или МБ)
-        if file_size < 1024:
-            return f"{file_size} bytes"
-        elif file_size < 1024 * 1024:
-            return f"{file_size / 1024:.2f} KB"
-        else:
-            return f"{file_size / (1024 * 1024):.2f} MB"
+        return file_size
 
 
 class TextFileGetSerializer(serializers.ModelSerializer):
@@ -103,10 +97,4 @@ class TextFileGetSerializer(serializers.ModelSerializer):
 
     def get_file_size(self, obj):
         file_size = s3.get_size_object(obj.file.name)
-        # Преобразуем размер в человекочитаемый формат (например, КБ или МБ)
-        if file_size < 1024:
-            return f"{file_size} bytes"
-        elif file_size < 1024 * 1024:
-            return f"{file_size / 1024:.2f} KB"
-        else:
-            return f"{file_size / (1024 * 1024):.2f} MB"
+        return file_size
