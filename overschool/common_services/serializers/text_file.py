@@ -42,11 +42,15 @@ class TextFileCheckSerializer(serializers.ModelSerializer):
     Сериализатор для проверки каждого добавляемого текстового файла в отдельности
     """
 
+    file = serializers.SerializerMethodField(method_name="get_file_link")
+    size = serializers.SerializerMethodField(method_name="get_file_size")
+
     class Meta:
         model = TextFile
         fields = [
             "id",
             "file",
+            "size",
             "file_url",
             "author",
             "base_lesson",
@@ -55,7 +59,20 @@ class TextFileCheckSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file", "size"]
+
+    def get_file_link(self, obj):
+        return s3.get_link(obj.file.name)
+
+    def get_file_size(self, obj):
+        file_size = s3.get_size_object(obj.file.name)
+        # Преобразуем размер в человекочитаемый формат (например, КБ или МБ)
+        if file_size < 1024:
+            return f"{file_size} bytes"
+        elif file_size < 1024 * 1024:
+            return f"{file_size / 1024:.2f} KB"
+        else:
+            return f"{file_size / (1024 * 1024):.2f} MB"
 
 
 class TextFileGetSerializer(serializers.ModelSerializer):
