@@ -142,9 +142,10 @@ class LessonViewSet(
         elif not video and video_use:
             if instance.video:
                 s3.delete_file(str(instance.video))
+            instance.video = None
         elif not video and not video_use:
             serializer.validated_data["video"] = instance.video
-
+        instance.save()
         self.perform_update(serializer)
 
         serializer = LessonDetailSerializer(instance)

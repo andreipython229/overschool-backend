@@ -93,7 +93,7 @@ class UploadToS3:
         ).replace(" ", "_")
 
         # Определите размер файла
-        segment_size = 100 * 1024 * 1024
+        segment_size = 50 * 1024 * 1024
         file_size = filename.size
         if file_size <= segment_size:
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
