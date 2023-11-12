@@ -130,6 +130,7 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
+        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.context["request"] = request
@@ -143,12 +144,13 @@ class HomeworkViewSet(
             serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
-        elif not video:
+        elif not video and video_use:
             if instance.video:
                 s3.delete_file(str(instance.video))
-        else:
+            instance.video = None
+        elif not video and not video_use:
             serializer.validated_data["video"] = instance.video
-
+        instance.save()
         self.perform_update(serializer)
 
         serializer = HomeworkDetailSerializer(instance, context={"request": request})

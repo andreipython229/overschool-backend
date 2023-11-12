@@ -18,6 +18,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
     type = serializers.CharField(default="homework", read_only=True)
     all_components = LessonComponentsOrderSerializer(many=True, required=False)
+    video_use = serializers.BooleanField(required=False)
 
     class Meta:
         model = Homework
@@ -31,6 +32,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "description",
             "code",
             "video",
+            "video_use",
             "automate_accept",
             "time_accept",
             "points",

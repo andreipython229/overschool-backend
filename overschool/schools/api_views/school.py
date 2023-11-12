@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
@@ -24,7 +24,7 @@ from users.serializers import UserProfileGetSerializer
 
 from .schemas.school import SchoolsSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -130,18 +130,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied("У вас нет разрешения на удаление этой школы.")
 
         # Получаем список файлов, хранящихся в папке удаляемой школы
-        files_to_delete = s.get_folder_files("{}_school".format(instance.pk))
-        # Получаем список сегментов файлов удаляемой школы
-        segments_to_delete = s.get_folder_files(
-            "{}_school".format(instance.pk), "_segments"
-        )
+        files_to_delete = s3.get_list_objects("{}_school".format(instance.pk))
         # Удаляем все файлы и сегменты, связанные с удаляемой школой
         remove_resp = None
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(files_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)

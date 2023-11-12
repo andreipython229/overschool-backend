@@ -42,11 +42,15 @@ class TextFileCheckSerializer(serializers.ModelSerializer):
     Сериализатор для проверки каждого добавляемого текстового файла в отдельности
     """
 
+    file = serializers.SerializerMethodField(method_name="get_file_link")
+    size = serializers.SerializerMethodField(method_name="get_file_size")
+
     class Meta:
         model = TextFile
         fields = [
             "id",
             "file",
+            "size",
             "file_url",
             "author",
             "base_lesson",
@@ -55,7 +59,14 @@ class TextFileCheckSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["author"]
+        read_only_fields = ["author", "file", "size"]
+
+    def get_file_link(self, obj):
+        return s3.get_link(obj.file.name)
+
+    def get_file_size(self, obj):
+        file_size = s3.get_size_object(obj.file.name)
+        return file_size
 
 
 class TextFileGetSerializer(serializers.ModelSerializer):
@@ -64,6 +75,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
     """
 
     file = serializers.SerializerMethodField(method_name="get_file_link")
+    size = serializers.SerializerMethodField(method_name="get_file_size")
 
     class Meta:
         model = TextFile
@@ -71,6 +83,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
             "id",
             "file",
             "file_url",
+            "size",
             "author",
             "base_lesson",
             "user_homework",
@@ -81,3 +94,7 @@ class TextFileGetSerializer(serializers.ModelSerializer):
 
     def get_file_link(self, obj):
         return s3.get_link(obj.file.name)
+
+    def get_file_size(self, obj):
+        file_size = s3.get_size_object(obj.file.name)
+        return file_size

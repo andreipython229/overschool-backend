@@ -1,5 +1,5 @@
 import re
-
+from users.services import SenderServiceMixin
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler
-
+sender_service = SenderServiceMixin()
 User = get_user_model()
 jwt_handler = JWTHandler()
 
@@ -74,5 +74,15 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
             serializer.is_valid(raise_exception=True)
             serializer.save()
+        # Отправка уведомления о успешной регистрации и создании школы
+        subject = "Успешная регистрация"
+        message = f"Вы успешно зарегистрированы, ваша школа '{school_name}' создана."
+
+        send = sender_service.send_code_by_email(
+            email=email, subject=subject, message=message
+        )
+
+        if send and send["status_code"] == 500:
+            return HttpResponse(send["error"], status=send["status_code"])
 
         return HttpResponse("/api/user/", status=201)

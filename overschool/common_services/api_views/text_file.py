@@ -234,12 +234,6 @@ class TextFileViewSet(
                 {"error": "Вы не являетесь автором этого файла"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
+        s3.delete_file(str(instance.file))
         self.perform_destroy(instance)
-        if s3.delete_file(str(instance.file)) == "Success":
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
-                status=status.HTTP_204_NO_CONTENT,
-            )
+        return Response(status=status.HTTP_204_NO_CONTENT)

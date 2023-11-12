@@ -1,10 +1,7 @@
 import re
 
-from common_services.selectel_client import SelectelClient
 from rest_framework import serializers
 from schools.models import School, Tariff, TariffPlan
-
-s = SelectelClient()
 
 
 class SelectTrialSerializer(serializers.ModelSerializer):

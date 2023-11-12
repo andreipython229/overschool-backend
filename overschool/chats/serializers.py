@@ -1,11 +1,12 @@
+from common_services.selectel_client import UploadToS3
+from django.contrib.auth import get_user_model
 from django.db.models import Max
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+
 from .models import Chat, Message
-from common_services.selectel_client import SelectelClient
 
 User = get_user_model()
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class UserChatSerializer(serializers.ModelSerializer):
@@ -25,11 +26,11 @@ class UserChatSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         if obj.profile.avatar:
-            return s.get_selectel_link(str(obj.profile.avatar))
+            return s3.get_link(obj.profile.avatar.name)
         else:
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "/users/avatars/base_avatar.jpg"
-            return s.get_selectel_link(base_avatar_path)
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)
 
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -49,7 +50,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "senders",
             "last_message",
         ]
-        read_only_fields = ['is_deleted']
+        read_only_fields = ["is_deleted"]
 
     def get_senders(self, obj):
         user_chats = obj.userchat_set.all()
@@ -58,15 +59,19 @@ class ChatSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_last_message(self, obj):
-        last_message = obj.message_set.aggregate(max_sent_at=Max('sent_at'))['max_sent_at']
+        last_message = obj.message_set.aggregate(max_sent_at=Max("sent_at"))[
+            "max_sent_at"
+        ]
         if last_message:
             message = obj.message_set.filter(sent_at=last_message).first()
-            serializer = MessageSerializer(message, context={'request': self.context['request']})
+            serializer = MessageSerializer(
+                message, context={"request": self.context["request"]}
+            )
             return serializer.data
         return None
 
     def get_unread_count(self, obj):
-        user = self.context['request'].user
+        user = self.context["request"].user
 
         unread_count = obj.message_set.exclude(read_by=user).count()
         return unread_count
@@ -86,7 +91,7 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     def get_read_by(self, obj):
-        if self.context['request'].user in obj.read_by.all():
+        if self.context["request"].user in obj.read_by.all():
             return True
         else:
             return False
@@ -119,7 +124,9 @@ class ChatInfoSerializer(serializers.ModelSerializer):
         ]
 
     def get_last_message(self, obj):
-        last_message = obj.message_set.aggregate(max_sent_at=Max('sent_at'))['max_sent_at']
+        last_message = obj.message_set.aggregate(max_sent_at=Max("sent_at"))[
+            "max_sent_at"
+        ]
         if last_message:
             message = obj.message_set.filter(sent_at=last_message).first()
             serializer = MessageInfoSerializer(message)
@@ -127,7 +134,7 @@ class ChatInfoSerializer(serializers.ModelSerializer):
         return None
 
     def get_unread_count(self, obj):
-        user = self.context['request'].user
+        user = self.context["request"].user
 
         unread_count = obj.message_set.exclude(read_by=user).count()
         return unread_count

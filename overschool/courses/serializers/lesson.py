@@ -20,6 +20,7 @@ class LessonSerializer(serializers.ModelSerializer):
         allow_blank=True,
         help_text="Ссылка на видео из YouTube",
     )
+    video_use = serializers.BooleanField(required=False)
 
     class Meta:
         model = Lesson
@@ -33,6 +34,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "description",
             "code",
             "video",
+            "video_use",
             "points",
             "type",
             "all_components",
