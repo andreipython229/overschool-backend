@@ -1,4 +1,5 @@
 import io
+import os
 import zipfile
 from datetime import datetime
 
@@ -21,6 +22,18 @@ class UploadToS3:
         aws_access_key_id=S3_ACCESS_KEY,
         aws_secret_access_key=S3_SECRET_KEY,
     )
+    ALLOWED_FORMATS = [
+        ".xlsx",
+        ".pdf",
+        ".csv",
+        ".txt",
+        ".doc",
+        ".docs",
+        ".json",
+        ".rtf",
+        ".xml",
+        ".yaml",
+    ]
 
     def get_link(self, filename):
         url = self.s3.generate_presigned_url(
@@ -77,11 +90,23 @@ class UploadToS3:
         course = base_lesson.section.course
         course_id = course.course_id
         school_id = course.school.school_id
-        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
-            school_id, course_id, base_lesson.id, datetime.now(), filename
-        ).replace(" ", "_")
-
-        self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
+        name, ext = os.path.splitext(filename.name)
+        ext = ext.lower()
+        if ext not in self.ALLOWED_FORMATS:
+            zip_data = self.get_zip_file(filename)
+            print(type(zip_data))
+            file_path = (
+                "{}_school/{}_course/{}_lesson/{}@{}".format(
+                    school_id, course_id, base_lesson.id, datetime.now(), name
+                ).replace(" ", "_")
+                + ".zip"
+            )
+            self.s3.upload_fileobj(io.BytesIO(zip_data), S3_BUCKET, file_path)
+        else:
+            file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+                school_id, course_id, base_lesson.id, datetime.now(), filename
+            ).replace(" ", "_")
+            self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
         return file_path
 
     def upload_large_file(self, filename, base_lesson):
@@ -148,4 +173,4 @@ class UploadToS3:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.writestr(file.name, file.read())
-        return zip_buffer.getvalue(), zip_buffer.getbuffer().nbytes
+        return zip_buffer.getvalue()
