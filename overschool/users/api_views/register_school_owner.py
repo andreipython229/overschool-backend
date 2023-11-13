@@ -53,11 +53,6 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             if School.objects.filter(name=school_name).exists():
                 return HttpResponse("Название школы уже существует.", status=400)
 
-            if (
-                user.phone_number != phone_number
-                and User.objects.filter(phone_number=phone_number).exists()
-            ):
-                return HttpResponse("Номер телефона уже существует.", status=400)
             school = School.objects.create(
                 name=school_name,
                 owner=user,
@@ -72,8 +67,6 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             if email and User.objects.filter(email=email).exists():
                 return HttpResponse("Email уже существует.", status=400)
 
-            if phone_number and User.objects.filter(phone_number=phone_number).exists():
-                return HttpResponse("Номер телефона уже существует.", status=400)
             if School.objects.filter(name=school_name).exists():
                 return HttpResponse("Название школы уже существует.", status=400)
 
