@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
+from courses.models import Course
 
 User = get_user_model()
 
@@ -63,12 +64,16 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
                     students += 1
                 else:
                     staff += 1
+        courses_for_school = Course.objects.filter(school=school)
+        number_of_courses = courses_for_school.count()
 
         data = {
             "tariff_name": school.tariff.name,
             "days_left": days_left,
             "students": students,
             "staff": staff,
+            "tariff": school.tariff.id,
+            "number_of_courses": number_of_courses
         }
 
         return Response(data)
