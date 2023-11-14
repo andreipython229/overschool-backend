@@ -160,7 +160,7 @@ class AccessDistributionView(
                 .exists()
             ):
                 return HttpResponse(
-                    f"Пользователь уже имеет другую роль в этой школе (id={user.id}, email={user.email})",
+                    f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
                     status=400,
                 )
 
@@ -171,7 +171,7 @@ class AccessDistributionView(
                 if role == "Teacher":
                     if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
                         return HttpResponse(
-                            f"Нельзя преподавать в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            f"Нельзя преподавать в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
                     for student_group in student_groups:
@@ -181,7 +181,7 @@ class AccessDistributionView(
                         course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
-                            f"Нельзя учиться в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
                     for student_group in student_groups:
@@ -225,7 +225,7 @@ class AccessDistributionView(
         for user in users:
             if not user.groups.filter(group=group, school=school).exists():
                 return HttpResponse(
-                    f"У пользователя нет такой роли в вашей школе (id={user.id}, email={user.email})",
+                    f"У пользователя нет такой роли в вашей школе (email={user.email})",
                     status=400,
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
@@ -234,12 +234,12 @@ class AccessDistributionView(
                     and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
-                        f"Группу нельзя оставить без преподавателя (id={user.id}, email={user.email})",
+                        f"Группу нельзя оставить без преподавателя (email={user.email})",
                         status=400,
                     )
                 elif role == "Admin" and school.owner == user:
                     return HttpResponse(
-                        f"Владельца школы нельзя лишать его прав (id={user.id}, email={user.email})",
+                        f"Владельца школы нельзя лишать его прав (email={user.email})",
                         status=400,
                     )
                 else:
