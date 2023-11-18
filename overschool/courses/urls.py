@@ -3,7 +3,9 @@ from courses.api_views import (
     CourseViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
+    HomeworkVideoViewSet,
     HomeworkViewSet,
+    LessonVideoViewSet,
     LessonViewSet,
     QuestionViewSet,
     SectionViewSet,
@@ -43,3 +45,8 @@ router.register("usertest", UserTestViewSet, basename="test_user")
 router.register("student_progress", StudentProgressViewSet, basename="student_progress")
 
 urlpatterns = router.urls
+
+router_video = routers.DefaultRouter()
+
+router_video.register("lesson_video", LessonVideoViewSet, basename="lesson_video")
+router_video.register("homework_video", HomeworkVideoViewSet, basename="homework_video")
