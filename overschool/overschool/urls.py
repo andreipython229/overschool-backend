@@ -28,7 +28,7 @@ from users.api_views import (
     UserSchoolsView,
 )
 
-from .main_router import router, school_router, user_router
+from .main_router import router, school_router, user_router, videos_router
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -109,6 +109,7 @@ urlpatterns = [
     path("api/chats/", include("chats.urls")),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
+    path("video/<str:school_name>/", include(videos_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
