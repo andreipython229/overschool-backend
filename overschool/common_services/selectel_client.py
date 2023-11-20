@@ -94,7 +94,6 @@ class UploadToS3:
         ext = ext.lower()
         if ext not in self.ALLOWED_FORMATS:
             zip_data = self.get_zip_file(filename)
-            print(type(zip_data))
             file_path = (
                 "{}_school/{}_course/{}_lesson/{}@{}".format(
                     school_id, course_id, base_lesson.id, datetime.now(), name
