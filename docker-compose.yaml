@@ -45,14 +45,6 @@ services:
       - www:/var/www/certbot
     depends_on:
       - back
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - certs:/etc/letsencrypt
-      - www:/var/www/certbot
-    depends_on:
-      - nginx
 
 
 volumes:
