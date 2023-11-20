@@ -41,13 +41,8 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/code/staticfiles
-      - certs:/etc/letsencrypt
-      - www:/var/www/certbot
     depends_on:
       - back
 
-
 volumes:
   static_volume:
-  certs:
-  www:
