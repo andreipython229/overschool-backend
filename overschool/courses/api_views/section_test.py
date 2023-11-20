@@ -11,8 +11,13 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    UserTest,
 )
-from courses.serializers import QuestionListGetSerializer, TestSerializer
+from courses.serializers import (
+    QuestionListGetSerializer,
+    TestSerializer,
+    UserTestSerializer,
+)
 from courses.services import LessonProgressMixin
 from django.db.models import Prefetch
 from rest_framework import permissions, status, viewsets
@@ -60,6 +65,12 @@ class TestViewSet(
             if user.groups.filter(
                 group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if self.action == "usertests":
+            # Разрешения для просмотра попыток прохождения теста учеником
+            if user.groups.filter(group__name="Student", school=school_id).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -234,6 +245,18 @@ class TestViewSet(
         test["questions"] = questions_ser.data
 
         return Response(test)
+
+    @action(detail=True)
+    def usertests(self, request, pk, *args, **kwargs):
+        """Список попыток прохождения пользователем конкретного теста\n
+        <h2>/api/{school_name}/tests/{test_id}/usertests/</h2>\n
+        Список попыток прохождения пользователем конкретного теста"""
+
+        test = self.get_object()
+        user = self.request.user
+        queryset = UserTest.objects.filter(test=test, user=user)
+        serializer = UserTestSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 TestViewSet = apply_swagger_auto_schema(
