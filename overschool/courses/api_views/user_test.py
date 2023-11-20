@@ -2,39 +2,77 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Answer, Question, SectionTest, UserTest
 from courses.serializers import UserTestSerializer
+from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 
-class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class UserTestViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт тестирования учеников\n
     <h2>/api/{school_name}/usertest/</h2>\n
     Тесты проходить могут только ученики\n
     Редактировать и удалять пройденные тесты могут только администраторы
     """
 
-    queryset = UserTest.objects.all()
     serializer_class = UserTestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
 
+        permissions = super().get_permissions()
         user = self.request.user
-        if not user.groups.filter(group__name="Student").exists():
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(
+            group__name__in=["Student", "Admin"], school=school_id
+        ).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                UserTest.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user = self.request.user
+
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            return UserTest.objects.filter(
+                user=user, test__section__course__school__name=school_name
+            ).order_by("-created_at")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return UserTest.objects.filter(
+                test__section__course__school__name=school_name
+            ).order_by("-created_at")
+        return UserTest.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        if not user.groups.filter(group__name="Student", school=school_id).exists():
             return Response(
                 {"status": "Error", "message": "Тесты проходить могут только ученики"},
             )
 
         test = SectionTest.objects.get(pk=request.data.get("test"))
-        user_attempts = UserTest.objects.filter(user=user, test=test)
-        user_attempts_count = len(user_attempts)
-        if test.attempt_count != 0 and user_attempts_count == test.attempt_count:
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
             return Response(
                 {
                     "status": "Error",
-                    "message": "Пользователь исчерпал лимит попыток для прохождения этого теста",
+                    "message": "Этот тест уже пройден пользователем",
                 },
             )
+
         serializer = self.serializer_class(data=request.data)
 
         if serializer.is_valid():
@@ -51,9 +89,10 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         )
 
     def update(self, request, *args, **kwargs):
-
         user = self.request.user
-        if not user.groups.filter(group__name__in=["SuperAdmin", "Admin"]).exists():
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        if not user.groups.filter(group__name="Admin", school=school_id).exists():
             return Response(
                 {
                     "status": "Error",
@@ -61,21 +100,17 @@ class UserTestViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 },
             )
         instance = self.get_object()
-        user_test = UserTest.objects.get(pk=instance.pk)
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
-        if request.data.get("status"):
-            user_test.status = request.data.get("status")
-        if request.data.get("success_percent"):
-            user_test.success_percent = request.data.get("success_percent")
-
-            serializer = self.serializer_class(user_test)
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-
         user = self.request.user
-        if not user.groups.filter(group__name__in=["SuperAdmin", "Admin"]).exists():
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        if not user.groups.filter(group__name="Admin", school=school_id).exists():
             return Response(
                 {
                     "status": "Error",
