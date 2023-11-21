@@ -52,6 +52,39 @@ class SchoolSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class SchoolUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор обновления модели школы
+    """
+
+    class Meta:
+        model = School
+        fields = [
+            "school_id",
+            "name",
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+            "created_at",
+            "updated_at",
+            "offer_url",
+        ]
+        read_only_fields = [
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+        ]
+
+    def validate(self, attrs):
+        if attrs.get("name"):
+            attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
+        return attrs
+
+
 class SchoolGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра школы
