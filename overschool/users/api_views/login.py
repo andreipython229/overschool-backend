@@ -29,12 +29,11 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
         response = HttpResponse("/api/user/", status=200)
         development_mode_header = request.META.get("HTTP_X_DEVELOPMENT_MODE")
         origin = request.META.get("HTTP_ORIGIN")
-        host = request.META.get("HTTP_HOST")
-        print(host, "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-        print(origin, "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
         if origin == "http://85.209.148.157":
-            response.delete_cookie(settings.ACCESS)
-            response.delete_cookie(settings.REFRESH)
+            print("origin = 85.209.148.157")
+            SESSION_COOKIE_DOMAIN = "85.209.148.157"
+            response.delete_cookie(settings.ACCESS, domain=SESSION_COOKIE_DOMAIN)
+            response.delete_cookie(settings.REFRESH, domain=SESSION_COOKIE_DOMAIN)
             response.set_cookie(
                 key=settings.ACCESS,
                 value=access_token,
@@ -43,6 +42,7 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
                 httponly=True,
                 samesite=None,
                 secure=False,
+                domain=SESSION_COOKIE_DOMAIN,
             )
 
             response.set_cookie(
@@ -53,6 +53,7 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
                 httponly=True,
                 samesite=None,
                 secure=False,
+                domain=SESSION_COOKIE_DOMAIN,
             )
 
         if development_mode_header and development_mode_header == "false":
