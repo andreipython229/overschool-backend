@@ -29,6 +29,9 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
         response = HttpResponse("/api/user/", status=200)
         development_mode_header = request.META.get("HTTP_X_DEVELOPMENT_MODE")
         origin = request.META.get("HTTP_ORIGIN")
+        host = request.META.get("HTTP_HOST")
+        print(host, "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
+        print(origin, "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
         if origin == "http://85.209.148.157":
             response.delete_cookie(settings.ACCESS)
             response.delete_cookie(settings.REFRESH)
