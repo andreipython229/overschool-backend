@@ -31,6 +31,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
     logo_school = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография заголовка школы",
+        max_length=300,
         validators=[limit_size],
         blank=True,
         null=True,
@@ -38,6 +39,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
     photo_background = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография фона",
+        max_length=300,
         validators=[limit_size],
         blank=True,
         null=True,
