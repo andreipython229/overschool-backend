@@ -33,6 +33,9 @@ class UploadToS3:
         ".rtf",
         ".xml",
         ".yaml",
+        ".jpg",
+        ".jpeg",
+        ".png",
     ]
 
     def get_link(self, filename):
