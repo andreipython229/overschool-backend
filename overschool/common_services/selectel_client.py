@@ -28,7 +28,7 @@ class UploadToS3:
         ".csv",
         ".txt",
         ".doc",
-        ".docs",
+        ".docx",
         ".json",
         ".rtf",
         ".xml",
