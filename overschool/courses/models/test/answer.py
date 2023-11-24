@@ -33,7 +33,11 @@ class Answer(TimeStampMixin, models.Model):
         help_text="Правильный-True или неправильный-False",
     )
     picture = models.ImageField(
-        verbose_name="Картинка", validators=[limit_size], null=True, blank=True
+        verbose_name="Картинка",
+        max_length=300,
+        validators=[limit_size],
+        null=True,
+        blank=True,
     )
     answer_in_range = models.BooleanField(
         default=False,

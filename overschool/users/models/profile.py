@@ -24,6 +24,7 @@ class Profile(TimeStampMixin, models.Model):
     avatar = models.ImageField(
         help_text="Аватар",
         verbose_name="Аватар",
+        max_length=300,
         validators=[limit_size],
         blank=True,
         null=True,

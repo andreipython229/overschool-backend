@@ -86,6 +86,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         verbose_name="Фотография",
         help_text="Главная фотография",
         validators=[limit_size],
+        max_length=300,
         blank=True,
         null=True,
     )
