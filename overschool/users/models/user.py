@@ -33,12 +33,7 @@ class User(AbstractBaseUser):
         null=True,
         blank=True,
     )
-    patronymic = models.CharField(
-        verbose_name="Отчество",
-        max_length=150,
-        null=True,
-        blank=True,
-    )
+    patronymic = models.CharField(verbose_name="Отчество", max_length=150, default="")
     email = models.EmailField(verbose_name="Почта", help_text="Почта", unique=True)
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
