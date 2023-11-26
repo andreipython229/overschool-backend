@@ -74,7 +74,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
             serializer.is_valid(raise_exception=True)
             serializer.save()
-        # Отправка уведомления о успешной регистрации и создании школы
+
         subject = "Успешная регистрация"
         message = f"Вы успешно зарегистрированы, ваша школа '{school_name}' создана."
 
