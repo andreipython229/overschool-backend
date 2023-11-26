@@ -16,6 +16,7 @@ from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
+    SchoolUpdateSerializer,
     SelectTrialSerializer,
     TariffSerializer,
 )
@@ -114,10 +115,17 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if not user.groups.filter(group__name="Admin", school=school).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-        serializer = SchoolSerializer(school, data=request.data)
+        serializer = SchoolUpdateSerializer(school, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        if School.objects.filter(name=serializer.validated_data["name"]).exists():
-            return HttpResponse("Название школы уже существует.", status=400)
+        name_data = serializer.validated_data.get("name")
+        if name_data:
+            existing_school = (
+                School.objects.filter(name=name_data).exclude(pk=school.pk).first()
+            )
+            if existing_school:
+                return Response(
+                    "Название школы уже существует.", status=status.HTTP_400_BAD_REQUEST
+                )
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)
