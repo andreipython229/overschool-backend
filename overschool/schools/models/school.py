@@ -1,5 +1,4 @@
 from common_services.mixins import OrderMixin, TimeStampMixin
-from common_services.services import limit_size
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone

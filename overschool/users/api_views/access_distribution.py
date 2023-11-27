@@ -12,8 +12,11 @@ from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
-from users.models import UserGroup, UserRole
+from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
+from users.services import SenderServiceMixin
+
+sender_service = SenderServiceMixin()
 
 User = get_user_model()
 
@@ -173,6 +176,17 @@ class AccessDistributionView(
             if not user.groups.filter(group=group, school=school).exists():
                 user.groups.create(group=group, school=school)
 
+            if not user.groups.filter(group=group, school=school).exists():
+                user.groups.create(group=group, school=school)
+
+                subject = "Добавление в группу"
+                message = (
+                    f"Вы были добавлены в группу {group.name} в школе {school.name}."
+                )
+                sender_service.send_code_by_email(
+                    email=user.email, subject=subject, message=message
+                )
+
             if student_groups_ids:
                 if role == "Teacher":
                     if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
@@ -267,12 +281,21 @@ class AccessDistributionView(
                         for student_group in student_groups:
                             student_group.students.remove(user)
             else:
+
                 if role == "Teacher":
                     return HttpResponse(
                         "Группу нельзя оставить без преподавателя", status=400
                     )
                 elif role == "Student":
+                    remaining_groups_count1 = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
                     for student_group in student_groups:
                         user.students_group_fk.remove(student_group)
+                    remaining_groups_count = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
+                    if remaining_groups_count == 0:
+                        user.groups.get(group=group, school=school).delete()
 
         return HttpResponse("Доступ успешно заблокирован", status=201)

@@ -117,13 +117,10 @@ class StudentsGroupViewSet(
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
         serializer.save(group_settings=group_settings)
 
-        # Сохраняем группу студентов
         student_group = serializer.save(chat=chat)
 
-        # Получаем всех студентов, которые были добавлены в группу
         students = serializer.validated_data.get("students")
 
-        # Добавляем учителя и студентов в чат
         UserChat.objects.create(user=teacher, chat=chat)
         for student in students:
             UserChat.objects.create(user=student, chat=chat)
