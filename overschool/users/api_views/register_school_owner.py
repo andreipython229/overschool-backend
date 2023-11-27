@@ -1,5 +1,5 @@
 import re
-from users.services import SenderServiceMixin
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
@@ -9,7 +9,8 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from users.serializers import SignupSchoolOwnerSerializer
-from users.services import JWTHandler
+from users.services import JWTHandler, SenderServiceMixin
+
 sender_service = SenderServiceMixin()
 User = get_user_model()
 jwt_handler = JWTHandler()
@@ -37,43 +38,17 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 "Требуется указать email, номер телефона и название школы", status=400
             )
 
-        if request.user.is_authenticated:
-            user = self.request.user
+        if email and User.objects.filter(email=email).exists():
+            return HttpResponse("Email уже существует.", status=400)
 
-            if School.objects.filter(owner=user).count() >= 2:
-                return HttpResponse(
-                    "Пользователь может быть владельцем только двух школ.", status=400
-                )
+        if School.objects.filter(name=school_name).exists():
+            return HttpResponse("Название школы уже существует.", status=400)
 
-            if not check_password(request.data.get("password"), user.password):
-                return HttpResponse("Неверные учетные данные пароля", status=401)
+        serializer = self.get_serializer(data=request.data)
 
-            if user.email != email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email уже существует.", status=400)
-            if School.objects.filter(name=school_name).exists():
-                return HttpResponse("Название школы уже существует.", status=400)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            school = School.objects.create(
-                name=school_name,
-                owner=user,
-                tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
-            )
-            if school:
-                SchoolHeader.objects.create(school=school, name=school.name)
-
-            group = Group.objects.get(name="Admin")
-            user.groups.create(group=group, school=school)
-        else:
-            if email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email уже существует.", status=400)
-
-            if School.objects.filter(name=school_name).exists():
-                return HttpResponse("Название школы уже существует.", status=400)
-
-            serializer = self.get_serializer(data=request.data)
-
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
         # Отправка уведомления о успешной регистрации и создании школы
         subject = "Успешная регистрация"
         message = f"Вы успешно зарегистрированы, ваша школа '{school_name}' создана."
