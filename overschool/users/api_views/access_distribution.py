@@ -34,7 +34,7 @@ class AccessDistributionView(
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-    # parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
