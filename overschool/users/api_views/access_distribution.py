@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
@@ -30,7 +31,7 @@ class AccessDistributionView(
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -134,6 +135,11 @@ class AccessDistributionView(
 
         student_groups = StudentsGroup.objects.none()
         if student_groups_ids:
+            if role == "Teacher" and users.count() > 1:
+                return HttpResponse(
+                    "Нельзя назначить несколько преподавателей в одни и те же группы",
+                    status=400,
+                )
             student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
             groups_count = student_groups.count()
             courses_count = student_groups.values("course_id").distinct().count()
@@ -175,7 +181,15 @@ class AccessDistributionView(
                             status=400,
                         )
                     for student_group in student_groups:
+                        previous_teacher = student_group.teacher_id
+                        chat = student_group.chat
+                        previous_chat = UserChat.objects.filter(
+                            user=previous_teacher, chat=chat
+                        ).first()
+                        if previous_chat:
+                            previous_chat.delete()
                         user.teacher_group_fk.add(student_group)
+                        UserChat.objects.create(user=user, chat=chat)
                 if role == "Student":
                     if user.students_group_fk.filter(
                         course_id__in=courses_ids
@@ -186,6 +200,8 @@ class AccessDistributionView(
                         )
                     for student_group in student_groups:
                         user.students_group_fk.add(student_group)
+                        chat = student_group.chat
+                        UserChat.objects.create(user=user, chat=chat)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
