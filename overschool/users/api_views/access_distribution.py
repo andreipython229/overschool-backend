@@ -13,6 +13,7 @@ from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
+from users.services import SenderServiceMixin
 
 sender_service = SenderServiceMixin()
 
@@ -86,8 +87,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
                         f"Превышено количество новых учеников в месяц для выбранного тарифа. Можно добавить новых учеников: {school.tariff.students_per_month - student_count_by_month}",
@@ -113,8 +114,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
                         "Превышено количество новых учеников в месяц для выбранного тарифа",
@@ -125,9 +126,9 @@ class AccessDistributionView(
                 group__name__in=["Teacher", "Admin"], school=school
             ).count()
             if (
-                    school.tariff.name
-                    in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                    and school.tariff.number_of_staff - staff_count < new_user_count
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and school.tariff.number_of_staff - staff_count < new_user_count
             ):
                 return HttpResponse(
                     "Превышено количество cотрудников для выбранного тарифа",
@@ -157,9 +158,9 @@ class AccessDistributionView(
         for user in users:
             # Проверка на то что у пользователя в этой школе уже есть роль
             if (
-                    UserGroup.objects.filter(user=user, school=school)
-                            .exclude(group=group)
-                            .exists()
+                UserGroup.objects.filter(user=user, school=school)
+                .exclude(group=group)
+                .exists()
             ):
                 return HttpResponse(
                     f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
@@ -173,7 +174,9 @@ class AccessDistributionView(
                 user.groups.create(group=group, school=school)
 
                 subject = "Добавление в группу"
-                message = f"Вы были добавлены в группу {group.name} в школе {school.name}."
+                message = (
+                    f"Вы были добавлены в группу {group.name} в школе {school.name}."
+                )
                 sender_service.send_code_by_email(
                     email=user.email, subject=subject, message=message
                 )
@@ -189,7 +192,7 @@ class AccessDistributionView(
                         user.teacher_group_fk.add(student_group)
                 if role == "Student":
                     if user.students_group_fk.filter(
-                            course_id__in=courses_ids
+                        course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
                             f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
@@ -241,8 +244,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
@@ -262,12 +265,21 @@ class AccessDistributionView(
                         for student_group in student_groups:
                             student_group.students.remove(user)
             else:
+
                 if role == "Teacher":
                     return HttpResponse(
                         "Группу нельзя оставить без преподавателя", status=400
                     )
                 elif role == "Student":
+                    remaining_groups_count1 = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
                     for student_group in student_groups:
                         user.students_group_fk.remove(student_group)
+                    remaining_groups_count = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
+                    if remaining_groups_count == 0:
+                        user.groups.get(group=group, school=school).delete()
 
         return HttpResponse("Доступ успешно заблокирован", status=201)
