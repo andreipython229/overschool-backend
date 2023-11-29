@@ -115,7 +115,7 @@ class StudentsGroupViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-        serializer.save(group_settings=group_settings)
+        serializer.save(group_settings=group_settings, type="'WITH_TEACHER'")
 
         student_group = serializer.save(chat=chat)
 
@@ -299,3 +299,51 @@ StudentsGroupViewSet = apply_swagger_auto_schema(
         "students_group",
     ]
 )(StudentsGroupViewSet)
+
+
+class StudentsGroupWithoutTeacherViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
+
+    def perform_create(self, serializer):
+        serializer.is_valid()
+        course = serializer.validated_data["course_id"]
+        school = self.get_school()
+
+        if course.school != school:
+            raise serializers.ValidationError("Курс не относится к вашей школе.")
+
+        # Создаём модель настроек группы
+        group_settings_data = self.request.data.get("group_settings")
+        if not group_settings_data:
+            group_settings_data = {}
+        group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
+
+        serializer.save(group_settings=group_settings, type="WITHOUT_TEACHER")
+        student_group = serializer.save()
+
+        return student_group
+
+    class StudentsGroupWithoutTeacherViewSet(
+        LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
+
+        def perform_update(self, serializer):
+            course = serializer.validated_data["course_id"]
+            school = self.get_school()
+
+            if course.school != school:
+                raise serializers.ValidationError("Курс не относится к вашей школе.")
+
+            current_group = self.get_object()
+
+            students = serializer.validated_data.get("students")
+            group = Group.objects.get(name="Student")
+
+            # Обновляем учеников в группе
+            for student in students:
+                if not student.students_group_fk.filter(pk=current_group.pk).exists():
+                    if not UserGroup.objects.filter(
+                            user=student, group=group, school=school
+                    ).exists():
+                        UserGroup.objects.create(user=student, group=group, school=school)
+
+            serializer.save()

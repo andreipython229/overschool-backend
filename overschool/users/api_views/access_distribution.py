@@ -13,7 +13,7 @@ from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
-
+from users.services import SenderServiceMixin
 sender_service = SenderServiceMixin()
 
 User = get_user_model()

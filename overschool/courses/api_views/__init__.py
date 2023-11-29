@@ -6,7 +6,7 @@ from .question import QuestionViewSet
 from .section import SectionViewSet
 from .section_test import TestViewSet
 from .student_progress import StudentProgressViewSet
-from .students_group import StudentsGroupViewSet
+from .students_group import StudentsGroupViewSet, StudentsGroupWithoutTeacherViewSet
 from .students_group_settings import StudentsGroupSettingsViewSet
 from .students_table_info import StudentsTableInfoViewSet
 from .upload_video import HomeworkVideoViewSet, LessonVideoViewSet

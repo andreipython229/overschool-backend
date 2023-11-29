@@ -1,9 +1,10 @@
+from chats.models import Chat
 from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models.user import User
-from chats.models import Chat
-from ..courses.course import Course
+
 from .students_group_settings import StudentsGroupSettings
+from ..courses.course import Course
 
 
 class StudentsGroup(TimeStampMixin, models.Model):
@@ -55,6 +56,18 @@ class StudentsGroup(TimeStampMixin, models.Model):
         related_name='group',
         null=True,
         blank=True
+    )
+    TYPE_CHOICES = [
+        ('WITH_TEACHER', 'С учителем'),
+        ('WITHOUT_TEACHER', 'Без учителя'),
+    ]
+
+    type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default='WITH_TEACHER',
+        verbose_name="Тип группы",
+        help_text="Тип группы (С учителем / Без учителя)",
     )
 
     def __str__(self):
