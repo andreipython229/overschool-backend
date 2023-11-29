@@ -1,5 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
+from common_services.services import TruncateFileName
 from django.db import connection, models
 from model_clone import CloneMixin
 
@@ -32,6 +33,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         verbose_name="Видео",
         help_text="Видеофайл размером до 2 ГБ",
         max_length=300,
+        upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )

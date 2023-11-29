@@ -2,7 +2,7 @@ from urllib.parse import unquote, urlparse
 
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
-from common_services.services import limit_size
+from common_services.services import TruncateFileName, limit_size
 from django.db import models
 from schools.models import School
 
@@ -33,6 +33,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
         help_text="Фотография заголовка школы",
         max_length=300,
         validators=[limit_size],
+        upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )
@@ -41,6 +42,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
         help_text="Фотография фона",
         max_length=300,
         validators=[limit_size],
+        upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )

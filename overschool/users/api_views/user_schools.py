@@ -32,7 +32,5 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
             data = user_schools.values("school_id", "name", "header_school", "role")
             return Response(data)
         else:
-            return Response(
-                "У пользователя нет доступа ни к одной школе",
-                status=status.HTTP_204_NO_CONTENT,
-            )
+            data = []
+            return Response(data, status=status.HTTP_200_OK)

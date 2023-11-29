@@ -1,6 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from common_services.services import limit_size
+from common_services.services import TruncateFileName, limit_size
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
@@ -87,6 +87,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         help_text="Главная фотография",
         validators=[limit_size],
         max_length=300,
+        upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )
