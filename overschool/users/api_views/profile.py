@@ -34,6 +34,9 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        user = self.request.user
+        user.email = (None,)
+        user.save()
         serializer = UserProfileSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
