@@ -36,12 +36,15 @@ class StudentsGroup(TimeStampMixin, models.Model):
         verbose_name="Преподаватель",
         help_text="Преподаватель, который ведёт эту группу",
         related_name="teacher_group_fk",
+        blank=True,
+        null=True
     )
     students = models.ManyToManyField(
         User,
         verbose_name="Ученики",
         help_text="Ученики этой группы",
         related_name="students_group_fk",
+        blank=True,
     )
     group_settings = models.OneToOneField(
         StudentsGroupSettings,
