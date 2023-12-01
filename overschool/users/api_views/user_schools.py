@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.db.models import OuterRef, Subquery
 from django.http import HttpResponse
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
 from rest_framework.response import Response
 from schools.models import School
 from schools.serializers import SchoolSerializer
@@ -14,13 +14,14 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
     Ендпоинт получения названий школ, доступных
     пользователю"""
 
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = SchoolSerializer
 
     def get_queryset(self):
         return School.objects.filter(groups__user=self.request.user).distinct()
 
     def list(self, request, *args, **kwargs):
+        if self.request.user.is_anonymous:
+            return HttpResponse(status=401)
         user_schools = self.get_queryset()
         if user_schools.first():
             user_group = UserGroup.objects.filter(
