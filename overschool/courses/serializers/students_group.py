@@ -58,8 +58,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                    .exclude(pk=view.get_object().pk)
-                    .count()
+                        .exclude(pk=view.get_object().pk)
+                        .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
@@ -67,6 +67,27 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                 )
 
         return attrs
+
+    def update(self, instance, validated_data):
+        group_settings_data = validated_data.pop("group_settings", None)
+        instance = super().update(instance, validated_data)
+
+        if group_settings_data:
+            group_settings = instance.group_settings
+            for key, value in group_settings_data.items():
+                setattr(group_settings, key, value)
+            group_settings.save()
+
+        return instance
+
+
+class StudentsGroupWTSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentsGroup
+        fields = ("type", "name", "course_id")
+
+    def create(self, validated_data):
+        return StudentsGroup.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
