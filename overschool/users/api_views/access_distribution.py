@@ -157,6 +157,11 @@ class AccessDistributionView(
                         "Проверьте принадлежность студенческих групп к вашей школе",
                         status=400,
                     )
+                if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
+                    return HttpResponse(
+                        "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
+                        status=400,
+                    )
         courses_ids = list(
             map(lambda el: el["course_id"], list(student_groups.values("course_id")))
         )
@@ -214,8 +219,9 @@ class AccessDistributionView(
                         )
                     for student_group in student_groups:
                         user.students_group_fk.add(student_group)
-                        chat = student_group.chat
-                        UserChat.objects.create(user=user, chat=chat)
+                        if student_group.type == "WITH_TEACHER":
+                            chat = student_group.chat
+                            UserChat.objects.create(user=user, chat=chat)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
