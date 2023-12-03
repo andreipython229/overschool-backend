@@ -137,4 +137,4 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentsGroup
-        fields = ["group_id", "name", "teacher_id"]
+        fields = ["group_id", "name", "teacher_id", "type"]
