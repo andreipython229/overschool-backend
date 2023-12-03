@@ -20,6 +20,7 @@ from .students_group import (
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
+    StudentsGroupWTSerializer
 )
 from .students_group_settings import StudentsGroupSettingsSerializer
 from .students_table_info import (

@@ -63,6 +63,7 @@ class CustomAuthentication(BaseAuthentication):
                     return user, new_access_token
 
                 except:
+                    HttpResponseRedirect("https://apidev.overschool.by/api/logout/")
                     return None
             else:
                 try:
@@ -91,4 +92,5 @@ class CustomAuthentication(BaseAuthentication):
                     return user, new_access_token
 
                 except:
+                    HttpResponseRedirect("https://apidev.overschool.by/api/logout/")
                     return None

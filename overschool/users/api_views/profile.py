@@ -1,7 +1,8 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from rest_framework import permissions, status, viewsets
+from django.http import HttpResponse
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from users.models import Profile
 from users.permissions import OwnerProfilePermissions
@@ -17,10 +18,8 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     queryset = Profile.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated | OwnerProfilePermissions]
+    permission_classes = [OwnerProfilePermissions]
     http_method_names = ["get", "put", "patch", "head"]
-
-    # parser_classes = (MultiPartParser,)
 
     def get_queryset(self):
         # Возвращаем только объекты пользователя, сделавшего запрос
@@ -32,8 +31,18 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return UserProfileSerializer
 
+    def list(self, request, *args, **kwargs):
+        if self.request.user.is_anonymous:
+            return HttpResponse(status=401)
+        queryset = self.get_queryset()
+        serializer = UserProfileGetSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        user = self.request.user
+        user.email = (None,)
+        user.save()
         serializer = UserProfileSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
