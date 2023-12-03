@@ -26,6 +26,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "teacher_id",
             "students",
             "group_settings",
+            "type"
         ]
 
     def validate(self, attrs):
@@ -84,7 +85,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 class StudentsGroupWTSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id")
+        fields = ("type", "name", "course_id",  "students", "group_settings")
 
     def create(self, validated_data):
         return StudentsGroup.objects.create(**validated_data)

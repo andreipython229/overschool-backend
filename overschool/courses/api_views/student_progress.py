@@ -2,12 +2,9 @@ from courses.api_views.schemas import StudentProgressSchemas
 from courses.models import (
     BaseLesson,
     Course,
-    Homework,
     Lesson,
     SectionTest,
     StudentsGroup,
-    UserHomework,
-    UserHomeworkCheck,
     UserProgressLogs,
 )
 from courses.models.homework.homework import Homework
@@ -26,6 +23,10 @@ from users.models import User
     decorator=StudentProgressSchemas.student_progress_for_student_swagger_schema(),
 )
 @method_decorator(
+    name="homework_progress",
+    decorator=StudentProgressSchemas.homework_progress_swagger_schema(),
+)
+@method_decorator(
     name="get_student_progress_for_admin_or_teacher",
     decorator=StudentProgressSchemas.student_progress_for_admin_or_teacher_swagger_schema(),
 )
@@ -40,15 +41,26 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if self.action in ["homework_progress"]:
+            if user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                        "Admin",
+                    ],
+                    school=school_id,
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in [
             "get_student_progress_for_student",
         ]:
             # Разрешения для просмотра статистики (Только Student)
             if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                ],
-                school=school_id,
+                    group__name__in=[
+                        "Student",
+                    ],
+                    school=school_id,
             ).exists():
                 return permissions
             else:
@@ -58,11 +70,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         ]:
             # Разрешения для просмотра статистики по id (Только Admin этой школы)
             if user.groups.filter(
-                group__name__in=[
-                    "Admin",
-                    "Teacher",
-                ],
-                school=school_id,
+                    group__name__in=[
+                        "Admin",
+                        "Teacher",
+                    ],
+                    school=school_id,
             ).exists():
                 return permissions
             else:
@@ -109,7 +121,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         try:
             student = User.objects.get(pk=student_id)
             if not student.groups.filter(
-                group__name="Student", school=school_id
+                    group__name="Student", school=school_id
             ).exists():
                 return Response(
                     f"student_id не принадлежит пользователю добавленному как студент в данную школу.",
@@ -124,15 +136,15 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         courses_ids = []
 
         if (
-            student.groups.filter(group__name="Student", school=school_id).exists()
-            and user.groups.filter(group__name="Admin", school=school_id).exists()
+                student.groups.filter(group__name="Student", school=school_id).exists()
+                and user.groups.filter(group__name="Admin", school=school_id).exists()
         ):
             courses_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=student_id
             ).values_list("course_id", flat=True)
         elif (
-            student.groups.filter(group__name="Student", school=school_id).exists()
-            and user.groups.filter(group__name="Teacher", school=school_id).exists()
+                student.groups.filter(group__name="Student", school=school_id).exists()
+                and user.groups.filter(group__name="Teacher", school=school_id).exists()
         ):
             courses_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name,
@@ -144,6 +156,30 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             student=student,
             school_name=school_name,
             courses_ids=courses_ids,
+        )
+
+    @action(detail=False, methods=["get"])
+    def homework_progress(self, request, **kwargs):
+        """Генерирует статистику для заданного курса по домашним заданиям"""
+
+        user = request.user
+        school_name = kwargs.get("school_name")
+        course_id = request.query_params.get("course_id")
+        school_id = School.objects.get(name=school_name).school_id
+
+        is_student = StudentsGroup.objects.filter(
+            students=user,
+            course_id=course_id,
+            course_id__school__school_id=school_id,
+        ).exists()
+
+        if not is_student and not user.groups.filter(group__name="Admin", school=school_id).exists():
+            return Response(
+                f"Студент в курсе course_id = {course_id} не найден.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return self.generate_response(
+            student=user, school_name=school_name, courses_ids=[int(course_id)]
         )
 
     def generate_response(self, school_name, student, courses_ids):
@@ -227,5 +263,44 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         return_dict["school_id"] = school_id
         return_dict["school_name"] = school_name
         return_dict["courses"] = courses
+
+        return Response(return_dict)
+
+    def generate_progress(self, school_name, student, courses_ids):
+        """Генерирует статистику по студенту по всем курсам в школе"""
+        school_id = School.objects.get(name=school_name).school_id
+
+        all_base_lesson_ids = UserProgressLogs.objects.filter(
+            user=student.pk
+        ).values_list("lesson_id", flat=True)
+
+        return_dict = {}
+        return_dict["student"] = student.email
+        return_dict["school_id"] = school_id
+        return_dict["school_name"] = school_name
+        return_dict["courses"] = []
+
+        for course_id in courses_ids:
+            course = {}
+            course_obj = Course.objects.get(pk=course_id)
+
+            all_homeworks = Homework.objects.filter(section_id__course_id=course_id)
+
+            completed_homeworks = all_homeworks.filter(
+                baselesson_ptr_id__in=all_base_lesson_ids
+            )
+
+            course["course_id"] = course_obj.pk
+            course["course_name"] = course_obj.name
+
+            course["homeworks"] = {
+                "completed_percent": round(
+                    completed_homeworks.count() / all_homeworks.count() * 100, 2
+                ) if all_homeworks.count() != 0 else 0,
+                "all_homeworks": all_homeworks.count(),
+                "completed_homeworks": completed_homeworks.count(),
+            }
+
+            return_dict["courses"].append(course)
 
         return Response(return_dict)
