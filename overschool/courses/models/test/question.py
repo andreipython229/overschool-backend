@@ -1,6 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
-from common_services.services import limit_size
+from common_services.services import TruncateFileName, limit_size
 from django.db import models
 from model_clone import CloneMixin
 
@@ -42,7 +42,11 @@ class Question(TimeStampMixin, CloneMixin, models.Model):
     )
     body = RichTextField(verbose_name="Вопрос", help_text="Тело вопроса")
     picture = models.ImageField(
-        verbose_name="Картинка", null=True, blank=True, validators=[limit_size]
+        verbose_name="Картинка",
+        null=True,
+        blank=True,
+        validators=[limit_size],
+        upload_to=TruncateFileName(300),
     )
     is_any_answer_correct = models.BooleanField(
         default=False,

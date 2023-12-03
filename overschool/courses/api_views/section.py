@@ -1,6 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     BaseLesson,
     Course,
@@ -9,9 +9,10 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    StudentsGroupSettings,
     UserProgressLogs,
 )
-from courses.serializers import SectionSerializer
+from courses.serializers import SectionRetrieveSerializer, SectionSerializer
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -24,9 +25,8 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 from .schemas.section import SectionsSchemas
-from common_services.mixins.order_mixin import generate_order
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -60,7 +60,7 @@ class SectionViewSet(
         if self.action in ["list", "retrieve", "lessons"]:
             # Разрешения для просмотра секций (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -99,7 +99,8 @@ class SectionViewSet(
         section = queryset.filter(pk=pk).first()
         if not section:
             return Response("Раздел не найден или у вас нет необходимых прав.")
-        serializer = SectionSerializer(section)
+        context = {"request": request}
+        serializer = SectionRetrieveSerializer(section, context=context)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -112,11 +113,9 @@ class SectionViewSet(
             except courses.model.DoesNotExist:
                 raise NotFound("Указанный курс не относится к этой школе.")
 
-        order = generate_order(Section)
-
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            serializer.save(order=order)
+            serializer.save()
             return Response(serializer.data, status=201)
 
     def update(self, request, *args, **kwargs):
@@ -149,21 +148,12 @@ class SectionViewSet(
 
         # Получаем, а затем удаляем файлы и сегменты всех уроков удаляемого раздела
         for id in base_lessons_ids:
-            files_to_delete = s.get_folder_files(
+            files_to_delete = s3.get_list_objects(
                 "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id)
             )
-            segments_to_delete = s.get_folder_files(
-                "{}_school/{}_course/{}_lesson".format(school_id, course.course_id, id),
-                "_segments",
-            )
+
             if files_to_delete:
-                if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                    remove_resp = "Error"
-            if segments_to_delete:
-                if (
-                        s.bulk_remove_from_selectel(segments_to_delete, "_segments")
-                        == "Error"
-                ):
+                if s3.delete_files(files_to_delete) == "Error":
                     remove_resp = "Error"
 
         self.perform_destroy(instance)
@@ -184,6 +174,9 @@ class SectionViewSet(
         queryset = self.get_queryset()
         section = queryset.filter(pk=pk)
 
+        user = self.request.user
+        self.kwargs.get("school_name")
+
         data = section.values(
             section_name=F("name"),
             section=F("section_id"),
@@ -191,9 +184,31 @@ class SectionViewSet(
         result_data = dict(
             section_name=data[0]["section_name"],
             section_id=data[0]["section"],
-            lessons=[],
         )
-        user = self.request.user
+
+        group = None
+        if user.groups.filter(group__name="Student").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    students=user, course_id_id__sections=pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+        elif user.groups.filter(group__name="Teacher").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    teacher_id=user.pk, course_id_id__sections=pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+        if group:
+            result_data["group_settings"] = {
+                "task_submission_lock": group.group_settings.task_submission_lock,
+                "strict_task_order": group.group_settings.strict_task_order,
+            }
+
+        result_data["lessons"] = []
+
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
@@ -201,7 +216,12 @@ class SectionViewSet(
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(group__name__in=["Student", "Teacher", ]).exists():
+            elif user.groups.filter(
+                group__name__in=[
+                    "Student",
+                    "Teacher",
+                ]
+            ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)

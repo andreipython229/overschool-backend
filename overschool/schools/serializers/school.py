@@ -1,8 +1,7 @@
-from common_services.selectel_client import SelectelClient
-from rest_framework import serializers
-from schools.models import School, TariffPlan
+import re
 
-s = SelectelClient()
+from rest_framework import serializers
+from schools.models import School, Tariff, TariffPlan
 
 
 class SelectTrialSerializer(serializers.ModelSerializer):
@@ -27,8 +26,6 @@ class SchoolSerializer(serializers.ModelSerializer):
         fields = [
             "school_id",
             "name",
-            "avatar",
-            "avatar_url",
             "order",
             "tariff",
             "purchased_tariff_end_date",
@@ -36,6 +33,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "trial_end_date",
             "created_at",
             "updated_at",
+            "offer_url",
         ]
         read_only_fields = [
             "order",
@@ -45,21 +43,58 @@ class SchoolSerializer(serializers.ModelSerializer):
             "trial_end_date",
         ]
 
+    def validate(self, attrs):
+        if not attrs.get("name"):
+            raise serializers.ValidationError("'name' обязателеное поле.")
 
-class SchoolGetSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор просмотра школы
-    """
+        attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
 
-    avatar = serializers.SerializerMethodField()
+        return attrs
+
+
+class SchoolUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор обновления модели школы
+    """
 
     class Meta:
         model = School
         fields = [
             "school_id",
             "name",
-            "avatar",
-            "avatar_url",
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+            "created_at",
+            "updated_at",
+            "offer_url",
+        ]
+        read_only_fields = [
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+        ]
+
+    def validate(self, attrs):
+        if attrs.get("name"):
+            attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
+        return attrs
+
+
+class SchoolGetSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор просмотра школы
+    """
+
+    class Meta:
+        model = School
+        fields = [
+            "school_id",
+            "name",
             "order",
             "tariff",
             "purchased_tariff_end_date",
@@ -68,7 +103,11 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "owner",
+            "offer_url",
         ]
 
-    def get_avatar(self, obj):
-        return s.get_selectel_link(str(obj.avatar)) if obj.avatar else None
+
+class TariffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tariff
+        fields = "__all__"

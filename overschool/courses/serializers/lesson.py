@@ -1,12 +1,11 @@
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Lesson, LessonComponentsOrder
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -16,6 +15,12 @@ class LessonSerializer(serializers.ModelSerializer):
 
     type = serializers.CharField(default="lesson", read_only=True)
     all_components = LessonComponentsOrderSerializer(many=True, required=False)
+    url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        help_text="Ссылка на видео из YouTube",
+    )
+    video_use = serializers.BooleanField(required=False)
 
     class Meta:
         model = Lesson
@@ -29,22 +34,24 @@ class LessonSerializer(serializers.ModelSerializer):
             "description",
             "code",
             "video",
+            "video_use",
             "points",
             "type",
             "all_components",
             "active",
+            "url",
         ]
         read_only_fields = ["order"]
 
     def create(self, validated_data):
         components_data = validated_data.pop("all_components", None)
         lesson = Lesson.objects.create(**validated_data)
+
         if components_data:
-            order = generate_order(LessonComponentsOrder)
             base_lesson = BaseLesson.objects.get(lessons=lesson)
             for component_data in components_data:
                 LessonComponentsOrder.objects.create(
-                    base_lesson=base_lesson, order=order, **component_data
+                    base_lesson=base_lesson, **component_data
                 )
         return lesson
 
@@ -68,6 +75,7 @@ class LessonSerializer(serializers.ModelSerializer):
         instance.video = validated_data.get("video", instance.video)
         instance.points = validated_data.get("points", instance.points)
         instance.active = validated_data.get("active", instance.active)
+        instance.url = validated_data.get("url", instance.url)
 
         instance.save()
 
@@ -103,11 +111,12 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "type",
             "all_components",
             "active",
+            "url",
         ]
         read_only_fields = ["type", "text_files", "audio_files"]
 
     def get_video(self, obj):
-        return s.get_selectel_link(str(obj.video)) if obj.video else None
+        return s3.get_link(obj.video.name) if obj.video else None
 
 
 class LessonUpdateSerializer(serializers.Serializer):

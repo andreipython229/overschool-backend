@@ -1,7 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
@@ -13,7 +12,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class HomeworkViewSet(
@@ -29,6 +28,7 @@ class HomeworkViewSet(
     Разрешения для создания и изменения домашних заданий (только пользователи с группой 'Admin')."""
 
     permission_classes = [permissions.IsAuthenticated]
+
     # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
@@ -103,15 +103,14 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        order = generate_order(Homework)
         serializer = self.get_serializer(data=request.data)
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
-        homework = serializer.save(order=order, video=None)
+        homework = serializer.save(video=None)
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
+            video = s3.upload_large_file(request.FILES["video"], base_lesson)
             homework.video = video
             homework.save()
             serializer = HomeworkDetailSerializer(
@@ -131,26 +130,27 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
+        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
-        if request.FILES.get("video"):
+        video = request.FILES.get("video")
+        if video:
             if instance.video:
-                s.remove_from_selectel(str(instance.video))
-                segments_to_delete = s.get_folder_files(
-                    str(instance.video)[1:], "_segments"
-                )
-                if segments_to_delete:
-                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson, "inline"
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
             )
-        else:
+        elif not video and video_use:
+            if instance.video:
+                s3.delete_file(str(instance.video))
+            instance.video = None
+        elif not video and not video_use:
             serializer.validated_data["video"] = instance.video
-
+        instance.save()
         self.perform_update(serializer)
 
         serializer = HomeworkDetailSerializer(instance, context={"request": request})
@@ -188,20 +188,14 @@ class HomeworkViewSet(
             )
         )
 
-        segments_to_delete = []
         if instance.video:
-            files_to_delete += str(instance.video)
-            segments_to_delete = s.get_folder_files(
-                str(instance.video)[1:], "_segments"
-            )
+            s3.delete_file(str(instance.video))
 
         # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
         remove_resp = None
+        objects_to_delete = [{"Key": key} for key in files_to_delete]
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(objects_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)

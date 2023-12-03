@@ -1,20 +1,22 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Lesson, Section, StudentsGroup
-from courses.serializers import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer
+from courses.serializers import (
+    LessonDetailSerializer,
+    LessonSerializer,
+    LessonUpdateSerializer,
+)
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, status, viewsets, generics
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class LessonViewSet(
@@ -43,7 +45,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -85,7 +87,6 @@ class LessonViewSet(
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-
         section = self.request.data.get("section")
         if section is not None:
             sections = Section.objects.filter(course__school__name=school_name)
@@ -93,16 +94,16 @@ class LessonViewSet(
                 sections.get(pk=section)
             except sections.model.DoesNotExist:
                 raise NotFound(
-                    "Указанная секция не относится не к одному курсу этой школы."
+                    "Указанная секция не относится ни к одному курсу этой школы."
                 )
-        order = generate_order(Lesson)
-        serializer = LessonSerializer(data=request.data)
+
+        serializer = LessonSerializer(data={**request.data})
         serializer.is_valid(raise_exception=True)
-        lesson = serializer.save(order=order, video=None)
+        lesson = serializer.save(video=None)
 
         if request.FILES.get("video"):
             base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s.upload_file(request.FILES["video"], base_lesson, "inline")
+            video = s3.upload_large_file(request.FILES["video"], base_lesson)
             lesson.video = video
             lesson.save()
             serializer = LessonDetailSerializer(lesson)
@@ -122,7 +123,7 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-
+        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -130,21 +131,21 @@ class LessonViewSet(
         if not request.data.get("active"):
             serializer.validated_data["active"] = instance.active
 
-        if request.FILES.get("video"):
+        video = request.FILES.get("video")
+        if video:
             if instance.video:
-                s.remove_from_selectel(str(instance.video))
-                segments_to_delete = s.get_folder_files(
-                    str(instance.video)[1:], "_segments"
-                )
-                if segments_to_delete:
-                    s.bulk_remove_from_selectel(segments_to_delete, "_segments")
+                s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(lessons=instance)
-            serializer.validated_data["video"] = s.upload_file(
-                request.FILES["video"], base_lesson, "inline"
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
             )
-        else:
+        elif not video and video_use:
+            if instance.video:
+                s3.delete_file(str(instance.video))
+            instance.video = None
+        elif not video and not video_use:
             serializer.validated_data["video"] = instance.video
-
+        instance.save()
         self.perform_update(serializer)
 
         serializer = LessonDetailSerializer(instance)
@@ -161,24 +162,16 @@ class LessonViewSet(
             )
         )
 
-        segments_to_delete = []
         if instance.video:
-            files_to_delete += str(instance.video)
-            segments_to_delete = s.get_folder_files(
-                str(instance.video)[1:], "_segments"
-            )
+            s3.delete_file(str(instance.video))
 
-        # Удаляем сразу все файлы урока и сегменты видео
         remove_resp = None
+        objects_to_delete = [{"Key": key} for key in files_to_delete]
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(objects_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)
-
         if remove_resp == "Error":
             return Response(
                 {"error": "Ошибка удаления ресурса из хранилища Selectel"},
@@ -188,42 +181,34 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class LessonUpdateViewSet(WithHeadersViewSet, generics.GenericAPIView):
+class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     serializer_class = None
 
-    @swagger_auto_schema(method='post', request_body=LessonUpdateSerializer)
+    @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)
     @action(detail=False, methods=["POST"])
-    @transaction.atomic
-    def shuffle_lessons(self, request):
+    def shuffle_lessons(self, request, *args, **kwargs):
 
-        data = request.data  # Получите данные из запроса
+        data = request.data
 
-        # Создайте сериализатор с полученными данными
+        # сериализатор с полученными данными
         serializer = LessonUpdateSerializer(data=data, many=True)
 
         if serializer.is_valid():
-            # BaseLesson.disable_constraint('unique_section_lesson_order')
+            BaseLesson.disable_constraint("unique_section_lesson_order")
             for lesson_data in serializer.validated_data:
-                baselesson_ptr_id = lesson_data['baselesson_ptr_id']
-                new_order = lesson_data['order']
+                baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
+                new_order = lesson_data["order"]
 
                 # Обновите порядок урока в базе данных
                 try:
-                    lesson1 = BaseLesson.objects.get(id=baselesson_ptr_id)
-                    lesson2 = BaseLesson.objects.get(order=new_order)
-
-                    order1 = lesson1.order
-                    order2 = lesson2.order
-
-                    BaseLesson.objects.bulk_update([
-                        BaseLesson(id=lesson1.id, order=order2),
-                        BaseLesson(id=lesson2.id, order=order1)
-                    ], ['order'])
-
+                    lesson = BaseLesson.objects.get(id=baselesson_ptr_id)
+                    lesson.order = new_order
+                    lesson.save()
                 except Exception as e:
+                    BaseLesson.enable_constraint()
                     return Response(str(e), status=500)
 
-            # BaseLesson.enable_constraint('unique_section_lesson_order')
+            BaseLesson.enable_constraint()
             return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
 
         else:

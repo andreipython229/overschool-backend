@@ -1,11 +1,17 @@
+import re
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.models import Group
 from django.http import HttpResponse
-from rest_framework import generics, permissions
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
+from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from users.serializers import SignupSchoolOwnerSerializer
-from users.services import JWTHandler
+from users.services import JWTHandler, SenderServiceMixin
 
+sender_service = SenderServiceMixin()
 User = get_user_model()
 jwt_handler = JWTHandler()
 
@@ -18,42 +24,40 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     необходимых данных уже зарегистрированного пользователя,
     для регистрации школы"""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
+        school_name = request.data.get("school_name")
+        school_name = re.sub(r"[^A-Za-z0-9._-]", "", school_name)
 
-        if not all([email, phone_number]):
-            return HttpResponse("Email and phone number is required", status=400)
+        if not all([email, phone_number, school_name]):
+            return HttpResponse(
+                "Требуется указать email, номер телефона и название школы", status=400
+            )
 
-        if request.user.is_authenticated:
-            user = self.request.user
+        if email and User.objects.filter(email=email).exists():
+            return HttpResponse("Email уже существует.", status=400)
 
-            if not check_password(request.data.get("password"), user.password):
-                return HttpResponse("Invalid password credentials", status=401)
+        if School.objects.filter(name=school_name).exists():
+            return HttpResponse("Название школы уже существует.", status=400)
 
-            if user.email != email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email already exists.", status=400)
-
-            if (
-                user.phone_number != phone_number
-                and User.objects.filter(phone_number=phone_number).exists()
-            ):
-                return HttpResponse("Phone number already exists.", status=400)
-
-            serializer = self.get_serializer(user, data=request.data)
-        else:
-            if email and User.objects.filter(email=email).exists():
-                return HttpResponse("Email already exists.", status=400)
-
-            if phone_number and User.objects.filter(phone_number=phone_number).exists():
-                return HttpResponse("Phone number already exists.", status=400)
-
-            serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
 
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Отправка уведомления о успешной регистрации и создании школы
+        subject = "Успешная регистрация"
+        message = f"Вы успешно зарегистрированы, ваша школа '{school_name}' создана."
+
+        send = sender_service.send_code_by_email(
+            email=email, subject=subject, message=message
+        )
+
+        if send and send["status_code"] == 500:
+            return HttpResponse(send["error"], status=send["status_code"])
 
         return HttpResponse("/api/user/", status=201)

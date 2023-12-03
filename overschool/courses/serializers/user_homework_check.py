@@ -1,6 +1,9 @@
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import UserHomeworkCheck
 from rest_framework import serializers
+
+s3 = UploadToS3()
 
 
 class UserHomeworkCheckSerializer(serializers.ModelSerializer):
@@ -26,9 +29,7 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
         source="author.first_name", read_only=True
     )
     author_last_name = serializers.CharField(source="author.last_name", read_only=True)
-    profile_avatar = serializers.CharField(
-        source="author.profile.avatar", read_only=True
-    )
+    profile_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = UserHomeworkCheck
@@ -56,3 +57,11 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             "profile_avatar",
             "author",
         ]
+
+    def get_profile_avatar(self, obj):
+        if obj.author.profile.avatar:
+            return s3.get_link(obj.author.profile.avatar.name)
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)

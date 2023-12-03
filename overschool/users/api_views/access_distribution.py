@@ -1,18 +1,23 @@
 from datetime import datetime
 
-from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
+from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import StudentsGroup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
-from users.models import UserGroup, UserRole
+from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
+from users.services import SenderServiceMixin
+
+
+sender_service = SenderServiceMixin()
 
 User = get_user_model()
 
@@ -46,6 +51,10 @@ class AccessDistributionView(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
+    @swagger_auto_schema(
+        request_body=AccessDistributionSerializer,
+        tags=["access_distribution"],
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -84,7 +93,7 @@ class AccessDistributionView(
                     < new_user_count
                 ):
                     return HttpResponse(
-                        "Превышено количество новых учеников в месяц для выбранного тарифа",
+                        f"Превышено количество новых учеников в месяц для выбранного тарифа. Можно добавить новых учеников: {school.tariff.students_per_month - student_count_by_month}",
                         status=400,
                     )
                 student_count = UserGroup.objects.filter(
@@ -92,7 +101,7 @@ class AccessDistributionView(
                 ).count()
                 if school.tariff.total_students - student_count < new_user_count:
                     return HttpResponse(
-                        "Превышено количество учеников для выбранного тарифа",
+                        f"Превышено количество учеников для выбранного тарифа. Можно добавить новых учеников: {school.tariff.total_students - student_count}",
                         status=400,
                     )
             elif school.tariff.name in [
@@ -130,6 +139,11 @@ class AccessDistributionView(
 
         student_groups = StudentsGroup.objects.none()
         if student_groups_ids:
+            if role == "Teacher" and users.count() > 1:
+                return HttpResponse(
+                    "Нельзя назначить несколько преподавателей в одни и те же группы",
+                    status=400,
+                )
             student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
             groups_count = student_groups.count()
             courses_count = student_groups.values("course_id").distinct().count()
@@ -156,35 +170,60 @@ class AccessDistributionView(
                 .exists()
             ):
                 return HttpResponse(
-                    f"Пользователь уже имеет другую роль в этой школе (id={user.id}, email={user.email})",
+                    f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
                     status=400,
                 )
 
             if not user.groups.filter(group=group, school=school).exists():
                 user.groups.create(group=group, school=school)
 
+            if not user.groups.filter(group=group, school=school).exists():
+                user.groups.create(group=group, school=school)
+
+                subject = "Добавление в группу"
+                message = (
+                    f"Вы были добавлены в группу {group.name} в школе {school.name}."
+                )
+                sender_service.send_code_by_email(
+                    email=user.email, subject=subject, message=message
+                )
+
             if student_groups_ids:
                 if role == "Teacher":
                     if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
                         return HttpResponse(
-                            f"Нельзя преподавать в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            f"Нельзя преподавать в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
                     for student_group in student_groups:
+                        previous_teacher = student_group.teacher_id
+                        chat = student_group.chat
+                        previous_chat = UserChat.objects.filter(
+                            user=previous_teacher, chat=chat
+                        ).first()
+                        if previous_chat:
+                            previous_chat.delete()
                         user.teacher_group_fk.add(student_group)
+                        UserChat.objects.create(user=user, chat=chat)
                 if role == "Student":
                     if user.students_group_fk.filter(
                         course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
-                            f"Нельзя учиться в нескольких группах одного и того же курса (id={user.id}, email={user.email})",
+                            f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
                     for student_group in student_groups:
                         user.students_group_fk.add(student_group)
+                        chat = student_group.chat
+                        UserChat.objects.create(user=user, chat=chat)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
+    @swagger_auto_schema(
+        request_body=AccessDistributionSerializer,
+        tags=["access_distribution"],
+    )
     def delete(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -217,7 +256,7 @@ class AccessDistributionView(
         for user in users:
             if not user.groups.filter(group=group, school=school).exists():
                 return HttpResponse(
-                    f"У пользователя нет такой роли в вашей школе (id={user.id}, email={user.email})",
+                    f"У пользователя нет такой роли в вашей школе (email={user.email})",
                     status=400,
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
@@ -226,30 +265,38 @@ class AccessDistributionView(
                     and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
-                        f"Группу нельзя оставить без преподавателя (id={user.id}, email={user.email})",
+                        f"Группу нельзя оставить без преподавателя (email={user.email})",
                         status=400,
                     )
                 elif role == "Admin" and school.owner == user:
                     return HttpResponse(
-                        f"Владельца школы нельзя лишать его прав (id={user.id}, email={user.email})",
+                        f"Владельца школы нельзя лишать его прав (email={user.email})",
                         status=400,
                     )
                 else:
                     user.groups.get(group=group, school=school).delete()
                     if role == "Student":
-                        user.students_group_fk.filter(course_id__school=school).delete()
+                        student_groups = StudentsGroup.objects.filter(
+                            students=user, course_id__school=school
+                        )
+                        for student_group in student_groups:
+                            student_group.students.remove(user)
             else:
+
                 if role == "Teacher":
                     return HttpResponse(
                         "Группу нельзя оставить без преподавателя", status=400
                     )
                 elif role == "Student":
+                    remaining_groups_count1 = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
                     for student_group in student_groups:
                         user.students_group_fk.remove(student_group)
+                    remaining_groups_count = user.students_group_fk.filter(
+                        course_id__school=school
+                    ).count()
+                    if remaining_groups_count == 0:
+                        user.groups.get(group=group, school=school).delete()
 
         return HttpResponse("Доступ успешно заблокирован", status=201)
-
-
-AccessDistributionView = apply_swagger_auto_schema(tags=["access_distribution"])(
-    AccessDistributionView
-)

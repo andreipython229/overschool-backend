@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from users.models import User
-from users.services import SenderServiceMixin
 
 
 class SignupSerializer(serializers.Serializer):
@@ -38,56 +37,16 @@ class SignupSerializer(serializers.Serializer):
         user.save()
         return user
 
-    def save(self, **kwargs):
-        instance = super().save(**kwargs)
-        email = instance.email
 
-        if email:
-            sender_service = SenderServiceMixin()
-            confirmation_code = sender_service.send_code_by_email(email=email)
-            instance.confirmation_code = confirmation_code
-
-        instance.save()
-        return instance
-
-
-class ConfirmationSerializer(serializers.Serializer):
-    code = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
-    phone_number = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        code = attrs.get("code")
-        email = attrs.get("email")
-        phone_number = attrs.get("phone_number")
-
-        if not code:
-            raise serializers.ValidationError("Code is required.")
-
-        # Дополнительные проверки для почты и номера телефона
-        if not email:
-            raise serializers.ValidationError("Email is required.")
-
-        if not phone_number:
-            raise serializers.ValidationError("Phone number is required.")
-
-        # Вы можете добавить дополнительные проверки на формат почты или номера телефона
-
-        return attrs
-
-
-class PasswordResetSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+class PasswordChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
+    new_password_again = serializers.CharField(required=True)
 
     def validate(self, attrs):
-        email = attrs.get("email")
         new_password = attrs.get("new_password")
+        new_password_again = attrs.get("new_password_again")
 
-        if not email:
-            raise serializers.ValidationError("Email is required.")
-
-        if not new_password:
-            raise serializers.ValidationError("New password is required.")
+        if new_password != new_password_again:
+            raise serializers.ValidationError("Пароли не совпадают")
 
         return attrs

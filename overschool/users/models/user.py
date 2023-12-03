@@ -1,11 +1,7 @@
-from datetime import datetime, timedelta
-
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-from rest_framework import serializers
 from users.managers import UserManager
 
 
@@ -28,40 +24,22 @@ class User(AbstractBaseUser):
     first_name = models.CharField(
         verbose_name="Имя",
         max_length=150,
-        default="",
+        null=True,
+        blank=True,
     )
     last_name = models.CharField(
         verbose_name="Фамилия",
         max_length=150,
-        default="",
-    )
-    patronymic = models.CharField(
-        verbose_name="Отчество",
-        max_length=150,
-        default="",
-    )
-    confirmation_code = models.CharField(
-        verbose_name="Код подтверждения",
-        max_length=4,
         null=True,
         blank=True,
-
     )
-    confirmation_code_created_at = models.DateTimeField(
-        verbose_name="Дата создания кода подтверждения",
-        null=True,
-        blank=True,
-        default=timezone.now
-    )
-    email = models.EmailField(
-        verbose_name="Почта", help_text="Почта", null=True, blank=True
-    )
+    patronymic = models.CharField(verbose_name="Отчество", max_length=150, default="")
+    email = models.EmailField(verbose_name="Почта", help_text="Почта", unique=True)
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
-    subscription_id = models.CharField(max_length=255, null=True, blank=True)
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
-    is_active = models.BooleanField(verbose_name="Активный", default=False)
+    is_active = models.BooleanField(verbose_name="Активный", default=True)
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)
     date_joined = models.DateTimeField(
         verbose_name="Дата регистрации", default=timezone.now
@@ -87,18 +65,3 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
-
-    CONFIRMATION_CODE_EXPIRY_MINUTES = settings.CONFIRMATION_CODE_EXPIRY_MINUTES
-
-    def validate_confirmation_code(self, code):
-        # Проверяем время создания кода подтверждения
-        expiry_time = datetime.now() - timedelta(minutes=self.CONFIRMATION_CODE_EXPIRY_MINUTES)
-        if self.confirmation_code_created_at < expiry_time:
-            # Если код просрочен, удаляем его и возвращаем ошибку
-            self.confirmation_code = None
-            self.confirmation_code_created_at = None
-            self.save(update_fields=['confirmation_code', 'confirmation_code_created_at'])
-            raise serializers.ValidationError("Confirmation code has expired.")
-        else:
-            self.confirmation_code_created_at = datetime.now()
-            self.save(update_fields=['confirmation_code_created_at'])

@@ -1,6 +1,16 @@
 import json
 
 import requests
+from django.conf import settings
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[0]
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+    return ip
 
 
 class BePaidClient:
@@ -11,7 +21,18 @@ class BePaidClient:
         self.headers = {"Content-Type": "application/json"}
 
     def subscribe_client(
-            self, to_pay_sum, days_interval, pays_count, first_name, last_name, email, phone
+        self,
+        request,
+        to_pay_sum,
+        days_interval,
+        pays_count,
+        first_name,
+        last_name,
+        email,
+        phone,
+        tariff,
+        school,
+        promo_code: str | None,
     ):
         to_pay_sum = float(to_pay_sum)
         days_interval = float(days_interval)
@@ -20,6 +41,12 @@ class BePaidClient:
         payload = json.dumps(
             {
                 "test": self.is_test,
+                "additional_data": {
+                    "tariff": tariff,
+                    "school": school,
+                    "promo_code": promo_code,
+                },
+                "notification_url": settings.NOTIFICATION_URL_BEPAID,
                 "plan": {
                     "currency": "BYN",
                     "plan": {
@@ -28,7 +55,7 @@ class BePaidClient:
                         "interval_unit": "day",
                     },
                     "shop_id": self.shop_id,
-                    "title": "Подписка прошла успешно",
+                    "title": "Подписка на тарифный план школы",
                 },
                 "settings": {"language": "ru"},
                 "customer": {
@@ -36,7 +63,7 @@ class BePaidClient:
                     "last_name": last_name,
                     "email": email,
                     "phone": phone,
-                    "ip": "127.0.0.1",
+                    "ip": get_client_ip(request),
                 },
                 "billing_cycles": pays_count,
                 "number_payment_attempts": 10,
@@ -66,6 +93,14 @@ class BePaidClient:
         )
         return response.json()
 
+    def get_subscription_status(self, subscription_id):
+        response = requests.get(
+            f"https://api.bepaid.by/subscriptions/{subscription_id}",
+            auth=(self.shop_id, self.secret_key),
+            headers=self.headers,
+        )
+        return response.json()
+
     def unsubscribe(self, subscription_id):
         response = requests.delete(
             f"https://api.bepaid.by/subscriptions/{subscription_id}",
@@ -76,9 +111,8 @@ class BePaidClient:
         return {}
 
 
-
 bepaid_client = BePaidClient(
-    shop_id="21930",
-    secret_key="0537f88488ebd20593e0d0f28841630420820aeef1a21f592c9ce413525d9d02",
+    shop_id=settings.BEPAID_SHOP_ID,
+    secret_key=settings.BEPAID_SECRET_KEY,
     is_test=True,
 )

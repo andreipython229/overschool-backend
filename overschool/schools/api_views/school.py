@@ -1,10 +1,10 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
 from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -12,18 +12,20 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, SchoolHeader, Tariff, TariffPlan
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
+    SchoolUpdateSerializer,
     SelectTrialSerializer,
+    TariffSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.school import SchoolsSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -88,26 +90,22 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
-        order = generate_order(School)
+
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if School.objects.filter(name=serializer.validated_data["name"]).exists():
+            return HttpResponse("Название школы уже существует.", status=400)
+
         school = serializer.save(
-            order=order,
-            avatar=None,
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
         )
+        if school:
+            SchoolHeader.objects.create(school=school, name=school.name)
         # Создание записи в модели UserGroup для добавления пользователя в качестве администратора
         group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
-
-        school_id = school.school_id
-        if request.FILES.get("avatar"):
-            avatar = s.upload_school_image(request.FILES["avatar"], school_id)
-            school.avatar = avatar
-            school.save()
-            serializer = SchoolGetSerializer(school)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -117,18 +115,17 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if not user.groups.filter(group__name="Admin", school=school).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-        serializer = SchoolSerializer(school, data=request.data)
+        serializer = SchoolUpdateSerializer(school, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        if request.FILES.get("avatar"):
-            if school.avatar:
-                s.remove_from_selectel(str(school.avatar))
-            school_id = school.school_id
-            serializer.validated_data["avatar"] = s.upload_school_image(
-                request.FILES["avatar"], school_id
+        name_data = serializer.validated_data.get("name")
+        if name_data:
+            existing_school = (
+                School.objects.filter(name=name_data).exclude(pk=school.pk).first()
             )
-        else:
-            serializer.validated_data["avatar"] = school.avatar
+            if existing_school:
+                return Response(
+                    "Название школы уже существует.", status=status.HTTP_400_BAD_REQUEST
+                )
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)
@@ -141,18 +138,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied("У вас нет разрешения на удаление этой школы.")
 
         # Получаем список файлов, хранящихся в папке удаляемой школы
-        files_to_delete = s.get_folder_files("{}_school".format(instance.pk))
-        # Получаем список сегментов файлов удаляемой школы
-        segments_to_delete = s.get_folder_files(
-            "{}_school".format(instance.pk), "_segments"
-        )
+        files_to_delete = s3.get_list_objects("{}_school".format(instance.pk))
         # Удаляем все файлы и сегменты, связанные с удаляемой школой
         remove_resp = None
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(files_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)
@@ -301,9 +291,14 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serialized_data = []
         for item in data:
-            profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile)
-            courses = Course.objects.filter(school=school)
+            if not item["students__id"]:
+                continue
+            profile = Profile.objects.filter(user_id=item["students__id"]).first()
+            if profile is not None:
+                serializer = UserProfileGetSerializer(
+                    profile, context={"request": self.request}
+                )
+            courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
@@ -331,3 +326,14 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 SchoolViewSet = apply_swagger_auto_schema(
     tags=["schools"], excluded_methods=["partial_update"]
 )(SchoolViewSet)
+
+
+class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+    """
+    API endpoint для тарифов.
+
+    """
+
+    queryset = Tariff.objects.all()
+    serializer_class = TariffSerializer
+    http_method_names = ["get", "head"]

@@ -1,17 +1,21 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import SchoolHeader
-from schools.serializers import SchoolHeaderDetailSerializer, SchoolHeaderSerializer, SchoolHeaderUpdateSerializer
+from schools.serializers import (
+    SchoolHeaderDetailSerializer,
+    SchoolHeaderSerializer,
+    SchoolHeaderUpdateSerializer,
+)
 
 from .schemas.school_header import SchoolHeaderSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -79,30 +83,18 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         school_id = request.data.get("school")
 
         logo_school = (
-            s.upload_school_image(request.FILES["logo_school"], school_id)
+            s3.upload_school_image(request.FILES["logo_school"], school_id)
             if request.FILES.get("logo_school")
             else None
         )
-        logo_header = (
-            s.upload_school_image(request.FILES["logo_header"], school_id)
-            if request.FILES.get("logo_header")
-            else None
-        )
         photo_background = (
-            s.upload_school_image(request.FILES["photo_background"], school_id)
+            s3.upload_school_image(request.FILES["photo_background"], school_id)
             if request.FILES.get("photo_background")
-            else None
-        )
-        favicon = (
-            s.upload_school_image(request.FILES["favicon"], school_id)
-            if request.FILES.get("favicon")
             else None
         )
         school_header = serializer.save(
             logo_school=logo_school,
-            logo_header=logo_header,
             photo_background=photo_background,
-            favicon=favicon,
         )
         serializer = SchoolHeaderDetailSerializer(school_header)
 
@@ -113,7 +105,7 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         user = self.request.user
         school_id = school_header.school.school_id
         if not user.groups.filter(
-                group__name="Admin", school=school_header.school
+            group__name="Admin", school=school_header.school
         ).exists():
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
@@ -122,41 +114,23 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
 
         if request.FILES.get("logo_school"):
             if school_header.logo_school:
-                s.remove_from_selectel(str(school_header.logo_school))
-            serializer.validated_data["logo_school"] = s.upload_school_image(
+                s3.delete_file(str(school_header.logo_school))
+            serializer.validated_data["logo_school"] = s3.upload_school_image(
                 request.FILES["logo_school"], school_id
             )
         else:
             serializer.validated_data["logo_school"] = school_header.logo_school
 
-        if request.FILES.get("logo_header"):
-            if school_header.logo_header:
-                s.remove_from_selectel(str(school_header.logo_header))
-            serializer.validated_data["logo_header"] = s.upload_school_image(
-                request.FILES["logo_header"], school_id
-            )
-        else:
-            serializer.validated_data["logo_header"] = school_header.logo_header
-
         if request.FILES.get("photo_background"):
             if school_header.photo_background:
-                s.remove_from_selectel(str(school_header.photo_background))
-            serializer.validated_data["photo_background"] = s.upload_school_image(
+                s3.delete_file(str(school_header.photo_background))
+            serializer.validated_data["photo_background"] = s3.upload_school_image(
                 request.FILES["photo_background"], school_id
             )
         else:
             serializer.validated_data[
                 "photo_background"
             ] = school_header.photo_background
-
-        if request.FILES.get("favicon"):
-            if school_header.favicon:
-                s.remove_from_selectel(str(school_header.favicon))
-            serializer.validated_data["favicon"] = s.upload_school_image(
-                request.FILES["favicon"], school_id
-            )
-        else:
-            serializer.validated_data["favicon"] = school_header.favicon
 
         self.perform_update(serializer)
         serializer = SchoolHeaderDetailSerializer(school_header)
@@ -171,13 +145,9 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         self.perform_destroy(instance)
         remove_resp = []
         if instance.logo_school:
-            remove_resp.append(s.remove_from_selectel(str(instance.logo_school)))
-        if instance.logo_header:
-            remove_resp.append(s.remove_from_selectel(str(instance.logo_header)))
+            remove_resp.append(s3.delete_file(str(instance.logo_school)))
         if instance.photo_background:
-            remove_resp.append(s.remove_from_selectel(str(instance.photo_background)))
-        if instance.favicon:
-            remove_resp.append(s.remove_from_selectel(str(instance.favicon)))
+            remove_resp.append(s3.delete_file(str(instance.photo_background)))
 
         if "Error" in remove_resp:
             return Response(

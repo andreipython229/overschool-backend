@@ -1,9 +1,9 @@
 from datetime import datetime
 
+from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     Course,
     Homework,
@@ -18,15 +18,16 @@ from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
+    CourseWithGroupsSerializer,
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, OuterRef, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
@@ -36,7 +37,7 @@ from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -63,6 +64,8 @@ class CourseViewSet(
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return CourseGetSerializer
+        elif self.action == "with_student_groups":
+            return CourseWithGroupsSerializer
         else:
             return CourseSerializer
 
@@ -122,14 +125,16 @@ class CourseViewSet(
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
+        school_obj = School.objects.get(name=school_name)
+        school_id = school_obj.school_id
         school = self.request.data.get("school")
+
         if int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        school_obj = School.objects.get(school_id=school_id)
+
         if (
             school_obj.tariff.name
             in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
@@ -139,16 +144,24 @@ class CourseViewSet(
                 "Превышено количество курсов для выбранного тарифа",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        order = generate_order(Section)
+
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save(order=order, photo=None)
+        course = serializer.save(photo=None)
 
         if request.FILES.get("photo"):
-            photo = s.upload_course_image(request.FILES["photo"], course)
+            photo = s3.upload_course_image(request.FILES["photo"], course)
             course.photo = photo
             course.save()
             serializer = CourseGetSerializer(course)
+
+        # Создайте чат с типом "COURSE" и именем, связанным с курсом
+        chat_name = f"Чат курса '{course.name}'"
+        chat = Chat.objects.create(name=chat_name, type="COURSE")
+
+        admin = request.user
+
+        UserChat.objects.create(user=admin, chat=chat)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -156,20 +169,20 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         school = self.request.data.get("school")
-        if int(school) != school_id:
+        if school and int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         instance = self.get_object()
-        serializer = CourseSerializer(instance, data=request.data)
+        serializer = CourseSerializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("photo"):
             if instance.photo:
-                s.remove_from_selectel(str(instance.photo))
-            serializer.validated_data["photo"] = s.upload_course_image(
+                s3.delete_file(str(instance.photo))
+            serializer.validated_data["photo"] = s3.upload_course_image(
                 request.FILES["photo"], instance
             )
         else:
@@ -186,20 +199,13 @@ class CourseViewSet(
         school_id = instance.school.school_id
 
         # Получаем список файлов, хранящихся в папке удаляемого курса
-        files_to_delete = s.get_folder_files(
+        files_to_delete = s3.get_list_objects(
             "{}_school/{}_course".format(school_id, instance.pk)
-        )
-        # Получаем список сегментов файлов удаляемого курса
-        segments_to_delete = s.get_folder_files(
-            "{}_school/{}_course".format(school_id, instance.pk), "_segments"
         )
         # Удаляем все файлы и сегменты, связанные с удаляемым курсом
         remove_resp = None
         if files_to_delete:
-            if s.bulk_remove_from_selectel(files_to_delete) == "Error":
-                remove_resp = "Error"
-        if segments_to_delete:
-            if s.bulk_remove_from_selectel(segments_to_delete, "_segments") == "Error":
+            if s3.delete_files(files_to_delete) == "Error":
                 remove_resp = "Error"
 
         self.perform_destroy(instance)
@@ -295,7 +301,7 @@ class CourseViewSet(
             .annotate(avg=Avg("mark"))
             .values("avg")
         )
-
+        print(queryset, "-------")
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -314,9 +320,13 @@ class CourseViewSet(
 
         serialized_data = []
         for item in data:
+            if not item["students__id"]:
+                continue
             profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(profile)
-            courses = Course.objects.filter(school=school)
+            serializer = UserProfileGetSerializer(
+                profile, context={"request": self.request}
+            )
+            courses = Course.objects.filter(course_id=item["course_id"])
             sections = Section.objects.filter(course__in=courses)
             section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
@@ -347,7 +357,10 @@ class CourseViewSet(
         Клонирование курса"""
 
         course = self.get_object()
-        course_copy = course.make_clone(attrs={"name": f"{course.name}-копия"})
+        max_order = Course.objects.all().aggregate(Max("order"))["order__max"]
+        course_copy = course.make_clone(
+            attrs={"name": f"{course.name}-копия", "order": max_order + 1}
+        )
         queryset = Course.objects.filter(pk=course_copy.pk)
         return Response(queryset.values())
 
@@ -360,6 +373,9 @@ class CourseViewSet(
         course = self.get_object()
         queryset = Course.objects.filter(course_id=course.pk)
 
+        user = self.request.user
+        self.kwargs.get("school_name")
+
         data = queryset.values(
             course=F("course_id"),
             course_name=F("name"),
@@ -370,9 +386,30 @@ class CourseViewSet(
         result_data = dict(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
-            sections=[],
         )
-        user = self.request.user
+
+        group = None
+        if user.groups.filter(group__name="Student").exists():
+            try:
+                group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя 1.")
+        elif user.groups.filter(group__name="Teacher").exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    teacher_id=user.pk, course_id_id=course.pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+
+        if group:
+            result_data["group_settings"] = {
+                "task_submission_lock": group.group_settings.task_submission_lock,
+                "strict_task_order": group.group_settings.strict_task_order,
+            }
+
+        result_data["sections"] = []
+
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
@@ -478,6 +515,21 @@ class CourseViewSet(
             serializer = StudentsGroupSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = StudentsGroupSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"])
+    def with_student_groups(self, request, *args, **kwargs):
+        """Список курсов вместе с группами\n
+        <h2>/api/{school_name}/courses/with_student_groups/</h2>\n
+        Список курсов вместе с группами"""
+
+        # Отбираем курсы, в которых есть студенческие группы
+        queryset = (
+            self.get_queryset()
+            .annotate(groups_count=Count("group_course_fk__group_id"))
+            .exclude(groups_count=0)
+        )
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 

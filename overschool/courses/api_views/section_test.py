@@ -2,8 +2,7 @@ from random import sample
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     Answer,
     BaseLesson,
@@ -12,8 +11,13 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    UserTest,
 )
-from courses.serializers import QuestionListGetSerializer, TestSerializer
+from courses.serializers import (
+    QuestionListGetSerializer,
+    TestSerializer,
+    UserTestSerializer,
+)
 from courses.services import LessonProgressMixin
 from django.db.models import Prefetch
 from rest_framework import permissions, status, viewsets
@@ -23,7 +27,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class TestViewSet(
@@ -61,6 +65,12 @@ class TestViewSet(
             if user.groups.filter(
                 group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if self.action == "usertests":
+            # Разрешения для просмотра попыток прохождения теста учеником
+            if user.groups.filter(group__name="Student", school=school_id).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -104,10 +114,9 @@ class TestViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        order = generate_order(SectionTest)
         serializer = TestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(order=order)
+        serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -136,15 +145,16 @@ class TestViewSet(
         school_id = course.school.school_id
 
         # Получаем список файлов, хранящихся в папке удаляемого теста
-        files_to_delete = s.get_folder_files(
+        files_to_delete = s3.get_list_objects(
             "{}_school/{}_course/{}_lesson".format(
                 school_id, course.course_id, base_lesson.id
             )
         )
         # Удаляем все файлы, связанные с удаляемым тестом
-        remove_resp = (
-            s.bulk_remove_from_selectel(files_to_delete) if files_to_delete else None
-        )
+        remove_resp = None
+        if files_to_delete:
+            if s3.delete_files(files_to_delete) == "Error":
+                remove_resp = "Error"
 
         self.perform_destroy(instance)
 
@@ -235,6 +245,18 @@ class TestViewSet(
         test["questions"] = questions_ser.data
 
         return Response(test)
+
+    @action(detail=True)
+    def usertests(self, request, pk, *args, **kwargs):
+        """Список попыток прохождения пользователем конкретного теста\n
+        <h2>/api/{school_name}/tests/{test_id}/usertests/</h2>\n
+        Список попыток прохождения пользователем конкретного теста"""
+
+        test = self.get_object()
+        user = self.request.user
+        queryset = UserTest.objects.filter(test=test, user=user)
+        serializer = UserTestSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 TestViewSet = apply_swagger_auto_schema(

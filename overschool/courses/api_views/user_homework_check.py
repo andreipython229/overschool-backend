@@ -13,7 +13,6 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -143,9 +142,7 @@ class HomeworkCheckViewSet(
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         user_homework_check = self.get_object()

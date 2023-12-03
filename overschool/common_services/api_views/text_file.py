@@ -1,7 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.models import TextFile
-from common_services.selectel_client import SelectelClient
-from common_services.serializers import TextFileSerializer
+from common_services.selectel_client import UploadToS3
+from common_services.serializers import TextFileCheckSerializer, TextFileSerializer
 from common_services.services.request_params import FileParams
 from courses.models import BaseLesson, UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class TextFileViewSet(
@@ -108,15 +108,15 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework.homework
                             )
-                            serializer = self.get_serializer(
+                            serializer = TextFileCheckSerializer(
                                 data={
                                     "user_homework": user_homework_id,
                                     "file": uploaded_file,
                                 }
                             )
                             serializer.is_valid(raise_exception=True)
-                            # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                            file_path = s.upload_file(uploaded_file, base_lesson, disposition="attachment")
+                            # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
+                            file_path = s3.upload_file(uploaded_file, base_lesson)
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
@@ -149,15 +149,15 @@ class TextFileViewSet(
                             base_lesson = BaseLesson.objects.get(
                                 homeworks=user_homework_check.user_homework.homework
                             )
-                            serializer = self.get_serializer(
+                            serializer = TextFileCheckSerializer(
                                 data={
                                     "user_homework_check": user_homework_check_id,
                                     "file": uploaded_file,
                                 }
                             )
                             serializer.is_valid(raise_exception=True)
-                            # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                            file_path = s.upload_file(uploaded_file, base_lesson)
+                            # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
+                            file_path = s3.upload_file(uploaded_file, base_lesson)
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
@@ -194,14 +194,13 @@ class TextFileViewSet(
                 created_files = []
                 if files_list:
                     for uploaded_file in files_list:
-                        print({**request.data, "file": uploaded_file})
                         base_lesson = BaseLesson.objects.get(id=base_lesson_id)
-                        serializer = self.get_serializer(
+                        serializer = TextFileCheckSerializer(
                             data={"base_lesson": base_lesson_id, "file": uploaded_file}
                         )
                         serializer.is_valid(raise_exception=True)
-                        # Загружаем файл в Selectel и получаем путь к файлу в хранилище
-                        file_path = s.upload_file(uploaded_file, base_lesson)
+                        # Загружаем файл в Selectel и получаем путь к файлу в хранилище и размер
+                        file_path = s3.upload_file(uploaded_file, base_lesson)
                         serializer.save(author=user, file=file_path)
                         created_files.append(serializer.data)
                     return Response(created_files, status=status.HTTP_201_CREATED)
@@ -235,12 +234,6 @@ class TextFileViewSet(
                 {"error": "Вы не являетесь автором этого файла"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
+        s3.delete_file(str(instance.file))
         self.perform_destroy(instance)
-        if s.remove_from_selectel(str(instance.file)) == "Success":
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
-                status=status.HTTP_204_NO_CONTENT,
-            )
+        return Response(status=status.HTTP_204_NO_CONTENT)

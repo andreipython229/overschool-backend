@@ -1,5 +1,10 @@
 from .answer import AnswerGetSerializer, AnswerListGetSerializer, AnswerSerializer
-from .course import CourseGetSerializer, CourseSerializer, CourseStudentsSerializer
+from .course import (
+    CourseGetSerializer,
+    CourseSerializer,
+    CourseStudentsSerializer,
+    CourseWithGroupsSerializer,
+)
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer
 from .lesson_components_order import LessonComponentsOrderSerializer
@@ -8,12 +13,14 @@ from .question import (
     QuestionListGetSerializer,
     QuestionSerializer,
 )
-from .section import SectionSerializer
+from .section import SectionSerializer, SectionRetrieveSerializer
 from .section_test import TestSerializer
 from .students_group import (
+    GroupsInCourseSerializer,
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
+    StudentsGroupWTSerializer
 )
 from .students_group_settings import StudentsGroupSettingsSerializer
 from .students_table_info import (

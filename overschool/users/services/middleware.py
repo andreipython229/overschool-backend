@@ -35,20 +35,6 @@ class AuthOptionalMiddleware(MiddlewareMixin):
                 )
                 user = User.objects.get(pk=payload.get("sub"))
                 request.user = user
-                # Refresh access token here
-                new_access_token = jwt_handler.create_access_token(user.id)
-                request.COOKIES[settings.ACCESS] = new_access_token
-                response = HttpResponseRedirect(request.path_info)
-                response.set_cookie(
-                    key=settings.ACCESS,
-                    value=new_access_token,
-                    max_age=settings.COOKIE_EXPIRE_SECONDS,
-                    expires=settings.COOKIE_EXPIRE_SECONDS,
-                    httponly=True,
-                    samesite=None,
-                    secure=False,
-                )
-                return response
             except:
                 request.user = None
         return None

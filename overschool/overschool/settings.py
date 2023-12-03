@@ -64,7 +64,7 @@ MANAGERS = ADMINS
 REDIS_HOST = "redis"
 REDIS_PORT = "6379"
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "overschool.mailing.MyEmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
@@ -73,6 +73,7 @@ SERVER_MAIL = os.getenv("EMAIL_NAME")
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_NAME")
 EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
@@ -90,7 +91,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://apidev.overschool.by:8000",
 ]
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
 
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = True
@@ -230,8 +231,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
 
-# Длительность жизни кода подтверждения в минутах
-CONFIRMATION_CODE_EXPIRY_MINUTES = 1
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -254,17 +253,24 @@ REST_FRAMEWORK = {
     ],
 }
 
+# bepaid
+BEPAID_SHOP_ID: str = os.getenv("BEPAID_SHOP_ID")
+BEPAID_SECRET_KEY: str = os.getenv("BEPAID_SECRET_KEY")
+NOTIFICATION_URL_BEPAID: str = os.getenv("NOTIFICATION_URL_BEPAID")
+
 # jwt
 ALGORITHM: str = os.getenv("ALGORITHM")
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
 JWT_REFRESH_SECRET_KEY: str = os.getenv("JWT_REFRESH_SECRET_KEY")
 # время жизни jwt токенов
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+REFRESH_TOKEN_EXPIRE_MINUTES: int = 30
 # время жизни cookie с jwt токенами
 COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
 ACCESS: str = os.getenv("ACCESS")
 REFRESH: str = os.getenv("REFRESH")
+SESSION_COOKIE_DOMAIN: str = os.getenv("SESSION_COOKIE_DOMAIN")
+
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
 
@@ -411,3 +417,9 @@ SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
 CONTAINER_NAME = "overschool_dev" if DEBUG else "overschool"
 CONTAINER_KEY = env.str("CONTAINER_KEY")
+
+S3_SECRET_KEY = env.str("S3_SECRET_KEY")
+S3_ACCESS_KEY = env.str("S3_ACCESS_KEY")
+REGION_NAME = env.str("REGION_NAME")
+ENDPOINT_URL = env.str("ENDPOINT_URL")
+S3_BUCKET = env.str("S3_BUCKET") if not DEBUG else "overschool_dev"

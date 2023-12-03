@@ -1,5 +1,5 @@
 from common_services.mixins import TimeStampMixin
-from common_services.services import limit_size
+from common_services.services import TruncateFileName, limit_size
 from django.conf import settings
 from django.db import models
 from oauthlib.common import urldecode
@@ -24,7 +24,9 @@ class Profile(TimeStampMixin, models.Model):
     avatar = models.ImageField(
         help_text="Аватар",
         verbose_name="Аватар",
+        max_length=300,
         validators=[limit_size],
+        upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )

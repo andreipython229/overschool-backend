@@ -1,289 +1,178 @@
-import hmac
 import io
 import os
-import uuid
 import zipfile
 from datetime import datetime
-from hashlib import sha1
-from time import time
 
-import redis
-import requests
-from PIL import Image
+import boto3
+
 from overschool.settings import (
-    ACCOUNT_ID,
-    CONTAINER_KEY,
-    CONTAINER_NAME,
-    REDIS_HOST,
-    REDIS_PORT,
-    SEL_AUTH_KEY,
+    ENDPOINT_URL,
+    REGION_NAME,
+    S3_ACCESS_KEY,
+    S3_BUCKET,
+    S3_SECRET_KEY,
 )
 
 
-class SelectelClient:
-    BASE_URL = "https://api.selcdn.ru/v1/SEL_{}".format(ACCOUNT_ID)
-    URL = BASE_URL + "/{}".format(CONTAINER_NAME)
-    REDIS_INSTANCE = redis.StrictRedis(
-        host=REDIS_HOST,
-        # host="localhost",
-        port=REDIS_PORT,
-        db=0,
+class UploadToS3:
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=ENDPOINT_URL,
+        region_name=REGION_NAME,
+        aws_access_key_id=S3_ACCESS_KEY,
+        aws_secret_access_key=S3_SECRET_KEY,
     )
+    ALLOWED_FORMATS = [
+        ".xlsx",
+        ".pdf",
+        ".csv",
+        ".txt",
+        ".doc",
+        ".docx",
+        ".json",
+        ".rtf",
+        ".xml",
+        ".yaml",
+        ".jpg",
+        ".jpeg",
+        ".png",
+    ]
 
-    # Получение токена для работы с хранилищем
-    def get_token(self):
-        resp = requests.get(
-            "https://api.selcdn.ru/auth/v1.0",
-            headers={"X-Auth-User": ACCOUNT_ID, "X-Auth-Key": SEL_AUTH_KEY},
+    def get_link(self, filename):
+        url = self.s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET, "Key": filename},
+            ExpiresIn=14400,
         )
-        token = resp.headers.get("X-Auth-Token")
-        self.REDIS_INSTANCE.set("selectel_token", token)
-        return token
+        return url
 
-    # Создание ключа доступа, используемого в ссылке к файлу
-    @staticmethod
-    def create_access_key(secret_key, file):
-        method = "GET"
-        # ссылка будет действительна 3 дня
-        expires = int(time()) + 259200
-        # путь к файлу в хранилище
-        path = "/v1/SEL_{}/{}{}".format(ACCOUNT_ID, CONTAINER_NAME, file)
-        # секретный ключ контейнера
-        link_secret_key = str.encode(secret_key)
-        # генерируем ключ доступа к файлу
-        hmac_body = str.encode("{}\n{}\n{}".format(method, expires, path))
-        # итоговый ключ доступа
-        sig = hmac.new(link_secret_key, hmac_body, sha1).hexdigest()
-        return sig, expires
+    def delete_file(self, filename):
+        self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
 
-    # Запрос на загрузку файла либо сегмента файла
-    @staticmethod
-    def upload_request(path, token, data, disposition, content_type=None):
-        return requests.put(
-            SelectelClient.URL + path,
-            headers={
-                "X-Auth-Token": token,
-                "Content-Type": content_type,
-                "Content-Disposition": disposition,
-            },
-            data=data,
-        )
+    def delete_files(self, objects_to_delete):
+        self.s3.delete_objects(Bucket=S3_BUCKET, Delete={"Objects": objects_to_delete})
 
-    # Сжатие изображения
-    @staticmethod
-    def get_compressed_image(img):
-        image = Image.open(img)
-        image_io = io.BytesIO()
-        image.save(image_io, format=image.format, quality=20, optimize=True)
-        return image_io.getvalue()
-
-    # Загрузка файла непосредственно в хранилище
-    def upload_to_selectel(self, path, file, disposition="attachment"):
-        if file.size <= 10 * 1024 * 1024:
-            if file.content_type.startswith("image") and file.size >= 300 * 1024:
-                file_data = self.get_compressed_image(file)
-            else:
-                file_data = file.read()
-
-            try:
-                r = self.upload_request(
-                    path,
-                    self.REDIS_INSTANCE.get("selectel_token"),
-                    file_data,
-                    disposition,
-                    file.content_type,
-                )
-                r.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 401:
-                    self.upload_request(
-                        path,
-                        self.get_token(),
-                        file_data,
-                        disposition,
-                        file.content_type,
-                    )
+    def get_list_objects(self, prefix):
+        response = self.s3.list_objects(Bucket=S3_BUCKET, Prefix=f"{prefix}")
+        if "Contents" in response:
+            items = response["Contents"]
+            objects_to_delete = [{"Key": item["Key"]} for item in items]
+            return objects_to_delete
         else:
-            # Сегментированная загрузка большого файла (сегменты загружаются в служебный контейнер)
-            for num, chunk in enumerate(file.chunks(chunk_size=10 * 1024 * 1024)):
-                try:
-                    r = self.upload_request(
-                        "_segments"
-                        + path
-                        + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-                        self.REDIS_INSTANCE.get("selectel_token"),
-                        chunk,
-                        disposition,
-                    )
-                    r.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    if e.response.status_code == 401:
-                        self.upload_request(
-                            "_segments"
-                            + path
-                            + "/{}{}".format((4 - len(str(num + 1))) * "0", num + 1),
-                            self.get_token(),
-                            chunk,
-                            disposition,
-                        )
-            # Создание файла-манифеста в основном контейнере (под именем загружаемого файла)
-            requests.put(
-                self.URL + path,
-                headers={
-                    "X-Auth-Token": self.REDIS_INSTANCE.get("selectel_token"),
-                    "X-Object-Manifest": "{}_segments{}/".format(
-                        CONTAINER_NAME, path
-                    ).encode(encoding="UTF-8", errors="strict"),
-                },
-            )
+            return None
 
-    def upload_file(self, uploaded_file, base_lesson, disposition="attachment"):
-        course = base_lesson.section.course
-        course_id = course.course_id
-        school_id = course.school.school_id
-
-        # Проверяем расширение файла
-        filename, file_extension = os.path.splitext(uploaded_file.name)
-        allowed_extensions = ['.txt', '.py', '.rtf']
-
-        if file_extension.lower() in allowed_extensions:
-            # Файл с разрешенным расширением, создаем zip-архив
-            zip_buffer = io.BytesIO()
-            unique_filename = str(uuid.uuid4()) + ".zip"
-
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                zipf.writestr(uploaded_file.name, uploaded_file.read())
-
-            file_data = zip_buffer.getvalue()
-            file_name = unique_filename
+    def get_size_object(self, key):
+        response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
+        if "ContentLength" in response:
+            return response["ContentLength"]
         else:
-            # Файл с неразрешенным расширением, загружаем без архивации
-            file_data = uploaded_file.read()
-            file_name = uploaded_file.name
-
-        # Генерируем путь и имя файла на Selectel
-        file_path = "/{}_school/{}_course/{}_lesson/{}".format(
-            school_id, course_id, base_lesson.id, file_name
-        ).replace(" ", "_")
-
-        self.upload_to_selectel(file_path, io.BytesIO(file_data), disposition)
-
-    def upload_school_image(self, uploaded_image, school_id):
-        file_path = "/{}_school/school_data/images/{}@{}".format(
-            school_id, datetime.now(), uploaded_image.name
-        ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_image)
-        return file_path
+            return None
 
     def upload_course_image(self, uploaded_image, course):
         course_id = course.course_id
         school_id = course.school.school_id
-        file_path = "/{}_school/{}_course/{}@{}".format(
+        file_path = "{}_school/{}_course/{}@{}".format(
             school_id, course_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
-        self.upload_to_selectel(file_path, uploaded_image)
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
 
-    def upload_user_avatar(self, avatar, user_id):
-        file_path = "/users/avatars/{}@{}".format(user_id, avatar.name).replace(
-            " ", "_"
-        )
-        self.upload_to_selectel(file_path, avatar)
+    def upload_school_image(self, uploaded_image, school_id):
+        file_path = "{}_school/school_data/images/{}@{}".format(
+            school_id, datetime.now(), uploaded_image.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
 
-    # Запрос на удаление файла
-    @staticmethod
-    def remove_request(file_path, token):
-        return requests.delete(
-            SelectelClient.URL + file_path,
-            headers={"X-Auth-Token": token},
-        )
+    def upload_avatar(self, avatar, user_id):
+        file_path = "users/avatars/{}@{}".format(user_id, avatar.name).replace(" ", "_")
+        self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
+        return file_path
 
-    # Удаление файла из хранилища
-    def remove_from_selectel(self, file_path):
-        try:
-            r = self.remove_request(
-                file_path, self.REDIS_INSTANCE.get("selectel_token")
+    def upload_file(self, filename, base_lesson):
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        name, ext = os.path.splitext(filename.name)
+        ext = ext.lower()
+        if ext not in self.ALLOWED_FORMATS:
+            zip_data = self.get_zip_file(filename)
+            file_path = (
+                "{}_school/{}_course/{}_lesson/{}@{}".format(
+                    school_id, course_id, base_lesson.id, datetime.now(), name
+                ).replace(" ", "_")
+                + ".zip"
             )
-            r.raise_for_status()
-            return "Success"
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == "401":
-                try:
-                    r = self.remove_request(file_path, self.get_token())
-                    r.raise_for_status()
-                    return "Success"
-                except requests.exceptions.HTTPError:
-                    return "Error"
-            else:
-                return "Error"
+            self.s3.upload_fileobj(io.BytesIO(zip_data), S3_BUCKET, file_path)
+        else:
+            file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+                school_id, course_id, base_lesson.id, datetime.now(), filename
+            ).replace(" ", "_")
+            self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
+        return file_path
 
-    # Запрос на удаление нескольких файлов
-    @staticmethod
-    def bulk_remove_request(token, data):
-        return requests.post(
-            SelectelClient.BASE_URL + "?bulk-delete=true",
-            headers={
-                "X-Auth-Token": token,
-                "Content-Type": "text/plain",
-            },
-            data=data.encode("utf-8"),
+    def upload_large_file(self, filename, base_lesson):
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), filename
+        ).replace(" ", "_")
+
+        # Определите размер файла
+        segment_size = 50 * 1024 * 1024
+        file_size = filename.size
+        if file_size <= segment_size:
+            self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
+            return file_path
+
+        # Создаем загрузочный объект
+        multipart_upload = self.s3.create_multipart_upload(
+            Bucket=S3_BUCKET,
+            Key=file_path,
         )
+        upload_id = multipart_upload["UploadId"]
+        part_number = 1
+        offset = 0
+        parts = []  # Список для хранения информации о частях
 
-    # Удаление сразу нескольких файлов из хранилища
-    def bulk_remove_from_selectel(self, files, segments=""):
-        data = ""
-        for file_path in files:
-            data += CONTAINER_NAME + segments + file_path + "\n"
         try:
-            r = self.bulk_remove_request(
-                self.REDIS_INSTANCE.get("selectel_token"), data
-            )
-            r.raise_for_status()
-            return "Success"
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == "401":
-                try:
-                    r = self.bulk_remove_request(self.get_token(), data)
-                    r.raise_for_status()
-                    return "Success"
-                except requests.exceptions.HTTPError:
-                    return "Error"
-            else:
-                return "Error"
+            while offset < file_size:
+                # Читаем сегмент файла
+                data = filename.read(segment_size)
 
-    # Получение ссылки на файл
-    def get_selectel_link(self, file_path):
-        sig, expires = self.create_access_key(CONTAINER_KEY, file_path)
-        link = (
-                self.URL
-                + file_path
-                + "?temp_url_sig={}&temp_url_expires={}".format(sig, expires)
-        )
-        return link
-
-    # Запрос на получение списка файлов
-    @staticmethod
-    def get_folder_files_request(segments, folder, token):
-        return requests.get(
-            SelectelClient.URL + segments + "/?format=json&prefix={}".format(folder),
-            headers={"X-Auth-Token": token},
-        )
-
-    # Получение списка файлов, путь к которым начинается с указанного префикса
-    def get_folder_files(self, folder, segments=""):
-        objects = None
-        try:
-            objects = self.get_folder_files_request(
-                segments, folder, self.REDIS_INSTANCE.get("selectel_token")
-            )
-            objects.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
-                objects = self.get_folder_files_request(
-                    segments, folder, self.get_token()
+                # Загружаем сегмент
+                response = self.s3.upload_part(
+                    Body=data,
+                    Bucket=S3_BUCKET,
+                    Key=file_path,
+                    PartNumber=part_number,
+                    UploadId=upload_id,
                 )
-        files = (
-            list(map(lambda el: "/" + el["name"], objects.json())) if objects else None
-        )
-        return files
+
+                # Сохраняем информацию о части
+                parts.append({"ETag": response["ETag"], "PartNumber": part_number})
+                part_number += 1
+                offset += len(data)
+
+            # Завершаем многозадачную загрузку, предоставляя информацию о частях
+            self.s3.complete_multipart_upload(
+                Bucket=S3_BUCKET,
+                Key=file_path,
+                UploadId=upload_id,
+                MultipartUpload={"Parts": parts},
+            )
+
+            return file_path
+        except Exception as e:
+            # Произошла ошибка, так что нам нужно отменить многозадачную загрузку
+            self.s3.abort_multipart_upload(
+                Bucket=S3_BUCKET, Key=file_path, UploadId=upload_id
+            )
+            raise e
+
+    def get_zip_file(self, file):
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr(file.name, file.read())
+        return zip_buffer.getvalue()

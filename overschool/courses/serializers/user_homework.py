@@ -1,8 +1,10 @@
-from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
+from common_services.selectel_client import UploadToS3
 from courses.models import UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from courses.serializers.user_homework_check import UserHomeworkCheckDetailSerializer
 from rest_framework import serializers
+
+s3 = UploadToS3()
 
 
 class UserHomeworkSerializer(serializers.ModelSerializer):
@@ -45,9 +47,7 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
     teacher_last_name = serializers.CharField(
         source="teacher.last_name", read_only=True
     )
-    teacher_avatar = serializers.CharField(
-        source="teacher.profile.avatar", read_only=True
-    )
+    teacher_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = UserHomework
@@ -95,6 +95,14 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             return serializer.data
         return None
 
+    def get_teacher_avatar(self, obj):
+        if obj.teacher.profile.avatar:
+            return s3.get_link(obj.teacher.profile.avatar.name)
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)
+
 
 class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
     """
@@ -104,7 +112,7 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
     homework_name = serializers.CharField(source="homework.name", read_only=True)
     user_first_name = serializers.CharField(source="user.first_name", read_only=True)
     user_last_name = serializers.CharField(source="user.last_name", read_only=True)
-    user_avatar = serializers.CharField(source="user.profile.avatar", read_only=True)
+    user_avatar = serializers.SerializerMethodField()
     user_email = serializers.CharField(source="user.email", read_only=True)
     course_name = serializers.CharField(
         source="homework.section.course.name", read_only=True
@@ -146,3 +154,11 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         if group:
             return group.group_id
         return None
+
+    def get_user_avatar(self, obj):
+        if obj.user.profile.avatar:
+            return s3.get_link(obj.user.profile.avatar.name)
+        else:
+            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            return s3.get_link(base_avatar_path)

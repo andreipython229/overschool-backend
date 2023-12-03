@@ -1,5 +1,4 @@
-from common_services.mixins.order_mixin import generate_order
-from common_services.selectel_client import SelectelClient
+from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import BaseLesson, Homework, LessonComponentsOrder
 from courses.models.homework.user_homework import UserHomework
@@ -9,7 +8,7 @@ from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
 
-s = SelectelClient()
+s3 = UploadToS3()
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
@@ -19,6 +18,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
     type = serializers.CharField(default="homework", read_only=True)
     all_components = LessonComponentsOrderSerializer(many=True, required=False)
+    video_use = serializers.BooleanField(required=False)
 
     class Meta:
         model = Homework
@@ -32,6 +32,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "description",
             "code",
             "video",
+            "video_use",
             "automate_accept",
             "time_accept",
             "points",
@@ -45,11 +46,11 @@ class HomeworkSerializer(serializers.ModelSerializer):
         components_data = validated_data.pop("all_components", None)
         homework = Homework.objects.create(**validated_data)
         if components_data:
-            order = generate_order(LessonComponentsOrder)
+            # order = generate_order(LessonComponentsOrder)
             base_lesson = BaseLesson.objects.get(homeworks=homework)
             for component_data in components_data:
                 LessonComponentsOrder.objects.create(
-                    base_lesson=base_lesson, order=order, **component_data
+                    base_lesson=base_lesson, **component_data
                 )
         return homework
 
@@ -124,7 +125,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_video(self, obj):
-        return s.get_selectel_link(str(obj.video)) if obj.video else None
+        return s3.get_link(obj.video.name) if obj.video else None
 
     def get_user_homework_checks(self, obj):
         user = self.context["request"].user

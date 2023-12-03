@@ -1,7 +1,7 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from django.db import connection
-from django.db import models
+from common_services.services import TruncateFileName
+from django.db import connection, models
 from model_clone import CloneMixin
 
 from ..courses.section import Section
@@ -32,6 +32,14 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     video = models.FileField(
         verbose_name="Видео",
         help_text="Видеофайл размером до 2 ГБ",
+        max_length=300,
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    url = models.URLField(
+        verbose_name="URL видео",
+        help_text="Ссылка на видео из YouTube",
         blank=True,
         null=True,
     )
@@ -47,9 +55,23 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=False,
     )
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
+    _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]
 
     def __str__(self):
         return f"{self.section}. {self.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
+                "order__max"
+            ]
+            order = max_order + 1 if max_order is not None else 1
+            self.order = order
+        if self.__class__ is not BaseLesson:
+            if self.baselesson_ptr_id:
+                baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
+                self.section_id = baselesson.section.pk
+        super().save(*args, **kwargs)
 
     @classmethod
     def disable_constraint(cls, constraint_name):
@@ -64,13 +86,27 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         """
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};")
-            return True
+                # Проверяем наличие ограничения
+                cursor.execute(
+                    f"SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = %s AND constraint_name = %s;",
+                    (cls._meta.db_table, constraint_name),
+                )
+                if cursor.fetchone():
+                    # Ограничение существует, отключаем его
+                    cursor.execute(
+                        f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
+                    )
+                    return True
+                else:
+                    # Ограничение не существует
+                    return False
         except Exception as e:
+            # Обработка ошибок
+            print(f"Error: {e}")
             return False
 
     @classmethod
-    def enable_constraint(cls, constraint_name):
+    def enable_constraint(cls):
         """
         Метод для включения ограничения базы данных.
 
@@ -83,7 +119,9 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f"ALTER TABLE {cls._meta.db_table} ADD CONSTRAINT {constraint_name};")
+                cursor.execute(
+                    'ALTER TABLE courses_baselesson ADD CONSTRAINT unique_section_lesson_order UNIQUE (section_id, "order");'
+                )
             return True
         except Exception as e:
             return False
