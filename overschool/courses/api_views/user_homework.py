@@ -1,7 +1,7 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, StudentsGroup, UserHomework, UserHomeworkCheck
+from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, UserHomeworkStatusChoices
 from courses.models.homework.homework import Homework
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -48,7 +48,7 @@ class UserHomeworkViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Teacher", "Admin"], school=school_id
+                    group__name__in=["Teacher", "Admin"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -114,6 +114,7 @@ class UserHomeworkViewSet(
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         group = None
+
         if user.groups.filter(group__name="Student").exists():
             try:
                 group = user.students_group_fk.get(
@@ -133,12 +134,18 @@ class UserHomeworkViewSet(
         serializer = UserHomeworkSerializer(data=request.data)
 
         if serializer.is_valid():
-            serializer.save(user=user, teacher=teacher)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+            if group and group.type == 'WITHOUT_TEACHER':
+                # Если группа без учителя, считаем домашку сразу успешной
+                serializer.save(user=user, status=UserHomeworkStatusChoices.SUCCESS)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                # В противном случае, сохраняем согласно стандартной логике
+                serializer.save(user=user, teacher=teacher)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def destroy(self, request, *args, **kwargs):
         user_homework = self.get_object()
@@ -207,7 +214,7 @@ class HomeworkStatisticsView(
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(
-            group__name__in=["Student", "Teacher", "Admin"], school=school_id
+                group__name__in=["Student", "Teacher", "Admin"], school=school_id
         ).exists():
             return permissions
         else:
