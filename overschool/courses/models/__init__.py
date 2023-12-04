@@ -14,3 +14,5 @@ from .test.answer import Answer
 from .test.question import Question
 from .test.section_test import RandomTestTests, SectionTest
 from .test.user_test import UserTest
+from .students.students_history import StudentsHistory
+
