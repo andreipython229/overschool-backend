@@ -64,6 +64,25 @@ student_progress_schema_response = {
 
 
 class StudentProgressSchemas:
+    def homework_progress_swagger_schema():
+        return swagger_auto_schema(
+            operation_description="""Эндпоинт прогресса прохождения домашних заданий студентом\n
+                /api/{school_name}/homework_progress/get_student_progress/\n
+                """,
+            operation_summary="Эндпоинт прогресса прохождения ДЗ",
+            tags=["student_progress"],
+            responses=student_progress_schema_response,
+            manual_parameters=[
+                openapi.Parameter(
+                    name="course_id",
+                    in_=openapi.IN_QUERY,
+                    description="id курса",
+                    type=openapi.TYPE_INTEGER,
+                    required=True,
+                )
+            ],
+        )
+
     def student_progress_for_student_swagger_schema():
         return swagger_auto_schema(
             operation_description="""Эндпоинт прогресса прохождения курсов для студента\n
