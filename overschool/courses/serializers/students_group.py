@@ -26,7 +26,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "teacher_id",
             "students",
             "group_settings",
-            "type"
+            "type",
         ]
 
     def validate(self, attrs):
@@ -43,7 +43,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Поле 'teacher_id' обязательно для заполнения."
             )
-        elif teacher in students:
+        elif students and teacher and teacher in students:
             raise serializers.ValidationError(
                 "Учитель не может учиться в группе, в которой преподает."
             )
@@ -59,8 +59,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                        .exclude(pk=view.get_object().pk)
-                        .count()
+                    .exclude(pk=view.get_object().pk)
+                    .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
@@ -83,9 +83,48 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
 
 class StudentsGroupWTSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели группы студентов без учителя
+    """
+
+    group_settings = StudentsGroupSettingsSerializer(required=False)
+    students = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, required=False
+    )
+
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id",  "students", "group_settings")
+        fields = ("type", "name", "course_id", "students", "group_settings")
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        view = self.context.get("view")
+        course = attrs.get("course_id")
+        students = attrs.get("students")
+
+        if request.method == "POST" and not course:
+            raise serializers.ValidationError("Курс должен быть указан.")
+
+        if students:
+            duplicate_count = 0
+            if request.method == "POST":
+                duplicate_count = StudentsGroup.objects.filter(
+                    course_id=course, students__in=students
+                ).count()
+            elif request.method in ["PUT", "PATCH"]:
+                duplicate_count = (
+                    StudentsGroup.objects.filter(
+                        course_id=course, students__in=students
+                    )
+                    .exclude(pk=view.get_object().pk)
+                    .count()
+                )
+            if duplicate_count > 0:
+                raise serializers.ValidationError(
+                    "Убедитесь, что каждый пользователь в группах курса уникален."
+                )
+
+        return attrs
 
     def create(self, validated_data):
         return StudentsGroup.objects.create(**validated_data)
@@ -137,4 +176,4 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentsGroup
-        fields = ["group_id", "name", "teacher_id"]
+        fields = ["group_id", "name", "teacher_id", "type"]

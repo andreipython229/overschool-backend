@@ -264,7 +264,7 @@ JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
 JWT_REFRESH_SECRET_KEY: str = os.getenv("JWT_REFRESH_SECRET_KEY")
 # время жизни jwt токенов
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-REFRESH_TOKEN_EXPIRE_MINUTES: int = 30
+REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 # время жизни cookie с jwt токенами
 COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
 ACCESS: str = os.getenv("ACCESS")
