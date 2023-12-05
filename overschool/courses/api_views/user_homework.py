@@ -1,8 +1,9 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, UserHomeworkStatusChoices
+from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
 from courses.models.homework.homework import Homework
+from courses.models.homework.user_homework import UserHomeworkStatusChoices
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     UserHomeworkDetailSerializer,

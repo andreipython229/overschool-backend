@@ -64,6 +64,16 @@ student_progress_schema_response = {
 
 
 class StudentProgressSchemas:
+    def all_courses_progress_swagger_schema():
+        return swagger_auto_schema(
+            operation_description="""Эндпоинт прогресса прохождения всех курсов\n
+                /api/{school_name}/all_courses_progress/\n
+                """,
+            operation_summary="Эндпоинт прогресса прохождения всех курсов",
+            tags=["student_progress"],
+            responses=student_progress_schema_response,
+        )
+
     def homework_progress_swagger_schema():
         return swagger_auto_schema(
             operation_description="""Эндпоинт прогресса прохождения домашних заданий студентом\n
