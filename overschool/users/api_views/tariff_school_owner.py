@@ -1,4 +1,5 @@
 from common_services.mixins import WithHeadersViewSet
+from courses.models import Course
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
@@ -9,7 +10,6 @@ from rest_framework.views import APIView
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
-from courses.models import Course
 
 User = get_user_model()
 
@@ -71,8 +71,16 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
                 "days_left": days_left,
                 "students": students,
                 "staff": staff,
-                "tariff": school.tariff.id,
-                "number_of_courses": number_of_courses
+                "tariff_details": {
+                    "id": school.tariff.id,
+                    "name": school.tariff.name,
+                    "number_of_courses": school.tariff.number_of_courses,
+                    "number_of_staff": school.tariff.number_of_staff,
+                    "students_per_month": school.tariff.students_per_month,
+                    "total_students": school.tariff.total_students,
+                    "price": school.tariff.price,
+                },
+                "number_of_courses": number_of_courses,
             }
 
             return Response(data)
