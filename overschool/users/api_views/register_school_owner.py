@@ -2,12 +2,10 @@ import re
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import check_password
-from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from schools.models import School, SchoolHeader, Tariff, TariffPlan
+from schools.models import School
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler, SenderServiceMixin
 
@@ -50,8 +48,9 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         serializer.save()
 
         # Отправка уведомления о успешной регистрации и создании школы
+        url = "https://overschool.by/login/"
         subject = "Успешная регистрация"
-        message = f"Вы успешно зарегистрированы, ваша школа '{school_name}' создана."
+        message = f"Вы успешно зарегистрированы, ваша школа '{school_name}'создана.Перейдите по ссылке для ознакомления {url}"
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=message
