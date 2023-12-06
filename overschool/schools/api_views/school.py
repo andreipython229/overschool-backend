@@ -3,7 +3,8 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
-from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.db.models import Avg, OuterRef, Subquery, Sum, Max, Min
+from django.forms import DateField
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -24,6 +25,8 @@ from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.school import SchoolsSchemas
+from courses.models.students.students_history import StudentsHistory
+from django.db.models import Case, CharField, Value, When, Subquery, OuterRef, F
 
 s3 = UploadToS3()
 
@@ -202,16 +205,23 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
+
+        deleted_users_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school)
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
             queryset = queryset.filter(students__first_name=first_name).distinct()
+            deleted_users_queryset = deleted_users_queryset.filter(user__first_name=first_name).distinct()
+            print("FILTER", deleted_users_queryset)
         last_name = self.request.GET.get("last_name")
         if last_name:
             queryset = queryset.filter(students__last_name=last_name).distinct()
+            deleted_users_queryset = deleted_users_queryset.filter(user__last_name=last_name).distinct()
         course_name = self.request.GET.get("course_name")
         if course_name:
             queryset = queryset.filter(course_id__name=course_name).distinct()
+            deleted_users_queryset = deleted_users_queryset.filter(students_group_id__course_id__name=course_name).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
@@ -273,6 +283,27 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             .values("avg")
         )
 
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False
+            )
+            .order_by("-date_added")
+            .values("date_added")
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=True
+            )
+            .order_by("-date_removed")
+            .values("date_removed")
+        )
+
+
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -287,6 +318,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed),
         )
 
         serialized_data = []
@@ -317,6 +350,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
                     "sections": section_data,
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
                 }
             )
 
