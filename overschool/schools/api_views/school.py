@@ -3,7 +3,9 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.serializers import SectionSerializer
-from django.db.models import Avg, OuterRef, Subquery, Sum
+from django.db.models import Avg, OuterRef, Subquery, Sum, Max, Min
+from django.db.models.functions import Cast, Coalesce
+from django.forms import DateField, DateTimeField
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -24,6 +26,9 @@ from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.school import SchoolsSchemas
+from courses.models.students.students_history import StudentsHistory
+from django.db.models import Case, CharField, Value, When, Subquery, OuterRef, F
+from users.models import User
 
 s3 = UploadToS3()
 
@@ -202,42 +207,66 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
+
+        deleted_history_queryset = StudentsHistory.objects.none()
+        show_deleted = self.request.GET.get("show_deleted")
+        if show_deleted:
+            deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school, is_deleted=True)
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
             queryset = queryset.filter(students__first_name=first_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(user__first_name=first_name).distinct()
         last_name = self.request.GET.get("last_name")
         if last_name:
             queryset = queryset.filter(students__last_name=last_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(user__last_name=last_name).distinct()
         course_name = self.request.GET.get("course_name")
         if course_name:
             queryset = queryset.filter(course_id__name=course_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(students_group_id__course_id__name=course_name).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                students_group_id__name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
             queryset = queryset.filter(
                 students__date_joined__gte=last_active_min
             ).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__date_joined__gte=last_active_min).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
             queryset = queryset.filter(
                 students__date_joined__lte=last_active_max
             ).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__date_joined__lte=last_active_max).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__date_joined=last_active).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
             queryset = queryset.filter(mark_sum__exact=mark_sum)
+            deleted_history_queryset = deleted_history_queryset.annotate(mark_sum=Sum("user__user_homeworks__mark"))
+            deleted_history_queryset = deleted_history_queryset.filter(mark_sum__exact=mark_sum)
+
         average_mark = self.request.GET.get("average_mark")
         if average_mark:
             queryset = queryset.annotate(
                 average_mark=Avg("students__user_homeworks__mark")
             )
             queryset = queryset.filter(average_mark__exact=average_mark)
+            deleted_history_queryset = deleted_history_queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            deleted_history_queryset = deleted_history_queryset.filter(average_mark__exact=average_mark)
         mark_sum_min = self.request.GET.get("mark_sum_min")
         if mark_sum_min:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
@@ -273,6 +302,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             .values("avg")
         )
 
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False
+            )
+            .order_by("-date_added")
+            .values("date_added")
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.none(
+            )
+            .order_by("-date_removed")
+            .values("date_removed")
+        )
+
+
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -287,6 +334,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed)
         )
 
         serialized_data = []
@@ -317,6 +366,75 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
                     "sections": section_data,
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "is_deleted": False,
+                }
+            )
+
+        # Deleted students
+        subquery_mark_sum_deleted = (
+            UserHomework.objects.filter(user_id=OuterRef("user_id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
+
+        subquery_average_mark_deleted = (
+            UserHomework.objects.filter(user_id=OuterRef("user_id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        data_deleted = deleted_history_queryset.values(
+            "students_group_id__course_id",
+            "students_group_id__course_id__name",
+            "students_group_id",
+            "user_id__date_joined",
+            "user_id__email",
+            "user_id__first_name",
+            "user_id",
+            "user_id__profile__avatar",
+            "user_id__last_name",
+            "students_group_id__name",
+            "date_added",
+            "date_removed"
+        ).annotate(
+            mark_sum=Subquery(subquery_mark_sum_deleted),
+            average_mark=Subquery(subquery_average_mark_deleted),
+        )
+
+        for item in data_deleted:
+            if not item["user_id"]:
+                continue
+            profile = Profile.objects.filter(user_id=item["user_id"]).first()
+            if profile is not None:
+                serializer = UserProfileGetSerializer(
+                    profile, context={"request": self.request}
+                )
+            courses = Course.objects.filter(course_id=item["students_group_id__course_id"])
+            sections = Section.objects.filter(course__in=courses)
+            section_data = SectionSerializer(sections, many=True).data
+            serialized_data.append(
+                {
+                    "course_id": item["students_group_id__course_id"],
+                    "course_name": item["students_group_id__course_id__name"],
+                    "group_id": item["students_group_id"],
+                    "last_active": item["user_id__date_joined"],
+                    "email": item["user_id__email"],
+                    "first_name": item["user_id__first_name"],
+                    "student_id": item["user_id"],
+                    "avatar": serializer.data["avatar"],
+                    "last_name": item["user_id__last_name"],
+                    "group_name": item["students_group_id__name"],
+                    "school_name": school.name,
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
+                    "sections": section_data,
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "is_deleted": True,
                 }
             )
 
