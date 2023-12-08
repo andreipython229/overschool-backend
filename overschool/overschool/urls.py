@@ -21,10 +21,12 @@ from users.api_views import (
     LoginView,
     LogoutView,
     PasswordChangeView,
+    PasswordResetView,
     SendPasswordView,
     SignupSchoolOwnerView,
     SignupView,
     TariffSchoolOwner,
+    TokenValidateView,
     UserSchoolsView,
 )
 
@@ -56,6 +58,16 @@ urlpatterns = [
         "api/forgot_password/",
         ForgotPasswordView.as_view(actions={"post": "post"}),
         name="forgot_password",
+    ),
+    path(
+        "api/token-validate/",
+        TokenValidateView.as_view(actions={"post": "post"}),
+        name="token-validate",
+    ),
+    path(
+        "api/password-reset/",
+        PasswordResetView.as_view(actions={"post": "post"}),
+        name="password-reset",
     ),
     path(
         "api/register-school-owner/",
