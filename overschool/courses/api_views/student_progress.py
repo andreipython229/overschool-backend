@@ -27,6 +27,10 @@ from users.models import User
     decorator=StudentProgressSchemas.homework_progress_swagger_schema(),
 )
 @method_decorator(
+    name="all_courses_progress",
+    decorator=StudentProgressSchemas.all_courses_progress_swagger_schema(),
+)
+@method_decorator(
     name="get_student_progress_for_admin_or_teacher",
     decorator=StudentProgressSchemas.student_progress_for_admin_or_teacher_swagger_schema(),
 )
@@ -41,6 +45,17 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if self.action in ["all_courses_progress"]:
+            if user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                        "Admin",
+                    ],
+                    school=school_id,
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["homework_progress"]:
             if user.groups.filter(
                     group__name__in=[
@@ -182,6 +197,31 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             student=user, school_name=school_name, courses_ids=[int(course_id)]
         )
 
+    @action(detail=False, methods=["get"])
+    def all_courses_progress(self, request, **kwargs):
+        """Генерирует статистику всех курсов по домашним заданиям"""
+
+        user = request.user
+        school_name = kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        all_courses = Course.objects.filter(school__school_id=school_id)
+
+        is_admin = user.groups.filter(group__name="Admin", school=school_id).exists()
+        is_student = StudentsGroup.objects.filter(students=user, course_id__in=all_courses).exists()
+
+        if not is_student and not is_admin:
+            return Response(
+                f"Студент в одном из курсов школы {school_name} не найден.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        courses_ids = [course.course_id for course in all_courses]
+
+        return self.all_courses_progress_response(
+            student=user, school_name=school_name, courses_ids=courses_ids
+        )
+
     def generate_response(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
         school_id = School.objects.get(name=school_name).school_id
@@ -267,6 +307,45 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         return Response(return_dict)
 
     def generate_progress(self, school_name, student, courses_ids):
+        """Генерирует статистику по студенту по всем курсам в школе"""
+        school_id = School.objects.get(name=school_name).school_id
+
+        all_base_lesson_ids = UserProgressLogs.objects.filter(
+            user=student.pk
+        ).values_list("lesson_id", flat=True)
+
+        return_dict = {}
+        return_dict["student"] = student.email
+        return_dict["school_id"] = school_id
+        return_dict["school_name"] = school_name
+        return_dict["courses"] = []
+
+        for course_id in courses_ids:
+            course = {}
+            course_obj = Course.objects.get(pk=course_id)
+
+            all_homeworks = Homework.objects.filter(section_id__course_id=course_id)
+
+            completed_homeworks = all_homeworks.filter(
+                baselesson_ptr_id__in=all_base_lesson_ids
+            )
+
+            course["course_id"] = course_obj.pk
+            course["course_name"] = course_obj.name
+
+            course["homeworks"] = {
+                "completed_percent": round(
+                    completed_homeworks.count() / all_homeworks.count() * 100, 2
+                ) if all_homeworks.count() != 0 else 0,
+                "all_homeworks": all_homeworks.count(),
+                "completed_homeworks": completed_homeworks.count(),
+            }
+
+            return_dict["courses"].append(course)
+
+        return Response(return_dict)
+
+    def all_courses_progress_response(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
         school_id = School.objects.get(name=school_name).school_id
 

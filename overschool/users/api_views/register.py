@@ -79,8 +79,9 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         user.save()
 
         # Отправляем пароль на почту
+        url = "https://overschool.by/login/"
         subject = "Your New Password"
-        message = f"Your new password is: {password}"
+        message = f"Your new password is: {password}, Follow this link {url}"
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=message

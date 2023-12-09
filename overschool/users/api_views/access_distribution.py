@@ -184,10 +184,9 @@ class AccessDistributionView(
             if not user.groups.filter(group=group, school=school).exists():
                 user.groups.create(group=group, school=school)
 
+                url = "https://overschool.by/login/"
                 subject = "Добавление в группу"
-                message = (
-                    f"Вы были добавлены в группу {group.name} в школе {school.name}."
-                )
+                message = f"Вы были добавлены в группу {group.name} в школе {school.name}. Перейдите по ссылке {url}"
                 sender_service.send_code_by_email(
                     email=user.email, subject=subject, message=message
                 )
