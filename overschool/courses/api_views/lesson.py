@@ -43,15 +43,17 @@ class BaseLessonViewSet(viewsets.ModelViewSet):
         serializer.save(available_for_students=available_for_students)
 
         lesson_instance = serializer.instance
-        students = User.objects.filter(groups__name='Student')
+        student_id = self.request.user
 
-        for student in students:
-            lesson_availability, created = LessonAvailability.objects.get_or_create(
-                student=student,
-                lesson=lesson_instance,
-            )
+        try:
+            student = User.objects.get(id=student_id, groups__name='Student')
+            lesson_availability = LessonAvailability.objects.get(student=student, lesson=lesson_instance)
             lesson_availability.available = available_for_students
             lesson_availability.save()
+        except User.DoesNotExist:
+            return Response({"error": "Студент не найден."}, status=status.HTTP_400_BAD_REQUEST)
+        except LessonAvailability.DoesNotExist:
+            return Response({"error": "Доступность урока для студента не найдена."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LessonViewSet(

@@ -140,4 +140,4 @@ class BaseLessonWithAvailabilitySerializer(BaseLessonSerializer):
     available_for_students = serializers.BooleanField(required=False)
 
     class Meta(BaseLessonSerializer.Meta):
-        fields = BaseLessonSerializer.Meta.fields + ['available_for_students']
+        fields = list(BaseLessonSerializer.Meta.fields) + ['available_for_students']

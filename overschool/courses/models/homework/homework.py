@@ -1,6 +1,5 @@
 from django.db import models
-
-from .common.base_lesson import BaseLesson
+from courses.models import BaseLesson
 
 
 class Homework(BaseLesson):

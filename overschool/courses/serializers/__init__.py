@@ -6,14 +6,14 @@ from .course import (
     CourseWithGroupsSerializer,
 )
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
-from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer, BaseLessonSerializer
+from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer, BaseLessonSerializer, \
+    LessonAvailabilitySerializer,  BaseLessonWithAvailabilitySerializer
 from .lesson_components_order import LessonComponentsOrderSerializer
 from .question import (
     QuestionGetSerializer,
     QuestionListGetSerializer,
     QuestionSerializer,
 )
-from .display_settings import UserLessonSettingsSerializer, UserHomeworkSettingsSerializer, UserTestSettingsSerializer
 from .section import SectionSerializer, SectionRetrieveSerializer
 from .section_test import TestSerializer
 from .students_group import (
