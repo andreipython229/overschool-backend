@@ -402,6 +402,12 @@ class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
         return Response(serializer.data)
 
     @receiver(post_save, sender=Message)
+    @swagger_auto_schema(
+        operation_description="Update unread messages when a new message is created",
+        operation_summary="Update unread messages",
+        responses={200: "OK"},
+        tags=['chats_message_unread']
+    )
     def update_unread_messages(self, instance, created, **kwargs):
         if created:
             chat_users = instance.chat.userchat_set.exclude(user=instance.sender)
