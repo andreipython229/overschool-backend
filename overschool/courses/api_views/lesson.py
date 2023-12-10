@@ -1,10 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Lesson, Section, StudentsGroup
+from courses.models import BaseLesson, Lesson, Section, StudentsGroup, LessonAvailability
 from courses.serializers import (
     LessonDetailSerializer,
     LessonSerializer,
     LessonUpdateSerializer,
+    BaseLessonSerializer
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -15,8 +16,42 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+from users.models import User
 
 s3 = UploadToS3()
+
+
+class BaseLessonViewSet(viewsets.ModelViewSet):
+    queryset = BaseLesson.objects.all()
+    serializer_class = BaseLessonSerializer
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def perform_update(self, serializer):
+        available_for_students = self.request.data.get('available_for_students', False)
+        serializer.save(available_for_students=available_for_students)
+
+        lesson_instance = serializer.instance
+        students = User.objects.filter(groups__name='Student')
+
+        for student in students:
+            lesson_availability, created = LessonAvailability.objects.get_or_create(
+                student=student,
+                lesson=lesson_instance,
+            )
+            lesson_availability.available = available_for_students
+            lesson_availability.save()
 
 
 class LessonViewSet(
@@ -45,7 +80,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
