@@ -401,14 +401,13 @@ class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
 
         return Response(serializer.data)
 
-
-@receiver(post_save, sender=Message)
-def update_unread_messages(sender, instance, created, **kwargs):
-    if created:
-        chat_users = instance.chat.userchat_set.exclude(user=instance.sender)
-        for user_chat in chat_users:
-            UnreadMessage.objects.update_or_create(
-                user=user_chat.user,
-                chat=instance.chat,
-                defaults={'last_read_message': instance}
-            )
+    @receiver(post_save, sender=Message)
+    def update_unread_messages(self, instance, created, **kwargs):
+        if created:
+            chat_users = instance.chat.userchat_set.exclude(user=instance.sender)
+            for user_chat in chat_users:
+                UnreadMessage.objects.update_or_create(
+                    user=user_chat.user,
+                    chat=instance.chat,
+                    defaults={'last_read_message': instance}
+                )
