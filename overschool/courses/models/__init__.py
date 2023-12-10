@@ -6,6 +6,7 @@ from .homework.homework import Homework
 from .homework.user_homework import UserHomework, UserHomeworkStatusChoices
 from .homework.user_homework_check import UserHomeworkCheck
 from .lesson.lesson import Lesson
+from .lesson.lesson_display import UserLessonSettings, UserHomeworkSettings, UserTestSettings
 from .students.students_group import StudentsGroup
 from .students.students_group_settings import StudentsGroupSettings
 from .students.students_table_info import StudentsTableInfo

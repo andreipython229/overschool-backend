@@ -122,3 +122,9 @@ class LessonDetailSerializer(serializers.ModelSerializer):
 class LessonUpdateSerializer(serializers.Serializer):
     baselesson_ptr_id = serializers.IntegerField()
     order = serializers.IntegerField()
+
+
+class BaseLessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BaseLesson
+        fields = '__all__'

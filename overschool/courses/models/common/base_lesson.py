@@ -3,7 +3,9 @@ from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from common_services.services import TruncateFileName
 from django.db import connection, models
 from model_clone import CloneMixin
-
+from ..homework.homework import Homework
+from ..lesson.lesson import Lesson
+from ..test.section_test import SectionTest
 from ..courses.section import Section
 
 
@@ -23,6 +25,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Название урока",
         default="Имя не придумано",
     )
+
     description = RichTextField(
         verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
     )
@@ -53,6 +56,27 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         verbose_name="Активный",
         help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
         blank=False,
+    )
+    lesson_settings = models.ManyToManyField(
+        Lesson,
+        through='UserLessonSettings',
+        related_name='user_lessons_settings',
+        verbose_name="Настройки пользователя для урока",
+        blank=True,
+    )
+    homework_settings = models.ManyToManyField(
+        Homework,
+        through='UserHomeworkSettings',
+        related_name='user_homeworks_settings',
+        verbose_name="Настройки пользователя для домашнего задания",
+        blank=True,
+    )
+    test_settings = models.ManyToManyField(
+        SectionTest,
+        through='UserTestSettings',
+        related_name='user_tests_settings',
+        verbose_name="Настройки пользователя для теста",
+        blank=True,
     )
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
     _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]

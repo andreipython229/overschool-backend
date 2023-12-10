@@ -17,6 +17,7 @@ from courses.api_views import (
     UserHomeworkViewSet,
     UserTestViewSet,
     StudentsGroupWithoutTeacherViewSet,
+    UserLessonsView,
 )
 from rest_framework import routers
 
@@ -40,6 +41,7 @@ router.register("tests", TestViewSet, basename="tests")
 router.register("questions", QuestionViewSet, basename="questions")
 router.register("answers", AnswerViewSet, basename="answers")
 router.register("usertest", UserTestViewSet, basename="test_user")
+router.register("user_lessons", UserLessonsView, basename="user_lessons")
 router.register("student_progress", StudentProgressViewSet, basename="student_progress")
 
 urlpatterns = router.urls
