@@ -110,6 +110,7 @@ class ChatInfoSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
     senders = serializers.SerializerMethodField()
+    total_unread = serializers.IntegerField()
 
     class Meta:
         model = Chat
@@ -121,6 +122,7 @@ class ChatInfoSerializer(serializers.ModelSerializer):
             "unread_count",
             "senders",
             "last_message",
+            "total_unread",
         ]
 
     def get_last_message(self, obj):

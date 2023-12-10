@@ -1,5 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import gettext as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -10,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .constants import CustomResponses
-from .models import Chat, ChatLink, Message, UserChat
+from .models import Chat, ChatLink, Message, UserChat, UnreadMessage
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatInfoSerializer, ChatSerializer, MessageSerializer
@@ -391,6 +393,22 @@ class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
 
         total_unread = self.get_total_unread()
         total_unread_dict = {"total_unread": total_unread}
-        result_list = [total_unread_dict] + serializer.data
 
-        return Response(result_list)
+        serializer = ChatInfoSerializer(
+            {"chats": serializer.data, **total_unread_dict},
+            context={"request": self.request}
+        )
+
+        return Response(serializer.data)
+
+
+@receiver(post_save, sender=Message)
+def update_unread_messages(sender, instance, created, **kwargs):
+    if created:
+        chat_users = instance.chat.userchat_set.exclude(user=instance.sender)
+        for user_chat in chat_users:
+            UnreadMessage.objects.update_or_create(
+                user=user_chat.user,
+                chat=instance.chat,
+                defaults={'last_read_message': instance}
+            )
