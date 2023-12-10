@@ -13,6 +13,7 @@ from courses.api_views import (
     StudentsGroupSettingsViewSet,
     StudentsGroupViewSet,
     StudentsTableInfoViewSet,
+    BaseLessonViewSet,
     TestViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
@@ -35,6 +36,7 @@ router.register("homeworks_stats", HomeworkStatisticsView, basename="homeworks_s
 router.register(
     "user_homework_checks", HomeworkCheckViewSet, basename="user_homework_checks"
 )
+router.register('base_lessons', BaseLessonViewSet, basename='base_lesson')
 router.register("user_homeworks", UserHomeworkViewSet, basename="user_homeworks")
 router.register("tests", TestViewSet, basename="tests")
 router.register("questions", QuestionViewSet, basename="questions")

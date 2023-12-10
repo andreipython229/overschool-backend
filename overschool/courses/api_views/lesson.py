@@ -46,7 +46,7 @@ class BaseLessonViewSet(viewsets.ModelViewSet):
         student_id = self.request.user
 
         try:
-            student = User.objects.get(id=student_id, groups__name='Student')
+            student = User.objects.get(id=student_id, group__name='Student')
             lesson_availability = LessonAvailability.objects.get(student=student, lesson=lesson_instance)
             lesson_availability.available = available_for_students
             lesson_availability.save()
@@ -54,6 +54,23 @@ class BaseLessonViewSet(viewsets.ModelViewSet):
             return Response({"error": "Студент не найден."}, status=status.HTTP_400_BAD_REQUEST)
         except LessonAvailability.DoesNotExist:
             return Response({"error": "Доступность урока для студента не найдена."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request, *args, **kwargs):
+        user = self.request.user
+
+        lesson_availabilities = LessonAvailability.objects.filter(student=user)
+        available_lessons = lesson_availabilities.filter(available=True).values_list('lesson_id', flat=True)
+        all_lessons = BaseLesson.objects.all()
+
+        lessons_data = []
+        for lesson in all_lessons:
+            lessons_data.append({
+                'lesson_id': lesson.id,
+                'lesson_name': lesson.name,
+                'available': lesson.id in available_lessons
+            })
+
+        return Response(lessons_data)
 
 
 class LessonViewSet(
