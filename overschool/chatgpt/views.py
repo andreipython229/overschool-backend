@@ -2,7 +2,7 @@ import json
 import g4f
 
 from django.http import JsonResponse
-
+from drf_yasg import openapi
 from django.views.decorators.http import require_POST
 from drf_yasg.utils import swagger_auto_schema
 

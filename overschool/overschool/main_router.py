@@ -16,3 +16,6 @@ school_router.registry += schools_router.registry
 
 videos_router = routers.DefaultRouter()
 videos_router.registry += video_router.registry
+
+chatgpt_router = routers.DefaultRouter()
+
