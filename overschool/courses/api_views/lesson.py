@@ -40,30 +40,41 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         student_ids = self.request.data.get('student_ids')
-        lesson_ids = self.request.data.get('lesson_ids')
-
-        if student_ids is None or lesson_ids is None:
+        lesson_data = self.request.data.get('lesson_data')
+        if student_ids is None or lesson_data is None:
             return Response({"error": "Недостаточно данных для выполнения запроса."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             for student_id in student_ids:
-                for lesson_id in lesson_ids:
-                    LessonAvailability.objects.create(student_id=student_id, lesson_id=lesson_id, available=True)
+                for lesson_info in lesson_data:
+                    lesson_id = lesson_info.get('lesson_id')
+                    available = lesson_info.get('available')
+
+                    if lesson_id is not None and available is not None:
+                        LessonAvailability.objects.create(student_id=student_id, lesson_id=lesson_id,
+                                                          available=available)
 
         return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
 
     @transaction.atomic
     def perform_update(self, serializer):
         student_ids = self.request.data.get('student_ids')
-        lesson_ids = self.request.data.get('lesson_ids')
+        lesson_data = self.request.data.get('lesson_data')
 
-        if student_ids is None or lesson_ids is None:
+        if student_ids is None or lesson_data is None:
             return Response({"error": "Недостаточно данных для выполнения запроса."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            LessonAvailability.objects.filter(student=student_ids, lesson_id__in=lesson_ids).update(available=True)
+            for student_id in student_ids:
+                for lesson_info in lesson_data:
+                    lesson_id = lesson_info.get('lesson_id')
+                    available = lesson_info.get('available')
+
+                    if lesson_id is not None and available is not None:
+                        LessonAvailability.objects.filter(student=student_id, lesson_id=lesson_id).update(
+                            available=available)
 
         return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
 

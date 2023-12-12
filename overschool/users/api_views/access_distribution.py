@@ -2,8 +2,7 @@ from datetime import datetime
 
 from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
-from courses.models import StudentsHistory
+from courses.models import StudentsGroup, StudentsHistory
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
@@ -89,8 +88,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
                         f"Превышено количество новых учеников в месяц для выбранного тарифа. Можно добавить новых учеников: {school.tariff.students_per_month - student_count_by_month}",
@@ -116,8 +115,8 @@ class AccessDistributionView(
                     created_at__month=current_month,
                 ).count()
                 if (
-                        school.tariff.students_per_month - student_count_by_month
-                        < new_user_count
+                    school.tariff.students_per_month - student_count_by_month
+                    < new_user_count
                 ):
                     return HttpResponse(
                         "Превышено количество новых учеников в месяц для выбранного тарифа",
@@ -128,9 +127,9 @@ class AccessDistributionView(
                 group__name__in=["Teacher", "Admin"], school=school
             ).count()
             if (
-                    school.tariff.name
-                    in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                    and school.tariff.number_of_staff - staff_count < new_user_count
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and school.tariff.number_of_staff - staff_count < new_user_count
             ):
                 return HttpResponse(
                     "Превышено количество cотрудников для выбранного тарифа",
@@ -170,9 +169,9 @@ class AccessDistributionView(
         for user in users:
             # Проверка на то что у пользователя в этой школе уже есть роль
             if (
-                    UserGroup.objects.filter(user=user, school=school)
-                            .exclude(group=group)
-                            .exists()
+                UserGroup.objects.filter(user=user, school=school)
+                .exclude(group=group)
+                .exists()
             ):
                 return HttpResponse(
                     f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
@@ -187,9 +186,7 @@ class AccessDistributionView(
 
                 url = "https://overschool.by/login/"
                 subject = "Добавление в группу"
-                message = (
-                    f"Вы были добавлены в группу {group.name} в школе {school.name}. Перейдите по ссылке {url}"
-                )
+                message = f"Вы были добавлены в группу {group.name} в школе {school.name}. Перейдите по ссылке {url}"
                 sender_service.send_code_by_email(
                     email=user.email, subject=subject, message=message
                 )
@@ -213,7 +210,7 @@ class AccessDistributionView(
                         UserChat.objects.create(user=user, chat=chat)
                 if role == "Student":
                     if user.students_group_fk.filter(
-                            course_id__in=courses_ids
+                        course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
                             f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
@@ -221,7 +218,9 @@ class AccessDistributionView(
                         )
                     for student_group in student_groups:
                         user.students_group_fk.add(student_group)
-                        StudentsHistory.objects.create(user=user, students_group=student_group)
+                        StudentsHistory.objects.create(
+                            user=user, students_group=student_group
+                        )
                         if student_group.type == "WITH_TEACHER":
                             chat = student_group.chat
                             UserChat.objects.create(user=user, chat=chat)
@@ -248,6 +247,7 @@ class AccessDistributionView(
 
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
+        date = serializer.validated_data.get("date")
         group = Group.objects.get(name=role)
         school = self.get_school()
 
@@ -269,8 +269,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
@@ -288,20 +288,31 @@ class AccessDistributionView(
                             students=user, course_id__school=school
                         )
                         for student_group in student_groups:
-                            student_group.students.remove(user)
 
                             try:
-                                history = StudentsHistory.objects.get(user=user,
-                                                                      students_group=student_group,
-                                                                      is_deleted=False)
-                                history.date_removed = datetime.now()
+                                history = StudentsHistory.objects.get(
+                                    user=user,
+                                    students_group=student_group,
+                                    is_deleted=False,
+                                )
+                                if date:
+                                    if date < history.date_added:
+                                        return HttpResponse(
+                                            f"Дата добавления ученика в группу превышает дату удаления его из группы",
+                                            status=400,
+                                        )
+                                    else:
+                                        history.date_removed = date
+                                else:
+                                    history.date_removed = datetime.now()
                                 history.is_deleted = True
                                 history.save()
                             except:
                                 print("Ошибка удаления в StudentsHistory.")
 
-            else:
+                            student_group.students.remove(user)
 
+            else:
                 if role == "Teacher":
                     return HttpResponse(
                         "Группу нельзя оставить без преподавателя", status=400
@@ -311,17 +322,29 @@ class AccessDistributionView(
                         course_id__school=school
                     ).count()
                     for student_group in student_groups:
-                        user.students_group_fk.remove(student_group)
 
                         try:
-                            history = StudentsHistory.objects.get(user=user,
-                                                                  students_group=student_group,
-                                                                  is_deleted=False)
-                            history.date_removed = datetime.now()
+                            history = StudentsHistory.objects.get(
+                                user=user,
+                                students_group=student_group,
+                                is_deleted=False,
+                            )
+                            if date:
+                                if date < history.date_added:
+                                    return HttpResponse(
+                                        f"Дата добавления ученика в группу превышает дату удаления его из группы",
+                                        status=400,
+                                    )
+                                else:
+                                    history.date_removed = date
+                            else:
+                                history.date_removed = datetime.now()
                             history.is_deleted = True
                             history.save()
                         except:
                             print("Ошибка удаления в StudentsHistory.")
+
+                        user.students_group_fk.remove(student_group)
 
                     remaining_groups_count = user.students_group_fk.filter(
                         course_id__school=school
