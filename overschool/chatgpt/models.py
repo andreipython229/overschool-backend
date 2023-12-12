@@ -8,7 +8,7 @@ class GptMessage(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Отправитель сообщения'
     )
-    sedner_question = models.TextField(
+    sender_question = models.TextField(
         verbose_name="Контент сообщения"
     )
     answer = models.TextField(

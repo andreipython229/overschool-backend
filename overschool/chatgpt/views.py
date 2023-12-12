@@ -1,10 +1,11 @@
 import json
 import g4f
 
-from django.http import JsonResponse
 from drf_yasg import openapi
-from django.views.decorators.http import require_POST
 from drf_yasg.utils import swagger_auto_schema
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST, require_GET
 
 from .models import GptMessage
 from .serializers import GptMessageSerializer
@@ -59,6 +60,7 @@ def run_provider(message: str):
         return f"ChatGPT Exception: {e}"
 
 
+@require_GET
 @swagger_auto_schema(
     operation_description="Get the user's last 10 messages",
     tags=["ChatGPT"],
@@ -70,7 +72,7 @@ def run_provider(message: str):
 def last_10_messages(request, user_id):
     user = user_id
     try:
-        latest_messages = Message.objects.filter(sender_id=user).order_by('-date')[:10]
+        latest_messages = GptMessage.objects.filter(sender_id=user).order_by('-message_date')[:10]
         serializer = GptMessageSerializer(latest_messages, many=True)
         return JsonResponse(serializer.data, safe=False)
     except Exception as e:

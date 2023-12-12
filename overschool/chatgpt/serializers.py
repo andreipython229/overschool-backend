@@ -6,8 +6,8 @@ class GptMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = GptMessage
         fields = [
-            "sedner",
-            "sedner_question",
+            "sender",
+            "sender_question",
             "answer",
-            "date",
+            "message_date",
         ]
