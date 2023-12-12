@@ -6,8 +6,8 @@ from .course import (
     CourseWithGroupsSerializer,
 )
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
-from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer, BaseLessonSerializer, \
-    LessonAvailabilitySerializer,  BaseLessonWithAvailabilitySerializer
+from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer,\
+    LessonAvailabilitySerializer
 from .lesson_components_order import LessonComponentsOrderSerializer
 from .question import (
     QuestionGetSerializer,

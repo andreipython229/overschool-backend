@@ -1,7 +1,7 @@
 from .answer import AnswerViewSet
 from .course import CourseViewSet
 from .homework import HomeworkViewSet
-from .lesson import LessonUpdateViewSet, LessonViewSet, BaseLessonViewSet
+from .lesson import LessonUpdateViewSet, LessonViewSet, LessonAvailabilityViewSet
 from .question import QuestionViewSet
 from .section import SectionViewSet
 from .section_test import TestViewSet

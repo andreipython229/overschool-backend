@@ -56,7 +56,6 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
         blank=False,
     )
-    available_for_students = models.BooleanField(default=False, verbose_name='Доступен для студентов')
 
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
     _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]

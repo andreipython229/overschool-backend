@@ -4,11 +4,11 @@ from courses.models import BaseLesson, Lesson, Section, StudentsGroup, LessonAva
 from courses.serializers import (
     LessonDetailSerializer,
     LessonSerializer,
-    LessonUpdateSerializer,
-    BaseLessonSerializer
+    LessonUpdateSerializer
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -16,14 +16,13 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-from users.models import User
 
 s3 = UploadToS3()
 
 
-class BaseLessonViewSet(viewsets.ModelViewSet):
-    queryset = BaseLesson.objects.all()
-    serializer_class = BaseLessonSerializer
+class LessonAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = LessonAvailability.objects.all()
+    serializer_class = LessonAvailability
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -38,36 +37,45 @@ class BaseLessonViewSet(viewsets.ModelViewSet):
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
+    @transaction.atomic
+    def perform_create(self, serializer):
+        student_ids = self.request.data.get('student_ids')
+        lesson_ids = self.request.data.get('lesson_ids')
+
+        if student_ids is None or lesson_ids is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for student_id in student_ids:
+                for lesson_id in lesson_ids:
+                    LessonAvailability.objects.create(student_id=student_id, lesson_id=lesson_id, available=True)
+
+        return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
+
+    @transaction.atomic
     def perform_update(self, serializer):
-        available_for_students = self.request.data.get('available_for_students', False)
-        serializer.save(available_for_students=available_for_students)
+        student_ids = self.request.data.get('student_ids')
+        lesson_ids = self.request.data.get('lesson_ids')
 
-        lesson_instance = serializer.instance
-        student_id = self.request.user
+        if student_ids is None or lesson_ids is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            student = User.objects.get(id=student_id, group__name='Student')
-            lesson_availability = LessonAvailability.objects.get(student=student, lesson=lesson_instance)
-            lesson_availability.available = available_for_students
-            lesson_availability.save()
-        except User.DoesNotExist:
-            return Response({"error": "Студент не найден."}, status=status.HTTP_400_BAD_REQUEST)
-        except LessonAvailability.DoesNotExist:
-            return Response({"error": "Доступность урока для студента не найдена."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            LessonAvailability.objects.filter(student=student_ids, lesson_id__in=lesson_ids).update(available=True)
+
+        return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
-        user = self.request.user
-
-        lesson_availabilities = LessonAvailability.objects.filter(student=user)
-        available_lessons = lesson_availabilities.filter(available=True).values_list('lesson_id', flat=True)
-        all_lessons = BaseLesson.objects.all()
+        student_id = self.kwargs.get("student_id")
+        lesson_availabilities = LessonAvailability.objects.filter(student_id=student_id, available=True)
 
         lessons_data = []
-        for lesson in all_lessons:
+        for lesson_availability in lesson_availabilities:
             lessons_data.append({
-                'lesson_id': lesson.id,
-                'lesson_name': lesson.name,
-                'available': lesson.id in available_lessons
+                'lesson_id': lesson_availability.lesson.id,
+                'available': lesson_availability.available
             })
 
         return Response(lessons_data)

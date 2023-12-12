@@ -124,20 +124,8 @@ class LessonUpdateSerializer(serializers.Serializer):
     order = serializers.IntegerField()
 
 
-class BaseLessonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BaseLesson
-        fields = '__all__'
-
-
 class LessonAvailabilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = LessonAvailability
         fields = '__all__'
 
-
-class BaseLessonWithAvailabilitySerializer(BaseLessonSerializer):
-    available_for_students = serializers.BooleanField(required=False)
-
-    class Meta(BaseLessonSerializer.Meta):
-        fields = list(BaseLessonSerializer.Meta.fields) + ['available_for_students']
