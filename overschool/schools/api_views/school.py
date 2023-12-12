@@ -1,11 +1,11 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import Course, Section, StudentsGroup, UserHomework
+from courses.models import Course, Section, StudentsGroup, UserHomework, LessonAvailability
+from courses.models.students.students_history import StudentsHistory
 from courses.serializers import SectionSerializer
-from django.db.models import Avg, OuterRef, Subquery, Sum, Max, Min
-from django.db.models.functions import Cast, Coalesce
-from django.forms import DateField, DateTimeField
+from django.db.models import Avg, Sum
+from django.db.models import Subquery, OuterRef
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -26,9 +26,6 @@ from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.school import SchoolsSchemas
-from courses.models.students.students_history import StudentsHistory
-from django.db.models import Case, CharField, Value, When, Subquery, OuterRef, F
-from users.models import User
 
 s3 = UploadToS3()
 
@@ -65,8 +62,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats"]
-            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+                self.action in ["stats"]
+                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -211,7 +208,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         deleted_history_queryset = StudentsHistory.objects.none()
         show_deleted = self.request.GET.get("show_deleted")
         if show_deleted:
-            deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school, is_deleted=True)
+            deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school,
+                                                                      is_deleted=True)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -225,7 +223,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         course_name = self.request.GET.get("course_name")
         if course_name:
             queryset = queryset.filter(course_id__name=course_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(students_group_id__course_id__name=course_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                students_group_id__course_id__name=course_name).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
@@ -290,16 +289,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-            .values("user_id")
-            .annotate(mark_sum=Sum("mark"))
-            .values("mark_sum")
+                .values("user_id")
+                .annotate(mark_sum=Sum("mark"))
+                .values("mark_sum")
         )
 
         subquery_average_mark = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-            .values("user_id")
-            .annotate(avg=Avg("mark"))
-            .values("avg")
+                .values("user_id")
+                .annotate(avg=Avg("mark"))
+                .values("avg")
         )
 
         subquery_date_added = (
@@ -308,17 +307,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 students_group=OuterRef("group_id"),
                 is_deleted=False
             )
-            .order_by("-date_added")
-            .values("date_added")
+                .order_by("-date_added")
+                .values("date_added")
         )
 
         subquery_date_removed = (
             StudentsHistory.objects.none(
             )
-            .order_by("-date_removed")
-            .values("date_removed")
+                .order_by("-date_removed")
+                .values("date_removed")
         )
-
 
         data = queryset.values(
             "course_id",
@@ -337,6 +335,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             date_added=Subquery(subquery_date_added),
             date_removed=Subquery(subquery_date_removed)
         )
+        lesson_availability_data = LessonAvailability.objects.filter(student_id=OuterRef("students__id")).values(
+            "available")
+        data = data.annotate(available=Subquery(lesson_availability_data[:1]))
 
         serialized_data = []
         for item in data:
@@ -369,22 +370,23 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "is_deleted": False,
+                    "available": item["available"],
                 }
             )
 
         # Deleted students
         subquery_mark_sum_deleted = (
             UserHomework.objects.filter(user_id=OuterRef("user_id"))
-            .values("user_id")
-            .annotate(mark_sum=Sum("mark"))
-            .values("mark_sum")
+                .values("user_id")
+                .annotate(mark_sum=Sum("mark"))
+                .values("mark_sum")
         )
 
         subquery_average_mark_deleted = (
             UserHomework.objects.filter(user_id=OuterRef("user_id"))
-            .values("user_id")
-            .annotate(avg=Avg("mark"))
-            .values("avg")
+                .values("user_id")
+                .annotate(avg=Avg("mark"))
+                .values("avg")
         )
 
         data_deleted = deleted_history_queryset.values(
