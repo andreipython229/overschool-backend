@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "chats.apps.ChatsConfig",
     "channels",
     "sentry_sdk",
+    "chatgpt.apps.ChatGPTConfig",
 ]
 ADMINS = [
     # ...
