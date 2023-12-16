@@ -14,6 +14,7 @@ def get_default_students_table_info():
         {"id": 7, "order": 7, "name": "Средний балл", "checked": False},
         {"id": 8, "order": 8, "name": "Дата добавления в группу", "checked": False},
         {"id": 9, "order": 9, "name": "Дата удаления из группы", "checked": False},
+        {"id": 10, "order": 10, "name": "Прогресс", "checked": False},
     ]
 
 
