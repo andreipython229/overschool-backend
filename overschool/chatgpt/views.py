@@ -6,6 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import GptMessage
 from .serializers import GptMessageSerializer
@@ -24,6 +25,7 @@ from .serializers import GptMessageSerializer
     ),
     responses={200: 'OK', 500: 'Internal Server Error'},
 )
+@csrf_exempt
 def send_message_to_gpt(request):
     try:
         data = json.loads(request.body)
@@ -34,10 +36,9 @@ def send_message_to_gpt(request):
 
         GptMessage.objects.create(
             sender_id=user_id,
-            sedner_question=user_message,
+            sender_question=user_message,
             answer=response
         )
-
         return JsonResponse({'bot_response': response})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -70,7 +71,7 @@ def run_provider(message: str):
     responses={200: GptMessageSerializer(many=True), 500: 'Internal Server Error'},
 )
 def last_10_messages(request, user_id):
-    user = user_id
+    user = int(user_id)
     try:
         latest_messages = GptMessage.objects.filter(sender_id=user).order_by('-message_date')[:10]
         serializer = GptMessageSerializer(latest_messages, many=True)
