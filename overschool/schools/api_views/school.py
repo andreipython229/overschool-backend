@@ -194,14 +194,28 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return Response({"error": "Пробный период уже был использован"}, status=400)
 
     def get_student_sections_and_availability(self, student_id, course_id):
-        lesson_availability_data = LessonAvailability.objects.filter(student_id=student_id).values("available")
-        availability = lesson_availability_data[0]["available"] if lesson_availability_data else None
-
         courses = Course.objects.filter(course_id=course_id)
         sections = Section.objects.filter(course__in=courses)
-        section_data = SectionSerializer(sections, many=True).data
 
-        return section_data, availability
+        section_data = []
+        for section in sections:
+            lessons = section.lessons.all()
+            lessons_data = []
+            for lesson in lessons:
+                lesson_data = {
+                    "lesson_id": lesson.id,
+                    "name": lesson.name,
+                    "availability": lesson.is_available_for_student(student_id),
+                }
+                lessons_data.append(lesson_data)
+
+            section_data.append({
+                "section_id": section.name,
+                "name": section.name,
+                "lessons": lessons_data,
+            })
+
+        return section_data
 
     @action(detail=True, methods=['get'])
     def section(self, request, pk=None, *args, **kwargs):
@@ -212,13 +226,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if not student_id or not course_id:
             return Response({"error": "Не указан ID студента или ID курса"}, status=status.HTTP_400_BAD_REQUEST)
 
-        section_data, availability = self.get_student_sections_and_availability(student_id, course_id)
+        section_data = self.get_student_sections_and_availability(student_id, course_id)
 
         response_data = {
             "school_name": school.name,
             "student_id": student_id,
             "sections": section_data,
-            "availability": availability,
         }
         return Response(response_data, status=status.HTTP_200_OK)
 

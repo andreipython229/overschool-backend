@@ -64,6 +64,13 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
     def __str__(self):
         return f"{self.section}. {self.name}"
 
+    def is_available_for_student(self, student):
+        try:
+            availability = LessonAvailability.objects.get(student=student, lesson=self)
+            return availability.available
+        except LessonAvailability.DoesNotExist:
+            return None
+
     def save(self, *args, **kwargs):
         if not self.order:
             max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
