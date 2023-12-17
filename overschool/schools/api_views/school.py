@@ -24,7 +24,7 @@ from schools.serializers import (
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-
+from courses.services import get_student_progress
 from .schemas.school import SchoolsSchemas
 
 s3 = UploadToS3()
@@ -246,10 +246,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
-
+        all_active_students = queryset.count()
         deleted_history_queryset = StudentsHistory.objects.none()
         show_deleted = self.request.GET.get("show_deleted")
-        if show_deleted:
+
+        if not show_deleted:
             deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school,
                                                                       is_deleted=True)
 
@@ -375,11 +376,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
             date_added=Subquery(subquery_date_added),
-            date_removed=Subquery(subquery_date_removed)
+            date_removed=Subquery(subquery_date_removed),
         )
         lesson_availability_data = LessonAvailability.objects.filter(student_id=OuterRef("students__id")).values(
             "available")
         data = data.annotate(available=Subquery(lesson_availability_data[:1]))
+
+        filtered_active_students = queryset.count()
 
         serialized_data = []
         for item in data:
@@ -413,6 +416,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "date_removed": item["date_removed"],
                     "is_deleted": False,
                     "available": item["available"],
+                    "progress": get_student_progress(item['students__id'], item["course_id"]),
+                    "all_active_students": all_active_students,
+                    "filtered_active_students": filtered_active_students,
                 }
             )
 

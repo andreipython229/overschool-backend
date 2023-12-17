@@ -9,6 +9,7 @@ class AccessDistributionSerializer(serializers.Serializer):
     student_groups = serializers.ListField(
         child=serializers.IntegerField(), required=False
     )
+    date = serializers.DateTimeField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

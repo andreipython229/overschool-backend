@@ -119,6 +119,7 @@ urlpatterns = [
         name="lesson_order",
     ),
     path("api/chats/", include("chats.urls")),
+    path("api/chatgpt/", include("chatgpt.urls")),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
     path("video/<str:school_name>/", include(videos_router.urls)),

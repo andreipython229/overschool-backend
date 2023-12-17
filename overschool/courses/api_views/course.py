@@ -34,8 +34,9 @@ from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
-
+from courses.models.students.students_history import StudentsHistory
 from .schemas.course import CoursesSchemas
+from courses.services import get_student_progress
 
 s3 = UploadToS3()
 
@@ -234,6 +235,9 @@ class CourseViewSet(
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id=course.course_id)
+
+        all_active_students = queryset.count()
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -301,6 +305,23 @@ class CourseViewSet(
             .annotate(avg=Avg("mark"))
             .values("avg")
         )
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False
+            )
+                .order_by("-date_added")
+                .values("date_added")
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.none(
+            )
+                .order_by("-date_removed")
+                .values("date_removed")
+        )
         print(queryset, "-------")
         data = queryset.values(
             "course_id",
@@ -316,8 +337,10 @@ class CourseViewSet(
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed),
         )
-
+        filtered_active_students = queryset.count()
         serialized_data = []
         for item in data:
             if not item["students__id"]:
@@ -345,6 +368,11 @@ class CourseViewSet(
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
                     "sections": section_data,
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "progress": get_student_progress(item['students__id'], item["course_id"]),
+                    "all_active_students": all_active_students,
+                    "filtered_active_students": filtered_active_students,
                 }
             )
 
