@@ -39,6 +39,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=True,
         null=True,
     )
+
     url = models.URLField(
         verbose_name="URL видео",
         help_text="Ссылка на видео из YouTube",

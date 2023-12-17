@@ -9,22 +9,25 @@ class SchoolsSchemas:
         )
 
     def partial_update_schema():
+        # Объединяем параметры из обеих схем
+        parameters = [
+            openapi.Parameter(
+                name="name",
+                in_=openapi.IN_FORM,
+                description="Название школы",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                name="order",
+                in_=openapi.IN_FORM,
+                description="",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            ),
+        ]
         return swagger_auto_schema(
             tags=["schools"],
-            manual_parameters=[
-                openapi.Parameter(
-                    name="name",
-                    in_=openapi.IN_FORM,
-                    description="Название школы",
-                    type=openapi.TYPE_STRING,
-                    required=False,
-                ),
-                openapi.Parameter(
-                    name="order",
-                    in_=openapi.IN_FORM,
-                    description="",
-                    type=openapi.TYPE_INTEGER,
-                    required=False,
-                ),
-            ],
+            manual_parameters=parameters,
         )
+

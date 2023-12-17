@@ -41,6 +41,7 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         student_ids = self.request.data.get('student_ids')
         lesson_data = self.request.data.get('lesson_data')
+
         if student_ids is None or lesson_data is None:
             return Response({"error": "Недостаточно данных для выполнения запроса."},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -52,6 +53,11 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
                     available = lesson_info.get('available')
 
                     if lesson_id is not None and available is not None:
+                        existing_availability = LessonAvailability.objects.filter(student_id=student_id,
+                                                                                  lesson_id=lesson_id, available=False)
+
+                        if available is True and existing_availability.exists():
+                            existing_availability.delete()
                         LessonAvailability.objects.create(student_id=student_id, lesson_id=lesson_id,
                                                           available=available)
 
@@ -71,16 +77,19 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
                 for lesson_info in lesson_data:
                     lesson_id = lesson_info.get('lesson_id')
                     available = lesson_info.get('available')
-
                     if lesson_id is not None and available is not None:
-                        LessonAvailability.objects.filter(student=student_id, lesson_id=lesson_id).update(
-                            available=available)
+                        existing_availability = LessonAvailability.objects.filter(student_id=student_id,
+                                                                                  lesson_id=lesson_id, available=False)
+                        if available is True and existing_availability.exists():
+                            existing_availability.delete()
+                        LessonAvailability.objects.update_or_create(student_id=student_id, lesson_id=lesson_id,
+                                                                    defaults={'available': available})
 
         return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
         student_id = self.kwargs.get("student_id")
-        lesson_availabilities = LessonAvailability.objects.filter(student_id=student_id, available=True)
+        lesson_availabilities = LessonAvailability.objects.filter(student_id=student_id, available=False)
 
         lessons_data = []
         for lesson_availability in lesson_availabilities:
