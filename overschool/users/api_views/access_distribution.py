@@ -34,7 +34,11 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
         return UserGroup.objects.filter(user=user, school=school).exclude(group=group).exists()
 
     def check_user_existing_roles(self, user, school):
-        return user.groups.filter(school=school).exists()
+        try:
+            return user.groups.filter(school=school).exists()
+        except:
+            return None
+
 
     def handle_existing_roles(self, user, school, group):
         return HttpResponse(
