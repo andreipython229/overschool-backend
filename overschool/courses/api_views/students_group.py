@@ -90,7 +90,7 @@ class StudentsGroupViewSet(
         serializer.is_valid()
         course = serializer.validated_data["course_id"]
         school = self.get_school()
-        teacher = serializer.validated_data.get["teacher_id"]
+        teacher = serializer.validated_data.get("teacher_id")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
