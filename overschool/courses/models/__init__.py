@@ -1,4 +1,4 @@
-from .common.base_lesson import BaseLesson
+from .common.base_lesson import BaseLesson, LessonAvailability
 from .common.lesson_components_order import LessonComponentsOrder
 from .courses.course import Course
 from .courses.section import Section

@@ -1,5 +1,7 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import gettext as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -10,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .constants import CustomResponses
-from .models import Chat, ChatLink, Message, UserChat
+from .models import Chat, ChatLink, Message, UnreadMessage, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatInfoSerializer, ChatSerializer, MessageSerializer
@@ -371,26 +373,3 @@ class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
         chats_list = [str(chat.chat) for chat in chats_for_user]
         queryset = Chat.objects.filter(id__in=chats_list)
         return queryset
-
-    def get_total_unread(self):
-        user = self.request.user
-        user_chats = Chat.objects.filter(userchat__user=user)
-        total_unread = (
-            Message.objects.filter(chat__in=user_chats).exclude(read_by=user).count()
-        )
-        return total_unread
-
-    @swagger_auto_schema(
-        operation_description="Get all chats info for user",
-        operation_summary="Get all chats info for user",
-        tags=["chats"],
-    )
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
-        total_unread = self.get_total_unread()
-        total_unread_dict = {"total_unread": total_unread}
-        result_list = [total_unread_dict] + serializer.data
-
-        return Response(result_list)

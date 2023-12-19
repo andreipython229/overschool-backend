@@ -1,6 +1,6 @@
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
-from courses.models import BaseLesson, Lesson, LessonComponentsOrder
+from courses.models import BaseLesson, Lesson, LessonComponentsOrder, LessonAvailability
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
@@ -122,3 +122,10 @@ class LessonDetailSerializer(serializers.ModelSerializer):
 class LessonUpdateSerializer(serializers.Serializer):
     baselesson_ptr_id = serializers.IntegerField()
     order = serializers.IntegerField()
+
+
+class LessonAvailabilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LessonAvailability
+        fields = '__all__'
+

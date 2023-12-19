@@ -77,3 +77,15 @@ class UserChat(models.Model):
             return existed_chat[0]
         else:
             return False
+
+
+class UnreadMessage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="unread_messages")
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    last_read_message = models.ForeignKey(Message, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.chat}"
+
+    class Meta:
+        unique_together = ('user', 'chat')

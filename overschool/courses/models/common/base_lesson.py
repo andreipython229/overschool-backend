@@ -3,6 +3,7 @@ from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from common_services.services import TruncateFileName
 from django.db import connection, models
 from model_clone import CloneMixin
+from users.models import User
 
 from ..courses.section import Section
 
@@ -23,6 +24,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Название урока",
         default="Имя не придумано",
     )
+
     description = RichTextField(
         verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
     )
@@ -37,6 +39,7 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         blank=True,
         null=True,
     )
+
     url = models.URLField(
         verbose_name="URL видео",
         help_text="Ссылка на видео из YouTube",
@@ -54,11 +57,19 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
         blank=False,
     )
+
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
     _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]
 
     def __str__(self):
         return f"{self.section}. {self.name}"
+
+    def is_available_for_student(self, student):
+        try:
+            availability = LessonAvailability.objects.get(student=student, lesson=self)
+            return availability.available
+        except LessonAvailability.DoesNotExist:
+            return None
 
     def save(self, *args, **kwargs):
         if not self.order:
@@ -132,3 +143,14 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
                 fields=["section", "order"], name="unique_section_lesson_order"
             ),
         ]
+
+
+class LessonAvailability(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_availability',
+                                verbose_name='Студент')
+    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
+    available = models.BooleanField(default=False, verbose_name='Доступен')
+
+    class Meta:
+        verbose_name = 'Доступность урока для студента'
+        verbose_name_plural = 'Доступность уроков для студентов'

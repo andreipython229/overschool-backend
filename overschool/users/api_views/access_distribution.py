@@ -21,209 +21,111 @@ sender_service = SenderServiceMixin()
 User = get_user_model()
 
 
-class AccessDistributionView(
-    LoggingMixin,
-    WithHeadersViewSet,
-    SchoolMixin,
-    generics.GenericAPIView,
-):
-    """Ендпоинт распределения ролей и доступов\n
-    <h2>/api/{school_name}/access-distribution/</h2>\n
-    Ендпоинт распределения ролей и доступов к группам
-    в зависимости от роли пользователя"""
-
+class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
     parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
-        school = School.objects.get(name=school_name)
-        return school
+        return School.objects.get(name=school_name)
 
-    def get_permissions(self):
-        permissions = super().get_permissions()
-        user = self.request.user
+    def check_existing_role(self, user, school, group):
+        return UserGroup.objects.filter(user=user, school=school).exclude(group=group).exists()
 
-        if user.groups.filter(school=self.get_school(), group__name="Admin").exists():
-            return permissions
-        else:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+    def check_user_existing_roles(self, user, school):
+        try:
+            return user.groups.filter(school=school).exists()
+        except:
+            return None
 
-    @swagger_auto_schema(
-        request_body=AccessDistributionSerializer,
-        tags=["access_distribution"],
-    )
+
+    def handle_existing_roles(self, user, school, group):
+        return HttpResponse(
+            f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
+            status=400,
+        )
+
+    def create_user_group(self, user, group, school):
+        user_group = user.groups.create(group=group, school=school)
+        self.send_email_notification(user.email, group.name, school.name)
+        return user_group
+
+    def send_email_notification(self, email, group_name, school_name):
+        url = "https://overschool.by/login/"
+        subject = "Добавление в группу"
+        message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
+        sender_service.send_code_by_email(email=email, subject=subject, message=message)
+
+    def handle_teacher_group_fk(self, user, student_groups, courses_ids):
+        for student_group in student_groups:
+            previous_teacher = student_group.teacher_id
+            chat = student_group.chat
+            previous_chat = UserChat.objects.filter(user=previous_teacher, chat=chat).first()
+            if previous_chat:
+                previous_chat.delete()
+            user.teacher_group_fk.add(student_group)
+            UserChat.objects.create(user=user, chat=chat)
+
+    def handle_students_group_fk(self, user, student_groups):
+        for student_group in student_groups:
+            user.students_group_fk.add(student_group)
+            StudentsHistory.objects.create(user=user, students_group=student_group)
+            if student_group.type == "WITH_TEACHER":
+                chat = student_group.chat
+                UserChat.objects.create(user=user, chat=chat)
+
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user_ids = serializer.validated_data.get("user_ids")
         emails = serializer.validated_data.get("emails")
-        users_by_id = (
-            User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
-        )
-        users_by_email = (
-            User.objects.filter(email__in=emails) if emails else User.objects.none()
-        )
-        users = (users_by_id | users_by_email).distinct()
-
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
-        group = Group.objects.get(name=role)
+
         school = self.get_school()
+        group = Group.objects.get(name=role)
+
+        users_by_id = User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
+        users_by_email = User.objects.filter(email__in=emails) if emails else User.objects.none()
+        users = (users_by_id | users_by_email).distinct()
 
         new_user_count = users.exclude(groups__school=school).count()
 
-        # Получение текущей даты и времени
-        current_datetime = datetime.now()
-        current_month = current_datetime.month
-        current_year = current_datetime.year
-        if role == "Student":
-            if school.tariff.name == TariffPlan.INTERN:
-                student_count_by_month = UserGroup.objects.filter(
-                    group__name="Student",
-                    school=school,
-                    created_at__year=current_year,
-                    created_at__month=current_month,
-                ).count()
-                if (
-                    school.tariff.students_per_month - student_count_by_month
-                    < new_user_count
-                ):
-                    return HttpResponse(
-                        f"Превышено количество новых учеников в месяц для выбранного тарифа. Можно добавить новых учеников: {school.tariff.students_per_month - student_count_by_month}",
-                        status=400,
-                    )
-                student_count = UserGroup.objects.filter(
-                    group__name="Student", school=school
-                ).count()
-                if school.tariff.total_students - student_count < new_user_count:
-                    return HttpResponse(
-                        f"Превышено количество учеников для выбранного тарифа. Можно добавить новых учеников: {school.tariff.total_students - student_count}",
-                        status=400,
-                    )
-            elif school.tariff.name in [
-                TariffPlan.JUNIOR,
-                TariffPlan.MIDDLE,
-                TariffPlan.SENIOR,
-            ]:
-                student_count_by_month = UserGroup.objects.filter(
-                    group__name="Student",
-                    school=school,
-                    created_at__year=current_year,
-                    created_at__month=current_month,
-                ).count()
-                if (
-                    school.tariff.students_per_month - student_count_by_month
-                    < new_user_count
-                ):
-                    return HttpResponse(
-                        "Превышено количество новых учеников в месяц для выбранного тарифа",
-                        status=400,
-                    )
-        elif role in ["Teacher", "Admin"]:
-            staff_count = UserGroup.objects.filter(
-                group__name__in=["Teacher", "Admin"], school=school
-            ).count()
-            if (
-                school.tariff.name
-                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                and school.tariff.number_of_staff - staff_count < new_user_count
-            ):
-                return HttpResponse(
-                    "Превышено количество cотрудников для выбранного тарифа",
-                    status=400,
-                )
-
-        student_groups = StudentsGroup.objects.none()
-        if student_groups_ids:
-            if role == "Teacher" and users.count() > 1:
-                return HttpResponse(
-                    "Нельзя назначить несколько преподавателей в одни и те же группы",
-                    status=400,
-                )
-            student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
-            groups_count = student_groups.count()
-            courses_count = student_groups.values("course_id").distinct().count()
-            if groups_count != courses_count:
-                return HttpResponse(
-                    "Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
-                    status=400,
-                )
-            for student_group in student_groups:
-                if student_group.course_id.school != school:
-                    return HttpResponse(
-                        "Проверьте принадлежность студенческих групп к вашей школе",
-                        status=400,
-                    )
-                if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
-                    return HttpResponse(
-                        "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
-                        status=400,
-                    )
-        courses_ids = list(
-            map(lambda el: el["course_id"], list(student_groups.values("course_id")))
-        )
+        if self.check_user_existing_roles(users, school):
+            return HttpResponse("Пользователь уже имеет другие роли в этой школе", status=400)
 
         for user in users:
-            # Проверка на то что у пользователя в этой школе уже есть роль
-            if (
-                UserGroup.objects.filter(user=user, school=school)
-                .exclude(group=group)
-                .exists()
-            ):
-                return HttpResponse(
-                    f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
-                    status=400,
-                )
+            if self.check_existing_role(user, school, group):
+                return self.handle_existing_roles(user, school, group)
 
-            if not user.groups.filter(group=group, school=school).exists():
-                user.groups.create(group=group, school=school)
-
-            if not user.groups.filter(group=group, school=school).exists():
-                user.groups.create(group=group, school=school)
-
-                url = "https://overschool.by/login/"
-                subject = "Добавление в группу"
-                message = f"Вы были добавлены в группу {group.name} в школе {school.name}. Перейдите по ссылке {url}"
-                sender_service.send_code_by_email(
-                    email=user.email, subject=subject, message=message
-                )
+            self.create_user_group(user, group, school)
 
             if student_groups_ids:
+                student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
+                groups_count = student_groups.count()
+                courses_count = student_groups.values("course_id").distinct().count()
+
+                if groups_count != courses_count:
+                    return HttpResponse("Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
+                                        status=400)
+
+                if role == "Teacher" and users.count() > 1:
+                    return HttpResponse("Нельзя назначить несколько преподавателей в одни и те же группы", status=400)
+
+                for student_group in student_groups:
+                    if student_group.course_id.school != school:
+                        return HttpResponse("Проверьте принадлежность студенческих групп к вашей школе", status=400)
+                    if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
+                        return HttpResponse(
+                            "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
+                            status=400)
+
                 if role == "Teacher":
-                    if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
-                        return HttpResponse(
-                            f"Нельзя преподавать в нескольких группах одного и того же курса (email={user.email})",
-                            status=400,
-                        )
-                    for student_group in student_groups:
-                        previous_teacher = student_group.teacher_id
-                        chat = student_group.chat
-                        previous_chat = UserChat.objects.filter(
-                            user=previous_teacher, chat=chat
-                        ).first()
-                        if previous_chat:
-                            previous_chat.delete()
-                        user.teacher_group_fk.add(student_group)
-                        UserChat.objects.create(user=user, chat=chat)
-                if role == "Student":
-                    if user.students_group_fk.filter(
-                        course_id__in=courses_ids
-                    ).exists():
-                        return HttpResponse(
-                            f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
-                            status=400,
-                        )
-                    for student_group in student_groups:
-                        user.students_group_fk.add(student_group)
-                        StudentsHistory.objects.create(
-                            user=user, students_group=student_group
-                        )
-                        if student_group.type == "WITH_TEACHER":
-                            chat = student_group.chat
-                            UserChat.objects.create(user=user, chat=chat)
+                    self.handle_teacher_group_fk(user, student_groups, [])
+                elif role == "Student":
+                    self.handle_students_group_fk(user, student_groups)
 
         return HttpResponse("Доступы предоставлены", status=201)
 

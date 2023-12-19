@@ -1,13 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Lesson, Section, StudentsGroup
+from courses.models import BaseLesson, Lesson, Section, StudentsGroup, LessonAvailability
 from courses.serializers import (
     LessonDetailSerializer,
     LessonSerializer,
-    LessonUpdateSerializer,
+    LessonUpdateSerializer
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -17,6 +18,87 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 s3 = UploadToS3()
+
+
+class LessonAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = LessonAvailability.objects.all()
+    serializer_class = LessonAvailability
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        student_ids = self.request.data.get('student_ids')
+        lesson_data = self.request.data.get('lesson_data')
+
+        if student_ids is None or lesson_data is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for student_id in student_ids:
+                for lesson_info in lesson_data:
+                    lesson_id = lesson_info.get('lesson_id')
+                    available = lesson_info.get('available')
+
+                    if lesson_id is not None and available is not None:
+                        existing_availability = LessonAvailability.objects.filter(student_id=student_id,
+                                                                                  lesson_id=lesson_id, available=False)
+
+                        if available is True and existing_availability.exists():
+                            existing_availability.delete()
+                        LessonAvailability.objects.create(student_id=student_id, lesson_id=lesson_id,
+                                                          available=available)
+
+        return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        student_ids = self.request.data.get('student_ids')
+        lesson_data = self.request.data.get('lesson_data')
+
+        if student_ids is None or lesson_data is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for student_id in student_ids:
+                for lesson_info in lesson_data:
+                    lesson_id = lesson_info.get('lesson_id')
+                    available = lesson_info.get('available')
+                    if lesson_id is not None and available is not None:
+                        existing_availability = LessonAvailability.objects.filter(student_id=student_id,
+                                                                                  lesson_id=lesson_id, available=False)
+                        if available is True and existing_availability.exists():
+                            existing_availability.delete()
+                        LessonAvailability.objects.update_or_create(student_id=student_id, lesson_id=lesson_id,
+                                                                    defaults={'available': available})
+
+        return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
+
+    def list(self, request, *args, **kwargs):
+        student_id = self.kwargs.get("student_id")
+        lesson_availabilities = LessonAvailability.objects.filter(student_id=student_id, available=False)
+
+        lessons_data = []
+        for lesson_availability in lesson_availabilities:
+            lessons_data.append({
+                'lesson_id': lesson_availability.lesson.id,
+                'available': lesson_availability.available
+            })
+
+        return Response(lessons_data)
 
 
 class LessonViewSet(
@@ -45,7 +127,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
