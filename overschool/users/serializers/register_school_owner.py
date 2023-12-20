@@ -1,9 +1,8 @@
-import re
-
 from django.contrib.auth.models import Group
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from schools.models import School, SchoolHeader, Tariff, TariffPlan
+from transliterate import translit
 from users.models import User
 
 
@@ -25,8 +24,7 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         password_confirmation = attrs.get("password_confirmation")
         if password and password != password_confirmation:
             raise serializers.ValidationError("Пароли не совпадают.")
-        attrs["school_name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("school_name"))
-
+        attrs["school_name"] = translit(attrs.get("school_name"), "ru", reversed=True)
         return attrs
 
     def create(self, validated_data):

@@ -84,6 +84,7 @@ social-auth-app-django==4.0.0
 social-auth-core==4.3.0
 sqlparse==0.4.3
 tomli==2.0.1
+transliterate==1.10.2
 types-cryptography==3.3.23
 tzdata==2022.1
 uritemplate==4.1.1

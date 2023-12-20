@@ -1,7 +1,6 @@
-import re
-
 from rest_framework import serializers
 from schools.models import School, Tariff, TariffPlan
+from transliterate import translit
 
 
 class SelectTrialSerializer(serializers.ModelSerializer):
@@ -47,8 +46,7 @@ class SchoolSerializer(serializers.ModelSerializer):
         if not attrs.get("name"):
             raise serializers.ValidationError("'name' обязателеное поле.")
 
-        attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
-
+        attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
         return attrs
 
 
@@ -81,7 +79,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs.get("name"):
-            attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
+            attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
         return attrs
 
 

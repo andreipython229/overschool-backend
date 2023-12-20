@@ -1,11 +1,10 @@
-import re
-
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from schools.models import School
+from transliterate import translit
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler, SenderServiceMixin
 
@@ -28,9 +27,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     def post(self, request, *args, **kwargs):
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
-        school_name = request.data.get("school_name")
-        school_name = re.sub(r"[^A-Za-z0-9._-]", "", school_name)
-
+        school_name = translit(request.data.get("school_name"), "ru", reversed=True)
         if not all([email, phone_number, school_name]):
             return HttpResponse(
                 "Требуется указать email, номер телефона и название школы", status=400
