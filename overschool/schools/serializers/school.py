@@ -1,3 +1,4 @@
+import requests
 from rest_framework import serializers
 from schools.models import School, Tariff, TariffPlan
 from transliterate import translit
@@ -106,6 +107,32 @@ class SchoolGetSerializer(serializers.ModelSerializer):
 
 
 class TariffSerializer(serializers.ModelSerializer):
+    price_rf_rub = serializers.SerializerMethodField()
+
     class Meta:
         model = Tariff
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "price",
+            "number_of_courses",
+            "number_of_staff",
+            "students_per_month",
+            "total_students",
+            "price_rf_rub",
+        ]
+
+    def get_price_rf_rub(self, obj):
+        if float(obj.price) == 0.00:
+            return 0.00
+
+        # Получение курса российского рубля от НБРБ
+        url = "https://api.nbrb.by/exrates/rates/456"
+
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            rate = data.get("Cur_OfficialRate", 1)
+            return round((float(obj.price) / rate) * 100)
+        else:
+            return None
