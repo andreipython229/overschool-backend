@@ -4,6 +4,7 @@ from common_services.selectel_client import UploadToS3
 from courses.models import Course, Section, StudentsGroup, UserHomework, LessonAvailability
 from courses.models.students.students_history import StudentsHistory
 from courses.serializers import SectionSerializer
+from courses.services import get_student_progress
 from django.db.models import Avg, Sum
 from django.db.models import Subquery, OuterRef
 from django.http import HttpResponse
@@ -22,9 +23,11 @@ from schools.serializers import (
     SelectTrialSerializer,
     TariffSerializer,
 )
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-from courses.services import get_student_progress
+
 from .schemas.school import SchoolsSchemas
 
 s3 = UploadToS3()
@@ -202,10 +205,14 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             lessons = section.lessons.all()
             lessons_data = []
             for lesson in lessons:
+                availability = lesson.is_available_for_student(student_id)
+                if availability is None:
+                    availability = True
+
                 lesson_data = {
                     "lesson_id": lesson.id,
                     "name": lesson.name,
-                    "availability": lesson.is_available_for_student(student_id),
+                    "availability": availability,
                 }
                 lessons_data.append(lesson_data)
 
@@ -218,7 +225,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return section_data
 
     @action(detail=True, methods=['get'])
-    def section(self, request, pk=None, *args, **kwargs):
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('student_id', openapi.IN_QUERY, description='ID студента', type=openapi.TYPE_INTEGER),
+            openapi.Parameter('course_id', openapi.IN_QUERY, description='ID курса', type=openapi.TYPE_INTEGER),
+        ],
+    )
+    def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
 
         student_id = request.query_params.get('student_id', None)

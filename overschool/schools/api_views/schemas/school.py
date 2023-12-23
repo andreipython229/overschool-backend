@@ -31,3 +31,4 @@ class SchoolsSchemas:
             manual_parameters=parameters,
         )
 
+
