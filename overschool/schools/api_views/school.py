@@ -1,15 +1,16 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import Course, Section, StudentsGroup, UserHomework, LessonAvailability
+from courses.models import Course, Section, StudentsGroup, UserHomework, BaseLesson, LessonComponentsOrder
 from courses.models.students.students_history import StudentsHistory
-from courses.serializers import SectionSerializer
 from courses.services import get_student_progress
 from django.db.models import Avg, Sum
 from django.db.models import Subquery, OuterRef
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -23,8 +24,6 @@ from schools.serializers import (
     SelectTrialSerializer,
     TariffSerializer,
 )
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
@@ -199,26 +198,36 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def get_student_sections_and_availability(self, student_id, course_id):
         courses = Course.objects.filter(course_id=course_id)
         sections = Section.objects.filter(course__in=courses)
+        lessons = BaseLesson.objects.filter(section__in=sections)
+        lesson_components_orders = LessonComponentsOrder.objects.filter(base_lesson__in=lessons)
+        components_by_lesson = {lesson.id: [] for lesson in lessons}
+        for component_order in lesson_components_orders:
+            components_by_lesson[component_order.base_lesson.id].append(component_order.component_type)
 
         section_data = []
         for section in sections:
-            lessons = section.lessons.all()
+            student_groups = StudentsGroup.objects.filter(students__id=student_id)
             lessons_data = []
-            for lesson in lessons:
+            for lesson in section.lessons.all():
                 availability = lesson.is_available_for_student(student_id)
                 if availability is None:
                     availability = True
+
+                lesson_components = components_by_lesson.get(lesson.id, [])
 
                 lesson_data = {
                     "lesson_id": lesson.id,
                     "name": lesson.name,
                     "availability": availability,
+                    "active": lesson.active,
+                    "components_order": lesson_components,
                 }
                 lessons_data.append(lesson_data)
 
             section_data.append({
                 "section_id": section.name,
                 "name": section.name,
+                "groups": [{"group_id": group.group_id, "name": group.name} for group in student_groups],
                 "lessons": lessons_data,
             })
 
@@ -391,9 +400,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             date_added=Subquery(subquery_date_added),
             date_removed=Subquery(subquery_date_removed),
         )
-        lesson_availability_data = LessonAvailability.objects.filter(student_id=OuterRef("students__id")).values(
-            "available")
-        data = data.annotate(available=Subquery(lesson_availability_data[:1]))
 
         filtered_active_students = queryset.count()
 
@@ -406,9 +412,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 serializer = UserProfileGetSerializer(
                     profile, context={"request": self.request}
                 )
-            courses = Course.objects.filter(course_id=item["course_id"])
-            sections = Section.objects.filter(course__in=courses)
-            section_data = SectionSerializer(sections, many=True).data
+
             serialized_data.append(
                 {
                     "course_id": item["course_id"],
@@ -424,11 +428,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "school_name": school.name,
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
-                    "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "is_deleted": False,
-                    "available": item["available"],
                     "progress": get_student_progress(item['students__id'], item["course_id"]),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
@@ -476,9 +478,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 serializer = UserProfileGetSerializer(
                     profile, context={"request": self.request}
                 )
-            courses = Course.objects.filter(course_id=item["students_group_id__course_id"])
-            sections = Section.objects.filter(course__in=courses)
-            section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
                 {
                     "course_id": item["students_group_id__course_id"],
@@ -494,7 +493,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "school_name": school.name,
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
-                    "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "is_deleted": True,

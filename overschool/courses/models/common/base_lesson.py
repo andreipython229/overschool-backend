@@ -6,6 +6,7 @@ from model_clone import CloneMixin
 from users.models import User
 
 from ..courses.section import Section
+from ..students.students_group import StudentsGroup
 
 
 class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
@@ -154,3 +155,13 @@ class LessonAvailability(models.Model):
     class Meta:
         verbose_name = 'Доступность урока для студента'
         verbose_name_plural = 'Доступность уроков для студентов'
+
+
+class LessonEnrollment(models.Model):
+    student_group = models.ForeignKey(StudentsGroup, on_delete=models.CASCADE, related_name='lesson_enrollment',
+                                      verbose_name='Группа студента')
+    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
+
+    class Meta:
+        verbose_name = 'Доступность урока для группы'
+        verbose_name_plural = 'Доступность урока для группы'
