@@ -1,7 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.translation import gettext as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -12,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .constants import CustomResponses
-from .models import Chat, ChatLink, Message, UnreadMessage, UserChat
+from .models import Chat, ChatLink, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
 from .serializers import ChatInfoSerializer, ChatSerializer, MessageSerializer
