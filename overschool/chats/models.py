@@ -45,11 +45,6 @@ class ChatLink(models.Model):
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
-    read_by = models.ManyToManyField(
-        User,
-        related_name="read_messages",
-        blank=True,
-    )
     sent_at = models.DateTimeField(auto_now_add=True)
     content = models.TextField()
 
@@ -80,7 +75,9 @@ class UserChat(models.Model):
 
 
 class UnreadMessage(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="unread_messages")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="unread_messages"
+    )
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     last_read_message = models.ForeignKey(Message, on_delete=models.SET_NULL, null=True)
 
@@ -88,4 +85,4 @@ class UnreadMessage(models.Model):
         return f"{self.user} - {self.chat}"
 
     class Meta:
-        unique_together = ('user', 'chat')
+        unique_together = ("user", "chat")
