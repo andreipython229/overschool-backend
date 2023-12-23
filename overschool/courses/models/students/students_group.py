@@ -7,7 +7,6 @@ from .students_group_settings import StudentsGroupSettings
 from ..courses.course import Course
 
 
-
 class StudentsGroup(TimeStampMixin, models.Model):
     """
     Модель группы студентов
