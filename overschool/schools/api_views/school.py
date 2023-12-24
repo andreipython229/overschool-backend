@@ -196,22 +196,15 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return Response({"error": "Пробный период уже был использован"}, status=400)
 
     def get_student_sections_and_availability(self, student_id):
-        # Находим группы студента
         student_groups = StudentsGroup.objects.filter(students__id=student_id)
-
         section_data = []
         for group in student_groups:
-            # Получаем курс из атрибута course_id группы
             course = group.course_id
-
-            # Находим секции для данного курса
             sections = Section.objects.filter(course=course)
 
             lessons_data = []
             for section in sections:
-                # Для каждой секции находим уроки
                 for lesson in section.lessons.all():
-                    # Проверяем доступность урока для студента
                     availability = lesson.is_available_for_student(student_id)
                     if availability is None:
                         availability = True
@@ -241,21 +234,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     )
     def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
-
         student_id = request.query_params.get('student_id', None)
         if not student_id:
             return Response({"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST)
-
         section_data = self.get_student_sections_and_availability(student_id)
-
         response_data = {
             "school_name": school.name,
             "student_id": student_id,
             "sections": section_data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
-
-        return section_data
 
     @action(detail=True, methods=['get'])
     @swagger_auto_schema(
@@ -265,13 +253,10 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     )
     def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
-
         student_id = request.query_params.get('student_id', None)
         if not student_id:
             return Response({"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST)
-
         section_data = self.get_student_sections_and_availability(student_id)
-
         response_data = {
             "school_name": school.name,
             "student_id": student_id,
