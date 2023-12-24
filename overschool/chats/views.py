@@ -1,21 +1,19 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.translation import gettext as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions, serializers, status
+from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .constants import CustomResponses
-from .models import Chat, ChatLink, Message, UnreadMessage, UserChat
+from .models import Chat, ChatLink, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
-from .serializers import ChatInfoSerializer, ChatSerializer, MessageSerializer
+from .serializers import ChatSerializer, MessageSerializer
 
 User = get_user_model()
 
@@ -351,25 +349,3 @@ class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    """
-    - Список всех чатов для текущего пользователя с непрочитанными сообщениями
-    """
-
-    serializer_class = ChatInfoSerializer
-    parser_classes = (MultiPartParser,)
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
-
-    def get_queryset(self):
-        user = self.request.user
-        chats_for_user = UserChat.objects.filter(user=user)
-        chats_list = [str(chat.chat) for chat in chats_for_user]
-        queryset = Chat.objects.filter(id__in=chats_list)
-        return queryset
