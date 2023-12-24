@@ -1,14 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import Course, BaseLesson, UserProgressLogs, StudentsGroup
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from schools.models import School
 from users.models import User
-from courses.models import Course, BaseLesson, UserProgressLogs
 from users.permissions import OwnerUserPermissions
 from users.serializers import AllUsersSerializer, UserSerializer
-from rest_framework.decorators import action
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
 
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -37,11 +37,15 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         try:
             course_id = request.query_params.get('course_id')
-            course = Course.objects.get(course_id=course_id)  # Изменено здесь
+            group = StudentsGroup.objects.get(students=user, course_id=course_id, certificate=True)
+        except StudentsGroup.DoesNotExist:
+            return Response({"error": "У вас нет доступа к сертификату"}, status=status.HTTP_403_FORBIDDEN)
         except Course.DoesNotExist:
             return Response({"error": "Курс не найден"}, status=status.HTTP_404_NOT_FOUND)
 
+        course = group.course_id
         base_lessons = BaseLesson.objects.filter(section__course=course)
+
         for base_lesson in base_lessons:
             try:
                 progress = UserProgressLogs.objects.get(user=user, lesson=base_lesson)
@@ -55,6 +59,7 @@ class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         certificate_data = {
             "user_full_name": f"{user.last_name} {user.first_name} {user.patronymic}",
             "course_name": course.name,
+            "lessons": [],
         }
 
         for base_lesson in base_lessons:

@@ -72,6 +72,11 @@ class StudentsGroup(TimeStampMixin, models.Model):
         verbose_name="Тип группы",
         help_text="Тип группы (С учителем / Без учителя)",
     )
+    certificate = models.BooleanField(
+        default=False,
+        verbose_name="Доступ к сертификатам",
+        help_text="Могут ли участники этой группы видеть сертификаты",
+    )
 
     def __str__(self):
         return str(self.name)
