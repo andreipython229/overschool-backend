@@ -1,7 +1,7 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import Course, Section, StudentsGroup, UserHomework, BaseLesson, LessonComponentsOrder
+from courses.models import Course, Section, StudentsGroup, UserHomework
 from courses.models.students.students_history import StudentsHistory
 from courses.services import get_student_progress
 from django.db.models import Avg, Sum
@@ -195,39 +195,39 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return Response({"error": "Пробный период уже был использован"}, status=400)
 
-    def get_student_sections_and_availability(self, student_id, course_id):
-        courses = Course.objects.filter(course_id=course_id)
-        sections = Section.objects.filter(course__in=courses)
-        lessons = BaseLesson.objects.filter(section__in=sections)
-        lesson_components_orders = LessonComponentsOrder.objects.filter(base_lesson__in=lessons)
-        components_by_lesson = {lesson.id: [] for lesson in lessons}
-        for component_order in lesson_components_orders:
-            components_by_lesson[component_order.base_lesson.id].append(component_order.component_type)
+    def get_student_sections_and_availability(self, student_id):
+        # Находим группы студента
+        student_groups = StudentsGroup.objects.filter(students__id=student_id)
 
         section_data = []
-        for section in sections:
-            student_groups = StudentsGroup.objects.filter(students__id=student_id)
+        for group in student_groups:
+            # Получаем курс из атрибута course_id группы
+            course = group.course_id
+
+            # Находим секции для данного курса
+            sections = Section.objects.filter(course=course)
+
             lessons_data = []
-            for lesson in section.lessons.all():
-                availability = lesson.is_available_for_student(student_id)
-                if availability is None:
-                    availability = True
+            for section in sections:
+                # Для каждой секции находим уроки
+                for lesson in section.lessons.all():
+                    # Проверяем доступность урока для студента
+                    availability = lesson.is_available_for_student(student_id)
+                    if availability is None:
+                        availability = True
 
-                lesson_components = components_by_lesson.get(lesson.id, [])
-
-                lesson_data = {
-                    "lesson_id": lesson.id,
-                    "name": lesson.name,
-                    "availability": availability,
-                    "active": lesson.active,
-                    "components_order": lesson_components,
-                }
-                lessons_data.append(lesson_data)
+                    lesson_data = {
+                        "lesson_id": lesson.id,
+                        "name": lesson.name,
+                        "availability": availability,
+                        "active": lesson.active,
+                    }
+                    lessons_data.append(lesson_data)
 
             section_data.append({
-                "section_id": section.name,
+                "section_id": group.group_id,
                 "name": section.name,
-                "groups": [{"group_id": group.group_id, "name": group.name} for group in student_groups],
+                "group_id": group.group_id,
                 "lessons": lessons_data,
             })
 
@@ -237,18 +237,40 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('student_id', openapi.IN_QUERY, description='ID студента', type=openapi.TYPE_INTEGER),
-            openapi.Parameter('course_id', openapi.IN_QUERY, description='ID курса', type=openapi.TYPE_INTEGER),
         ],
     )
     def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
 
         student_id = request.query_params.get('student_id', None)
-        course_id = request.query_params.get('course_id', None)
-        if not student_id or not course_id:
-            return Response({"error": "Не указан ID студента или ID курса"}, status=status.HTTP_400_BAD_REQUEST)
+        if not student_id:
+            return Response({"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST)
 
-        section_data = self.get_student_sections_and_availability(student_id, course_id)
+        section_data = self.get_student_sections_and_availability(student_id)
+
+        response_data = {
+            "school_name": school.name,
+            "student_id": student_id,
+            "sections": section_data,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+        return section_data
+
+    @action(detail=True, methods=['get'])
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('student_id', openapi.IN_QUERY, description='ID студента', type=openapi.TYPE_INTEGER),
+        ],
+    )
+    def section_student(self, request, pk=None, *args, **kwargs):
+        school = self.get_object()
+
+        student_id = request.query_params.get('student_id', None)
+        if not student_id:
+            return Response({"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST)
+
+        section_data = self.get_student_sections_and_availability(student_id)
 
         response_data = {
             "school_name": school.name,
