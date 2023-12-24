@@ -1,7 +1,7 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import Course, Section, StudentsGroup, UserHomework
+from courses.models import Section, StudentsGroup, UserHomework
 from courses.models.students.students_history import StudentsHistory
 from courses.services import get_student_progress
 from django.db.models import Avg, Sum
