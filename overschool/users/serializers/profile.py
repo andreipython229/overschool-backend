@@ -14,6 +14,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "email",
             "phone_number",
+            "patronymic"
         ]
 
 
@@ -32,6 +33,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "sex",
             "description",
             "user",
+            "patronymic"
         ]
 
     def update(self, instance, validated_data):
@@ -41,6 +43,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             user = instance.user
             user.first_name = user_data.get("first_name", user.first_name)
             user.last_name = user_data.get("last_name", user.last_name)
+            user.patronymic = user_data.get("patronymic", user.patronymic)
             user.email = user_data.get("email", user.email)
             user.phone_number = user_data.get("phone_number", user.phone_number)
 
