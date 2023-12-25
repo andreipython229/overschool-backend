@@ -36,7 +36,6 @@ class UserChatSerializer(serializers.ModelSerializer):
 class ChatSerializer(serializers.ModelSerializer):
     senders = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
-    unread_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -46,7 +45,6 @@ class ChatSerializer(serializers.ModelSerializer):
             "is_deleted",
             "created_at",
             "type",
-            "unread_count",
             "senders",
             "last_message",
         ]
@@ -70,31 +68,16 @@ class ChatSerializer(serializers.ModelSerializer):
             return serializer.data
         return None
 
-    def get_unread_count(self, obj):
-        user = self.context["request"].user
-
-        unread_count = obj.message_set.exclude(read_by=user).count()
-        return unread_count
-
 
 class MessageSerializer(serializers.ModelSerializer):
-    read_by = serializers.SerializerMethodField()
-
     class Meta:
         model = Message
         fields = [
             "id",
             "sender",
-            "read_by",
             "sent_at",
             "content",
         ]
-
-    def get_read_by(self, obj):
-        if self.context["request"].user in obj.read_by.all():
-            return True
-        else:
-            return False
 
 
 class MessageInfoSerializer(serializers.ModelSerializer):
