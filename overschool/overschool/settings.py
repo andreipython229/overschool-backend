@@ -126,14 +126,20 @@ CORS_ALLOW_HEADERS = [
     "Sec-WebSocket-Protocol",
 ]
 
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
+#         },
+#     },
+# }
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
-        },
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

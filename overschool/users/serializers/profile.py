@@ -15,6 +15,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "patronymic",
             "email",
             "phone_number",
+
         ]
 
 

@@ -2,10 +2,12 @@ import json
 import uuid
 
 import jwt
-from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
+from django.db.models import F
 from users.models import User
 
 from .constants import CustomResponses
@@ -14,6 +16,7 @@ from .models import Chat, Message, UserChat
 
 class ChatConsumer(AsyncWebsocketConsumer):
     connected_users = []
+    message_history = {}
 
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
@@ -24,35 +27,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def is_chat_participant(self, user, chat):
-        user_chats = UserChat.objects.filter(chat=chat)
-        for user_chat in user_chats:
-            if user == user_chat.user:
-                return True
-
-        return False
+        user_chats = UserChat.objects.filter(chat=chat, user=user)
+        return user_chats.exists()
 
     @database_sync_to_async
     def save_message(self, chat, user, message):
-        message = Message.objects.create(chat=chat, sender=user, content=message)
+        with transaction.atomic():
+            message = Message.objects.create(chat=chat, sender=user, content=message)
+            # Обновляем количество непрочитанных сообщений для участников чата
+            UserChat.objects.filter(chat=chat).exclude(user=user).update(
+                unread_messages_count=F("unread_messages_count") + 1
+            )
         return message.id
 
     @database_sync_to_async
     def get_chat_messages(self, chat):
         return Message.objects.filter(chat=chat)
-
-    @database_sync_to_async
-    def update_messages(self, messages):
-        for message in messages:
-            message.read_by.add(self.user)
-            message.save()
-
-    @database_sync_to_async
-    def update_message(self, message_id, users):
-        if message_id:
-            message = Message.objects.get(id=message_id)
-            for user in users:
-                message.read_by.add(user)
-            message.save()
 
     def set_room_group_name(self):
         self.room_group_name = f"chat_{self.chat_uuid}"
@@ -87,7 +77,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             raise DenyConnection(CustomResponses.invalid_cookie)
 
         try:
-            self.user = await sync_to_async(User.objects.get)(id=user_id)
+            self.user = await database_sync_to_async(User.objects.get)(id=user_id)
         except User.DoesNotExist:
             raise DenyConnection(CustomResponses.invalid_cookie)
         if self.user is None:
@@ -95,10 +85,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
         if user_is_chat_participant:
-            messages = await self.get_chat_messages(self.chat)
-            await self.update_messages(messages)
+            history = self.message_history.get(self.chat.id, [])
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "chat_history", "history": history},
+                    cls=DjangoJSONEncoder,
+                )
+            )
         else:
             raise DenyConnection(CustomResponses.no_permission)
+
         self.connected_users.append(self.user)
         self.set_room_group_name()
 
@@ -125,7 +121,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "id": str(uuid.uuid4()),
             },
         )
-        await self.update_message(new_message, self.connected_users)
 
     async def chat_message(self, event):
         message = event["content"]
@@ -142,7 +137,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
-        await self.update_message(message_id, self.connected_users)
 
     async def chat_created(self, event):
         chat_id = event["chat_id"]
