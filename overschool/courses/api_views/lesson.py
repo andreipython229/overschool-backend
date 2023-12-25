@@ -1,10 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Lesson, Section, StudentsGroup, LessonAvailability
+from courses.models import BaseLesson, Lesson, Section, StudentsGroup, LessonAvailability, LessonEnrollment
 from courses.serializers import (
     LessonDetailSerializer,
     LessonSerializer,
-    LessonUpdateSerializer
+    LessonUpdateSerializer,
+    LessonEnrollmentSerializer
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -99,6 +100,40 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
             })
 
         return Response(lessons_data)
+
+
+class LessonEnrollmentViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
+    queryset = LessonEnrollment.objects.all()
+    serializer_class = LessonEnrollmentSerializer
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def update(self, request, *args, **kwargs):
+        student_group_id = kwargs.get("pk")
+        lesson_data = request.data.get('lesson_data')
+
+        if lesson_data is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for lesson_info in lesson_data:
+                lesson_id = lesson_info.get('lesson_id')
+                if lesson_id is not None:
+                    LessonEnrollment.objects.update_or_create(student_group_id=student_group_id, lesson_id=lesson_id)
+
+        return Response({"success": "Доступность уроков для группы студентов обновлена."}, status=status.HTTP_200_OK)
 
 
 class LessonViewSet(

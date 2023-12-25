@@ -1,6 +1,6 @@
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
-from courses.models import BaseLesson, Lesson, LessonComponentsOrder, LessonAvailability
+from courses.models import BaseLesson, Lesson, LessonComponentsOrder, LessonAvailability, LessonEnrollment
 from rest_framework import serializers
 
 from .lesson_components_order import LessonComponentsOrderSerializer
@@ -129,3 +129,8 @@ class LessonAvailabilitySerializer(serializers.ModelSerializer):
         model = LessonAvailability
         fields = '__all__'
 
+
+class LessonEnrollmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LessonEnrollment
+        fields = '__all__'

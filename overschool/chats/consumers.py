@@ -2,20 +2,21 @@ import json
 import uuid
 
 import jwt
-from django.core.serializers.json import DjangoJSONEncoder
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
-from users.models import User
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
+from django.db.models import F
+from users.models import User
+
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
-from django.db.models import F
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     connected_users = []
-    message_history = {}  # Хранение истории сообщений по чатам
+    message_history = {}
 
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
@@ -84,7 +85,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
         if user_is_chat_participant:
-            # Загрузка истории сообщений при подключении
             history = self.message_history.get(self.chat.id, [])
             await self.send(
                 text_data=json.dumps(

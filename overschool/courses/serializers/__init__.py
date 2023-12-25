@@ -7,7 +7,7 @@ from .course import (
 )
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer,\
-    LessonAvailabilitySerializer
+    LessonAvailabilitySerializer, LessonEnrollmentSerializer
 from .lesson_components_order import LessonComponentsOrderSerializer
 from .question import (
     QuestionGetSerializer,
