@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("chats", "0005_unreadmessage"),
+        ("chats", "0004_alter_chat_type"),
     ]
 
     operations = [
