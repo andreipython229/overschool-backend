@@ -1,14 +1,11 @@
-from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import Section, StudentsGroup, UserHomework
 from courses.models.students.students_history import StudentsHistory
 from courses.services import get_student_progress
-from django.db.models import Avg, Sum
-from django.db.models import Subquery, OuterRef
+from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
@@ -27,9 +24,8 @@ from schools.serializers import (
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
-from .schemas.school import SchoolsSchemas
-
 s3 = UploadToS3()
+
 
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
@@ -59,8 +55,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -226,17 +222,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         return student_data
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('student_id', openapi.IN_QUERY, description='ID студента', type=openapi.TYPE_INTEGER),
+            openapi.Parameter(
+                "student_id",
+                openapi.IN_QUERY,
+                description="ID студента",
+                type=openapi.TYPE_INTEGER,
+            ),
         ],
     )
     def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
-        student_id = request.query_params.get('student_id', None)
+        student_id = request.query_params.get("student_id", None)
         if not student_id:
-            return Response({"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
+            )
         student_data = self.get_student_sections_and_availability(student_id)
         response_data = {
             "school_name": school.name,
@@ -261,53 +264,67 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         show_deleted = self.request.GET.get("show_deleted")
 
         if not show_deleted:
-            deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school,
-                                                                      is_deleted=True)
+            deleted_history_queryset = StudentsHistory.objects.filter(
+                students_group_id__course_id__school=school, is_deleted=True
+            )
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
             queryset = queryset.filter(students__first_name=first_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(user__first_name=first_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__first_name=first_name
+            ).distinct()
         last_name = self.request.GET.get("last_name")
         if last_name:
             queryset = queryset.filter(students__last_name=last_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(user__last_name=last_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__last_name=last_name
+            ).distinct()
         course_name = self.request.GET.get("course_name")
         if course_name:
             queryset = queryset.filter(course_id__name=course_name).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                students_group_id__course_id__name=course_name).distinct()
+                students_group_id__course_id__name=course_name
+            ).distinct()
         group_name = self.request.GET.get("group_name")
         if group_name:
             queryset = queryset.filter(name=group_name).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                students_group_id__name=group_name).distinct()
+                students_group_id__name=group_name
+            ).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
             queryset = queryset.filter(
                 students__date_joined__gte=last_active_min
             ).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined__gte=last_active_min).distinct()
+                user__date_joined__gte=last_active_min
+            ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
             queryset = queryset.filter(
                 students__date_joined__lte=last_active_max
             ).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined__lte=last_active_max).distinct()
+                user__date_joined__lte=last_active_max
+            ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
             queryset = queryset.filter(students__date_joined=last_active).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined=last_active).distinct()
+                user__date_joined=last_active
+            ).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
             queryset = queryset.filter(mark_sum__exact=mark_sum)
-            deleted_history_queryset = deleted_history_queryset.annotate(mark_sum=Sum("user__user_homeworks__mark"))
-            deleted_history_queryset = deleted_history_queryset.filter(mark_sum__exact=mark_sum)
+            deleted_history_queryset = deleted_history_queryset.annotate(
+                mark_sum=Sum("user__user_homeworks__mark")
+            )
+            deleted_history_queryset = deleted_history_queryset.filter(
+                mark_sum__exact=mark_sum
+            )
 
         average_mark = self.request.GET.get("average_mark")
         if average_mark:
@@ -318,7 +335,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             deleted_history_queryset = deleted_history_queryset.annotate(
                 average_mark=Avg("students__user_homeworks__mark")
             )
-            deleted_history_queryset = deleted_history_queryset.filter(average_mark__exact=average_mark)
+            deleted_history_queryset = deleted_history_queryset.filter(
+                average_mark__exact=average_mark
+            )
         mark_sum_min = self.request.GET.get("mark_sum_min")
         if mark_sum_min:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
@@ -342,33 +361,32 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(mark_sum=Sum("mark"))
-                .values("mark_sum")
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
         )
 
         subquery_average_mark = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
-                .values("user_id")
-                .annotate(avg=Avg("mark"))
-                .values("avg")
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
         )
 
         subquery_date_added = (
             StudentsHistory.objects.filter(
                 user_id=OuterRef("students__id"),
                 students_group=OuterRef("group_id"),
-                is_deleted=False
+                is_deleted=False,
             )
-                .order_by("-date_added")
-                .values("date_added")
+            .order_by("-date_added")
+            .values("date_added")
         )
 
         subquery_date_removed = (
-            StudentsHistory.objects.none(
-            )
-                .order_by("-date_removed")
-                .values("date_removed")
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")
         )
 
         data = queryset.values(
@@ -419,7 +437,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "is_deleted": False,
-                    "progress": get_student_progress(item['students__id'], item["course_id"]),
+                    "progress": get_student_progress(
+                        item["students__id"], item["course_id"]
+                    ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
                 }
@@ -428,16 +448,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         # Deleted students
         subquery_mark_sum_deleted = (
             UserHomework.objects.filter(user_id=OuterRef("user_id"))
-                .values("user_id")
-                .annotate(mark_sum=Sum("mark"))
-                .values("mark_sum")
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
         )
 
         subquery_average_mark_deleted = (
             UserHomework.objects.filter(user_id=OuterRef("user_id"))
-                .values("user_id")
-                .annotate(avg=Avg("mark"))
-                .values("avg")
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
         )
 
         data_deleted = deleted_history_queryset.values(
@@ -452,7 +472,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "user_id__last_name",
             "students_group_id__name",
             "date_added",
-            "date_removed"
+            "date_removed",
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum_deleted),
             average_mark=Subquery(subquery_average_mark_deleted),
