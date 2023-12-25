@@ -31,11 +31,6 @@ from .schemas.school import SchoolsSchemas
 
 s3 = UploadToS3()
 
-
-@method_decorator(
-    name="partial_update",
-    decorator=SchoolsSchemas.partial_update_schema(),
-)
 class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
     <h2>/api/{school_name}/schools/</h2>\n
@@ -493,11 +488,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
 
         return Response(serialized_data)
-
-
-SchoolViewSet = apply_swagger_auto_schema(
-    tags=["schools"], excluded_methods=["partial_update"]
-)(SchoolViewSet)
 
 
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
