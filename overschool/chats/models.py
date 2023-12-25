@@ -56,6 +56,7 @@ class Message(models.Model):
 class UserChat(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chats")
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    unread_messages_count = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.user.__str__()} - {self.chat.__str__()}"

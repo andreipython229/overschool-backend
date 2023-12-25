@@ -2,18 +2,20 @@ import json
 import uuid
 
 import jwt
-from asgiref.sync import sync_to_async
+from django.core.serializers.json import DjangoJSONEncoder
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
 from users.models import User
-
+from django.db import transaction
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
+from django.db.models import F
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     connected_users = []
+    message_history = {}  # Хранение истории сообщений по чатам
 
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
@@ -29,7 +31,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def save_message(self, chat, user, message):
-        message = Message.objects.create(chat=chat, sender=user, content=message)
+        with transaction.atomic():
+            message = Message.objects.create(chat=chat, sender=user, content=message)
+            # Обновляем количество непрочитанных сообщений для участников чата
+            UserChat.objects.filter(chat=chat).exclude(user=user).update(
+                unread_messages_count=F("unread_messages_count") + 1
+            )
         return message.id
 
     @database_sync_to_async
@@ -77,9 +84,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
         if user_is_chat_participant:
-            messages = await self.get_chat_messages(self.chat)
+            # Загрузка истории сообщений при подключении
+            history = self.message_history.get(self.chat.id, [])
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "chat_history", "history": history},
+                    cls=DjangoJSONEncoder,
+                )
+            )
         else:
             raise DenyConnection(CustomResponses.no_permission)
+
         self.connected_users.append(self.user)
         self.set_room_group_name()
 
