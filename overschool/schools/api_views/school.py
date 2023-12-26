@@ -1,6 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import Section, StudentsGroup, UserHomework
+from courses.models import (
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    UserHomework,
+)
 from courses.models.students.students_history import StudentsHistory
 from courses.services import get_student_progress
 from django.db.models import Avg, OuterRef, Subquery, Sum
@@ -202,9 +209,25 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     availability = lesson.is_available_for_student(student_id)
                     if availability is None:
                         availability = True
+                    try:
+                        Homework.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "homework"
+                    except Homework.DoesNotExist:
+                        pass
+                    try:
+                        Lesson.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "lesson"
+                    except Lesson.DoesNotExist:
+                        pass
+                    try:
+                        SectionTest.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "test"
+                    except SectionTest.DoesNotExist:
+                        pass
 
                     lesson_data = {
                         "lesson_id": lesson.id,
+                        "type": obj_type,
                         "name": lesson.name,
                         "availability": availability,
                         "active": lesson.active,
