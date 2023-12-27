@@ -3,11 +3,15 @@ from datetime import datetime
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup
+from courses.models import (
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup)
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
-    SectionSerializer,
     StudentsGroupSerializer,
     StudentsGroupWTSerializer,
 )
@@ -78,7 +82,7 @@ class StudentsGroupViewSet(
             "user_count_by_month",
         ]:
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
+                    group__name__in=["Student", "Teacher"], school=school
             ).exists():
                 return permissions
             else:
@@ -140,8 +144,8 @@ class StudentsGroupViewSet(
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
         if (
-            teacher
-            and not teacher.groups.filter(school=school, group__name="Teacher").exists()
+                teacher
+                and not teacher.groups.filter(school=school, group__name="Teacher").exists()
         ):
             raise serializers.ValidationError(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
@@ -157,7 +161,7 @@ class StudentsGroupViewSet(
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
                 if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
+                        user=student, group=group, school=school
                 ).exists():
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
@@ -273,12 +277,76 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "sections": SectionSerializer(
-                        group.course_id.sections.all(), many=True
-                    ).data,
                 }
             )
         return Response(student_data)
+
+    @action(detail=True, methods=["GET"])
+    def section_student_group(self, request, pk=None, *args, **kwargs):
+        school = self.get_object()
+        student_id = request.query_params.get("student_id", None)
+        if not student_id:
+            return Response(
+                {"error": "Не указан ID студента"})
+        student_data = self.get_sections_for_student(student_id)
+        response_data = {
+            "school_name": school.name,
+            "student_id": student_id,
+            "student_data": student_data,
+        }
+        return Response(response_data)
+
+    def get_sections_for_student(self, student_id):
+        student_groups = StudentsGroup.objects.filter(students__id=student_id)
+        student_data = []
+
+        for group in student_groups:
+            group_data = {"group_id": group.group_id, "sections": []}
+
+            course = group.course_id
+            sections = Section.objects.filter(course=course)
+
+            for section in sections:
+                lessons_data = []
+                for lesson in section.lessons.all():
+                    availability = lesson.is_available_for_student(student_id)
+                    if availability is None:
+                        availability = True
+                    try:
+                        Homework.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "homework"
+                    except Homework.DoesNotExist:
+                        pass
+                    try:
+                        Lesson.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "lesson"
+                    except Lesson.DoesNotExist:
+                        pass
+                    try:
+                        SectionTest.objects.get(baselesson_ptr=lesson.id)
+                        obj_type = "test"
+                    except SectionTest.DoesNotExist:
+                        pass
+
+                    lesson_data = {
+                        "lesson_id": lesson.id,
+                        "type": obj_type,
+                        "name": lesson.name,
+                        "availability": availability,
+                        "active": lesson.active,
+                    }
+                    lessons_data.append(lesson_data)
+
+                section_data = {
+                    "section_id": section.section_id,
+                    "name": section.name,
+                    "lessons": lessons_data,
+                }
+                group_data["sections"].append(section_data)
+
+            student_data.append(group_data)
+
+        return student_data
 
     @action(detail=True)
     def user_count_by_month(self, request, pk, *args, **kwargs):
@@ -292,7 +360,7 @@ class StudentsGroupViewSet(
         group = self.get_object()
         school = self.get_school()
         if user.groups.filter(
-            group__name__in=["Admin", "Teacher"], school=school
+                group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(group_id=group.pk)
 
@@ -414,7 +482,7 @@ class StudentsGroupWithoutTeacherViewSet(
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
                 if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
+                        user=student, group=group, school=school
                 ).exists():
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
