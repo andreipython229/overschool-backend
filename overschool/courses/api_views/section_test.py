@@ -44,7 +44,6 @@ class TestViewSet(
 
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
