@@ -21,9 +21,8 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class LessonAvailabilityViewSet(viewsets.ModelViewSet):
+class LessonAvailabilityViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = LessonAvailability.objects.all()
-    serializer_class = LessonAvailability
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -81,10 +80,11 @@ class LessonAvailabilityViewSet(viewsets.ModelViewSet):
                     if lesson_id is not None and available is not None:
                         existing_availability = LessonAvailability.objects.filter(student_id=student_id,
                                                                                   lesson_id=lesson_id, available=False)
-                        if available is True and existing_availability.exists():
+                        if available and existing_availability.exists():
                             existing_availability.delete()
-                        LessonAvailability.objects.update_or_create(student_id=student_id, lesson_id=lesson_id,
-                                                                    defaults={'available': available})
+                        elif not available:
+                            LessonAvailability.objects.update_or_create(student_id=student_id, lesson_id=lesson_id,
+                                                                        defaults={'available': available})
 
         return Response({"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK)
 
@@ -120,20 +120,37 @@ class LessonEnrollmentViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def update(self, request, *args, **kwargs):
-        student_group_id = kwargs.get("pk")
-        lesson_data = request.data.get('lesson_data')
+        lesson_data = request.data.get('lesson_data', [])
+        student_group_id = request.data.get('student_group_id')
 
-        if lesson_data is None:
+        if student_group_id is None or not lesson_data:
             return Response({"error": "Недостаточно данных для выполнения запроса."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             for lesson_info in lesson_data:
                 lesson_id = lesson_info.get('lesson_id')
-                if lesson_id is not None:
-                    LessonEnrollment.objects.update_or_create(student_group_id=student_group_id, lesson_id=lesson_id)
+                available = lesson_info.get('available')
+
+                if lesson_id is not None and available is not None:
+                    if available:
+                        LessonEnrollment.objects.filter(student_group_id=student_group_id, lesson_id=lesson_id).delete()
+                    else:
+                        LessonEnrollment.objects.update_or_create(student_group_id=student_group_id, lesson_id=lesson_id)
 
         return Response({"success": "Доступность уроков для группы студентов обновлена."}, status=status.HTTP_200_OK)
+
+    def list(self, request, *args, **kwargs):
+        student_group_id = request.data.get('student_group_id')
+
+        if student_group_id is None:
+            return Response({"error": "Недостаточно данных для выполнения запроса."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        lesson_enrollments = LessonEnrollment.objects.filter(student_group_id=student_group_id)
+        serializer = LessonEnrollmentSerializer(lesson_enrollments, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class LessonViewSet(
@@ -229,7 +246,6 @@ class LessonViewSet(
 
     def update(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-
         section = self.request.data.get("section")
 
         if section is not None:
