@@ -37,6 +37,7 @@ from users.serializers import UserProfileGetSerializer
 from courses.models.students.students_history import StudentsHistory
 from .schemas.course import CoursesSchemas
 from courses.services import get_student_progress
+from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -376,7 +377,10 @@ class CourseViewSet(
                 }
             )
 
-        return Response(serialized_data)
+        paginator = StudentsPagination()
+        paginated_data = paginator.paginate_queryset(serialized_data, request)
+        return paginator.get_paginated_response(paginated_data)
+        # return Response(serialized_data)
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):

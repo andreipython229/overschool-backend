@@ -17,6 +17,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, UserGroup
 from users.serializers import UserProfileGetSerializer
+from courses.paginators import StudentsPagination
 
 
 class StudentsGroupViewSet(
@@ -271,7 +272,10 @@ class StudentsGroupViewSet(
                     )["average_mark"],
                 }
             )
-        return Response(student_data)
+        paginator = StudentsPagination()
+        paginated_data = paginator.paginate_queryset(student_data, request)
+        return paginator.get_paginated_response(paginated_data)
+        # return Response(student_data)
 
     @action(detail=True, methods=["GET"])
     def section_student_group(self, request, pk=None, *args, **kwargs):
