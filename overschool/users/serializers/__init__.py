@@ -1,5 +1,4 @@
 from .access_distribution import AccessDistributionSerializer
-from .confident_files_serializers import UploadSerializer
 from .forgot_password_serializer import (
     ForgotPasswordSerializer,
     PasswordResetSerializer,

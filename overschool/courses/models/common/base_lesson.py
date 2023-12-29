@@ -25,28 +25,6 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Название урока",
         default="Имя не придумано",
     )
-
-    description = RichTextField(
-        verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
-    )
-    code = RichTextField(
-        verbose_name="Код", help_text="Примеры кода к уроку", blank=True, null=True
-    )
-    video = models.FileField(
-        verbose_name="Видео",
-        help_text="Видеофайл размером до 2 ГБ",
-        max_length=300,
-        upload_to=TruncateFileName(300),
-        blank=True,
-        null=True,
-    )
-
-    url = models.URLField(
-        verbose_name="URL видео",
-        help_text="Ссылка на видео из YouTube",
-        blank=True,
-        null=True,
-    )
     points = models.PositiveIntegerField(
         verbose_name="Баллы за прохождение",
         help_text="Баллы за прохождение",
@@ -146,22 +124,79 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         ]
 
 
-class LessonAvailability(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_availability',
-                                verbose_name='Студент')
-    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
-    available = models.BooleanField(default=False, verbose_name='Доступен')
+class BaseLessonBlock(OrderMixin, models.Model):
+    """Блоки урока"""
+
+    base_lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, related_name="blocks"
+    )
+    video = models.FileField(
+        verbose_name="Видео",
+        help_text="Видеофайл размером до 2 ГБ",
+        max_length=300,
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    url = models.URLField(
+        verbose_name="URL видео",
+        help_text="Ссылка на видео из YouTube",
+        blank=True,
+        null=True,
+    )
+    description = RichTextField(
+        verbose_name="Описание",
+        help_text="Описание к уроку",
+        blank=True,
+        null=True,
+    )
+    code = RichTextField(
+        verbose_name="Код",
+        help_text="Примеры кода к уроку",
+        blank=True,
+        null=True,
+    )
+    picture = models.ImageField(
+        verbose_name="Картинка",
+        help_text="Картинка к уроку",
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
 
     class Meta:
-        verbose_name = 'Доступность урока для студента'
-        verbose_name_plural = 'Доступность уроков для студентов'
+        verbose_name = "Блок урока"
+        verbose_name_plural = "Блоки уроков"
+
+
+class LessonAvailability(models.Model):
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="lesson_availability",
+        verbose_name="Студент",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
+    available = models.BooleanField(default=False, verbose_name="Доступен")
+
+    class Meta:
+        verbose_name = "Доступность урока для студента"
+        verbose_name_plural = "Доступность уроков для студентов"
 
 
 class LessonEnrollment(models.Model):
-    student_group = models.ForeignKey(StudentsGroup, on_delete=models.CASCADE, related_name='lesson_enrollment',
-                                      verbose_name='Группа студента')
-    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
+    student_group = models.ForeignKey(
+        StudentsGroup,
+        on_delete=models.CASCADE,
+        related_name="lesson_enrollment",
+        verbose_name="Группа студента",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
 
     class Meta:
-        verbose_name = 'Доступность урока для группы'
-        verbose_name_plural = 'Доступность урока для группы'
+        verbose_name = "Доступность урока для группы"
+        verbose_name_plural = "Доступность урока для группы"

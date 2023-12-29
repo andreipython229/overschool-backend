@@ -1,5 +1,4 @@
 from .access_distribution import AccessDistributionView
-from .confident_files_views import ConfidentFilesViewSet
 from .forgot_password import ForgotPasswordView, PasswordResetView, TokenValidateView
 from .login import LoginView
 from .logout import LogoutView
