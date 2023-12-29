@@ -72,6 +72,11 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         except LessonAvailability.DoesNotExist:
             return None
 
+    def is_available_for_group(self, group):
+        return not LessonEnrollment.objects.filter(
+            student_group=group, lesson=self
+        ).exists()
+
     def save(self, *args, **kwargs):
         if not self.order:
             max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
@@ -147,21 +152,33 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
 
 
 class LessonAvailability(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_availability',
-                                verbose_name='Студент')
-    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
-    available = models.BooleanField(default=False, verbose_name='Доступен')
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="lesson_availability",
+        verbose_name="Студент",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
+    available = models.BooleanField(default=False, verbose_name="Доступен")
 
     class Meta:
-        verbose_name = 'Доступность урока для студента'
-        verbose_name_plural = 'Доступность уроков для студентов'
+        verbose_name = "Доступность урока для студента"
+        verbose_name_plural = "Доступность уроков для студентов"
 
 
 class LessonEnrollment(models.Model):
-    student_group = models.ForeignKey(StudentsGroup, on_delete=models.CASCADE, related_name='lesson_enrollment',
-                                      verbose_name='Группа студента')
-    lesson = models.ForeignKey(BaseLesson, on_delete=models.CASCADE, verbose_name='Урок/ДЗ/Тест')
+    student_group = models.ForeignKey(
+        StudentsGroup,
+        on_delete=models.CASCADE,
+        related_name="lesson_enrollment",
+        verbose_name="Группа студента",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
 
     class Meta:
-        verbose_name = 'Доступность урока для группы'
-        verbose_name_plural = 'Доступность урока для группы'
+        verbose_name = "Доступность урока для группы"
+        verbose_name_plural = "Доступность урока для группы"
