@@ -9,6 +9,7 @@ from courses.models import (
     UserHomework,
 )
 from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination
 from courses.services import get_student_progress
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.http import HttpResponse
@@ -282,10 +283,16 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
-        all_active_students = queryset.count()
-        deleted_history_queryset = StudentsHistory.objects.none()
-        show_deleted = self.request.GET.get("show_deleted")
 
+        all_active_students = queryset.aggregate(total_users_count=Count("students"))[
+            "total_users_count"
+        ]
+
+        deleted_history_queryset = StudentsHistory.objects.filter(
+            students_group_id__course_id__school=school, is_deleted=True
+        )
+
+        show_deleted = self.request.GET.get("show_deleted")
         if not show_deleted:
             deleted_history_queryset = StudentsHistory.objects.filter(
                 students_group_id__course_id__school=school, is_deleted=True
@@ -430,7 +437,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             date_removed=Subquery(subquery_date_removed),
         )
 
-        filtered_active_students = queryset.count()
+        filtered_active_students = data.count()
 
         serialized_data = []
         for item in data:
@@ -530,7 +537,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 }
             )
 
-        return Response(serialized_data)
+        paginator = StudentsPagination()
+        paginated_data = paginator.paginate_queryset(serialized_data, request)
+        return paginator.get_paginated_response(paginated_data)
 
 
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
