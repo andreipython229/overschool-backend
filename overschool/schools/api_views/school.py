@@ -9,6 +9,8 @@ from courses.models import (
     UserHomework,
 )
 from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination
+from courses.services import get_student_progress
 from django.db.models import Avg, OuterRef, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
@@ -29,9 +31,6 @@ from schools.serializers import (
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-from courses.services import get_student_progress
-from .schemas.school import SchoolsSchemas
-from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -285,11 +284,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
 
-        all_active_students = queryset.aggregate(
-            total_users_count=Count('students'))['total_users_count']
+        all_active_students = queryset.aggregate(total_users_count=Count("students"))[
+            "total_users_count"
+        ]
 
-        deleted_history_queryset = StudentsHistory.objects.filter(students_group_id__course_id__school=school,
-                                                                  is_deleted=True)
+        deleted_history_queryset = StudentsHistory.objects.filter(
+            students_group_id__course_id__school=school, is_deleted=True
+        )
 
         show_deleted = self.request.GET.get("show_deleted")
         if not show_deleted:
