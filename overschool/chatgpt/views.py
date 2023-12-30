@@ -12,12 +12,14 @@ from django.utils.decorators import method_decorator
 
 from .models import UserMessage, BotResponse
 from .serializers import UserMessageSerializer, BotResponseSerializer
+from .schemas import send_message_schema, latest_messages_schema
 
 
 class SendMessageToGPT(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
 
     def post(self, request):
         try:
@@ -57,12 +59,9 @@ class SendMessageToGPT(View):
 class LastTenMessages(View):
     def get(self, request, user_id):
         user = int(user_id)
-        print(user)
         try:
             latest_messages = UserMessage.objects.filter(sender_id=user).order_by('-message_date')[:10]
-            print(latest_messages)
             latest_responses = BotResponse.objects.filter(sender_id=user).order_by('-message_date')[:10]
-            print(latest_responses)
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
