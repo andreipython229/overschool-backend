@@ -20,12 +20,12 @@ class SendMessageToGPT(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-
+    @send_message_schema
     def post(self, request):
         try:
             data = json.loads(request.body)
             user_message = data.get('message', '')
-            user_id = int(data.get('userId', ''))
+            user_id = int(data.get('user_id', ''))
             response = self.run_provider(user_message)
             UserMessage.objects.create(
                 sender_id=user_id,
@@ -57,6 +57,7 @@ class SendMessageToGPT(View):
 
 
 class LastTenMessages(View):
+    @latest_messages_schema
     def get(self, request, user_id):
         user = int(user_id)
         try:
@@ -65,7 +66,7 @@ class LastTenMessages(View):
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
-            combined_data = list(user_serializer.data) + list(bot_serializer.data)
+            combined_data = list(reversed(user_serializer.data)), list(reversed(bot_serializer.data))
 
             return JsonResponse(combined_data, safe=False)
         except Exception as e:
