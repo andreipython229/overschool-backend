@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
@@ -23,8 +24,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from courses.services import get_student_progress
-from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum, Q
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -38,6 +38,8 @@ from users.models import Profile
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
+from courses.services import get_student_progress
+from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -239,6 +241,16 @@ class CourseViewSet(
 
         all_active_students = queryset.count()
 
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            queryset = queryset.filter(
+                Q(students__first_name__icontains=search_value) |
+                Q(students__last_name__icontains=search_value) |
+                Q(students__email__icontains=search_value) |
+                Q(name__icontains=search_value)
+            )
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -378,10 +390,58 @@ class CourseViewSet(
                 }
             )
 
-        paginator = StudentsPagination()
-        paginated_data = paginator.paginate_queryset(serialized_data, request)
-        return paginator.get_paginated_response(paginated_data)
-        # return Response(serialized_data)
+        # Сортировка
+        sort_by = request.GET.get("sort_by", "date_added")
+        sort_order = request.GET.get("sort_order", "desc")
+        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+        if sort_by in [
+            'first_name',
+            'last_name',
+            'email',
+            'group_name',
+            'course_name',
+            'date_added',
+            'date_removed',
+            'progress',
+            'average_mark',
+            'mark_sum',
+        ]:
+            if sort_order == "asc":
+                if sort_by in ['date_added', 'date_removed', ]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None else default_date)
+                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None else 0)
+                else:
+                    sorted_data = sorted(serialized_data, key=lambda x: x.get(sort_by, '') or '')
+
+            else:
+                if sort_by in ['date_added', 'date_removed', ]:
+                    print("TEST")
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None else default_date, reverse=True)
+                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None else 0, reverse=True)
+                else:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, '') or '', reverse=True)
+
+            paginator = StudentsPagination()
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
+            return paginator.get_paginated_response(paginated_data)
+
+        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
