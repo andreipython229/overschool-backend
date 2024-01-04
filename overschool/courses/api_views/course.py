@@ -405,9 +405,10 @@ class CourseViewSet(
             'progress',
             'average_mark',
             'mark_sum',
+            'last_active',
         ]:
             if sort_order == "asc":
-                if sort_by in ['date_added', 'date_removed', ]:
+                if sort_by in ['date_added', 'date_removed', 'last_active',]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
@@ -421,7 +422,7 @@ class CourseViewSet(
                     sorted_data = sorted(serialized_data, key=lambda x: x.get(sort_by, '') or '')
 
             else:
-                if sort_by in ['date_added', 'date_removed', ]:
+                if sort_by in ['date_added', 'date_removed', 'last_active',]:
                     print("TEST")
                     sorted_data = sorted(
                         serialized_data,
