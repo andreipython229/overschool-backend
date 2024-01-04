@@ -14,7 +14,8 @@ from courses.models import (
 )
 from courses.models.courses.section import Section
 from courses.models.homework.user_homework import UserHomework
-from courses.paginators import UserHomeworkPagination
+from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
@@ -22,6 +23,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
+from courses.services import get_student_progress
 from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -34,10 +36,8 @@ from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
-from courses.models.students.students_history import StudentsHistory
+
 from .schemas.course import CoursesSchemas
-from courses.services import get_student_progress
-from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -311,17 +311,16 @@ class CourseViewSet(
             StudentsHistory.objects.filter(
                 user_id=OuterRef("students__id"),
                 students_group=OuterRef("group_id"),
-                is_deleted=False
+                is_deleted=False,
             )
-                .order_by("-date_added")
-                .values("date_added")
+            .order_by("-date_added")
+            .values("date_added")
         )
 
         subquery_date_removed = (
-            StudentsHistory.objects.none(
-            )
-                .order_by("-date_removed")
-                .values("date_removed")
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")
         )
         print(queryset, "-------")
         data = queryset.values(
@@ -371,7 +370,9 @@ class CourseViewSet(
                     "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
-                    "progress": get_student_progress(item['students__id'], item["course_id"]),
+                    "progress": get_student_progress(
+                        item["students__id"], item["course_id"]
+                    ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
                 }
@@ -465,6 +466,10 @@ class CourseViewSet(
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
+                if user.groups.filter(group__name="Student").exists():
+                    a = a.exclude(lessonavailability__student=user)
+                    b = b.exclude(lessonavailability__student=user)
+                    c = c.exclude(lessonavailability__student=user)
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
