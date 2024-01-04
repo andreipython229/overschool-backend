@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
