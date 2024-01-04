@@ -15,7 +15,7 @@ from courses.models import (
 from courses.models.courses.section import Section
 from courses.models.homework.user_homework import UserHomework
 from courses.models.students.students_history import StudentsHistory
-from courses.paginators import UserHomeworkPagination
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
@@ -378,7 +378,10 @@ class CourseViewSet(
                 }
             )
 
-        return Response(serialized_data)
+        paginator = StudentsPagination()
+        paginated_data = paginator.paginate_queryset(serialized_data, request)
+        return paginator.get_paginated_response(paginated_data)
+        # return Response(serialized_data)
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
