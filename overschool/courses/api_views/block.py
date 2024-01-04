@@ -7,7 +7,9 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+from common_services.selectel_client import UploadToS3
 
+s3 = UploadToS3()
 
 class LessonAvailabilityViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
@@ -62,13 +64,19 @@ class LessonAvailabilityViewSet(
 
         serializer = LessonBlockSerializer(data={**request.data})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        block = serializer.save()
 
-        # if request.FILES.get("video"):
-        #     base_lesson = BaseLesson.objects.get(lessons=lesson)
-        #     video = s3.upload_large_file(request.FILES["video"], base_lesson)
-        #     lesson.video = video
-        #     lesson.save()
-        #     serializer = LessonDetailSerializer(lesson)
+        if request.FILES.get("video"):
+            base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
+            video = s3.upload_large_file(request.FILES["video"], base_lesson_obj)
+            block.video = video
+            block.save()
+        if request.FILES.get("picture"):
+            base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
+            picture = s3.upload_large_file(request.FILES["picture"], base_lesson_obj)
+            block.picture = picture
+            block.save()
+
+        serializer = LessonBlockSerializer(block)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)

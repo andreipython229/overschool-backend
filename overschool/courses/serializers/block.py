@@ -1,11 +1,15 @@
 from courses.models import BaseLessonBlock
 from rest_framework import serializers
+from common_services.selectel_client import UploadToS3
+
+s3 = UploadToS3()
 
 
 class LessonBlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseLessonBlock
         fields = [
+            "id",
             "base_lesson",
             "video",
             "url",
@@ -44,3 +48,27 @@ class LessonBlockSerializer(serializers.ModelSerializer):
                 )
 
         return data
+
+
+class BlockDetailSerializer(serializers.ModelSerializer):
+    video = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BaseLessonBlock
+        fields = [
+            "id",
+            "video",
+            "url",
+            "description",
+            "code",
+            "picture",
+            "order",
+        ]
+        read_only_fields = ["order"]
+
+    def get_video(self, obj):
+        return s3.get_link(obj.video.name) if obj.video else None
+
+    def get_picture(self, obj):
+        return s3.get_link(obj.picture.name) if obj.picture else None
