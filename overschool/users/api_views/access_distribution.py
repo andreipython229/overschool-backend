@@ -83,7 +83,7 @@ class AccessDistributionView(
         for student_group in student_groups:
             user.students_group_fk.add(student_group)
             StudentsHistory.objects.create(user=user, students_group=student_group)
-            8
+
             unavailable_lessons = list(
                 LessonEnrollment.objects.filter(student_group=student_group).values(
                     "lesson_id"
@@ -119,16 +119,19 @@ class AccessDistributionView(
 
         new_user_count = users.exclude(groups__school=school).count()
 
-        if self.check_user_existing_roles(users, school):
-            return HttpResponse(
-                "Пользователь уже имеет другие роли в этой школе", status=400
-            )
+        # if self.check_user_existing_roles(users, school):
+        #     return HttpResponse(
+        #         "Пользователь уже имеет другие роли в этой школе", status=400
+        #     )
 
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
-            self.create_user_group(user, group, school)
+            if not UserGroup.objects.filter(
+                user=user, school=school, group=group
+            ).exists():
+                self.create_user_group(user, group, school)
 
             if student_groups_ids:
                 student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)

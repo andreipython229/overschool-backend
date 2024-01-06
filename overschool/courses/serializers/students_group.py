@@ -126,9 +126,6 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def create(self, validated_data):
-        return StudentsGroup.objects.create(**validated_data)
-
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
         instance = super().update(instance, validated_data)

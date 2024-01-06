@@ -5,7 +5,7 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Homework, Lesson, Section, SectionTest, StudentsGroup
 from courses.models.students.students_group_settings import StudentsGroupSettings
-from courses.paginators import UserHomeworkPagination
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import StudentsGroupSerializer, StudentsGroupWTSerializer
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Sum
@@ -17,7 +17,6 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, UserGroup
 from users.serializers import UserProfileGetSerializer
-from courses.paginators import StudentsPagination
 
 
 class StudentsGroupViewSet(
@@ -119,7 +118,7 @@ class StudentsGroupViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-        serializer.save(group_settings=group_settings, type="'WITH_TEACHER'")
+        serializer.save(group_settings=group_settings, type="WITH_TEACHER")
 
         student_group = serializer.save(chat=chat)
 
