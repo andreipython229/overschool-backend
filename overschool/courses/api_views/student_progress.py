@@ -224,49 +224,68 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
 
     def generate_response(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
+
         school_id = School.objects.get(name=school_name).school_id
-
-        all_base_lesson_ids = UserProgressLogs.objects.filter(
-            user=student.pk
-        ).values_list("lesson_id", flat=True)
-
         courses = []
         return_dict = {}
         for course_id in courses_ids:
             course = {}
             course_obj = Course.objects.get(pk=course_id)
+            student_group = StudentsGroup.objects.filter(
+                students__id=student.pk,
+                course_id=course_id
+            ).first()
             all_base_lesson = BaseLesson.objects.filter(
-                section_id__course_id=course_id, active=True
-            )
-            all_base_completed_lesson = BaseLesson.objects.filter(
-                pk__in=all_base_lesson_ids, section_id__course_id=course_id, active=True
-            )
-
-            course["course_id"] = course_obj.pk
-            course["course_name"] = course_obj.name
-            course["all_baselessons"] = all_base_lesson.count()
-            course["completed_count"] = all_base_completed_lesson.count()
-            course["completed_percent"] = (
-                round(
-                    all_base_completed_lesson.count() / all_base_lesson.count() * 100, 2
-                )
-                if all_base_completed_lesson.count() != 0
-                else 0
+                section_id__course_id=course_id, active=True,
+            ).exclude(
+                lessonavailability__student=student,
+            ).exclude(
+                lessonenrollment__student_group=student_group.pk,
             )
 
-            all_lessons = Lesson.objects.filter(section_id__course_id=course_id)
-            all_homeworks = Homework.objects.filter(section_id__course_id=course_id)
-            all_tests = SectionTest.objects.filter(section_id__course_id=course_id)
+            lesson_viewed_ids = UserProgressLogs.objects.filter(
+                lesson_id__in=all_base_lesson.values('id'),
+                user_id=student).values_list("lesson_id", flat=True)
+
+            lesson_completed_ids = UserProgressLogs.objects.filter(
+                lesson_id__in=all_base_lesson.values('id'),
+                completed=True,
+                user_id=student).values_list("lesson_id", flat=True)
+
+            all_lessons = Lesson.objects.filter(
+                section_id__course_id=course_id,
+                active=True).exclude(
+                lessonavailability__student=student).exclude(
+                lessonenrollment__student_group=student_group.pk)
+
+            all_homeworks = Homework.objects.filter(
+                section_id__course_id=course_id,
+                active=True).exclude(
+                lessonavailability__student=student).exclude(
+                lessonenrollment__student_group=student_group.pk)
+
+            all_tests = SectionTest.objects.filter(
+                section_id__course_id=course_id,
+                active=True).exclude(
+                lessonavailability__student=student).exclude(
+                lessonenrollment__student_group=student_group.pk)
 
             completed_lessons = all_lessons.filter(
-                baselesson_ptr_id__in=all_base_lesson_ids
+                baselesson_ptr_id__in=lesson_viewed_ids
             )
+
             completed_homeworks = all_homeworks.filter(
-                baselesson_ptr_id__in=all_base_lesson_ids
+                baselesson_ptr_id__in=lesson_completed_ids
             )
+
             completed_tests = all_tests.filter(
-                baselesson_ptr_id__in=all_base_lesson_ids
+                baselesson_ptr_id__in=lesson_completed_ids
             )
+
+            completed_all = completed_lessons.count() + completed_homeworks.count() + completed_tests.count()
+
+            progress_percent = round(
+                completed_all / all_base_lesson.count() * 100, 2) if all_base_lesson.count() != 0 else 0
 
             course["lessons"] = dict(
                 completed_perсent=round(
@@ -299,10 +318,15 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             )
             courses.append(course)
 
-        return_dict["student"] = student.email
-        return_dict["school_id"] = school_id
-        return_dict["school_name"] = school_name
-        return_dict["courses"] = courses
+            course["course_id"] = course_obj.pk
+            course["course_name"] = course_obj.name
+            course["all_baselessons"] = all_base_lesson.count()
+            course["completed_count"] = completed_all
+            course["completed_percent"] = progress_percent
+            return_dict["student"] = student.email
+            return_dict["school_id"] = school_id
+            return_dict["school_name"] = school_name
+            return_dict["courses"] = courses
 
         return Response(return_dict)
 

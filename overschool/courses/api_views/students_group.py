@@ -254,18 +254,17 @@ class StudentsGroupViewSet(
             students = students.annotate(average_mark=Avg("user_homeworks__mark"))
             students = students.filter(average_mark__lte=average_mark_max)
 
-
-
         student_data = []
         for student in students:
             profile = Profile.objects.get(user_id=student)
             serializer = UserProfileGetSerializer(
                 profile, context={"request": self.request}
             )
-            students_history = StudentsHistory.objects.filter(user_id=student.id,
-                                                                 students_group=group.group_id,
-                                                                 is_deleted=False
-                                                                 ).first()
+            students_history = StudentsHistory.objects.filter(
+                user_id=student.id,
+                students_group=group.group_id,
+                is_deleted=False
+            ).first()
 
             student_data.append(
                 {
@@ -287,7 +286,7 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "progress": get_student_progress(student.id, group.course_id),
+                    "progress": get_student_progress(student.id, group.course_id, group.group_id),
                     "date_added": students_history.date_added if students_history else None,
                 }
             )
