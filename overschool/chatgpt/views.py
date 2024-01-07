@@ -5,76 +5,69 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from django.http import JsonResponse
+from django.views import View
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
-from .models import GptMessage
-from .serializers import GptMessageSerializer
-
-
-@require_POST
-@swagger_auto_schema(
-    request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        operation_description="Send a message to chatgpt",
-        tags=["ChatGPT"],
-        properties={
-            'message': openapi.Schema(type=openapi.TYPE_STRING),
-            'user_id': openapi.Schema(type=openapi.TYPE_STRING),
-        }
-    ),
-    responses={200: 'OK', 500: 'Internal Server Error'},
-)
-@csrf_exempt
-def send_message_to_gpt(request):
-    try:
-        data = json.loads(request.body)
-        user_message = data.get('message', '')
-        user_id = data.get('user_id', '')
-
-        response = run_provider(user_message)
-
-        GptMessage.objects.create(
-            sender_id=user_id,
-            sender_question=user_message,
-            answer=response
-        )
-        return JsonResponse({'bot_response': response})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+from .models import UserMessage, BotResponse
+from .serializers import UserMessageSerializer, BotResponseSerializer
+from .schemas import send_message_schema, latest_messages_schema
 
 
-def run_provider(message: str):
-    try:
-        response = g4f.ChatCompletion.create(
-            model=g4f.models.gpt_35_turbo_0613,
-            messages=[{
-                "role": "user",
-                "content": message
-            }],
-            provider=g4f.Provider.You,
-            stream=True
-        )
-        response_str = ''.join(response)
-        return response_str
-    except Exception as e:
-        return f"ChatGPT Exception: {e}"
+class SendMessageToGPT(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    @send_message_schema
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
+            user_id = int(data.get('user_id', ''))
+            response = self.run_provider(user_message)
+            UserMessage.objects.create(
+                sender_id=user_id,
+                sender_question=user_message,
+            )
+            BotResponse.objects.create(
+                sender_id=user_id,
+                answer=response
+            )
+            return JsonResponse({'bot_response': response})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def run_provider(self, message):
+        try:
+            response = g4f.ChatCompletion.create(
+                model=g4f.models.gpt_35_turbo_0613,
+                messages=[{
+                    "role": "user",
+                    "content": message
+                }],
+                provider=g4f.Provider.You,
+                stream=True
+            )
+            response_str = ''.join(response)
+            return response_str
+        except Exception as e:
+            return f"ChatGPT Exception: {e}"
 
 
-@require_GET
-@swagger_auto_schema(
-    operation_description="Get the user's last 10 messages",
-    tags=["ChatGPT"],
-    manual_parameters=[
-        openapi.Parameter('user_id', in_=openapi.IN_PATH, type=openapi.TYPE_STRING),
-    ],
-    responses={200: GptMessageSerializer(many=True), 500: 'Internal Server Error'},
-)
-def last_10_messages(request, user_id):
-    user = int(user_id)
-    try:
-        latest_messages = GptMessage.objects.filter(sender_id=user).order_by('-message_date')[:10]
-        serializer = GptMessageSerializer(latest_messages, many=True)
-        return JsonResponse(serializer.data, safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+class LastTenMessages(View):
+    @latest_messages_schema
+    def get(self, request, user_id):
+        user = int(user_id)
+        try:
+            latest_messages = UserMessage.objects.filter(sender_id=user).order_by('-message_date')[:10]
+            latest_responses = BotResponse.objects.filter(sender_id=user).order_by('-message_date')[:10]
+            user_serializer = UserMessageSerializer(latest_messages, many=True)
+            bot_serializer = BotResponseSerializer(latest_responses, many=True)
+
+            combined_data = list(reversed(user_serializer.data)), list(reversed(bot_serializer.data))
+
+            return JsonResponse(combined_data, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
