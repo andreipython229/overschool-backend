@@ -20,7 +20,7 @@ class SendMessageToGPT(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    @send_message_schema
+    @method_decorator(send_message_schema)
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -72,7 +72,7 @@ class SendMessageToGPT(View):
 
 
 class LastTenMessages(View):
-    @latest_messages_schema
+    @method_decorator(latest_messages_schema)
     def get(self, request, user_id):
         user = int(user_id)
         try:
