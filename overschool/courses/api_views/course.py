@@ -383,7 +383,9 @@ class CourseViewSet(
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "progress": get_student_progress(
-                        item["students__id"], item["course_id"]
+                        item["students__id"],
+                        item["course_id"],
+                        item["group_id"],
                     ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
