@@ -284,9 +284,7 @@ class StudentsGroupViewSet(
                         average_mark=Avg("mark")
                     )["average_mark"],
                     "progress": get_student_progress(student.id, group.course_id),
-                    "date_added": students_history.date_added
-                    if students_history
-                    else None,
+                    "date_added": students_history.date_added if students_history else None,
                 }
             )
 
