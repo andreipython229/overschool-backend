@@ -2,6 +2,14 @@ from django.db import models
 from users.models.user import User
 
 
+class OverAiChat(models.Model):
+    user_id = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Идентификатор пользователя'
+    )
+
+
 class UserMessage(models.Model):
     sender = models.ForeignKey(
         User,
@@ -14,6 +22,11 @@ class UserMessage(models.Model):
     message_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата сообщения"
+    )
+    overai_chat_id = models.ForeignKey(
+        OverAiChat,
+        on_delete=models.CASCADE,
+        verbose_name="Идентификатор чата"
     )
 
 
@@ -30,4 +43,8 @@ class BotResponse(models.Model):
         auto_now_add=True,
         verbose_name="Дата ответа"
     )
-
+    overai_chat_id = models.ForeignKey(
+        OverAiChat,
+        on_delete=models.CASCADE,
+        verbose_name="Идентификатор чата"
+    )
