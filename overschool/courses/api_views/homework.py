@@ -106,16 +106,8 @@ class HomeworkViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
-        homework = serializer.save(video=None)
-
-        if request.FILES.get("video"):
-            base_lesson = BaseLesson.objects.get(homeworks=homework)
-            video = s3.upload_large_file(request.FILES["video"], base_lesson)
-            homework.video = video
-            homework.save()
-            serializer = HomeworkDetailSerializer(
-                homework, context={"request": request}
-            )
+        homework = serializer.save()
+        serializer = HomeworkDetailSerializer(homework, context={"request": request})
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -130,26 +122,11 @@ class HomeworkViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.context["request"] = request
         serializer.is_valid(raise_exception=True)
 
-        video = request.FILES.get("video")
-        if video:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = s3.upload_large_file(
-                request.FILES["video"], base_lesson
-            )
-        elif not video and video_use:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            instance.video = None
-        elif not video and not video_use:
-            serializer.validated_data["video"] = instance.video
         instance.save()
         self.perform_update(serializer)
 
@@ -187,9 +164,29 @@ class HomeworkViewSet(
                 homework_files + user_homework_files + user_homework_checks_files,
             )
         )
-
-        if instance.video:
-            s3.delete_file(str(instance.video))
+        blocks_video_to_delete = list(
+            map(
+                lambda el: str(el["video"]),
+                list(
+                    filter(
+                        lambda el: el["video"] != "", instance.blocks.values("video")
+                    )
+                ),
+            )
+        )
+        blocks_picture_to_delete = list(
+            map(
+                lambda el: str(el["picture"]),
+                list(
+                    filter(
+                        lambda el: el["picture"] != "",
+                        instance.blocks.values("picture"),
+                    )
+                ),
+            )
+        )
+        files_to_delete += blocks_video_to_delete
+        files_to_delete += blocks_picture_to_delete
 
         # Удаляем сразу все файлы, связанные с домашней работой, и сегменты видео
         remove_resp = None

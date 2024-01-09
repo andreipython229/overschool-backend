@@ -7,15 +7,10 @@ from courses.models import (
     LessonAvailability,
     LessonEnrollment,
 )
+from courses.serializers.block import BlockDetailSerializer
 from rest_framework import serializers
 
 s3 = UploadToS3()
-
-
-class BaseLessonBlockSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BaseLessonBlock
-        fields = "__all__"
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -24,13 +19,6 @@ class LessonSerializer(serializers.ModelSerializer):
     """
 
     type = serializers.CharField(default="lesson", read_only=True)
-    video_use = serializers.BooleanField(required=False)
-    blocks = serializers.SerializerMethodField()
-
-    def get_blocks(self, obj):
-        blocks = BaseLessonBlock.objects.filter(lesson=obj)
-        serializer = BaseLessonBlockSerializer(blocks, many=True)
-        return serializer.data
 
     class Meta:
         model = Lesson
@@ -41,13 +29,11 @@ class LessonSerializer(serializers.ModelSerializer):
             "name",
             "order",
             "author_id",
-            "blocks",
-            "video_use",
             "points",
             "type",
             "active",
         ]
-        read_only_fields = ["order, blocks"]
+        read_only_fields = ["order"]
 
     def create(self, validated_data):
         lesson = Lesson.objects.create(**validated_data)
@@ -70,10 +56,10 @@ class LessonDetailSerializer(serializers.ModelSerializer):
     Сериализатор для просмотра конкретного урока
     """
 
-    # video = serializers.SerializerMethodField()
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="lesson", read_only=True)
+    blocks = BlockDetailSerializer(many=True, required=False)
 
     class Meta:
         model = Lesson
@@ -89,12 +75,9 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "audio_files",
             "type",
             "active",
-            "url",
+            "blocks",
         ]
-        read_only_fields = ["type", "text_files", "audio_files"]
-
-    # def get_video(self, obj):
-    #     return s3.get_link(obj.video.name) if obj.video else None
+        read_only_fields = ["type", "text_files", "audio_files", "blocks"]
 
 
 class LessonUpdateSerializer(serializers.Serializer):

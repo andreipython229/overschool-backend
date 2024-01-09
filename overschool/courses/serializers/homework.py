@@ -3,7 +3,7 @@ from common_services.serializers import AudioFileGetSerializer, TextFileGetSeria
 from courses.models import BaseLesson, BaseLessonBlock, Homework
 from courses.models.homework.user_homework import UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
-from courses.serializers.lesson import BaseLessonBlockSerializer
+from courses.serializers.block import BlockDetailSerializer
 from courses.serializers.user_homework_check import UserHomeworkCheckDetailSerializer
 from rest_framework import serializers
 
@@ -16,13 +16,6 @@ class HomeworkSerializer(serializers.ModelSerializer):
     """
 
     type = serializers.CharField(default="homework", read_only=True)
-    video_use = serializers.BooleanField(required=False)
-    blocks = serializers.SerializerMethodField()
-
-    def get_blocks(self, obj):
-        blocks = BaseLessonBlock.objects.filter(lesson=obj)
-        serializer = BaseLessonBlockSerializer(blocks, many=True)
-        return serializer.data
 
     class Meta:
         model = Homework
@@ -33,8 +26,6 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "name",
             "order",
             "author_id",
-            "blocks",
-            "video_use",
             "automate_accept",
             "time_accept",
             "points",
@@ -64,7 +55,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class HomeworkDetailSerializer(serializers.ModelSerializer):
-    # video = serializers.SerializerMethodField()
+    blocks = BlockDetailSerializer(many=True, required=False)
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="homework", read_only=True)
@@ -85,6 +76,7 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "points",
             "text_files",
             "audio_files",
+            "blocks",
             "type",
             "user_mark",
             "user_homework_checks",
@@ -94,12 +86,10 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "type",
             "text_files",
             "audio_files",
+            "blocks",
             "user_homework_checks",
             "user_mark",
         ]
-
-    # def get_video(self, obj):
-    #     return s3.get_link(obj.video.name) if obj.video else None
 
     def get_user_homework_checks(self, obj):
         user = self.context["request"].user

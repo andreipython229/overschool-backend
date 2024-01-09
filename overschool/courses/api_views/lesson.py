@@ -9,6 +9,7 @@ from courses.models import (
     StudentsGroup,
 )
 from courses.serializers import (
+    LessonAvailabilitySerializer,
     LessonDetailSerializer,
     LessonEnrollmentSerializer,
     LessonSerializer,
@@ -32,7 +33,7 @@ class LessonAvailabilityViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     queryset = LessonAvailability.objects.all()
-    serializer_class = LessonAvailability
+    serializer_class = LessonAvailabilitySerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -256,13 +257,6 @@ class LessonViewSet(
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        # if request.FILES.get("video"):
-        #     base_lesson = BaseLesson.objects.get(lessons=lesson)
-        #     video = s3.upload_large_file(request.FILES["video"], base_lesson)
-        #     lesson.video = video
-        #     lesson.save()
-        #     serializer = LessonDetailSerializer(lesson)
-
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
@@ -278,7 +272,6 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        # video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -286,20 +279,6 @@ class LessonViewSet(
         if not request.data.get("active"):
             serializer.validated_data["active"] = instance.active
 
-        request.FILES.get("video")
-        # if video:
-        #     if instance.video:
-        #         s3.delete_file(str(instance.video))
-        #     base_lesson = BaseLesson.objects.get(lessons=instance)
-        #     serializer.validated_data["video"] = s3.upload_large_file(
-        #         request.FILES["video"], base_lesson
-        #     )
-        # elif not video and video_use:
-        #     if instance.video:
-        #         s3.delete_file(str(instance.video))
-        #     instance.video = None
-        # elif not video and not video_use:
-        #     serializer.validated_data["video"] = instance.video
         instance.save()
         self.perform_update(serializer)
 
@@ -309,6 +288,9 @@ class LessonViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        print(
+            list(filter(lambda el: el["video"] != "", instance.blocks.values("video")))
+        )
         files_to_delete = list(
             map(
                 lambda el: str(el["file"]),
@@ -316,9 +298,29 @@ class LessonViewSet(
                 + list(instance.audio_files.values("file")),
             )
         )
-
-        if instance.video:
-            s3.delete_file(str(instance.video))
+        blocks_video_to_delete = list(
+            map(
+                lambda el: str(el["video"]),
+                list(
+                    filter(
+                        lambda el: el["video"] != "", instance.blocks.values("video")
+                    )
+                ),
+            )
+        )
+        blocks_picture_to_delete = list(
+            map(
+                lambda el: str(el["picture"]),
+                list(
+                    filter(
+                        lambda el: el["picture"] != "",
+                        instance.blocks.values("picture"),
+                    )
+                ),
+            )
+        )
+        files_to_delete += blocks_video_to_delete
+        files_to_delete += blocks_picture_to_delete
 
         remove_resp = None
         objects_to_delete = [{"Key": key} for key in files_to_delete]

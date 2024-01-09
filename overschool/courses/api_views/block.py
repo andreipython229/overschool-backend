@@ -1,21 +1,25 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, BaseLessonBlock
-from courses.serializers import LessonBlockSerializer
+from courses.serializers import (
+    BlockDetailSerializer,
+    BlockUpdateSerializer,
+    LessonBlockSerializer,
+)
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-from common_services.selectel_client import UploadToS3
 
 s3 = UploadToS3()
 
-class LessonAvailabilityViewSet(
+
+class BaseLessonBlockViewSet(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     queryset = BaseLessonBlock.objects.all()
-    serializer_class = LessonBlockSerializer
     http_method_names = ["post", "delete", "patch"]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -47,6 +51,13 @@ class LessonAvailabilityViewSet(
             )
 
         return BaseLessonBlock.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "perform_update":
+            print(self.request.data)
+            return BlockUpdateSerializer
+        else:
+            return LessonBlockSerializer
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -80,3 +91,57 @@ class LessonAvailabilityViewSet(
         serializer = LessonBlockSerializer(block)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+
+        file_use = self.request.data.get("file_use")
+        instance = self.get_object()
+        serializer = BlockUpdateSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        video = request.FILES.get("video")
+        picture = request.FILES.get("picture")
+        if video:
+            if instance.video:
+                s3.delete_file(str(instance.video))
+            base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
+            )
+        if picture:
+            if instance.picture:
+                s3.delete_file(str(instance.picture))
+            base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            serializer.validated_data["picture"] = s3.upload_large_file(
+                request.FILES["picture"], base_lesson
+            )
+        elif not video and file_use:
+            if instance.video:
+                s3.delete_file(str(instance.video))
+            instance.video = None
+        elif not picture and file_use:
+            if instance.picture:
+                s3.delete_file(str(instance.picture))
+            instance.video = None
+        elif not video and not file_use:
+            serializer.validated_data["video"] = instance.video
+        elif not picture and not file_use:
+            serializer.validated_data["picture"] = instance.picture
+        instance.save()
+        self.perform_update(serializer)
+
+        serializer = BlockDetailSerializer(instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance.video:
+            s3.delete_file(str(instance.video))
+        if instance.picture:
+            s3.delete_file(str(instance.picture))
+
+        self.perform_destroy(instance)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

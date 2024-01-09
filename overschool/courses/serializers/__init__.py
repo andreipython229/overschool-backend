@@ -1,5 +1,5 @@
 from .answer import AnswerGetSerializer, AnswerListGetSerializer, AnswerSerializer
-from .block import LessonBlockSerializer
+from .block import BlockDetailSerializer, BlockUpdateSerializer, LessonBlockSerializer
 from .course import (
     CourseGetSerializer,
     CourseSerializer,
@@ -8,7 +8,6 @@ from .course import (
 )
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import (
-    BaseLessonBlockSerializer,
     LessonAvailabilitySerializer,
     LessonDetailSerializer,
     LessonEnrollmentSerializer,
