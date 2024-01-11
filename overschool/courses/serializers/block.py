@@ -16,6 +16,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "description",
             "code",
             "picture",
+            "type",
             "order",
         ]
         read_only_fields = ["order"]
@@ -61,6 +62,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "code",
             "picture",
             "order",
+            "type",
         ]
         read_only_fields = ["order"]
 

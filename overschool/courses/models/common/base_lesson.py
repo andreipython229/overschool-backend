@@ -124,6 +124,13 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         ]
 
 
+class BlockType(models.TextChoices):
+    VIDEO = "video", "video"
+    PICTURE = "picture", "picture"
+    DESCRIPTION = "description", "description"
+    CODE = "code", "code"
+
+
 class BaseLessonBlock(OrderMixin, models.Model):
     """Блоки урока"""
 
@@ -162,6 +169,13 @@ class BaseLessonBlock(OrderMixin, models.Model):
         upload_to=TruncateFileName(300),
         blank=True,
         null=True,
+    )
+    type = models.CharField(
+        max_length=15,
+        choices=BlockType.choices,
+        default=BlockType.DESCRIPTION,
+        verbose_name="Тип блока",
+        help_text="Тип блока",
     )
 
     class Meta:
