@@ -83,17 +83,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.user is None:
             raise DenyConnection(CustomResponses.invalid_cookie)
 
-        user_is_chat_participant = await self.is_chat_participant(self.user, self.chat)
-        if user_is_chat_participant:
-            history = self.message_history.get(self.chat.id, [])
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "chat_history", "history": history},
-                    cls=DjangoJSONEncoder,
-                )
-            )
-        else:
-            raise DenyConnection(CustomResponses.no_permission)
+        await self.is_chat_participant(self.user, self.chat)
+        # if user_is_chat_participant:
+        #     history = self.message_history.get(self.chat.id, [])
+        #     await self.send(
+        #         text_data=json.dumps(
+        #             {"type": "chat_history", "history": history},
+        #             cls=DjangoJSONEncoder,
+        #         )
+        #     )
+        # else:
+        #     raise DenyConnection(CustomResponses.no_permission)
 
         self.connected_users.append(self.user)
         self.set_room_group_name()
@@ -126,7 +126,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["content"]
         user = event["sender"]
         id_key = event["id"]
-        message_id = event['message_id']
+        event["message_id"]
 
         await self.send(
             text_data=json.dumps(

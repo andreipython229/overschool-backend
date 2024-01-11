@@ -23,17 +23,15 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 s3 = UploadToS3()
 
 
-class LessonAvailabilityViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonAvailability.objects.all()
-    serializer_class = LessonAvailabilitySerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -49,43 +47,9 @@ class LessonAvailabilityViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     @transaction.atomic
-    def perform_create(self, serializer):
-        student_ids = self.request.data.get("student_ids")
-        lesson_data = self.request.data.get("lesson_data")
-
-        if student_ids is None or lesson_data is None:
-            return Response(
-                {"error": "Недостаточно данных для выполнения запроса."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        with transaction.atomic():
-            for student_id in student_ids:
-                for lesson_info in lesson_data:
-                    lesson_id = lesson_info.get("lesson_id")
-                    available = lesson_info.get("available")
-
-                    if lesson_id is not None and available is not None:
-                        existing_availability = LessonAvailability.objects.filter(
-                            student_id=student_id, lesson_id=lesson_id, available=False
-                        )
-
-                        if available is True and existing_availability.exists():
-                            existing_availability.delete()
-                        LessonAvailability.objects.create(
-                            student_id=student_id,
-                            lesson_id=lesson_id,
-                            available=available,
-                        )
-
-        return Response(
-            {"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK
-        )
-
-    @transaction.atomic
-    def perform_update(self, serializer):
-        student_ids = self.request.data.get("student_ids")
-        lesson_data = self.request.data.get("lesson_data")
+    def post(self, request, *args, **kwargs):
+        student_ids = request.data.get("student_ids")
+        lesson_data = request.data.get("lesson_data")
 
         if student_ids is None or lesson_data is None:
             return Response(
@@ -102,13 +66,14 @@ class LessonAvailabilityViewSet(
                         existing_availability = LessonAvailability.objects.filter(
                             student_id=student_id, lesson_id=lesson_id, available=False
                         )
-                        if available is True and existing_availability.exists():
+                        if available and existing_availability.exists():
                             existing_availability.delete()
-                        LessonAvailability.objects.update_or_create(
-                            student_id=student_id,
-                            lesson_id=lesson_id,
-                            defaults={"available": available},
-                        )
+                        elif not available:
+                            LessonAvailability.objects.update_or_create(
+                                student_id=student_id,
+                                lesson_id=lesson_id,
+                                defaults={"available": available},
+                            )
 
         return Response(
             {"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK
@@ -132,11 +97,8 @@ class LessonAvailabilityViewSet(
         return Response(lessons_data)
 
 
-class LessonEnrollmentViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class LessonEnrollmentViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonEnrollment.objects.all()
-    serializer_class = LessonEnrollmentSerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -151,11 +113,12 @@ class LessonEnrollmentViewSet(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-    def update(self, request, *args, **kwargs):
-        student_group_id = kwargs.get("pk")
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        student_group_id = request.data.get("student_group_id")
         lesson_data = request.data.get("lesson_data")
 
-        if lesson_data is None:
+        if student_group_id is None or not lesson_data:
             return Response(
                 {"error": "Недостаточно данных для выполнения запроса."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -164,15 +127,38 @@ class LessonEnrollmentViewSet(
         with transaction.atomic():
             for lesson_info in lesson_data:
                 lesson_id = lesson_info.get("lesson_id")
-                if lesson_id is not None:
-                    LessonEnrollment.objects.update_or_create(
-                        student_group_id=student_group_id, lesson_id=lesson_id
-                    )
+                available = lesson_info.get("available")
+
+                if lesson_id is not None and available is not None:
+                    if available:
+                        LessonEnrollment.objects.filter(
+                            student_group_id=student_group_id, lesson_id=lesson_id
+                        ).delete()
+                    else:
+                        LessonEnrollment.objects.update_or_create(
+                            student_group_id=student_group_id, lesson_id=lesson_id
+                        )
 
         return Response(
             {"success": "Доступность уроков для группы студентов обновлена."},
             status=status.HTTP_200_OK,
         )
+
+    def list(self, request, *args, **kwargs):
+        student_group_id = request.data.get("student_group_id")
+
+        if student_group_id is None:
+            return Response(
+                {"error": "Недостаточно данных для выполнения запроса."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        lesson_enrollments = LessonEnrollment.objects.filter(
+            student_group_id=student_group_id
+        )
+        serializer = LessonEnrollmentSerializer(lesson_enrollments, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class LessonViewSet(
@@ -261,7 +247,6 @@ class LessonViewSet(
 
     def update(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-
         section = self.request.data.get("section")
 
         if section is not None:
@@ -272,6 +257,7 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
+        self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)

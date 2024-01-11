@@ -2,7 +2,12 @@ from datetime import datetime
 
 from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import StudentsGroup, StudentsHistory
+from courses.models import (
+    LessonAvailability,
+    LessonEnrollment,
+    StudentsGroup,
+    StudentsHistory,
+)
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
@@ -21,7 +26,9 @@ sender_service = SenderServiceMixin()
 User = get_user_model()
 
 
-class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
+class AccessDistributionView(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
+):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
     parser_classes = (MultiPartParser,)
@@ -31,14 +38,17 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
         return School.objects.get(name=school_name)
 
     def check_existing_role(self, user, school, group):
-        return UserGroup.objects.filter(user=user, school=school).exclude(group=group).exists()
+        return (
+            UserGroup.objects.filter(user=user, school=school)
+            .exclude(group=group)
+            .exists()
+        )
 
     def check_user_existing_roles(self, user, school):
         try:
             return user.groups.filter(school=school).exists()
         except:
             return None
-
 
     def handle_existing_roles(self, user, school, group):
         return HttpResponse(
@@ -61,7 +71,9 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
         for student_group in student_groups:
             previous_teacher = student_group.teacher_id
             chat = student_group.chat
-            previous_chat = UserChat.objects.filter(user=previous_teacher, chat=chat).first()
+            previous_chat = UserChat.objects.filter(
+                user=previous_teacher, chat=chat
+            ).first()
             if previous_chat:
                 previous_chat.delete()
             user.teacher_group_fk.add(student_group)
@@ -71,9 +83,19 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
         for student_group in student_groups:
             user.students_group_fk.add(student_group)
             StudentsHistory.objects.create(user=user, students_group=student_group)
-            if student_group.type == "WITH_TEACHER":
-                chat = student_group.chat
-                UserChat.objects.create(user=user, chat=chat)
+
+            unavailable_lessons = list(
+                LessonEnrollment.objects.filter(student_group=student_group).values(
+                    "lesson_id"
+                )
+            )
+            unavailable_lessons = list(
+                map(lambda el: el["lesson_id"], unavailable_lessons)
+            )
+            for lesson in unavailable_lessons:
+                LessonAvailability.objects.update_or_create(
+                    student=user, lesson_id=lesson, defaults={"available": False}
+                )
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -87,20 +109,29 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
         school = self.get_school()
         group = Group.objects.get(name=role)
 
-        users_by_id = User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
-        users_by_email = User.objects.filter(email__in=emails) if emails else User.objects.none()
+        users_by_id = (
+            User.objects.filter(pk__in=user_ids) if user_ids else User.objects.none()
+        )
+        users_by_email = (
+            User.objects.filter(email__in=emails) if emails else User.objects.none()
+        )
         users = (users_by_id | users_by_email).distinct()
 
         new_user_count = users.exclude(groups__school=school).count()
 
-        if self.check_user_existing_roles(users, school):
-            return HttpResponse("Пользователь уже имеет другие роли в этой школе", status=400)
+        # if self.check_user_existing_roles(users, school):
+        #     return HttpResponse(
+        #         "Пользователь уже имеет другие роли в этой школе", status=400
+        #     )
 
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
-            self.create_user_group(user, group, school)
+            if not UserGroup.objects.filter(
+                user=user, school=school, group=group
+            ).exists():
+                self.create_user_group(user, group, school)
 
             if student_groups_ids:
                 student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
@@ -108,19 +139,28 @@ class AccessDistributionView(LoggingMixin, WithHeadersViewSet, SchoolMixin, gene
                 courses_count = student_groups.values("course_id").distinct().count()
 
                 if groups_count != courses_count:
-                    return HttpResponse("Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
-                                        status=400)
+                    return HttpResponse(
+                        "Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
+                        status=400,
+                    )
 
                 if role == "Teacher" and users.count() > 1:
-                    return HttpResponse("Нельзя назначить несколько преподавателей в одни и те же группы", status=400)
+                    return HttpResponse(
+                        "Нельзя назначить несколько преподавателей в одни и те же группы",
+                        status=400,
+                    )
 
                 for student_group in student_groups:
                     if student_group.course_id.school != school:
-                        return HttpResponse("Проверьте принадлежность студенческих групп к вашей школе", status=400)
+                        return HttpResponse(
+                            "Проверьте принадлежность студенческих групп к вашей школе",
+                            status=400,
+                        )
                     if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
                         return HttpResponse(
                             "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
-                            status=400)
+                            status=400,
+                        )
 
                 if role == "Teacher":
                     self.handle_teacher_group_fk(user, student_groups, [])

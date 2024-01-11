@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
@@ -14,7 +15,8 @@ from courses.models import (
 )
 from courses.models.courses.section import Section
 from courses.models.homework.user_homework import UserHomework
-from courses.paginators import UserHomeworkPagination
+from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
@@ -22,7 +24,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
+from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum, Q
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -34,9 +36,10 @@ from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile
 from users.serializers import UserProfileGetSerializer
-from courses.models.students.students_history import StudentsHistory
+
 from .schemas.course import CoursesSchemas
 from courses.services import get_student_progress
+from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -238,6 +241,16 @@ class CourseViewSet(
 
         all_active_students = queryset.count()
 
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            queryset = queryset.filter(
+                Q(students__first_name__icontains=search_value) |
+                Q(students__last_name__icontains=search_value) |
+                Q(students__email__icontains=search_value) |
+                Q(name__icontains=search_value)
+            )
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -310,17 +323,16 @@ class CourseViewSet(
             StudentsHistory.objects.filter(
                 user_id=OuterRef("students__id"),
                 students_group=OuterRef("group_id"),
-                is_deleted=False
+                is_deleted=False,
             )
-                .order_by("-date_added")
-                .values("date_added")
+            .order_by("-date_added")
+            .values("date_added")
         )
 
         subquery_date_removed = (
-            StudentsHistory.objects.none(
-            )
-                .order_by("-date_removed")
-                .values("date_removed")
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")
         )
         print(queryset, "-------")
         data = queryset.values(
@@ -370,13 +382,69 @@ class CourseViewSet(
                     "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
-                    "progress": get_student_progress(item['students__id'], item["course_id"]),
+                    "progress": get_student_progress(
+                        item["students__id"],
+                        item["course_id"],
+                        item["group_id"],
+                    ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
                 }
             )
 
-        return Response(serialized_data)
+        # Сортировка
+        sort_by = request.GET.get("sort_by", "date_added")
+        sort_order = request.GET.get("sort_order", "desc")
+        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+        if sort_by in [
+            'first_name',
+            'last_name',
+            'email',
+            'group_name',
+            'course_name',
+            'date_added',
+            'date_removed',
+            'progress',
+            'average_mark',
+            'mark_sum',
+            'last_active',
+        ]:
+            if sort_order == "asc":
+                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None else default_date)
+                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None else 0)
+                else:
+                    sorted_data = sorted(serialized_data, key=lambda x: x.get(sort_by, '') or '')
+
+            else:
+                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                    print("TEST")
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None else default_date, reverse=True)
+                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None else 0, reverse=True)
+                else:
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: x.get(sort_by, '') or '', reverse=True)
+
+            paginator = StudentsPagination()
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
+            return paginator.get_paginated_response(paginated_data)
+
+        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
@@ -461,6 +529,10 @@ class CourseViewSet(
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
+                if user.groups.filter(group__name="Student").exists():
+                    a = a.exclude(lessonavailability__student=user)
+                    b = b.exclude(lessonavailability__student=user)
+                    c = c.exclude(lessonavailability__student=user)
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:

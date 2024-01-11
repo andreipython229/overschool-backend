@@ -50,6 +50,11 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         except LessonAvailability.DoesNotExist:
             return None
 
+    def is_available_for_group(self, group):
+        return not LessonEnrollment.objects.filter(
+            student_group=group, lesson=self
+        ).exists()
+
     def save(self, *args, **kwargs):
         if not self.order:
             max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
