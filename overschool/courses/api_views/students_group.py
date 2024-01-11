@@ -6,11 +6,13 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Homework, Lesson, Section, SectionTest, StudentsGroup
 from courses.models.students.students_group_settings import StudentsGroupSettings
-from courses.paginators import UserHomeworkPagination
+from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import StudentsGroupSerializer, StudentsGroupWTSerializer
+from courses.services import get_student_progress
 from django.contrib.auth.models import Group
-from django.db.models import Avg, Count, F, Sum, Q
-from rest_framework import permissions, serializers, viewsets, status
+from django.db.models import Avg, Count, F, Q, Sum
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -18,9 +20,6 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, UserGroup
 from users.serializers import UserProfileGetSerializer
-from courses.paginators import StudentsPagination
-from courses.services import get_student_progress
-from courses.models.students.students_history import StudentsHistory
 
 
 class StudentsGroupViewSet(
@@ -122,7 +121,7 @@ class StudentsGroupViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-        serializer.save(group_settings=group_settings, type="'WITH_TEACHER'")
+        serializer.save(group_settings=group_settings, type="WITH_TEACHER")
 
         student_group = serializer.save(chat=chat)
 
@@ -198,9 +197,9 @@ class StudentsGroupViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             students = students.filter(
-                Q(first_name__icontains=search_value) |
-                Q(last_name__icontains=search_value) |
-                Q(email__icontains=search_value)
+                Q(first_name__icontains=search_value)
+                | Q(last_name__icontains=search_value)
+                | Q(email__icontains=search_value)
             )
 
         # Фильтры
@@ -254,18 +253,15 @@ class StudentsGroupViewSet(
             students = students.annotate(average_mark=Avg("user_homeworks__mark"))
             students = students.filter(average_mark__lte=average_mark_max)
 
-
-
         student_data = []
         for student in students:
             profile = Profile.objects.get(user_id=student)
             serializer = UserProfileGetSerializer(
                 profile, context={"request": self.request}
             )
-            students_history = StudentsHistory.objects.filter(user_id=student.id,
-                                                                 students_group=group.group_id,
-                                                                 is_deleted=False
-                                                                 ).first()
+            students_history = StudentsHistory.objects.filter(
+                user_id=student.id, students_group=group.group_id, is_deleted=False
+            ).first()
 
             student_data.append(
                 {
@@ -297,53 +293,85 @@ class StudentsGroupViewSet(
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
         if sort_by in [
-            'first_name',
-            'last_name',
-            'email',
-            'group_name',
-            'course_name',
-            'date_added',
-            'date_removed',
-            'progress',
-            'average_mark',
-            'mark_sum',
-            'last_active',
+            "first_name",
+            "last_name",
+            "email",
+            "group_name",
+            "course_name",
+            "date_added",
+            "date_removed",
+            "progress",
+            "average_mark",
+            "mark_sum",
+            "last_active",
         ]:
             if sort_order == "asc":
-                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                if sort_by in [
+                    "date_added",
+                    "date_removed",
+                    "last_active",
+                ]:
                     sorted_data = sorted(
                         student_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         student_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                    )
                 else:
-                    sorted_data = sorted(student_data, key=lambda x: x.get(sort_by, '') or '')
+                    sorted_data = sorted(
+                        student_data, key=lambda x: x.get(sort_by, "") or ""
+                    )
 
             else:
-                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                if sort_by in [
+                    "date_added",
+                    "date_removed",
+                    "last_active",
+                ]:
                     sorted_data = sorted(
                         student_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date, reverse=True)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                        reverse=True,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         student_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0, reverse=True)
+                        if x.get(sort_by) is not None
+                        else 0,
+                        reverse=True,
+                    )
                 else:
                     sorted_data = sorted(
                         student_data,
-                        key=lambda x: x.get(sort_by, '') or '', reverse=True)
+                        key=lambda x: x.get(sort_by, "") or "",
+                        reverse=True,
+                    )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
             return paginator.get_paginated_response(paginated_data)
 
-        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(detail=True, methods=["GET"])
     def section_student_group(self, request, pk=None, *args, **kwargs):

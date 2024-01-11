@@ -1,13 +1,12 @@
 from courses.api_views import (
     AnswerViewSet,
+    BaseLessonBlockViewSet,
     CourseViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
-    HomeworkVideoViewSet,
     HomeworkViewSet,
     LessonAvailabilityViewSet,
     LessonEnrollmentViewSet,
-    LessonVideoViewSet,
     LessonViewSet,
     QuestionViewSet,
     SectionViewSet,
@@ -17,6 +16,7 @@ from courses.api_views import (
     StudentsGroupWithoutTeacherViewSet,
     StudentsTableInfoViewSet,
     TestViewSet,
+    UploadVideoViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
 )
@@ -26,6 +26,7 @@ router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
+router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
 router.register("students_group", StudentsGroupViewSet, basename="students_group")
 router.register(
     "students_group_no_teacher",
@@ -62,5 +63,4 @@ urlpatterns = router.urls
 
 router_video = routers.DefaultRouter()
 
-router_video.register("lesson_video", LessonVideoViewSet, basename="lesson_video")
-router_video.register("homework_video", HomeworkVideoViewSet, basename="homework_video")
+router_video.register("block_video", UploadVideoViewSet, basename="block_video")

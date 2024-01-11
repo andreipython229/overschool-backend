@@ -1,9 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
-from courses.serializers import BlockDetailSerializer, BlockUpdateSerializer
+from courses.models import BaseLesson, BaseLessonBlock
+from courses.serializers import (
+    BlockDetailSerializer,
+    BlockUpdateSerializer,
+    LessonBlockSerializer,
+)
 from django.core.exceptions import PermissionDenied
 from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -11,15 +16,12 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class UploadVideoViewSet(
-    LoggingMixin,
-    WithHeadersViewSet,
-    SchoolMixin,
-    viewsets.ModelViewSet,
+class BaseLessonBlockViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
-    serializer_class = BlockUpdateSerializer
+    queryset = BaseLessonBlock.objects.all()
+    http_method_names = ["post", "delete", "patch"]
     permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["patch"]
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -49,6 +51,46 @@ class UploadVideoViewSet(
             )
 
         return BaseLessonBlock.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "perform_update":
+            print(self.request.data)
+            return BlockUpdateSerializer
+        else:
+            return LessonBlockSerializer
+
+    def create(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        base_lesson = self.request.data.get("base_lesson")
+        if base_lesson is not None:
+            base_lessons = BaseLesson.objects.filter(
+                section__course__school__name=school_name
+            )
+            try:
+                base_lessons.get(pk=base_lesson)
+            except base_lesson.model.DoesNotExist:
+                raise NotFound(
+                    "Указанный базовый урок не относится ни к одному курсу этой школы."
+                )
+
+        serializer = LessonBlockSerializer(data={**request.data})
+        serializer.is_valid(raise_exception=True)
+        block = serializer.save()
+
+        if request.FILES.get("video"):
+            base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
+            video = s3.upload_large_file(request.FILES["video"], base_lesson_obj)
+            block.video = video
+            block.save()
+        if request.FILES.get("picture"):
+            base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
+            picture = s3.upload_large_file(request.FILES["picture"], base_lesson_obj)
+            block.picture = picture
+            block.save()
+
+        serializer = LessonBlockSerializer(block)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
 
@@ -91,3 +133,15 @@ class UploadVideoViewSet(
         serializer = BlockDetailSerializer(instance)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance.video:
+            s3.delete_file(str(instance.video))
+        if instance.picture:
+            s3.delete_file(str(instance.picture))
+
+        self.perform_destroy(instance)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

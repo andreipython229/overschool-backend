@@ -34,6 +34,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -52,7 +53,7 @@ INSTALLED_APPS = [
     "djoser",
     "corsheaders",
     "chats.apps.ChatsConfig",
-    "channels",
+    # "channels",
     "sentry_sdk",
     "chatgpt.apps.ChatGPTConfig",
 ]
