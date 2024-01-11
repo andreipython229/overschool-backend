@@ -5,7 +5,8 @@ from courses.serializers import (
     LessonDetailSerializer,
     LessonSerializer,
     LessonUpdateSerializer,
-    LessonEnrollmentSerializer
+    LessonEnrollmentSerializer,
+    LessonAvailabilitySerializer,
 )
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -23,6 +24,7 @@ s3 = UploadToS3()
 
 
 class LessonAvailabilityViewSet(WithHeadersViewSet, APIView):
+    serializer_class = LessonAvailabilitySerializer
     queryset = LessonAvailability.objects.all()
 
     def get_permissions(self, *args, **kwargs):
@@ -80,6 +82,7 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, APIView):
 
 class LessonEnrollmentViewSet(WithHeadersViewSet, APIView):
     queryset = LessonEnrollment.objects.all()
+    serializer_class = LessonEnrollmentSerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
