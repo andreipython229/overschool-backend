@@ -32,6 +32,7 @@ s3 = UploadToS3()
 
 class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonAvailability.objects.all()
+    serializer_class = LessonAvailabilitySerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -99,6 +100,7 @@ class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, A
 
 class LessonEnrollmentViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonEnrollment.objects.all()
+    serializer_class = LessonEnrollmentSerializer
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -257,7 +259,6 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
