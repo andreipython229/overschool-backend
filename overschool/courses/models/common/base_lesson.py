@@ -25,28 +25,6 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Название урока",
         default="Имя не придумано",
     )
-
-    description = RichTextField(
-        verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
-    )
-    code = RichTextField(
-        verbose_name="Код", help_text="Примеры кода к уроку", blank=True, null=True
-    )
-    video = models.FileField(
-        verbose_name="Видео",
-        help_text="Видеофайл размером до 2 ГБ",
-        max_length=300,
-        upload_to=TruncateFileName(300),
-        blank=True,
-        null=True,
-    )
-
-    url = models.URLField(
-        verbose_name="URL видео",
-        help_text="Ссылка на видео из YouTube",
-        blank=True,
-        null=True,
-    )
     points = models.PositiveIntegerField(
         verbose_name="Баллы за прохождение",
         help_text="Баллы за прохождение",
@@ -149,6 +127,65 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
                 fields=["section", "order"], name="unique_section_lesson_order"
             ),
         ]
+
+
+class BlockType(models.TextChoices):
+    VIDEO = "video", "video"
+    PICTURE = "picture", "picture"
+    DESCRIPTION = "description", "description"
+    CODE = "code", "code"
+
+
+class BaseLessonBlock(OrderMixin, models.Model):
+    """Блоки урока"""
+
+    base_lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, related_name="blocks"
+    )
+    video = models.FileField(
+        verbose_name="Видео",
+        help_text="Видеофайл размером до 2 ГБ",
+        max_length=300,
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    url = models.URLField(
+        verbose_name="URL видео",
+        help_text="Ссылка на видео из YouTube",
+        blank=True,
+        null=True,
+    )
+    description = RichTextField(
+        verbose_name="Описание",
+        help_text="Описание к уроку",
+        blank=True,
+        null=True,
+    )
+    code = RichTextField(
+        verbose_name="Код",
+        help_text="Примеры кода к уроку",
+        blank=True,
+        null=True,
+    )
+    picture = models.ImageField(
+        verbose_name="Картинка",
+        help_text="Картинка к уроку",
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    type = models.CharField(
+        max_length=15,
+        choices=BlockType.choices,
+        default=BlockType.DESCRIPTION,
+        verbose_name="Тип блока",
+        help_text="Тип блока",
+    )
+
+    class Meta:
+        verbose_name = "Блок урока"
+        verbose_name_plural = "Блоки уроков"
 
 
 class LessonAvailability(models.Model):
