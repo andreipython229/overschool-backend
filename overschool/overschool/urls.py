@@ -28,6 +28,7 @@ from users.api_views import (
     TariffSchoolOwner,
     TokenValidateView,
     UserSchoolsView,
+    GetCertificateView
 )
 
 from .main_router import router, school_router, user_router, videos_router
@@ -118,6 +119,7 @@ urlpatterns = [
         LessonUpdateViewSet.as_view(actions={"post": "shuffle_lessons"}),
         name="lesson_order",
     ),
+    path("api/certificate/", GetCertificateView.as_view(), name="get_certificate"),
     path("api/chats/", include("chats.urls")),
     path("api/chatgpt/", include("chatgpt.urls")),
     path("api/", include(user_router.urls)),

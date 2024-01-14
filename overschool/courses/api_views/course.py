@@ -159,7 +159,7 @@ class CourseViewSet(
             course.save()
             serializer = CourseGetSerializer(course)
 
-        # Создайте чат с типом "COURSE" и именем, связанным с курсом
+        #Чат с типом "COURSE" и именем, связанным с курсом
         chat_name = f"Чат курса '{course.name}'"
         chat = Chat.objects.create(name=chat_name, type="COURSE")
 
