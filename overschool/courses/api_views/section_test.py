@@ -223,7 +223,6 @@ class TestViewSet(
             "type": "test",
             "order": test_obj["order"],
             "name": test_obj["name"],
-            "description": test_obj["description"],
             "random_questions": test_obj["random_questions"],
             "random_answers": test_obj["random_answers"],
             "points": test_obj["points"],
