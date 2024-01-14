@@ -1,4 +1,5 @@
 from .answer import AnswerGetSerializer, AnswerListGetSerializer, AnswerSerializer
+from .block import BlockDetailSerializer, BlockUpdateSerializer, LessonBlockSerializer
 from .course import (
     CourseGetSerializer,
     CourseSerializer,
@@ -6,22 +7,26 @@ from .course import (
     CourseWithGroupsSerializer,
 )
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
-from .lesson import LessonDetailSerializer, LessonSerializer, LessonUpdateSerializer,\
-    LessonAvailabilitySerializer, LessonEnrollmentSerializer
-from .lesson_components_order import LessonComponentsOrderSerializer
+from .lesson import (
+    LessonAvailabilitySerializer,
+    LessonDetailSerializer,
+    LessonEnrollmentSerializer,
+    LessonSerializer,
+    LessonUpdateSerializer,
+)
 from .question import (
     QuestionGetSerializer,
     QuestionListGetSerializer,
     QuestionSerializer,
 )
-from .section import SectionSerializer, SectionRetrieveSerializer
+from .section import SectionRetrieveSerializer, SectionSerializer
 from .section_test import TestSerializer
 from .students_group import (
     GroupsInCourseSerializer,
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
     StudentsGroupSerializer,
-    StudentsGroupWTSerializer
+    StudentsGroupWTSerializer,
 )
 from .students_group_settings import StudentsGroupSettingsSerializer
 from .students_table_info import (

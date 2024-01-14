@@ -488,7 +488,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "date_removed": item["date_removed"],
                     "is_deleted": False,
                     "progress": get_student_progress(
-                        item["students__id"], item["course_id"]
+                        item["students__id"],
+                        item["course_id"],
+                        item["group_id"],
                     ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,

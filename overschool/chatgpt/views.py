@@ -20,13 +20,31 @@ class SendMessageToGPT(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    @send_message_schema
+    @method_decorator(send_message_schema)
     def post(self, request):
         try:
             data = json.loads(request.body)
             user_message = data.get('message', '')
             user_id = int(data.get('user_id', ''))
-            response = self.run_provider(user_message)
+            messages = []
+
+            past_messages = list(LastTenMessages.get(self, request, user_id))
+
+            combined_data_str = past_messages[0].decode("utf-8")
+            combined_data_list = json.loads(combined_data_str)
+
+            for user_data, assistant_data in zip(combined_data_list[0][:5], combined_data_list[1][:5]):
+                sender_question = user_data.get("sender_question", "")
+                if sender_question:
+                    messages.append({"role": "user", "content": sender_question})
+
+                answer = assistant_data.get('answer', '')
+                if answer:
+                    messages.append({"role": "assistant", "content": answer})
+
+            messages.append({"role": "user", "content": user_message})
+
+            response = self.run_provider(messages)
             UserMessage.objects.create(
                 sender_id=user_id,
                 sender_question=user_message,
@@ -39,14 +57,11 @@ class SendMessageToGPT(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    def run_provider(self, message):
+    def run_provider(self, messages):
         try:
             response = g4f.ChatCompletion.create(
                 model=g4f.models.gpt_35_turbo_0613,
-                messages=[{
-                    "role": "user",
-                    "content": message
-                }],
+                messages=messages,
                 provider=g4f.Provider.You,
                 stream=True
             )
@@ -57,7 +72,7 @@ class SendMessageToGPT(View):
 
 
 class LastTenMessages(View):
-    @latest_messages_schema
+    @method_decorator(latest_messages_schema)
     def get(self, request, user_id):
         user = int(user_id)
         try:
