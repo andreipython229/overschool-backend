@@ -7,4 +7,4 @@ from .register import PasswordChangeView, SendPasswordView, SignupView
 from .register_school_owner import SignupSchoolOwnerView
 from .tariff_school_owner import TariffSchoolOwner
 from .user_schools import UserSchoolsView
-from .users import AllUsersViewSet, UserViewSet
+from .users import AllUsersViewSet, UserViewSet, GetCertificateView

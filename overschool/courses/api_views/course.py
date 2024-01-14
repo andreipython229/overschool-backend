@@ -24,7 +24,8 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum, Q
+from courses.services import get_student_progress
+from django.db.models import Avg, Count, F, Max, OuterRef, Q, Subquery, Sum
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
@@ -38,8 +39,6 @@ from users.models import Profile
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
-from courses.services import get_student_progress
-from courses.paginators import StudentsPagination
 
 s3 = UploadToS3()
 
@@ -159,7 +158,7 @@ class CourseViewSet(
             course.save()
             serializer = CourseGetSerializer(course)
 
-        # Создайте чат с типом "COURSE" и именем, связанным с курсом
+        #Чат с типом "COURSE" и именем, связанным с курсом
         chat_name = f"Чат курса '{course.name}'"
         chat = Chat.objects.create(name=chat_name, type="COURSE")
 
@@ -245,10 +244,10 @@ class CourseViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             queryset = queryset.filter(
-                Q(students__first_name__icontains=search_value) |
-                Q(students__last_name__icontains=search_value) |
-                Q(students__email__icontains=search_value) |
-                Q(name__icontains=search_value)
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
             )
 
         # Фильтры
@@ -397,54 +396,86 @@ class CourseViewSet(
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
         if sort_by in [
-            'first_name',
-            'last_name',
-            'email',
-            'group_name',
-            'course_name',
-            'date_added',
-            'date_removed',
-            'progress',
-            'average_mark',
-            'mark_sum',
-            'last_active',
+            "first_name",
+            "last_name",
+            "email",
+            "group_name",
+            "course_name",
+            "date_added",
+            "date_removed",
+            "progress",
+            "average_mark",
+            "mark_sum",
+            "last_active",
         ]:
             if sort_order == "asc":
-                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                if sort_by in [
+                    "date_added",
+                    "date_removed",
+                    "last_active",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                    )
                 else:
-                    sorted_data = sorted(serialized_data, key=lambda x: x.get(sort_by, '') or '')
+                    sorted_data = sorted(
+                        serialized_data, key=lambda x: x.get(sort_by, "") or ""
+                    )
 
             else:
-                if sort_by in ['date_added', 'date_removed', 'last_active',]:
+                if sort_by in [
+                    "date_added",
+                    "date_removed",
+                    "last_active",
+                ]:
                     print("TEST")
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date, reverse=True)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum', ]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                        reverse=True,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0, reverse=True)
+                        if x.get(sort_by) is not None
+                        else 0,
+                        reverse=True,
+                    )
                 else:
                     sorted_data = sorted(
                         serialized_data,
-                        key=lambda x: x.get(sort_by, '') or '', reverse=True)
+                        key=lambda x: x.get(sort_by, "") or "",
+                        reverse=True,
+                    )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
             return paginator.get_paginated_response(paginated_data)
 
-        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
@@ -470,7 +501,8 @@ class CourseViewSet(
         queryset = Course.objects.filter(course_id=course.pk)
 
         user = self.request.user
-        self.kwargs.get("school_name")
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
 
         data = queryset.values(
             course=F("course_id"),
@@ -485,12 +517,12 @@ class CourseViewSet(
         )
 
         group = None
-        if user.groups.filter(group__name="Student").exists():
+        if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя 1.")
-        elif user.groups.filter(group__name="Teacher").exists():
+        elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
                     teacher_id=user.pk, course_id_id=course.pk
@@ -516,7 +548,7 @@ class CourseViewSet(
                     "lessons": [],
                 }
             )
-            if user.groups.filter(group__name="Admin").exists():
+            if user.groups.filter(group__name="Admin", school=school).exists():
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
@@ -524,12 +556,13 @@ class CourseViewSet(
                 group__name__in=[
                     "Student",
                     "Teacher",
-                ]
+                ],
+                school=school,
             ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
-                if user.groups.filter(group__name="Student").exists():
+                if user.groups.filter(group__name="Student", school=school).exists():
                     a = a.exclude(lessonavailability__student=user)
                     b = b.exclude(lessonavailability__student=user)
                     c = c.exclude(lessonavailability__student=user)
