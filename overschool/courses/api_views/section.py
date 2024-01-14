@@ -175,7 +175,8 @@ class SectionViewSet(
         section = queryset.filter(pk=pk)
 
         user = self.request.user
-        self.kwargs.get("school_name")
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
 
         data = section.values(
             section_name=F("name"),
@@ -187,14 +188,14 @@ class SectionViewSet(
         )
 
         group = None
-        if user.groups.filter(group__name="Student").exists():
+        if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
                     students=user, course_id_id__sections=pk
                 )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
-        elif user.groups.filter(group__name="Teacher").exists():
+        elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
                     teacher_id=user.pk, course_id_id__sections=pk
@@ -212,7 +213,7 @@ class SectionViewSet(
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
-            if user.groups.filter(group__name="Admin").exists():
+            if user.groups.filter(group__name="Admin", school=school).exists():
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
@@ -220,11 +221,17 @@ class SectionViewSet(
                 group__name__in=[
                     "Student",
                     "Teacher",
-                ]
+                ],
+                school=school,
             ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
+                if user.groups.filter(group__name="Student", school=school).exists():
+                    a = a.exclude(lessonavailability__student=user)
+                    b = b.exclude(lessonavailability__student=user)
+                    c = c.exclude(lessonavailability__student=user)
+
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
                     dict_obj = model_to_dict(obj)
