@@ -115,3 +115,8 @@ class BlockUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Можно указать только одно поле")
 
         return data
+
+
+class LessonOrderSerializer(serializers.Serializer):
+    block_id = serializers.IntegerField()
+    order = serializers.IntegerField()

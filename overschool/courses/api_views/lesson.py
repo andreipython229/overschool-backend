@@ -325,7 +325,9 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
+class LessonUpdateViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
+):
     serializer_class = None
 
     @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)

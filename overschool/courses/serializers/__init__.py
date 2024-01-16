@@ -1,5 +1,10 @@
 from .answer import AnswerGetSerializer, AnswerListGetSerializer, AnswerSerializer
-from .block import BlockDetailSerializer, BlockUpdateSerializer, LessonBlockSerializer
+from .block import (
+    BlockDetailSerializer,
+    BlockUpdateSerializer,
+    LessonBlockSerializer,
+    LessonOrderSerializer,
+)
 from .course import (
     CourseGetSerializer,
     CourseSerializer,
