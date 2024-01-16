@@ -74,15 +74,15 @@ class BlockDetailSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if data.get("code") in None and instance.type != "code":
+        if data.get("code") is None and instance.type != "code":
             del data["code"]
-        if data.get("url") in None and instance.type != "video":
+        if data.get("url") is None and instance.type != "video":
             del data["url"]
-        if data.get("description") in None and instance.type != "description":
+        if data.get("description") is None and instance.type != "description":
             del data["description"]
-        if data.get("picture") in None and instance.type != "picture":
+        if data.get("picture") is None and instance.type != "picture":
             del data["picture"]
-        if data.get("video") in None and instance.type != "video":
+        if data.get("video") is None and instance.type != "video":
             del data["video"]
         return data
 
