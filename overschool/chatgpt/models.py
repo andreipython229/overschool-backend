@@ -3,6 +3,10 @@ from users.models.user import User
 
 
 class OverAiChat(models.Model):
+    chat_name = models.TextField(
+        verbose_name="Имя чата",
+        default="Новый чат"
+    )
     user_id = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
