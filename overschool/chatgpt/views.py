@@ -26,9 +26,11 @@ class LastTenChats(View):
         try:
             last_ten_chats = OverAiChat.objects.filter(user_id=user_id).annotate(max_id=Max('id')).order_by('-max_id')[:10]
 
-            chat_ids = [chat.id for chat in last_ten_chats]
+            chat_data = {
+                chat.id: chat.chat_name for chat in last_ten_chats
+            }
 
-            return JsonResponse(chat_ids, safe=False)
+            return JsonResponse(chat_data, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -65,6 +67,10 @@ class SendMessageToGPT(View):
 
             response = self.run_provider(messages)
             overai_chat = OverAiChat.objects.get(id=overai_chat_id)
+
+            if not UserMessage.objects.filter(overai_chat_id=overai_chat_id).exists():
+                overai_chat.chat_name = user_message
+                overai_chat.save()
 
             UserMessage.objects.create(
                 sender_id=user_id,
