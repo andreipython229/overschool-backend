@@ -388,6 +388,10 @@ class CourseViewSet(
                     ),
                     "all_active_students": all_active_students,
                     "filtered_active_students": filtered_active_students,
+                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                        chat_creator=user,
+                        reciever=item["students__id"],
+                        type="PERSONAL"),
                 }
             )
 
@@ -433,7 +437,7 @@ class CourseViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        serialized_data, key=lambda x: x.get(sort_by, "") or ""
+                        serialized_data, key=lambda x: str(x.get(sort_by, "") or "").lower()
                     )
 
             else:
@@ -465,9 +469,7 @@ class CourseViewSet(
                 else:
                     sorted_data = sorted(
                         serialized_data,
-                        key=lambda x: x.get(sort_by, "") or "",
-                        reverse=True,
-                    )
+                        key=lambda x: str(x.get(sort_by, '') or '').lower(), reverse=True)
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)

@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 
 from .constants import CustomResponses
 from .models import Chat, ChatLink, Message, UserChat
@@ -57,6 +58,18 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name__in=["Admin","Teacher", "Student",]).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
         operation_description="Get all chats for user",
@@ -77,21 +90,34 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     @swagger_auto_schema(
         responses=ChatSchemas.chat_uuid_schema,
         manual_parameters=[UserParams.user_id],
-        operation_description="Get or create chat with user",
-        operation_summary="Get or create chat with user",
+        operation_description="Get or create PERSONAL chat with user",
+        operation_summary="Get or create PERSONAL chat with user",
         tags=["chats"],
     )
     def post(self, request, *args, **kwargs):
         chat_creator = self.request.user
+        role_creator = request.data.get("role_name")
+        role1 = ""
+        role2 = ""
+        if role_creator == "Admin":
+            role1 ="Администратор"
+            role2 = "Студент"
+        elif role_creator == "Teacher":
+            role1 = "Ментор"
+            role2 = "Студент"
+        elif role_creator == "Student":
+            role1 = "Ментор"
+            role2 = "Студент"
 
         chat_reciever_id = request.data.get("user_id")
+
         chat_reciever = is_user_exist(chat_reciever_id)
         if chat_reciever is False:
             return Response(
                 {"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
+        existed_chat_id = UserChat.get_existed_chat_id_by_type(chat_creator, chat_reciever, type="PERSONAL")
         if existed_chat_id:
             existed_chat = Chat.objects.get(id=existed_chat_id)
             user_chat_serializer = ChatSerializer(
@@ -99,11 +125,21 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             )
             return Response(user_chat_serializer.data, status=status.HTTP_200_OK)
         else:
-            chat = Chat.objects.create()
-            UserChat.objects.create(user=chat_creator, chat=chat)
-            UserChat.objects.create(user=chat_reciever, chat=chat)
+            chat = Chat.objects.create(
+                type="PERSONAL",
+                name=f'{role1}:'
+                     f'{chat_creator.email if role_creator != "Student" else chat_reciever.email}:'
+                     f'{role2}:'
+                     f'{chat_reciever.email if role_creator != "Student" else chat_creator.email}'
+            )
+            user_chats = [
+                UserChat(user=chat_creator, chat=chat),
+                UserChat(user=chat_reciever, chat=chat),
+            ]
 
-            existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
+            UserChat.objects.bulk_create(user_chats)
+
+            existed_chat_id = UserChat.get_existed_chat_id_by_type(chat_creator, chat_reciever, "PERSONAL")
             if existed_chat_id:
                 existed_chat = Chat.objects.get(id=existed_chat_id)
                 user_chat_serializer = ChatSerializer(

@@ -9,6 +9,12 @@ class UserParams:
         type=openapi.TYPE_INTEGER,
         required=True
     )
+    name = openapi.Parameter(
+        "role_name",
+        openapi.IN_FORM,
+        description="Role name",
+        type=openapi.TYPE_STRING
+    )
 
 
 class ChatParams:
