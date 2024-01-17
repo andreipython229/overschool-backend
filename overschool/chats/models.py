@@ -15,6 +15,7 @@ class Chat(models.Model):
         ("GROUP", "Group"),
         ("PERSONAL", "Personal"),
         ("COURSE", "Course"),
+        ("ADMIN", "Admin"),
     )
 
     type = models.CharField(
@@ -64,6 +65,19 @@ class UserChat(models.Model):
     @classmethod
     def get_existed_chat_id(cls, chat_creator, reciever):
         chats = cls.objects.filter(Q(user=chat_creator) | Q(user=reciever))
+        chats_list = [str(chat.chat) for chat in chats]
+        seen_chats = set()
+        existed_chat = [
+            chat for chat in chats_list if chat in seen_chats or seen_chats.add(chat)
+        ]
+        if existed_chat:
+            return existed_chat[0]
+        else:
+            return False
+
+    @classmethod
+    def get_existed_chat_id_by_type(cls, chat_creator, reciever, type):
+        chats = cls.objects.filter(Q(user=chat_creator) | Q(user=reciever), chat__type=type)
         chats_list = [str(chat.chat) for chat in chats]
         seen_chats = set()
         existed_chat = [

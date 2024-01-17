@@ -13,10 +13,14 @@ from users.models import User
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 
+from channels.layers import get_channel_layer
+channel_layer = get_channel_layer()
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     connected_users = []
     message_history = {}
+    connected_users_by_group = {}
 
     @database_sync_to_async
     def is_chat_exist(self, chat_uuid):
@@ -33,11 +37,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, chat, user, message):
         with transaction.atomic():
-            message = Message.objects.create(chat=chat, sender=user, content=message)
-            # Обновляем количество непрочитанных сообщений для участников чата
-            UserChat.objects.filter(chat=chat).exclude(user=user).update(
+            UserChat.objects.filter(chat=chat,).exclude(
+                user__in=self.connected_users_by_group.get(self.room_group_name, [])
+            ).update(
                 unread_messages_count=F("unread_messages_count") + 1
             )
+            message = Message.objects.create(chat=chat, sender=user, content=message)
+
         return message.id
 
     @database_sync_to_async
@@ -100,6 +106,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
+        # Обновляем словарь подключенных пользователей
+        if self.room_group_name not in self.connected_users_by_group:
+            self.connected_users_by_group[self.room_group_name] = []
+        self.connected_users_by_group[self.room_group_name].append(self.user)
+        # print("CONNECTED USERS BY GROUP: ", self.connected_users_by_group)
+
+        # Сбрасываем счетчик непрочитанных сообщений для данного пользователя и чата
+        try:
+            user_chat = await database_sync_to_async(UserChat.objects.get)(
+                user=self.user,
+                chat=self.chat
+            )
+            if user_chat.unread_messages_count > 0:
+                user_chat.unread_messages_count = 0
+                await database_sync_to_async(user_chat.save)()
+        except:
+            raise DenyConnection({"error": "user_chat error"})
+
         await self.accept()
 
     async def receive(self, text_data):
@@ -159,3 +183,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.set_room_group_name()
         self.connected_users.remove(self.user)
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+        # Обновляем словарь подключенных пользователей
+        if self.room_group_name in self.connected_users_by_group:
+            self.connected_users_by_group[self.room_group_name].remove(self.user)
+            if len(self.connected_users_by_group[self.room_group_name]) == 0:
+                del self.connected_users_by_group[self.room_group_name]
+            # print("CONNECTED USERS BY GROUP: ", self.connected_users_by_group)
