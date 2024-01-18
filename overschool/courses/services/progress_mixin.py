@@ -16,7 +16,11 @@ class LessonProgressMixin:
         try:
             UserProgressLogs.objects.get(user=user, lesson=instance)
         except UserProgressLogs.DoesNotExist:
-            UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
+
+            if isinstance(instance, Lesson):
+                UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True, completed=True)
+            else:
+                UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 
     def check_lesson_progress(self, instance, user, baselesson):
         if user.groups.filter(
@@ -44,13 +48,18 @@ class LessonProgressMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
         if students_group.group_settings.strict_task_order:
+            print("students_group.group_settings.strict_task_order")
             try:
                 # Если есть запись в логе - то отдаём урок
                 UserProgressLogs.objects.get(user=user, lesson=instance)
             except UserProgressLogs.DoesNotExist:
                 course_lessons = BaseLesson.objects.filter(
                     section__course_id=baselesson.section.course, active=True
+                ).exclude(
+                    lessonavailability__student=user,
                 ).order_by("section__order", "order")
+
+                print("TEST LESSONS = ", course_lessons)
                 # Если урок стоит первым в курсе - то отдаём урок
                 if baselesson == course_lessons.first():
                     self.create_log(user=user, instance=instance)
@@ -58,7 +67,10 @@ class LessonProgressMixin:
                 # Проверяем является ли урок минимальным в секции
                 is_minimum_order = not BaseLesson.objects.filter(
                     section=instance.section, order__lt=instance.order, active=True
+                ).exclude(
+                    lessonavailability__student=user,
                 ).exists()
+
                 if is_minimum_order:
                     # берём последний урок из предыдущей секции
                     previous_section = (
@@ -92,6 +104,8 @@ class LessonProgressMixin:
                 previous_lesson = (
                     BaseLesson.objects.filter(
                         section=instance.section, order__lt=instance.order, active=True
+                    ).exclude(
+                        lessonavailability__student=user,
                     )
                     .order_by("-order")
                     .first()
