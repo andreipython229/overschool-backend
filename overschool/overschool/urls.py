@@ -3,7 +3,7 @@ from common_services.api_views import (
     SubscribeClientView,
     UnsubscribeClientView,
 )
-from courses.api_views import LessonUpdateViewSet
+from courses.api_views import BlockUpdateViewSet, LessonUpdateViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -18,6 +18,7 @@ from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
     ForgotPasswordView,
+    GetCertificateView,
     LoginView,
     LogoutView,
     PasswordChangeView,
@@ -118,6 +119,12 @@ urlpatterns = [
         LessonUpdateViewSet.as_view(actions={"post": "shuffle_lessons"}),
         name="lesson_order",
     ),
+    path(
+        "api/<str:school_name>/block_order/",
+        BlockUpdateViewSet.as_view(actions={"post": "shuffle_blocks"}),
+        name="block_order",
+    ),
+    path("api/certificate/", GetCertificateView.as_view(), name="get_certificate"),
     path("api/chats/", include("chats.urls")),
     path("api/chatgpt/", include("chatgpt.urls")),
     path("api/", include(user_router.urls)),

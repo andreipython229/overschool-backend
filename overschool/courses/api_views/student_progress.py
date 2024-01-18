@@ -239,8 +239,6 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 section_id__course_id=course_id, active=True,
             ).exclude(
                 lessonavailability__student=student,
-            ).exclude(
-                lessonenrollment__student_group=student_group.pk,
             )
 
             lesson_viewed_ids = UserProgressLogs.objects.filter(

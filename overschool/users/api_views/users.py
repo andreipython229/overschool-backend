@@ -1,10 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import BaseLesson, Course, StudentsGroup, UserProgressLogs
+from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from schools.models import School
 from users.models import User
 from users.permissions import OwnerUserPermissions
@@ -123,3 +126,56 @@ class AllUsersViewSet(viewsets.GenericViewSet):
             return Response(
                 {"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN
             )
+
+
+class GetCertificateView(APIView):
+    serializer_class = None
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user = get_object_or_404(User, id=self.request.data.get("user_id"))
+        try:
+            course_id = request.data.get("course_id")
+            group = StudentsGroup.objects.get(
+                students=user, course_id=course_id, certificate=True
+            )
+        except StudentsGroup.DoesNotExist:
+            return Response(
+                {"error": "У вас нет доступа к сертификату"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except Course.DoesNotExist:
+            return Response(
+                {"error": "Курс не найден"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        course = group.course_id
+        base_lessons = BaseLesson.objects.filter(section__course=course)
+
+        for base_lesson in base_lessons:
+            try:
+                progress = UserProgressLogs.objects.get(user=user, lesson=base_lesson)
+                if not progress.completed:
+                    return Response(
+                        {"error": f"Необходимо пройти урок {base_lesson.name}."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except UserProgressLogs.DoesNotExist:
+                return Response(
+                    {"error": f"Необходимо пройти урок {base_lesson.name}."},
+                    status=status.HTTP_400_BAD_REQUEST)
+            certificate_data = {
+                "user_full_name": f"{user.last_name} {user.first_name} {user.patronymic}",
+                "course_name": course.name,
+                "course_description": course.description,
+                "lessons": [],
+            }
+
+            for base_lesson in base_lessons:
+                lesson_data = {
+                    "lesson_name": base_lesson.name,
+                    "description": base_lesson.description,
+                }
+                certificate_data["lessons"].append(lesson_data)
+
+            return Response(certificate_data, status=status.HTTP_200_OK)
