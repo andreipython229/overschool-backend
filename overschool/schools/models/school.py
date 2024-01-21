@@ -1,8 +1,12 @@
+from datetime import date
+
 from common_services.mixins import OrderMixin, TimeStampMixin
 # from ...courses.models import StudentsGroup, BaseLesson, UserProgressLogs
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 from schools.managers import SchoolManager
 
@@ -169,6 +173,15 @@ class SchoolStatistics(models.Model):
         completed_lessons = user_progress_logs.filter(completed=True).values('lesson').distinct()
 
         return completed_lessons.count()
+
+    @receiver(post_save, sender=School)
+    def create_school_statistics(self, instance, created, **kwargs):
+        if created:
+            SchoolStatistics.objects.create(
+                school=instance,
+                start_date=date.today(),
+                end_date=date.today()
+            )
 
     def __str__(self):
         return f"Статистика для школы {self.school.name}"
