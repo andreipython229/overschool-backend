@@ -540,8 +540,14 @@ class StudentsGroupWithoutTeacherViewSet(
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
 
-        serializer.save(group_settings=group_settings, type="WITHOUT_TEACHER")
-        student_group = serializer.save()
+        # Создаем чат с названием "Чат с [имя группы]"
+        groupname = serializer.validated_data.get("name", "")
+        chat_name = f"{groupname}"
+        chat = Chat.objects.create(name=chat_name, type="GROUP")
+
+        serializer.save(group_settings=group_settings, type="WITH_TEACHER")
+        student_group = serializer.save(chat=chat)
+        UserChat.objects.create(user=self.request.user, chat=chat)
 
         return student_group
 
@@ -549,6 +555,7 @@ class StudentsGroupWithoutTeacherViewSet(
         course = serializer.validated_data["course_id"]
         school = self.get_school()
         students = serializer.validated_data.get("students", [])
+        teacher = serializer.validated_data.get("teacher_id")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
@@ -566,4 +573,18 @@ class StudentsGroupWithoutTeacherViewSet(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                     )
 
+        chat = current_group.chat
+        previous_teacher = current_group.teacher_id
+
+        if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
+            UserChat.objects.create(user=teacher, chat=chat)
+        if teacher and teacher != previous_teacher:
+            previous_chat = UserChat.objects.filter(
+                user=previous_teacher, chat=chat
+            ).first()
+            if previous_chat:
+                previous_chat.delete()
+        for student in students:
+            if not UserChat.objects.filter(user=student, chat=chat).exists():
+                UserChat.objects.create(user=student, chat=chat)
         serializer.save()
