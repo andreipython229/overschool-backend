@@ -15,13 +15,13 @@ class UserChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id",
-            "username",
+            "avatar",
+            "email",
             "first_name",
             "last_name",
-            "email",
-            "phone_number",
-            "avatar",
+            "id",
+            "username",
+            # "phone_number",
         ]
 
     def get_avatar(self, obj):
@@ -36,17 +36,19 @@ class UserChatSerializer(serializers.ModelSerializer):
 class ChatSerializer(serializers.ModelSerializer):
     senders = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    unread = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = [
             "id",
-            "name",
-            "is_deleted",
             "created_at",
+            "is_deleted",
+            "name",
             "type",
-            "senders",
             "last_message",
+            "senders",
+            "unread",
         ]
         read_only_fields = ["is_deleted"]
 
@@ -67,6 +69,9 @@ class ChatSerializer(serializers.ModelSerializer):
             )
             return serializer.data
         return None
+
+    def get_unread(self, obj):
+        return 0
 
 
 class MessageSerializer(serializers.ModelSerializer):

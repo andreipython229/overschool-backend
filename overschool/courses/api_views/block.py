@@ -5,9 +5,12 @@ from courses.serializers import (
     BlockDetailSerializer,
     BlockUpdateSerializer,
     LessonBlockSerializer,
+    LessonOrderSerializer,
 )
 from django.core.exceptions import PermissionDenied
-from rest_framework import permissions, status, viewsets
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
@@ -145,3 +148,35 @@ class BaseLessonBlockViewSet(
         self.perform_destroy(instance)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BlockUpdateViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
+):
+    serializer_class = None
+
+    @swagger_auto_schema(method="post", request_body=LessonOrderSerializer)
+    @action(detail=False, methods=["POST"])
+    def shuffle_blocks(self, request, *args, **kwargs):
+
+        data = request.data
+
+        # сериализатор с полученными данными
+        serializer = LessonOrderSerializer(data=data, many=True)
+
+        if serializer.is_valid():
+            for block_data in serializer.validated_data:
+                block_id = block_data["block_id"]
+                new_order = block_data["order"]
+
+                # Обновите порядок блока в базе данных
+                try:
+                    block = BaseLessonBlock.objects.get(id=block_id)
+                    block.order = new_order
+                    block.save()
+                except Exception as e:
+                    return Response(str(e), status=500)
+            return Response("Блоки успешно обновлены", status=status.HTTP_200_OK)
+
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

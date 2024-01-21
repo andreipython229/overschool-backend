@@ -45,7 +45,7 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
 
         # Отправляем ссылку для сбора пароля
         subject = "Восстановление доступа к Overschool"
-        message = f"Password reset token: {token}"
+        message = f"Токен сброса пароля: {token}"
 
         send = self.sender_service.send_code_by_email(
             email=email, subject=subject, message=message

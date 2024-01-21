@@ -283,8 +283,18 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "progress": get_student_progress(student.id, group.course_id),
+                    "progress": get_student_progress(
+                        student.id, group.course_id, group
+                    ),
+                    "date_added": students_history.date_added
+                    if students_history
+                    else None,
+                    "progress": get_student_progress(student.id, group.course_id, group.group_id),
                     "date_added": students_history.date_added if students_history else None,
+                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                        chat_creator=user,
+                        reciever=student.id,
+                        type="PERSONAL"),
                 }
             )
 
@@ -330,7 +340,7 @@ class StudentsGroupViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        student_data, key=lambda x: x.get(sort_by, "") or ""
+                        student_data, key=lambda x: str(x.get(sort_by, "") or "").lower()
                     )
 
             else:
@@ -361,7 +371,7 @@ class StudentsGroupViewSet(
                 else:
                     sorted_data = sorted(
                         student_data,
-                        key=lambda x: x.get(sort_by, "") or "",
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
                         reverse=True,
                     )
 
