@@ -52,3 +52,12 @@ class BotResponse(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Идентификатор чата"
     )
+
+
+class AIProvider(models.Model):
+    name = models.CharField(max_length=70)
+    provider_type = models.CharField(max_length=40)
+
+    def __str__(self):
+        return self.name
+
