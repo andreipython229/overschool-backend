@@ -16,20 +16,16 @@ def get_student_progress(student, course_id, group_id):
         section_id__course_id=course_id, active=True,
     ).exclude(
         lessonavailability__student=student,
-    ).exclude(
-        lessonenrollment__student_group=group_id,
     )
 
     lesson_viewed_ids = UserProgressLogs.objects.filter(
         lesson_id__in=all_base_lesson.values('id'),
         user_id=student).values_list("lesson_id", flat=True)
-    print("Lessonviewd_ids", lesson_viewed_ids)
 
     lesson_completed_ids = UserProgressLogs.objects.filter(
         lesson_id__in=all_base_lesson.values('id'),
         completed=True,
         user_id=student).values_list("lesson_id", flat=True)
-    print("Lesson completed_ids", lesson_completed_ids)
 
     all_lessons = Lesson.objects.filter(
         section_id__course_id=course_id,
@@ -52,7 +48,6 @@ def get_student_progress(student, course_id, group_id):
     completed_lessons = all_lessons.filter(
         baselesson_ptr_id__in=lesson_viewed_ids
     )
-    print("lesson completed = ", completed_lessons)
 
     completed_homeworks = all_homeworks.filter(
         baselesson_ptr_id__in=lesson_completed_ids

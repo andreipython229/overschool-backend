@@ -7,15 +7,15 @@ from courses.models import (
     LessonEnrollment,
     StudentsGroup,
     StudentsHistory,
+    Course,
 )
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, serializers
 from rest_framework.parsers import MultiPartParser
-from schools.models import School, TariffPlan
+from schools.models import School, Tariff
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
@@ -40,8 +40,8 @@ class AccessDistributionView(
     def check_existing_role(self, user, school, group):
         return (
             UserGroup.objects.filter(user=user, school=school)
-            .exclude(group=group)
-            .exists()
+                .exclude(group=group)
+                .exists()
         )
 
     def check_user_existing_roles(self, user, school):
@@ -66,6 +66,30 @@ class AccessDistributionView(
         subject = "Добавление в группу"
         message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
         sender_service.send_code_by_email(email=email, subject=subject, message=message)
+
+    def validate_tariff_plan(self, number_of_courses, number_of_staff, students_per_month):
+        school = self.get_school()
+
+        try:
+            tariff_id = school.tariff_id
+            tariff = Tariff.objects.get(id=tariff_id)
+
+            existing_courses_count = Course.objects.filter(school=school).count()
+            existing_students_count = User.objects.filter(students_group_fk__course_id__school=school).count()
+            existing_staff_count = User.objects.filter(students_group_fk__course_id__school=school,
+                                                       is_staff=True).count()
+
+            if number_of_courses and tariff.number_of_courses is not None and existing_courses_count + number_of_courses > tariff.number_of_courses:
+                raise serializers.ValidationError({"number_of_courses": "Превышено допустимое количество курсов"})
+
+            if number_of_staff and tariff.number_of_staff is not None and existing_staff_count + number_of_staff > tariff.number_of_staff:
+                raise serializers.ValidationError({"number_of_staff": "Превышено допустимое количество сотрудников"})
+
+            if students_per_month and tariff.students_per_month is not None and existing_students_count + students_per_month > tariff.students_per_month:
+                raise serializers.ValidationError(
+                    {"students_per_month": "Превышено допустимое количество учеников в месяц"})
+        except Tariff.DoesNotExist:
+            raise serializers.ValidationError({"tariff": "Тариф для данной школы не найден"})
 
     def handle_teacher_group_fk(self, user, student_groups, courses_ids):
         for student_group in student_groups:
@@ -105,6 +129,9 @@ class AccessDistributionView(
         emails = serializer.validated_data.get("emails")
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
+        number_of_courses = serializer.validated_data.get("number_of_courses")
+        number_of_staff = serializer.validated_data.get("number_of_staff")
+        students_per_month = serializer.validated_data.get("students_per_month")
 
         school = self.get_school()
         group = Group.objects.get(name=role)
@@ -119,17 +146,15 @@ class AccessDistributionView(
 
         new_user_count = users.exclude(groups__school=school).count()
 
-        # if self.check_user_existing_roles(users, school):
-        #     return HttpResponse(
-        #         "Пользователь уже имеет другие роли в этой школе", status=400
-        #     )
+        # Проверка тарифного плана и количества ресурсов
+        self.validate_tariff_plan(number_of_courses, number_of_staff, students_per_month)
 
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
             if not UserGroup.objects.filter(
-                user=user, school=school, group=group
+                    user=user, school=school, group=group
             ).exists():
                 self.create_user_group(user, group, school)
 
@@ -167,7 +192,7 @@ class AccessDistributionView(
                 elif role == "Student":
                     self.handle_students_group_fk(user, student_groups)
 
-        return HttpResponse("Доступы предоставлены", status=201)
+                return HttpResponse("Доступы предоставлены", status=201)
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
@@ -211,8 +236,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                    role == "Teacher"
-                    and user.teacher_group_fk.filter(course_id__school=school).first()
+                        role == "Teacher"
+                        and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",

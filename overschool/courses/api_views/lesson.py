@@ -16,6 +16,7 @@ from courses.serializers import (
     LessonUpdateSerializer,
 )
 from courses.services import LessonProgressMixin
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
@@ -26,6 +27,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+User = get_user_model()
 
 s3 = UploadToS3()
 
@@ -78,6 +81,43 @@ class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, A
 
         return Response(
             {"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=["POST"])
+    def reset_to_group(self, request, *args, **kwargs):
+        group_id = request.data.get("group_id")
+        student_id = request.data.get("student_id")
+        if not group_id or not student_id:
+            return Response(
+                {"error": "group_id и student_id обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        student_group = StudentsGroup.objects.filter(pk=group_id).first()
+
+        if not student_group.students.filter(pk=student_id).exists():
+            return Response(
+                {"error": "Указанный студент не учится в указанной группе"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lessons = BaseLesson.objects.filter(section__course=student_group.course_id)
+        for lesson in lessons:
+            available = lesson.is_available_for_group(student_group)
+            existing_restriction = LessonAvailability.objects.filter(
+                student_id=student_id, lesson=lesson, available=False
+            )
+            if available and existing_restriction.exists():
+                existing_restriction.delete()
+            elif not available:
+                LessonAvailability.objects.update_or_create(
+                    student_id=student_id,
+                    lesson=lesson,
+                    defaults={"available": available},
+                )
+
+        return Response(
+            {"success": "Доступы студента к урокам обновлены до групповых."},
+            status=status.HTTP_200_OK,
         )
 
     def list(self, request, *args, **kwargs):

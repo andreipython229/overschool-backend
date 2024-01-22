@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from users.models.user import User
-from .models import UserMessage, BotResponse, OverAiChat
+from .models import UserMessage, BotResponse, OverAiChat, AIProvider
 from .serializers import UserMessageSerializer, BotResponseSerializer, OverAiChatSerializer
 from .schemas import send_message_schema, latest_messages_schema
 
@@ -88,16 +88,23 @@ class SendMessageToGPT(View):
 
     def run_provider(self, messages):
         try:
-            response = g4f.ChatCompletion.create(
-                model=g4f.models.gpt_35_turbo_0613,
-                messages=messages,
-                provider=g4f.Provider.You,
-                stream=True
-            )
-            response_str = ''.join(response)
-            return response_str
+            providers = AIProvider.objects.all()
+
+            for provider in providers:
+                try:
+                    response = g4f.ChatCompletion.create(
+                        model=g4f.models.gpt_35_turbo_0613,
+                        messages=messages,
+                        provider=getattr(g4f.Provider, provider.name)
+                    )
+                    response_str = ''.join(response)
+                    return response_str
+                except Exception as e:
+                    print(f"Provider {provider.name} failed with exception: {e}")
+
+            return "OVER AI Exception: No successful response from any provider"
         except Exception as e:
-            return f"ChatGPT Exception: {e}"
+            return f"OVER AI Exception: {e}"
 
 
 class LastTenMessages(View):
