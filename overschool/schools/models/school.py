@@ -1,6 +1,5 @@
-from datetime import date
-
 from common_services.mixins import OrderMixin, TimeStampMixin
+
 # from ...courses.models import StudentsGroup, BaseLesson, UserProgressLogs
 from django.apps import apps
 from django.contrib.auth import get_user_model
@@ -115,17 +114,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-                self.used_trial
-                and self.trial_end_date
-                and self.trial_end_date <= timezone.now()
+            self.used_trial
+            and self.trial_end_date
+            and self.trial_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-                self.purchased_tariff_end_date
-                and self.purchased_tariff_end_date <= timezone.now()
+            self.purchased_tariff_end_date
+            and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.purchased_tariff_end_date = None
@@ -144,44 +143,63 @@ class School(TimeStampMixin, OrderMixin):
 
 
 class SchoolStatistics(models.Model):
-    school = models.OneToOneField(School, on_delete=models.CASCADE, verbose_name="Школа", related_name="statistics")
+    school = models.OneToOneField(
+        School,
+        on_delete=models.CASCADE,
+        verbose_name="Школа",
+        related_name="statistics",
+    )
     start_date = models.DateField(verbose_name="Начальная дата статистики")
     end_date = models.DateField(verbose_name="Конечная дата статистики")
 
     def get_lessons_count(self):
-        BaseLesson = apps.get_model('courses', 'BaseLesson')
-        return BaseLesson.objects.filter(section__course__school__name=self.school.name).count()
+        BaseLesson = apps.get_model("courses", "BaseLesson")
+        return BaseLesson.objects.filter(
+            section__course__school__name=self.school.name
+        ).count()
 
     def get_last_update_date(self):
-        BaseLesson = apps.get_model('courses', 'BaseLesson')
-        last_lesson = BaseLesson.objects.filter(section__course__school__name=self.school.name).order_by(
-            '-updated_at').values('updated_at').first()
-        return last_lesson['updated_at'] if last_lesson else None
+        BaseLesson = apps.get_model("courses", "BaseLesson")
+        last_lesson = (
+            BaseLesson.objects.filter(section__course__school__name=self.school.name)
+            .order_by("-updated_at")
+            .values("updated_at")
+            .first()
+        )
+        return last_lesson["updated_at"] if last_lesson else None
 
     def get_students_count(self):
-        StudentsGroup = apps.get_model('courses', 'StudentsGroup')
-        students_count = StudentsGroup.objects.filter(course_id__school__name=self.school.name).values(
-            'students').distinct().count()
+        StudentsGroup = apps.get_model("courses", "StudentsGroup")
+        students_count = (
+            StudentsGroup.objects.filter(course_id__school__name=self.school.name)
+            .values("students")
+            .distinct()
+            .count()
+        )
         return students_count
 
     def get_completed_lessons_count(self):
-        StudentsGroup = apps.get_model('courses', 'StudentsGroup')
-        UserProgressLogs = apps.get_model('courses', 'UserProgressLogs')
+        StudentsGroup = apps.get_model("courses", "StudentsGroup")
+        UserProgressLogs = apps.get_model("courses", "UserProgressLogs")
         groups = StudentsGroup.objects.filter(course_id__school__name=self.school.name)
-        user_progress_logs = UserProgressLogs.objects.filter(user__in=groups.values('students__id'))
+        user_progress_logs = UserProgressLogs.objects.filter(
+            user__in=groups.values("students__id")
+        )
 
-        completed_lessons = user_progress_logs.filter(completed=True).values('lesson').distinct()
+        completed_lessons = (
+            user_progress_logs.filter(completed=True).values("lesson").distinct()
+        )
 
         return completed_lessons.count()
 
-    @receiver(post_save, sender=School)
-    def create_school_statistics(self, instance, created, **kwargs):
-        if created:
-            SchoolStatistics.objects.create(
-                school=instance,
-                start_date=date.today(),
-                end_date=date.today()
-            )
+    # @receiver(post_save, sender=School)
+    # def create_school_statistics(self, instance, created, **kwargs):
+    #     if created:
+    #         SchoolStatistics.objects.create(
+    #             school=instance,
+    #             start_date=date.today(),
+    #             end_date=date.today()
+    #         )
 
     def __str__(self):
         return f"Статистика для школы {self.school.name}"
