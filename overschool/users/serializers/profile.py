@@ -15,7 +15,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             "patronymic",
             "email",
             "phone_number",
-
         ]
 
 
@@ -86,3 +85,7 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "users/avatars/base_avatar.jpg"
             return s3.get_link(base_avatar_path)
+
+
+class EmailValidateSerializer(serializers.Serializer):
+    token = serializers.CharField(required=True)

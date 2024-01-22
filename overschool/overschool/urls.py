@@ -17,6 +17,7 @@ from rest_framework import permissions
 from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
+    EmailValidateView,
     ForgotPasswordView,
     GetCertificateView,
     LoginView,
@@ -64,6 +65,11 @@ urlpatterns = [
         "api/token-validate/",
         TokenValidateView.as_view(actions={"post": "post"}),
         name="token-validate",
+    ),
+    path(
+        "api/email-confirm/",
+        EmailValidateView.as_view(actions={"post": "post"}),
+        name="email-confirm",
     ),
     path(
         "api/password-reset/",
