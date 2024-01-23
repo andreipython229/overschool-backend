@@ -139,6 +139,12 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
 
             UserChat.objects.bulk_create(user_chats)
 
+            Message.objects.create(
+                chat=chat,
+                sender=chat_creator if role_creator != "Student" else chat_reciever,
+                content="Приветствую в персональном чате!",
+            )
+
             existed_chat_id = UserChat.get_existed_chat_id_by_type(chat_creator, chat_reciever, "PERSONAL")
             if existed_chat_id:
                 existed_chat = Chat.objects.get(id=existed_chat_id)
