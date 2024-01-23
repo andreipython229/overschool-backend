@@ -537,6 +537,7 @@ class CourseViewSet(
                 "task_submission_lock": group.group_settings.task_submission_lock,
                 "strict_task_order": group.group_settings.strict_task_order,
             }
+            result_data["teacher_id"] = group.teacher_id_id
 
         result_data["sections"] = []
 
