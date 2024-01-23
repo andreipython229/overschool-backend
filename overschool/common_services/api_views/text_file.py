@@ -120,6 +120,11 @@ class TextFileViewSet(
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
+                    else:
+                        return Response(
+                            {"error": "Нет файлов для загрузки"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
                 else:
                     return Response(
                         {
@@ -161,6 +166,11 @@ class TextFileViewSet(
                             serializer.save(author=user, file=file_path)
                             created_files.append(serializer.data)
                         return Response(created_files, status=status.HTTP_201_CREATED)
+                    else:
+                        return Response(
+                            {"error": "Нет файлов для загрузки"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
                 else:
                     return Response(
                         {
@@ -204,6 +214,11 @@ class TextFileViewSet(
                         serializer.save(author=user, file=file_path)
                         created_files.append(serializer.data)
                     return Response(created_files, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(
+                        {"error": "Нет файлов для загрузки"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
             else:
                 return Response(
                     {"error": "Не указан идентификатор базового урока ('base_lesson')"},
