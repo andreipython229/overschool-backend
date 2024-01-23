@@ -59,7 +59,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="lesson", read_only=True)
-    blocks = BlockDetailSerializer(many=True, required=False)
+    blocks = BlockDetailSerializer(many=True, sort_by="order", required=False)
 
     class Meta:
         model = Lesson

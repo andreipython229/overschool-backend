@@ -132,7 +132,7 @@ class TextFileViewSet(
                         },
                         status=status.HTTP_403_FORBIDDEN,
                     )
-            if user_homework_check_id:
+            elif user_homework_check_id:
                 user_homework_check = UserHomeworkCheck.objects.filter(
                     user_homework_check_id=user_homework_check_id, author=user
                 ).first()
