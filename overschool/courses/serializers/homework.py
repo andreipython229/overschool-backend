@@ -55,7 +55,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class HomeworkDetailSerializer(serializers.ModelSerializer):
-    blocks = BlockDetailSerializer(many=True, required=False)
+    blocks = BlockDetailSerializer(many=True, sort_by="order", required=False)
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="homework", read_only=True)
