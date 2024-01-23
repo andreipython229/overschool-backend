@@ -56,10 +56,10 @@ class LessonDetailSerializer(serializers.ModelSerializer):
     Сериализатор для просмотра конкретного урока
     """
 
+    blocks = serializers.SerializerMethodField()
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="lesson", read_only=True)
-    blocks = BlockDetailSerializer(many=True, sort_by="order", required=False)
 
     class Meta:
         model = Lesson
@@ -78,6 +78,9 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "blocks",
         ]
         read_only_fields = ["type", "text_files", "audio_files", "blocks"]
+
+    def get_blocks(self, obj):
+        return BlockDetailSerializer(obj.blocks.order_by("order"), many=True).data
 
 
 class LessonUpdateSerializer(serializers.Serializer):

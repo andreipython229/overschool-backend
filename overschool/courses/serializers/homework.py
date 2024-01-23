@@ -55,7 +55,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class HomeworkDetailSerializer(serializers.ModelSerializer):
-    blocks = BlockDetailSerializer(many=True, sort_by="order", required=False)
+    blocks = serializers.SerializerMethodField()
     audio_files = AudioFileGetSerializer(many=True, required=False)
     text_files = TextFileGetSerializer(many=True, required=False)
     type = serializers.CharField(default="homework", read_only=True)
@@ -90,6 +90,9 @@ class HomeworkDetailSerializer(serializers.ModelSerializer):
             "user_homework_checks",
             "user_mark",
         ]
+
+    def get_blocks(self, obj):
+        return BlockDetailSerializer(obj.blocks.order_by("order"), many=True).data
 
     def get_user_homework_checks(self, obj):
         user = self.context["request"].user
