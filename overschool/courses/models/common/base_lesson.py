@@ -168,6 +168,13 @@ class BaseLessonBlock(OrderMixin, models.Model):
         blank=True,
         null=True,
     )
+    language = models.CharField(
+        max_length=200,
+        verbose_name="Язык программирования",
+        help_text="Язык программирования",
+        blank=True,
+        null=True,
+    )
     picture = models.ImageField(
         verbose_name="Картинка",
         help_text="Картинка к уроку",

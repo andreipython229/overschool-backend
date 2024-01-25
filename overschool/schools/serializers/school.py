@@ -48,6 +48,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("'name' обязателеное поле.")
 
         attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
+        attrs["name"] = attrs["name"].replace(" ", "_")
         return attrs
 
 
@@ -81,6 +82,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs.get("name"):
             attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
+            attrs["name"] = attrs["name"].replace(" ", "_")
         return attrs
 
 

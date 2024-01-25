@@ -15,6 +15,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "url",
             "description",
             "code",
+            "language",
             "picture",
             "type",
             "order",
@@ -60,6 +61,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "url",
             "description",
             "code",
+            "language",
             "picture",
             "order",
             "type",
@@ -76,6 +78,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if data.get("code") is None and instance.type != "code":
             del data["code"]
+            del data["language"]
         if data.get("url") is None and instance.type != "video":
             del data["url"]
         if data.get("description") is None and instance.type != "description":
@@ -97,6 +100,7 @@ class BlockUpdateSerializer(serializers.ModelSerializer):
             "url",
             "description",
             "code",
+            "language",
             "picture",
             "file_use",
         ]
