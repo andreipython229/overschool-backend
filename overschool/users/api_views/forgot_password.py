@@ -82,10 +82,12 @@ class TokenValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
             return Response(
                 "Пользователя с таким электронным адресом не существует.", status=404
             )
-
-        if default_token_generator.check_token(user, token):
-            return Response("Token is valid", status=200)
-        else:
+        try:
+            if default_token_generator.check_token(user, token):
+                return Response("Token is valid", status=200)
+            else:
+                return Response("Token is invalid", status=400)
+        except:
             return Response("Token is invalid", status=400)
 
 
