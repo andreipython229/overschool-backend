@@ -15,10 +15,3 @@ def create_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):
     instance.profile.save()
-
-
-@receiver(user_logged_in, sender=User)
-def update_last_login_test(sender, request=None, user=None, **kwargs):
-    print("Signal: Updating last login time")
-    sender.last_login = timezone.now()
-    sender.save(update_fields=["last_login"])
