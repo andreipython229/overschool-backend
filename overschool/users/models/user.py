@@ -49,6 +49,12 @@ class User(AbstractBaseUser):
     date_joined = models.DateTimeField(
         verbose_name="Дата регистрации", default=timezone.now
     )
+    last_login = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Последняя активность",
+        null=True,
+        blank=True
+    )
 
     USERNAME_FIELD = "username"
     EMAIL_FIELD = "email"

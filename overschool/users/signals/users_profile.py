@@ -1,5 +1,7 @@
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
+from django.contrib.auth.signals import user_logged_in
+from django.utils import timezone
 
 from users.models import Profile, User
 
@@ -13,3 +15,10 @@ def create_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+
+@receiver(user_logged_in, sender=User)
+def update_last_login_test(sender, request=None, user=None, **kwargs):
+    print("Signal: Updating last login time")
+    sender.last_login = timezone.now()
+    sender.save(update_fields=["last_login"])

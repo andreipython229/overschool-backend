@@ -13,6 +13,13 @@ class OverAiChat(models.Model):
         verbose_name='Идентификатор пользователя'
     )
 
+    def __str__(self):
+        return str(self.chat_name) + ": " + str(self.user_id)
+
+    class Meta:
+        verbose_name = "OverAI чат"
+        verbose_name_plural = "OverAI чаты"
+
 
 class UserMessage(models.Model):
     sender = models.ForeignKey(
@@ -32,6 +39,13 @@ class UserMessage(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Идентификатор чата"
     )
+
+    def __str__(self):
+        return str(self.sender) + ": " + str(self.sender_question) + " (" + str(self.message_date) + ")"
+
+    class Meta:
+        verbose_name = "Сообщение пользователя"
+        verbose_name_plural = "Сообщения пользователей"
 
 
 class BotResponse(models.Model):
@@ -53,6 +67,13 @@ class BotResponse(models.Model):
         verbose_name="Идентификатор чата"
     )
 
+    def __str__(self):
+        return str(self.answer) + "(" + str(self.message_date) + ")"
+
+    class Meta:
+        verbose_name = "Ответ нейросети"
+        verbose_name_plural = "Ответы нейросети"
+
 
 class AIProvider(models.Model):
     name = models.CharField(max_length=70)
@@ -61,3 +82,6 @@ class AIProvider(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "Провайдер"
+        verbose_name_plural = "Провайдеры"
