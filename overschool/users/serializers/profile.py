@@ -43,7 +43,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             user.first_name = user_data.get("first_name", user.first_name)
             user.last_name = user_data.get("last_name", user.last_name)
             user.patronymic = user_data.get("patronymic", user.patronymic)
-            user.email = user_data.get("email", user.email)
             user.phone_number = user_data.get("phone_number", user.phone_number)
 
             user.save()
@@ -89,3 +88,4 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
 class EmailValidateSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
