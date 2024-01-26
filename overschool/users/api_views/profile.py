@@ -70,12 +70,11 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
             if send and send["status_code"] == 500:
                 return Response(send["error"], status=send["status_code"])
-
+        user.email = (None,)
+        user.save()
         user_data = request.data
         user_data["user"]["email"] = email
         serializer = UserProfileSerializer(instance, data=user_data)
-        user.email = (None,)
-        user.save()
         if serializer.is_valid():
             pass
         else:
