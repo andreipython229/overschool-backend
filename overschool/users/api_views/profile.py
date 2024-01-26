@@ -4,7 +4,6 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.contrib.auth.tokens import default_token_generator
-from django.core.validators import EmailValidator
 from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
@@ -124,11 +123,9 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
         serializer.is_valid(raise_exception=True)
 
         token = serializer.validated_data["token"]
-        email_validator = EmailValidator(message="Токен не действителен")
         try:
             token_parts = token.split(".")
             email = base64.b64decode(token_parts[0]).decode("utf-8")
-            email_validator(email)
         except:
             return Response("Токен не действителен", status=400)
 

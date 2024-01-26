@@ -1,5 +1,4 @@
 from common_services.selectel_client import UploadToS3
-from django.core.validators import EmailValidator
 from rest_framework import serializers
 from users.models import Profile, User
 
@@ -7,10 +6,6 @@ s3 = UploadToS3()
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(
-        validators=[EmailValidator(message="Некорректный формат электронной почты")]
-    )
-
     class Meta:
         model = User
         fields = [
