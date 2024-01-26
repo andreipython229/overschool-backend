@@ -126,8 +126,11 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
         serializer.is_valid(raise_exception=True)
 
         token = serializer.validated_data["token"]
-        token_parts = token.split(".")
-        email = base64.b64decode(token_parts[1]).decode("utf-8")
+        try:
+            token_parts = token.split(".")
+            email = base64.b64decode(token_parts[1]).decode("utf-8")
+        except:
+            return Response("Token is invalid", status=400)
 
         if default_token_generator.check_token(user, token_parts[0]):
             user.email = email
