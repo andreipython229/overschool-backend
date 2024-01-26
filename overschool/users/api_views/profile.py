@@ -4,6 +4,7 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.contrib.auth.tokens import default_token_generator
+from django.core.validators import EmailValidator
 from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
@@ -65,9 +66,9 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             email_confirm = True
             encoded_email = base64.b64encode(new_email.encode("utf-8"))
             token = (
-                default_token_generator.make_token(user)
+                encoded_email.decode("utf-8")
                 + "."
-                + encoded_email.decode("utf-8")
+                + default_token_generator.make_token(user)
             )
             subject = "Подтверждения электронной почты Overschool"
             message = f"Токен подтверждения электронной почты: {token}"
@@ -123,15 +124,17 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
         serializer.is_valid(raise_exception=True)
 
         token = serializer.validated_data["token"]
+        email_validator = EmailValidator(message="Токен не действителен")
         try:
             token_parts = token.split(".")
-            email = base64.b64decode(token_parts[1]).decode("utf-8")
+            email = base64.b64decode(token_parts[0]).decode("utf-8")
+            email_validator(email)
         except:
-            return Response("Token is invalid", status=400)
+            return Response("Токен не действителен", status=400)
 
-        if default_token_generator.check_token(user, token_parts[0]):
+        if default_token_generator.check_token(user, token_parts[1]):
             user.email = email
             user.save()
             return Response("Электронная почта успешно подтверждена", status=200)
         else:
-            return Response("Token is invalid", status=400)
+            return Response("Токен не действителен", status=400)
