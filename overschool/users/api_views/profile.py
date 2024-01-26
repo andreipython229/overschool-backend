@@ -1,5 +1,3 @@
-import base64
-
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
@@ -7,7 +5,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils import timezone
 from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -66,12 +64,8 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     status=400,
                 )
             email_confirm = True
-            encoded_email = base64.b64encode(new_email.encode("utf-8"))
-            token = (
-                default_token_generator.make_token(user)
-                + "."
-                + encoded_email.decode("utf-8")
-            )
+            token = default_token_generator.make_token(user)
+
             subject = "Подтверждения электронной почты Overschool"
             message = f"Токен подтверждения электронной почты: {token}"
             send = self.sender_service.send_code_by_email(
@@ -84,7 +78,12 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         user_data = request.data
         user_data["user"]["email"] = email
         serializer = UserProfileSerializer(instance, data=user_data)
-        serializer.is_valid(raise_exception=True)
+        if serializer.is_valid():
+            pass
+        else:
+            user.email = email
+            user.save()
+            raise serializers.ValidationError(serializer.errors)
 
         if request.FILES.get("avatar"):
             if instance.avatar:
@@ -126,15 +125,14 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
         serializer.is_valid(raise_exception=True)
 
         token = serializer.validated_data["token"]
-        try:
-            token_parts = token.split(".")
-            email = base64.b64decode(token_parts[1]).decode("utf-8")
-        except:
-            return Response("Token is invalid", status=400)
+        email = serializer.validated_data["email"]
 
-        if default_token_generator.check_token(user, token_parts[0]):
-            user.email = email
-            user.save()
-            return Response("Электронная почта успешно подтверждена", status=200)
-        else:
-            return Response("Token is invalid", status=400)
+        try:
+            if default_token_generator.check_token(user, token):
+                user.email = email
+                user.save()
+                return Response("Электронная почта успешно подтверждена", status=200)
+            else:
+                return Response("Токен не действителен", status=400)
+        except:
+            return Response("Токен не действителен", status=400)

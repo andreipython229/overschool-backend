@@ -89,3 +89,4 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
 class EmailValidateSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
