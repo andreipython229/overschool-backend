@@ -17,6 +17,30 @@ from .serializers import UserMessageSerializer, BotResponseSerializer, OverAiCha
 from .schemas import send_message_schema, latest_messages_schema
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class UserWelcomeMessageView(View):
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            user.shown_welcome_message = True
+            user.save()
+            return JsonResponse({'message': 'show_welcome_message установлен в True'}, status=200)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Пользователь с указанным ID не найден'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            show_welcome_message = user.shown_welcome_message
+            return JsonResponse({'show_welcome_message': show_welcome_message})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Пользователь с указанным ID не найден'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
 class LastTenChats(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
