@@ -86,7 +86,7 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели группы студентов без учителя
     """
-
+    role = serializers.CharField(max_length=50, required=False)
     group_settings = StudentsGroupSettingsSerializer(required=False)
     students = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
@@ -94,7 +94,7 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id", "students", "group_settings", "certificate",)
+        fields = ("type", "name", "course_id", "students", "group_settings", "certificate", "role")
 
     def validate(self, attrs):
         request = self.context.get("request")

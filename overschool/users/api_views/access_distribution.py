@@ -101,7 +101,7 @@ class AccessDistributionView(
             if previous_chat:
                 previous_chat.delete()
             user.teacher_group_fk.add(student_group)
-            UserChat.objects.create(user=user, chat=chat)
+            UserChat.objects.create(user=user, chat=chat, user_role="teacher")
 
     def handle_students_group_fk(self, user, student_groups):
         for student_group in student_groups:
@@ -143,10 +143,7 @@ class AccessDistributionView(
             User.objects.filter(email__in=emails) if emails else User.objects.none()
         )
         users = (users_by_id | users_by_email).distinct()
-
         new_user_count = users.exclude(groups__school=school).count()
-
-        # Проверка тарифного плана и количества ресурсов
         self.validate_tariff_plan(number_of_courses, number_of_staff, students_per_month)
 
         for user in users:

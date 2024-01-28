@@ -77,7 +77,7 @@ class StudentsGroupViewSet(
             "user_count_by_month",
         ]:
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
+                    group__name__in=["Student", "Teacher"], school=school
             ).exists():
                 return permissions
             else:
@@ -139,8 +139,8 @@ class StudentsGroupViewSet(
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
         if (
-            teacher
-            and not teacher.groups.filter(school=school, group__name="Teacher").exists()
+                teacher
+                and not teacher.groups.filter(school=school, group__name="Teacher").exists()
         ):
             raise serializers.ValidationError(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
@@ -156,7 +156,7 @@ class StudentsGroupViewSet(
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
                 if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
+                        user=student, group=group, school=school
                 ).exists():
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
@@ -448,7 +448,7 @@ class StudentsGroupViewSet(
         group = self.get_object()
         school = self.get_school()
         if user.groups.filter(
-            group__name__in=["Admin", "Teacher"], school=school
+                group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(group_id=group.pk)
 
@@ -566,35 +566,31 @@ class StudentsGroupWithoutTeacherViewSet(
         school = self.get_school()
         students = serializer.validated_data.get("students", [])
         teacher = serializer.validated_data.get("teacher_id")
-
+        role = serializer.validated_data.get("role")
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
 
         current_group = self.get_object()
 
-        group = Group.objects.get(name="Student")
-
-        for student in students:
-            if not student.students_group_fk.filter(pk=current_group.pk).exists():
-                if not UserGroup.objects.filter(
-                    user=student, group=group, school=school
-                ).exists():
-                    raise serializers.ValidationError(
-                        "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
-                    )
-
+        group = Group.objects.get(name=role)
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
-            UserChat.objects.create(user=teacher, chat=chat)
+            role = serializer.validated_data.get("role", "Teacher")
+            UserChat.objects.create(user=teacher, chat=chat, user_role=role)
+            UserGroup.objects.create(user=teacher, group=group, school=school)
+
         if teacher and teacher != previous_teacher:
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
             ).first()
             if previous_chat:
                 previous_chat.delete()
+
         for student in students:
-            if not UserChat.objects.filter(user=student, chat=chat).exists():
-                UserChat.objects.create(user=student, chat=chat)
+            role = serializer.validated_data.get("role", "Student")
+            UserChat.objects.create(user=student, chat=chat, user_role=role)
+            UserGroup.objects.create(user=student, group=group, school=school)
+
         serializer.save()
