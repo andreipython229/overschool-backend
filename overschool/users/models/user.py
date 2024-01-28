@@ -55,6 +55,10 @@ class User(AbstractBaseUser):
         null=True,
         blank=True
     )
+    shown_welcome_message = models.BooleanField(
+        verbose_name="Приветственное сообщение OVER AI",
+        default=False
+    )
 
     USERNAME_FIELD = "username"
     EMAIL_FIELD = "email"

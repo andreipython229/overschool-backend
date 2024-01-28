@@ -27,4 +27,13 @@ urlpatterns = [
         chatgpt.views.DeleteChatsView.as_view(),
         name='delete_chats'
     ),
+    path(
+        'user_welcome_message/<int:user_id>/',
+        chatgpt.views.UserWelcomeMessageView.as_view(),
+        name='user_welcome_message'
+    ),
+    path(
+        'update_welcome_message/<int:user_id>/',
+        chatgpt.views.UserWelcomeMessageView.as_view(),
+        name='update_welcome_message'),
 ]
