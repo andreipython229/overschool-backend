@@ -526,6 +526,7 @@ class StudentsGroupWithoutTeacherViewSet(
     def perform_create(self, serializer):
         serializer.is_valid()
         course = serializer.validated_data["course_id"]
+        role = serializer.validated_data.get("role", "Admin")
         school = self.get_school()
 
         if course.school != school:
@@ -549,7 +550,6 @@ class StudentsGroupWithoutTeacherViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-
         # Создаем чат с названием "Чат с [имя группы]"
         groupname = serializer.validated_data.get("name", "")
         chat_name = f"{groupname}"
@@ -557,7 +557,9 @@ class StudentsGroupWithoutTeacherViewSet(
 
         serializer.save(group_settings=group_settings, type="WITH_TEACHER")
         student_group = serializer.save(chat=chat)
-        UserChat.objects.create(user=self.request.user, chat=chat)
+        chat_role = Group.objects.get(name=role)
+        UserGroup.objects.create(user=self.request.user, group=chat_role, school=school)
+        UserChat.objects.create(user=self.request.user, chat=chat, user_role=role)
 
         return student_group
 

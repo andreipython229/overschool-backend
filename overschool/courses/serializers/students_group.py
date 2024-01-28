@@ -101,7 +101,7 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
         view = self.context.get("view")
         course = attrs.get("course_id")
         students = attrs.get("students")
-
+        role = attrs.pop('role', None)
         if request.method == "POST" and not course:
             raise serializers.ValidationError("Курс должен быть указан.")
 
