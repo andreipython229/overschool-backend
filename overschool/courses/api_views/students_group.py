@@ -277,6 +277,7 @@ class StudentsGroupViewSet(
                     "school_name": school.name,
                     "avatar": serializer.data["avatar"],
                     "last_active": student.date_joined,
+                    "last_login": student.last_login,
                     "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
                         "mark_sum"
                     ],

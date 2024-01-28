@@ -2,6 +2,7 @@ from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.contrib.auth.tokens import default_token_generator
+from django.utils import timezone
 from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, serializers, status, viewsets
@@ -33,6 +34,8 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Возвращаем только объекты пользователя, сделавшего запрос
+        self.request.user.last_login = timezone.now()
+        self.request.user.save()
         return Profile.objects.filter(user=self.request.user.id)
 
     def get_serializer_class(self):

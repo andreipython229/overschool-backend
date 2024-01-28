@@ -139,3 +139,17 @@ class CreateChatView(View):
 
     def get(self, request, *args, **kwargs):
         return JsonResponse({'message': 'Invalid request method'}, status=400)
+
+
+class DeleteChatsView(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request, user_id):
+        try:
+            # Получаем чаты пользователя по его ID и удаляем те, у которых название 'Новый чат'
+            OverAiChat.objects.filter(user_id=user_id, chat_name='Новый чат').delete()
+            return JsonResponse({'message': 'Чаты успешно удалены'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
