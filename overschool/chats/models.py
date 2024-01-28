@@ -57,6 +57,7 @@ class Message(models.Model):
 class UserChat(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chats")
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    user_role = models.CharField(verbose_name="Роль пользователя", max_length=50)
     unread_messages_count = models.IntegerField(default=0)
 
     def __str__(self):

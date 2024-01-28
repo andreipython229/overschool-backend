@@ -1,5 +1,6 @@
-from common_services.mixins import OrderMixin, TimeStampMixin
+from datetime import date
 
+from common_services.mixins import OrderMixin, TimeStampMixin
 # from ...courses.models import StudentsGroup, BaseLesson, UserProgressLogs
 from django.apps import apps
 from django.contrib.auth import get_user_model
@@ -114,17 +115,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-            self.used_trial
-            and self.trial_end_date
-            and self.trial_end_date <= timezone.now()
+                self.used_trial
+                and self.trial_end_date
+                and self.trial_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-            self.purchased_tariff_end_date
-            and self.purchased_tariff_end_date <= timezone.now()
+                self.purchased_tariff_end_date
+                and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.purchased_tariff_end_date = None
@@ -162,9 +163,9 @@ class SchoolStatistics(models.Model):
         BaseLesson = apps.get_model("courses", "BaseLesson")
         last_lesson = (
             BaseLesson.objects.filter(section__course__school__name=self.school.name)
-            .order_by("-updated_at")
-            .values("updated_at")
-            .first()
+                .order_by("-updated_at")
+                .values("updated_at")
+                .first()
         )
         return last_lesson["updated_at"] if last_lesson else None
 
@@ -172,9 +173,9 @@ class SchoolStatistics(models.Model):
         StudentsGroup = apps.get_model("courses", "StudentsGroup")
         students_count = (
             StudentsGroup.objects.filter(course_id__school__name=self.school.name)
-            .values("students")
-            .distinct()
-            .count()
+                .values("students")
+                .distinct()
+                .count()
         )
         return students_count
 
@@ -192,18 +193,19 @@ class SchoolStatistics(models.Model):
 
         return completed_lessons.count()
 
-    # @receiver(post_save, sender=School)
-    # def create_school_statistics(self, instance, created, **kwargs):
-    #     if created:
-    #         SchoolStatistics.objects.create(
-    #             school=instance,
-    #             start_date=date.today(),
-    #             end_date=date.today()
-    #         )
-
     def __str__(self):
         return f"Статистика для школы {self.school.name}"
 
     class Meta:
         verbose_name = "Статистика школы"
         verbose_name_plural = "Статистика школ"
+
+
+@receiver(post_save, sender=School)
+def create_school_statistics(sender, instance, created, **kwargs):
+    if created:
+        SchoolStatistics.objects.create(
+            school=instance,
+            start_date=date.today(),
+            end_date=date.today()
+        )
