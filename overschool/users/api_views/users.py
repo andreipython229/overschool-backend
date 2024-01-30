@@ -69,6 +69,7 @@ class GetCertificateView(APIView):
     def post(self, request):
         user_id = self.request.data.get("user_id")
         course_id = self.request.data.get("course_id")
+        school_id = self.request.data.get("school_id")
 
         groups = StudentsGroup.objects.filter(students=user_id, course_id=course_id, certificate=True)
 
@@ -96,18 +97,18 @@ class GetCertificateView(APIView):
                     {"error": f"Необходимо пройти урок {base_lesson.name}."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+        school = get_object_or_404(School, school_id=school_id)
         user = get_object_or_404(User, id=user_id)
+        owner = get_object_or_404(User, id=school.owner.id)
+        teacher = get_object_or_404(User, id=group.teacher_id.id)
+
         certificate_data = {
+            "school_name": school.name,
+            "school_owner": f'{owner.last_name} {owner.first_name} {owner.patronymic}',
+            "teacher": f'{teacher.last_name} {teacher.first_name} {teacher.patronymic}',
             "user_full_name": f"{user.last_name} {user.first_name} {user.patronymic}",
             "course_name": course.name,
             "course_description": course.description,
-            "lessons": [],
         }
-
-        for base_lesson in base_lessons:
-            lesson_data = {
-                "lesson_name": base_lesson.name,
-            }
-            certificate_data["lessons"].append(lesson_data)
 
         return Response(certificate_data, status=status.HTTP_200_OK)

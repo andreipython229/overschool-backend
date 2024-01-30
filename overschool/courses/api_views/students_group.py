@@ -558,8 +558,7 @@ class StudentsGroupWithoutTeacherViewSet(
 
         serializer.save(group_settings=group_settings, type="WITH_TEACHER")
         student_group = serializer.save(chat=chat)
-        chat_role = Group.objects.get(name=role)
-        UserGroup.objects.create(user=self.request.user, group=chat_role, school=school)
+
         UserChat.objects.create(user=self.request.user, chat=chat, user_role=role)
 
         return student_group
@@ -582,7 +581,6 @@ class StudentsGroupWithoutTeacherViewSet(
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             role = serializer.validated_data.get("role", "Teacher")
             UserChat.objects.create(user=teacher, chat=chat, user_role=role)
-            UserGroup.objects.create(user=teacher, group=group, school=school)
 
         if teacher and teacher != previous_teacher:
             previous_chat = UserChat.objects.filter(
@@ -594,6 +592,5 @@ class StudentsGroupWithoutTeacherViewSet(
         for student in students:
             role = serializer.validated_data.get("role", "Student")
             UserChat.objects.create(user=student, chat=chat, user_role=role)
-            UserGroup.objects.create(user=student, group=group, school=school)
 
         serializer.save()
