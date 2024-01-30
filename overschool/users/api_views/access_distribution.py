@@ -3,11 +3,11 @@ from datetime import datetime
 from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
+    Course,
     LessonAvailability,
     LessonEnrollment,
     StudentsGroup,
     StudentsHistory,
-    Course,
 )
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -40,8 +40,8 @@ class AccessDistributionView(
     def check_existing_role(self, user, school, group):
         return (
             UserGroup.objects.filter(user=user, school=school)
-                .exclude(group=group)
-                .exists()
+            .exclude(group=group)
+            .exists()
         )
 
     def check_user_existing_roles(self, user, school):
@@ -67,7 +67,9 @@ class AccessDistributionView(
         message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
         sender_service.send_code_by_email(email=email, subject=subject, message=message)
 
-    def validate_tariff_plan(self, number_of_courses, number_of_staff, students_per_month):
+    def validate_tariff_plan(
+        self, number_of_courses, number_of_staff, students_per_month
+    ):
         school = self.get_school()
 
         try:
@@ -75,21 +77,47 @@ class AccessDistributionView(
             tariff = Tariff.objects.get(id=tariff_id)
 
             existing_courses_count = Course.objects.filter(school=school).count()
-            existing_students_count = User.objects.filter(students_group_fk__course_id__school=school).count()
-            existing_staff_count = User.objects.filter(students_group_fk__course_id__school=school,
-                                                       is_staff=True).count()
+            existing_students_count = User.objects.filter(
+                students_group_fk__course_id__school=school
+            ).count()
+            existing_staff_count = User.objects.filter(
+                students_group_fk__course_id__school=school, is_staff=True
+            ).count()
 
-            if number_of_courses and tariff.number_of_courses is not None and existing_courses_count + number_of_courses > tariff.number_of_courses:
-                raise serializers.ValidationError({"number_of_courses": "Превышено допустимое количество курсов"})
-
-            if number_of_staff and tariff.number_of_staff is not None and existing_staff_count + number_of_staff > tariff.number_of_staff:
-                raise serializers.ValidationError({"number_of_staff": "Превышено допустимое количество сотрудников"})
-
-            if students_per_month and tariff.students_per_month is not None and existing_students_count + students_per_month > tariff.students_per_month:
+            if (
+                number_of_courses
+                and tariff.number_of_courses is not None
+                and existing_courses_count + number_of_courses
+                > tariff.number_of_courses
+            ):
                 raise serializers.ValidationError(
-                    {"students_per_month": "Превышено допустимое количество учеников в месяц"})
+                    {"number_of_courses": "Превышено допустимое количество курсов"}
+                )
+
+            if (
+                number_of_staff
+                and tariff.number_of_staff is not None
+                and existing_staff_count + number_of_staff > tariff.number_of_staff
+            ):
+                raise serializers.ValidationError(
+                    {"number_of_staff": "Превышено допустимое количество сотрудников"}
+                )
+
+            if (
+                students_per_month
+                and tariff.students_per_month is not None
+                and existing_students_count + students_per_month
+                > tariff.students_per_month
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "students_per_month": "Превышено допустимое количество учеников в месяц"
+                    }
+                )
         except Tariff.DoesNotExist:
-            raise serializers.ValidationError({"tariff": "Тариф для данной школы не найден"})
+            raise serializers.ValidationError(
+                {"tariff": "Тариф для данной школы не найден"}
+            )
 
     def handle_teacher_group_fk(self, user, student_groups, courses_ids):
         for student_group in student_groups:
@@ -129,6 +157,7 @@ class AccessDistributionView(
         emails = serializer.validated_data.get("emails")
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
+
         number_of_courses = serializer.validated_data.get("number_of_courses")
         number_of_staff = serializer.validated_data.get("number_of_staff")
         students_per_month = serializer.validated_data.get("students_per_month")
@@ -144,52 +173,56 @@ class AccessDistributionView(
         )
         users = (users_by_id | users_by_email).distinct()
         new_user_count = users.exclude(groups__school=school).count()
-        self.validate_tariff_plan(number_of_courses, number_of_staff, students_per_month)
+        self.validate_tariff_plan(
+            number_of_courses, number_of_staff, students_per_month
+        )
+
+        student_groups = StudentsGroup.objects.none()
+        if student_groups_ids:
+            student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
+            groups_count = student_groups.count()
+            courses_count = student_groups.values("course_id").distinct().count()
+
+            if groups_count != courses_count:
+                return HttpResponse(
+                    "Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
+                    status=400,
+                )
+
+            if role == "Teacher" and users.count() > 1:
+                return HttpResponse(
+                    "Нельзя назначить несколько преподавателей в одни и те же группы",
+                    status=400,
+                )
+
+            for student_group in student_groups:
+                if student_group.course_id.school != school:
+                    return HttpResponse(
+                        "Проверьте принадлежность студенческих групп к вашей школе",
+                        status=400,
+                    )
+                if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
+                    return HttpResponse(
+                        "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
+                        status=400,
+                    )
 
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
             if not UserGroup.objects.filter(
-                    user=user, school=school, group=group
+                user=user, school=school, group=group
             ).exists():
                 self.create_user_group(user, group, school)
 
             if student_groups_ids:
-                student_groups = StudentsGroup.objects.filter(pk__in=student_groups_ids)
-                groups_count = student_groups.count()
-                courses_count = student_groups.values("course_id").distinct().count()
-
-                if groups_count != courses_count:
-                    return HttpResponse(
-                        "Нельзя преподавать либо учиться в нескольких группах одного и того же курса",
-                        status=400,
-                    )
-
-                if role == "Teacher" and users.count() > 1:
-                    return HttpResponse(
-                        "Нельзя назначить несколько преподавателей в одни и те же группы",
-                        status=400,
-                    )
-
-                for student_group in student_groups:
-                    if student_group.course_id.school != school:
-                        return HttpResponse(
-                            "Проверьте принадлежность студенческих групп к вашей школе",
-                            status=400,
-                        )
-                    if role == "Teacher" and student_group.type == "WITHOUT_TEACHER":
-                        return HttpResponse(
-                            "Нельзя назначить преподавателя в группу, не предполагающую наличие преподавателя",
-                            status=400,
-                        )
-
                 if role == "Teacher":
                     self.handle_teacher_group_fk(user, student_groups, [])
                 elif role == "Student":
                     self.handle_students_group_fk(user, student_groups)
 
-                return HttpResponse("Доступы предоставлены", status=201)
+        return HttpResponse("Доступы предоставлены", status=201)
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
@@ -233,8 +266,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
