@@ -78,7 +78,7 @@ class SendMessageToGPT(View):
             combined_data_str = past_messages[0].decode("utf-8")
             combined_data_list = json.loads(combined_data_str)
 
-            for user_data, assistant_data in zip(combined_data_list[0][:5], combined_data_list[1][:5]):
+            for user_data, assistant_data in zip(combined_data_list[0][:4], combined_data_list[1][:4]):
                 sender_question = user_data.get("sender_question", "")
                 if sender_question:
                     messages.append({"role": "user", "content": sender_question})
