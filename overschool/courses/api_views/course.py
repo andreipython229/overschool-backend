@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from chats.models import Chat, UserChat
@@ -262,17 +262,22 @@ class CourseViewSet(
             queryset = queryset.filter(name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
-                students__date_joined__gte=last_active_min
+                students__last_login__gte=last_active_min
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max += timedelta(days=1)
             queryset = queryset.filter(
-                students__date_joined__lte=last_active_max
+                students__last_login__lte=last_active_max
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            queryset = queryset.filter(students__date_joined=last_active).distinct()
+            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            queryset = queryset.filter(students__last_login=last_active).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
@@ -333,7 +338,6 @@ class CourseViewSet(
             .order_by("-date_removed")
             .values("date_removed")
         )
-        print(queryset, "-------")
         data = queryset.values(
             "course_id",
             "course_id__name",

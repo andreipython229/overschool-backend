@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
@@ -345,25 +345,30 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
-                students__date_joined__gte=last_active_min
+                students__last_login__gte=last_active_min
             ).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined__gte=last_active_min
+                user__last_login__gte=last_active_min
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max += timedelta(days=1)
             queryset = queryset.filter(
-                students__date_joined__lte=last_active_max
+                students__last_login__lte=last_active_max
             ).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined__lte=last_active_max
+                user__last_login__lte=last_active_max
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            queryset = queryset.filter(students__date_joined=last_active).distinct()
+            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            queryset = queryset.filter(students__last_login=last_active).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
-                user__date_joined=last_active
+                user__last_login=last_active
             ).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:

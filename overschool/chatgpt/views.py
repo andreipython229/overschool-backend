@@ -78,7 +78,7 @@ class SendMessageToGPT(View):
             combined_data_str = past_messages[0].decode("utf-8")
             combined_data_list = json.loads(combined_data_str)
 
-            for user_data, assistant_data in zip(combined_data_list[0][:5], combined_data_list[1][:5]):
+            for user_data, assistant_data in zip(combined_data_list[0][:4], combined_data_list[1][:4]):
                 sender_question = user_data.get("sender_question", "")
                 if sender_question:
                     messages.append({"role": "user", "content": sender_question})
@@ -124,7 +124,7 @@ class SendMessageToGPT(View):
                     response_str = ''.join(response)
                     return response_str
                 except Exception as e:
-                    print(f"Provider {provider.name} failed with exception: {e}")
+                    return f"Provider {provider.name} failed with exception: {e}"
 
             return "OVER AI Exception: No successful response from any provider"
         except Exception as e:
@@ -137,8 +137,8 @@ class LastTenMessages(View):
         user = int(user_id)
         chat_id = int(overai_chat_id)
         try:
-            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:10]
-            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:10]
+            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:7]
+            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:7]
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
