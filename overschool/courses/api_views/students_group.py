@@ -385,6 +385,128 @@ class StudentsGroupViewSet(
         )
 
     @action(detail=True, methods=["GET"])
+    def get_all_students_for_group(self, request, pk=None, *args, **kwargs):
+        """Все студенты одной группы без пагинации\n
+        <h2>/api/{school_name}/students_group/{group_id}/get_all_students_for_group/</h2>\n"""
+        group = self.get_object()
+        user = self.request.user
+        school = self.get_school()
+        students = group.students.none()
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            if group.teacher_id == user:
+                students = group.students.all()
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            students = group.students.all()
+
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            students = students.filter(
+                Q(first_name__icontains=search_value)
+                | Q(last_name__icontains=search_value)
+                | Q(email__icontains=search_value)
+            )
+
+        # Фильтры
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            students = students.filter(first_name=first_name)
+
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            students = students.filter(last_name=last_name)
+
+        last_active_min = self.request.GET.get("last_active_min")
+        if last_active_min:
+            students = students.filter(date_joined__gte=last_active_min)
+
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_max:
+            students = students.filter(date_joined__lte=last_active_max)
+
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            students = students.filter(date_joined=last_active)
+
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum=mark_sum)
+
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark=average_mark)
+
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        if mark_sum_min:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum__gte=mark_sum_min)
+
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_max:
+            students = students.annotate(mark_sum=Sum("user_homeworks__mark"))
+            students = students.filter(mark_sum__lte=mark_sum_max)
+
+        average_mark_min = self.request.GET.get("average_mark_min")
+        if average_mark_min:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark__gte=average_mark_min)
+
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_max:
+            students = students.annotate(average_mark=Avg("user_homeworks__mark"))
+            students = students.filter(average_mark__lte=average_mark_max)
+
+        student_data = []
+        for student in students:
+            profile = Profile.objects.get(user_id=student)
+            serializer = UserProfileGetSerializer(
+                profile, context={"request": self.request}
+            )
+            students_history = StudentsHistory.objects.filter(
+                user_id=student.id, students_group=group.group_id, is_deleted=False
+            ).first()
+
+            student_data.append(
+                {
+                    "course_id": group.course_id.course_id,
+                    "course_name": group.course_id.name,
+                    "group_id": group.group_id,
+                    "group_name": group.name,
+                    "student_id": student.id,
+                    "username": student.username,
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "email": student.email,
+                    "school_name": school.name,
+                    "avatar": serializer.data["avatar"],
+                    "last_active": student.date_joined,
+                    "last_login": student.last_login,
+                    "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
+                        "mark_sum"
+                    ],
+                    "average_mark": student.user_homeworks.aggregate(
+                        average_mark=Avg("mark")
+                    )["average_mark"],
+                    "progress": get_student_progress(
+                        student.id, group.course_id, group
+                    ),
+                    "date_added": students_history.date_added
+                    if students_history
+                    else None,
+                    "progress": get_student_progress(student.id, group.course_id, group.group_id),
+                    "date_added": students_history.date_added if students_history else None,
+                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                        chat_creator=user,
+                        reciever=student.id,
+                        type="PERSONAL"),
+                }
+            )
+
+        return Response(student_data)
+
+
+    @action(detail=True, methods=["GET"])
     def section_student_group(self, request, pk=None, *args, **kwargs):
         group = self.get_object()
         sections_data = self.get_group_sections_and_availability(group)
