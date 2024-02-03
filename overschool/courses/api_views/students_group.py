@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from chats.models import Chat, UserChat
@@ -213,15 +213,20 @@ class StudentsGroupViewSet(
 
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            students = students.filter(date_joined__gte=last_active_min)
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min -= timedelta(days=1)
+            students = students.filter(last_login__gte=last_active_min)
 
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            students = students.filter(date_joined__lte=last_active_max)
+            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max += timedelta(days=1)
+            students = students.filter(last_login__lte=last_active_max)
 
         last_active = self.request.GET.get("last_active")
         if last_active:
-            students = students.filter(date_joined=last_active)
+            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            students = students.filter(last_login=last_active)
 
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:

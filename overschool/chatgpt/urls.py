@@ -10,7 +10,7 @@ urlpatterns = [
     ),
     path(
         "latest_messages/<int:user_id>/<int:overai_chat_id>/",
-        chatgpt.views.LastTenMessages.as_view(),
+        chatgpt.views.LastMessages.as_view(),
         name="latest_messages"
     ),
     path(
