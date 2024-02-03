@@ -1,16 +1,64 @@
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
-send_message_schema = swagger_auto_schema(
-    operation_description="Эндпоинт для отправки сообщения.\n"
-                         "Может использоваться любым пользователем.",
-    operation_summary="Эндпоинт отправки сообщения",
-    tags=["chatgpt"],
-)
 
-latest_messages_schema = swagger_auto_schema(
-    operation_description="Эндпоинт для получения последних десяти сообщений пользователя.\n"
-                         "Может использоваться любой пользователь.",
-    operation_summary="Эндпоинт последних сообщений",
-    tags=["chatgpt"],
-)
+class OverAiChatSchemas:
+    @staticmethod
+    def create_chat_schema():
+        return swagger_auto_schema(
+            tags=["over ai"],
+            request_body=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя'),
+                },
+                required=['user_id']
+            ),
+            operation_description="Создать новый чат OverAI",
+        )
+
+    @staticmethod
+    def delete_chats_schema():
+        return swagger_auto_schema(
+            tags=["over ai"],
+            operation_description="Удалить чаты пользователя",
+        )
+
+
+class LastMessagesSchema:
+    @staticmethod
+    def last_messages_get_schema():
+        return swagger_auto_schema(
+            tags=["over ai"],
+            operation_description="Получить последние десять сообщений и ответов пользователя",
+            responses={200: 'Успешный запрос', 500: 'Ошибка сервера'},
+        )
+
+
+class SendMessageToGPTSchema:
+    @staticmethod
+    def send_message_schema():
+        return swagger_auto_schema(
+            tags=["over ai"],
+            request_body=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Сообщение от пользователя'),
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя'),
+                    'overai_chat_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID чата OverAI')
+                }
+            ),
+            operation_description="Отправить сообщение в GPT",
+            responses={200: 'Успешный запрос', 500: 'Ошибка сервера'},
+        )
+
+
+class LastTenChatsSchema:
+    @staticmethod
+    def last_ten_chats_get_schema():
+        return swagger_auto_schema(
+            tags=["over ai"],
+            operation_description="Получить последние десять чатов пользователя",
+            responses={200: 'Успешный запрос', 500: 'Ошибка сервера'},
+        )
+

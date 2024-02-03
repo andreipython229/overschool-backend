@@ -5,16 +5,18 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from django.http import JsonResponse
-from django.views import View
 from django.db.models import Max
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+from rest_framework.views import APIView, View
+from rest_framework.parsers import JSONParser
+
 from users.models.user import User
 from .models import UserMessage, BotResponse, OverAiChat, AIProvider
 from .serializers import UserMessageSerializer, BotResponseSerializer, OverAiChatSerializer
-from .schemas import send_message_schema, latest_messages_schema
+from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSchema, LastTenChatsSchema
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -41,7 +43,13 @@ class UserWelcomeMessageView(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class LastTenChats(View):
+@method_decorator(
+    LastTenChatsSchema.last_ten_chats_get_schema(),
+    name="get",
+)
+class LastTenChats(APIView):
+    parser_classes = [JSONParser]
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
@@ -59,12 +67,17 @@ class LastTenChats(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class SendMessageToGPT(View):
+@method_decorator(
+    SendMessageToGPTSchema.send_message_schema(),
+    name="post",
+)
+class SendMessageToGPT(APIView):
+    parser_classes = [JSONParser]
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    @method_decorator(send_message_schema)
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -73,7 +86,7 @@ class SendMessageToGPT(View):
             overai_chat_id = int(data.get('overai_chat_id', ''))
             messages = []
 
-            past_messages = list(LastTenMessages.get(self, request, user_id, overai_chat_id))
+            past_messages = list(LastMessages.get(self, request, user_id, overai_chat_id))
 
             combined_data_str = past_messages[0].decode("utf-8")
             combined_data_list = json.loads(combined_data_str)
@@ -95,7 +108,6 @@ class SendMessageToGPT(View):
             if not UserMessage.objects.filter(overai_chat_id=overai_chat_id).exists():
                 overai_chat.chat_name = user_message
                 overai_chat.save()
-
             UserMessage.objects.create(
                 sender_id=user_id,
                 sender_question=user_message,
@@ -113,7 +125,6 @@ class SendMessageToGPT(View):
     def run_provider(self, messages):
         try:
             providers = AIProvider.objects.all()
-
             for provider in providers:
                 try:
                     response = g4f.ChatCompletion.create(
@@ -122,7 +133,10 @@ class SendMessageToGPT(View):
                         provider=getattr(g4f.Provider, provider.name)
                     )
                     response_str = ''.join(response)
-                    return response_str
+                    if response_str:
+                        return response_str
+                    else:
+                        continue
                 except Exception as e:
                     return f"Provider {provider.name} failed with exception: {e}"
 
@@ -131,8 +145,13 @@ class SendMessageToGPT(View):
             return f"OVER AI Exception: {e}"
 
 
-class LastTenMessages(View):
-    @method_decorator(latest_messages_schema)
+@method_decorator(
+    LastMessagesSchema.last_messages_get_schema(),
+    name="get"
+)
+class LastMessages(APIView):
+    parser_classes = [JSONParser]
+
     def get(self, request, user_id, overai_chat_id):
         user = int(user_id)
         chat_id = int(overai_chat_id)
@@ -149,23 +168,33 @@ class LastTenMessages(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class CreateChatView(View):
+@method_decorator(
+    OverAiChatSchemas.create_chat_schema(),
+    name="post"
+)
+class CreateChatView(APIView):
+    parser_classes = [JSONParser]
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
     def post(self, request):
-        user_id = json.loads(request.body.decode('utf-8'))
+        user_id = request.data['user_id']
+
         user = User.objects.get(id=user_id)
         new_chat = OverAiChat.objects.create(user_id=user)
 
         return JsonResponse({'overai_chat_id': new_chat.id}, status=200)
 
-    def get(self, request, *args, **kwargs):
-        return JsonResponse({'message': 'Invalid request method'}, status=400)
 
+@method_decorator(
+    OverAiChatSchemas.delete_chats_schema(),
+    name="post"
+)
+class DeleteChatsView(APIView):
+    parser_classes = [JSONParser]
 
-class DeleteChatsView(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
