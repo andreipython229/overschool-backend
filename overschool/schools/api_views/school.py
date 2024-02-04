@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import pytz
+from chats.models import Chat, UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import (
@@ -9,11 +11,12 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserHomework,
+    UserProgressLogs,
 )
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress
-from django.db.models import Avg, OuterRef, Subquery, Sum, Count, Q
+from django.db.models import Avg, Count, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from drf_yasg import openapi
@@ -33,8 +36,6 @@ from schools.serializers import (
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-from chats.models import UserChat, Chat
-import pytz
 
 s3 = UploadToS3()
 
@@ -230,12 +231,36 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     except SectionTest.DoesNotExist:
                         pass
 
+                    status = None
+                    mark = None
+                    if availability:
+                        log = UserProgressLogs.objects.filter(
+                            user_id=student_id, lesson_id=lesson.id
+                        ).first()
+                        if log:
+                            status = "Пройдено" if log.completed else "Не пройдено"
+                            if obj_type == "homework":
+                                homework = Homework.objects.get(
+                                    baselesson_ptr=lesson.id
+                                )
+                                user_homework = UserHomework.objects.filter(
+                                    user_id=student_id, homework=homework
+                                ).first()
+                                if user_homework:
+                                    mark = user_homework.mark
+                                    if not log.completed:
+                                        status = user_homework.status
+                        else:
+                            status = "Не пройдено"
+
                     lesson_data = {
                         "lesson_id": lesson.id,
                         "type": obj_type,
                         "name": lesson.name,
                         "availability": availability,
                         "active": lesson.active,
+                        "status": status,
+                        "mark": mark,
                     }
                     lessons_data.append(lesson_data)
 
@@ -304,18 +329,18 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         search_value = self.request.GET.get("search_value")
         if search_value:
             queryset = queryset.filter(
-                Q(students__first_name__icontains=search_value) |
-                Q(students__last_name__icontains=search_value) |
-                Q(students__email__icontains=search_value) |
-                Q(name__icontains=search_value) |
-                Q(course_id__name__icontains=search_value)
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+                | Q(course_id__name__icontains=search_value)
             )
             deleted_history_queryset = deleted_history_queryset.filter(
-                Q(user_id__first_name__icontains=search_value) |
-                Q(user_id__last_name__icontains=search_value) |
-                Q(user_id__email__icontains=search_value) |
-                Q(students_group_id__name__icontains=search_value) |
-                Q(students_group_id__course_id__name__icontains=search_value)
+                Q(user_id__first_name__icontains=search_value)
+                | Q(user_id__last_name__icontains=search_value)
+                | Q(user_id__email__icontains=search_value)
+                | Q(students_group_id__name__icontains=search_value)
+                | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
         # Фильтры
@@ -345,7 +370,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
@@ -355,7 +380,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
             last_active_max += timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__lte=last_active_max
@@ -365,7 +390,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            last_active = datetime.strptime(last_active, "%Y-%m-%d")
             queryset = queryset.filter(students__last_login=last_active).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
                 user__last_login=last_active
@@ -504,7 +529,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
                         reciever=item["students__id"],
-                        type="PERSONAL"),
+                        type="PERSONAL",
+                    ),
                 }
             )
 
@@ -575,53 +601,78 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
         if sort_by in [
-            'first_name',
-            'last_name',
-            'email',
-            'group_name',
-            'course_name',
-            'date_added',
-            'date_removed',
-            'progress',
-            'average_mark',
-            'mark_sum',
-            'last_active',
+            "first_name",
+            "last_name",
+            "email",
+            "group_name",
+            "course_name",
+            "date_added",
+            "date_removed",
+            "progress",
+            "average_mark",
+            "mark_sum",
+            "last_active",
         ]:
             if sort_order == "asc":
-                if sort_by in ['date_added', 'date_removed', 'last_active']:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum',]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                    )
                 else:
-                    sorted_data = sorted(serialized_data, key=lambda x: str(x.get(sort_by, '') or '').lower())
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                    )
 
             else:
-                if sort_by in ['date_added', 'date_removed', 'last_active']:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date, reverse=True)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum',]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                        reverse=True,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0, reverse=True)
+                        if x.get(sort_by) is not None
+                        else 0,
+                        reverse=True,
+                    )
                 else:
                     sorted_data = sorted(
                         serialized_data,
-                        key=lambda x: str(x.get(sort_by, '') or '').lower(), reverse=True)
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                        reverse=True,
+                    )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
             return paginator.get_paginated_response(paginated_data)
 
-        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -633,4 +684,3 @@ class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Tariff.objects.all()
     serializer_class = TariffSerializer
     http_method_names = ["get", "head"]
-
