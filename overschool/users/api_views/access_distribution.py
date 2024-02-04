@@ -315,9 +315,6 @@ class AccessDistributionView(
                         "Группу нельзя оставить без преподавателя", status=400
                     )
                 elif role == "Student":
-                    remaining_groups_count1 = user.students_group_fk.filter(
-                        course_id__school=school
-                    ).count()
                     for student_group in student_groups:
 
                         try:
