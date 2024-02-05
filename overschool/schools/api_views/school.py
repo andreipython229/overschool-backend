@@ -370,8 +370,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
-            last_active_min -= timedelta(days=1)
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
