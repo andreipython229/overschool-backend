@@ -459,13 +459,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 is_deleted=False,
             )
             .order_by("-date_added")
-            .values("date_added")
+            .values("date_added")[:1]
         )
 
         subquery_date_removed = (
             StudentsHistory.objects.none()
             .order_by("-date_removed")
-            .values("date_removed")
+            .values("date_removed")[:1]
         )
 
         data = queryset.values(
