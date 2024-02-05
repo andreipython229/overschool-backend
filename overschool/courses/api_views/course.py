@@ -263,7 +263,6 @@ class CourseViewSet(
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
             last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
-            last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
@@ -276,7 +275,6 @@ class CourseViewSet(
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            last_active = datetime.strptime(last_active, '%Y-%m-%d')
             queryset = queryset.filter(students__last_login=last_active).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
