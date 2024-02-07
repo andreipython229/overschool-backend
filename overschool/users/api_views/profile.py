@@ -1,9 +1,10 @@
+import hashlib
+
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from django.contrib.auth.tokens import default_token_generator
-from django.utils import timezone
 from django.http import HttpResponse
+from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -19,6 +20,12 @@ from users.serializers import (
 from users.services import SenderServiceMixin
 
 s3 = UploadToS3()
+
+
+def generate_hash_token(user):
+    user_info = f"{user.id}-{user.email}"
+    token = hashlib.sha256(user_info.encode()).hexdigest()
+    return token
 
 
 class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -64,7 +71,7 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     status=400,
                 )
             email_confirm = True
-            token = default_token_generator.make_token(user)
+            token = generate_hash_token(user)
 
             subject = "Подтверждения электронной почты Overschool"
             message = f"Токен подтверждения электронной почты: {token}"
@@ -126,9 +133,9 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
 
         token = serializer.validated_data["token"]
         email = serializer.validated_data["email"]
-
+        expected_token = generate_hash_token(user)
         try:
-            if default_token_generator.check_token(user, token):
+            if token == expected_token:
                 user.email = email
                 user.save()
                 return Response("Электронная почта успешно подтверждена", status=200)
