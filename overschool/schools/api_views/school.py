@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import pytz
+from chats.models import Chat, UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import (
@@ -9,11 +11,12 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserHomework,
+    UserProgressLogs,
 )
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress
-from django.db.models import Avg, OuterRef, Subquery, Sum, Count, Q
+from django.db.models import Avg, Count, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from drf_yasg import openapi
@@ -33,8 +36,6 @@ from schools.serializers import (
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-from chats.models import UserChat, Chat
-import pytz
 
 s3 = UploadToS3()
 
@@ -230,12 +231,36 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     except SectionTest.DoesNotExist:
                         pass
 
+                    status = None
+                    mark = None
+                    if availability:
+                        log = UserProgressLogs.objects.filter(
+                            user_id=student_id, lesson_id=lesson.id
+                        ).first()
+                        if log:
+                            status = "Пройдено" if log.completed else "Не пройдено"
+                            if obj_type == "homework":
+                                homework = Homework.objects.get(
+                                    baselesson_ptr=lesson.id
+                                )
+                                user_homework = UserHomework.objects.filter(
+                                    user_id=student_id, homework=homework
+                                ).first()
+                                if user_homework:
+                                    mark = user_homework.mark
+                                    if not log.completed:
+                                        status = user_homework.status
+                        else:
+                            status = "Не пройдено"
+
                     lesson_data = {
                         "lesson_id": lesson.id,
                         "type": obj_type,
                         "name": lesson.name,
                         "availability": availability,
                         "active": lesson.active,
+                        "status": status,
+                        "mark": mark,
                     }
                     lessons_data.append(lesson_data)
 
@@ -304,18 +329,18 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         search_value = self.request.GET.get("search_value")
         if search_value:
             queryset = queryset.filter(
-                Q(students__first_name__icontains=search_value) |
-                Q(students__last_name__icontains=search_value) |
-                Q(students__email__icontains=search_value) |
-                Q(name__icontains=search_value) |
-                Q(course_id__name__icontains=search_value)
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+                | Q(course_id__name__icontains=search_value)
             )
             deleted_history_queryset = deleted_history_queryset.filter(
-                Q(user_id__first_name__icontains=search_value) |
-                Q(user_id__last_name__icontains=search_value) |
-                Q(user_id__email__icontains=search_value) |
-                Q(students_group_id__name__icontains=search_value) |
-                Q(students_group_id__course_id__name__icontains=search_value)
+                Q(user_id__first_name__icontains=search_value)
+                | Q(user_id__last_name__icontains=search_value)
+                | Q(user_id__email__icontains=search_value)
+                | Q(students_group_id__name__icontains=search_value)
+                | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
         # Фильтры
@@ -346,7 +371,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
             last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
-            last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
@@ -355,7 +379,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
             last_active_max += timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__lte=last_active_max
@@ -365,7 +389,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            last_active = datetime.strptime(last_active, "%Y-%m-%d")
             queryset = queryset.filter(students__last_login=last_active).distinct()
             deleted_history_queryset = deleted_history_queryset.filter(
                 user__last_login=last_active
@@ -435,13 +459,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 is_deleted=False,
             )
             .order_by("-date_added")
-            .values("date_added")
+            .values("date_added")[:1]
         )
 
         subquery_date_removed = (
             StudentsHistory.objects.none()
             .order_by("-date_removed")
-            .values("date_removed")
+            .values("date_removed")[:1]
         )
 
         data = queryset.values(
@@ -504,7 +528,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
                         reciever=item["students__id"],
-                        type="PERSONAL"),
+                        type="PERSONAL",
+                    ),
                 }
             )
 
@@ -575,53 +600,346 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
         if sort_by in [
-            'first_name',
-            'last_name',
-            'email',
-            'group_name',
-            'course_name',
-            'date_added',
-            'date_removed',
-            'progress',
-            'average_mark',
-            'mark_sum',
-            'last_active',
+            "first_name",
+            "last_name",
+            "email",
+            "group_name",
+            "course_name",
+            "date_added",
+            "date_removed",
+            "progress",
+            "average_mark",
+            "mark_sum",
+            "last_active",
         ]:
             if sort_order == "asc":
-                if sort_by in ['date_added', 'date_removed', 'last_active']:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum',]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                    )
                 else:
-                    sorted_data = sorted(serialized_data, key=lambda x: str(x.get(sort_by, '') or '').lower())
+                    sorted_data = sorted(
+                        serialized_data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                    )
 
             else:
-                if sort_by in ['date_added', 'date_removed', 'last_active']:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
-                        if x.get(sort_by) is not None else default_date, reverse=True)
-                elif sort_by in ['progress', 'average_mark', 'mark_sum',]:
+                        if x.get(sort_by) is not None
+                        else default_date,
+                        reverse=True,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, 0)
-                        if x.get(sort_by) is not None else 0, reverse=True)
+                        if x.get(sort_by) is not None
+                        else 0,
+                        reverse=True,
+                    )
                 else:
                     sorted_data = sorted(
                         serialized_data,
-                        key=lambda x: str(x.get(sort_by, '') or '').lower(), reverse=True)
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                        reverse=True,
+                    )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
             return paginator.get_paginated_response(paginated_data)
 
-        return Response({"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True)
+    def all_stats(self, request, pk, *args, **kwargs):
+        queryset = StudentsGroup.objects.none()
+        user = self.request.user
+        school = self.get_object()
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            queryset = StudentsGroup.objects.filter(
+                teacher_id=request.user, course_id__school=school
+            )
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            queryset = StudentsGroup.objects.filter(course_id__school=school)
+
+        deleted_history_queryset = StudentsHistory.objects.none()
+
+        hide_deleted = self.request.GET.get("hide_deleted")
+        if not hide_deleted:
+            deleted_history_queryset = StudentsHistory.objects.filter(
+                students_group_id__course_id__school=school, is_deleted=True
+            )
+
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            queryset = queryset.filter(
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+                | Q(course_id__name__icontains=search_value)
+            )
+            deleted_history_queryset = deleted_history_queryset.filter(
+                Q(user_id__first_name__icontains=search_value)
+                | Q(user_id__last_name__icontains=search_value)
+                | Q(user_id__email__icontains=search_value)
+                | Q(students_group_id__name__icontains=search_value)
+                | Q(students_group_id__course_id__name__icontains=search_value)
+            )
+
+        # Фильтры
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            queryset = queryset.filter(students__first_name=first_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__first_name=first_name
+            ).distinct()
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            queryset = queryset.filter(students__last_name=last_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__last_name=last_name
+            ).distinct()
+        course_name = self.request.GET.get("course_name")
+        if course_name:
+            queryset = queryset.filter(course_id__name=course_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                students_group_id__course_id__name=course_name
+            ).distinct()
+        group_name = self.request.GET.get("group_name")
+        if group_name:
+            queryset = queryset.filter(name=group_name).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                students_group_id__name=group_name
+            ).distinct()
+        last_active_min = self.request.GET.get("last_active_min")
+        if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            queryset = queryset.filter(
+                students__last_login__gte=last_active_min
+            ).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__last_login__gte=last_active_min
+            ).distinct()
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
+            last_active_max += timedelta(days=1)
+            queryset = queryset.filter(
+                students__last_login__lte=last_active_max
+            ).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__last_login__lte=last_active_max
+            ).distinct()
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            last_active = datetime.strptime(last_active, "%Y-%m-%d")
+            queryset = queryset.filter(students__last_login=last_active).distinct()
+            deleted_history_queryset = deleted_history_queryset.filter(
+                user__last_login=last_active
+            ).distinct()
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__exact=mark_sum)
+            deleted_history_queryset = deleted_history_queryset.annotate(
+                mark_sum=Sum("user__user_homeworks__mark")
+            )
+            deleted_history_queryset = deleted_history_queryset.filter(
+                mark_sum__exact=mark_sum
+            )
+
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__exact=average_mark)
+            deleted_history_queryset = deleted_history_queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            deleted_history_queryset = deleted_history_queryset.filter(
+                average_mark__exact=average_mark
+            )
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        if mark_sum_min:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__gte=mark_sum_min)
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_max:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__lte=mark_sum_max)
+        average_mark_min = self.request.GET.get("average_mark_min")
+        if average_mark_min:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__gte=average_mark_min)
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_max:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__lte=average_mark_max)
+
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
+
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False,
+            )
+            .order_by("-date_added")
+            .values("date_added")[:1]
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")[:1]
+        )
+
+        data = queryset.values(
+            "course_id",
+            "course_id__name",
+            "group_id",
+            "students__date_joined",
+            "students__last_login",
+            "students__email",
+            "students__first_name",
+            "students__id",
+            "students__profile__avatar",
+            "students__last_name",
+            "name",
+        ).annotate(
+            mark_sum=Subquery(subquery_mark_sum),
+            average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed),
+        )
+
+        serialized_data = []
+        for item in data:
+            if not item["students__id"]:
+                continue
+
+            serialized_data.append(
+                {
+                    "course_id": item["course_id"],
+                    "course_name": item["course_id__name"],
+                    "group_id": item["group_id"],
+                    "last_active": item["students__date_joined"],
+                    "email": item["students__email"],
+                    "first_name": item["students__first_name"],
+                    "student_id": item["students__id"],
+                    "last_name": item["students__last_name"],
+                    "group_name": item["name"],
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "progress": get_student_progress(
+                        item["students__id"],
+                        item["course_id"],
+                        item["group_id"],
+                    ),
+                }
+            )
+
+        # Deleted students
+        subquery_mark_sum_deleted = (
+            UserHomework.objects.filter(user_id=OuterRef("user_id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
+
+        subquery_average_mark_deleted = (
+            UserHomework.objects.filter(user_id=OuterRef("user_id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        data_deleted = deleted_history_queryset.values(
+            "students_group_id__course_id",
+            "students_group_id__course_id__name",
+            "students_group_id",
+            "user_id__date_joined",
+            "user_id__email",
+            "user_id__first_name",
+            "user_id",
+            "user_id__profile__avatar",
+            "user_id__last_name",
+            "students_group_id__name",
+            "date_added",
+            "date_removed",
+        ).annotate(
+            mark_sum=Subquery(subquery_mark_sum_deleted),
+            average_mark=Subquery(subquery_average_mark_deleted),
+        )
+
+        for item in data_deleted:
+            if not item["user_id"]:
+                continue
+
+            serialized_data.append(
+                {
+                    "course_id": item["students_group_id__course_id"],
+                    "course_name": item["students_group_id__course_id__name"],
+                    "group_id": item["students_group_id"],
+                    "last_active": item["user_id__date_joined"],
+                    "email": item["user_id__email"],
+                    "first_name": item["user_id__first_name"],
+                    "student_id": item["user_id"],
+                    "last_name": item["user_id__last_name"],
+                    "group_name": item["students_group_id__name"],
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "is_deleted": True,
+                }
+            )
+
+        return Response(serialized_data)
 
 
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -633,4 +951,3 @@ class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Tariff.objects.all()
     serializer_class = TariffSerializer
     http_method_names = ["get", "head"]
-

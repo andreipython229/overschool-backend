@@ -263,7 +263,6 @@ class CourseViewSet(
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
             last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
-            last_active_min -= timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
@@ -276,7 +275,6 @@ class CourseViewSet(
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            last_active = datetime.strptime(last_active, '%Y-%m-%d')
             queryset = queryset.filter(students__last_login=last_active).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
@@ -330,13 +328,13 @@ class CourseViewSet(
                 is_deleted=False,
             )
             .order_by("-date_added")
-            .values("date_added")
+            .values("date_added")[:1]
         )
 
         subquery_date_removed = (
             StudentsHistory.objects.none()
             .order_by("-date_removed")
-            .values("date_removed")
+            .values("date_removed")[:1]
         )
         data = queryset.values(
             "course_id",
@@ -484,6 +482,167 @@ class CourseViewSet(
         return Response(
             {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
         )
+
+    @action(detail=True, methods=["GET"])
+    def get_all_students_for_course(self, request, pk=None, *args, **kwargs):
+        """Все студенты одного курса без пагинации\n
+        <h2>/api/{school_name}/courses/{course_id}/get_students_for_course/</h2>\n"""
+
+        queryset = StudentsGroup.objects.none()
+        user = self.request.user
+        course = self.get_object()
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            queryset = StudentsGroup.objects.filter(
+                teacher_id=request.user, course_id=course.course_id
+            )
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            queryset = StudentsGroup.objects.filter(course_id=course.course_id)
+
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            queryset = queryset.filter(
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+            )
+
+        # Фильтры
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            queryset = queryset.filter(students__first_name=first_name).distinct()
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            queryset = queryset.filter(students__last_name=last_name).distinct()
+        group_name = self.request.GET.get("group_name")
+        if group_name:
+            queryset = queryset.filter(name=group_name).distinct()
+        last_active_min = self.request.GET.get("last_active_min")
+        if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            queryset = queryset.filter(
+                students__last_login__gte=last_active_min
+            ).distinct()
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max += timedelta(days=1)
+            queryset = queryset.filter(
+                students__last_login__lte=last_active_max
+            ).distinct()
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            queryset = queryset.filter(students__last_login=last_active).distinct()
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__exact=mark_sum)
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__exact=average_mark)
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        if mark_sum_min:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__gte=mark_sum_min)
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_max:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__lte=mark_sum_max)
+        average_mark_min = self.request.GET.get("average_mark_min")
+        if average_mark_min:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__gte=average_mark_min)
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_max:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__lte=average_mark_max)
+
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
+
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False,
+            )
+            .order_by("-date_added")
+            .values("date_added")[:1]
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")[:1]
+        )
+        data = queryset.values(
+            "course_id",
+            "course_id__name",
+            "group_id",
+            "students__date_joined",
+            "students__last_login",
+            "students__email",
+            "students__first_name",
+            "students__id",
+            "students__profile__avatar",
+            "students__last_name",
+            "name",
+        ).annotate(
+            mark_sum=Subquery(subquery_mark_sum),
+            average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed),
+        )
+
+        serialized_data = []
+        for item in data:
+            if not item["students__id"]:
+                continue
+            courses = Course.objects.filter(course_id=item["course_id"])
+            serialized_data.append(
+                {
+                    "student_id": item["students__id"],
+                    "first_name": item["students__first_name"],
+                    "last_name": item["students__last_name"],
+                    "email": item["students__email"],
+                    "course_name": item["course_id__name"],
+                    "group_name": item["name"],
+                    "last_active": item["students__date_joined"],
+                    "mark_sum": item["mark_sum"],
+                    "average_mark": item["average_mark"],
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "progress": get_student_progress(
+                        item["students__id"],
+                        item["course_id"],
+                        item["group_id"],
+                    ),
+                }
+            )
+
+        return Response(serialized_data)
+
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
