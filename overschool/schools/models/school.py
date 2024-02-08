@@ -1,7 +1,4 @@
-from datetime import date
-
 from common_services.mixins import OrderMixin, TimeStampMixin
-# from ...courses.models import StudentsGroup, BaseLesson, UserProgressLogs
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -115,17 +112,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-                self.used_trial
-                and self.trial_end_date
-                and self.trial_end_date <= timezone.now()
+            self.used_trial
+            and self.trial_end_date
+            and self.trial_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-                self.purchased_tariff_end_date
-                and self.purchased_tariff_end_date <= timezone.now()
+            self.purchased_tariff_end_date
+            and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
             self.purchased_tariff_end_date = None
@@ -150,8 +147,6 @@ class SchoolStatistics(models.Model):
         verbose_name="Школа",
         related_name="statistics",
     )
-    start_date = models.DateField(verbose_name="Начальная дата статистики")
-    end_date = models.DateField(verbose_name="Конечная дата статистики")
 
     def get_lessons_count(self):
         BaseLesson = apps.get_model("courses", "BaseLesson")
@@ -163,35 +158,35 @@ class SchoolStatistics(models.Model):
         BaseLesson = apps.get_model("courses", "BaseLesson")
         last_lesson = (
             BaseLesson.objects.filter(section__course__school__name=self.school.name)
-                .order_by("-updated_at")
-                .values("updated_at")
-                .first()
+            .order_by("-updated_at")
+            .values("updated_at")
+            .first()
         )
         return last_lesson["updated_at"] if last_lesson else None
 
     def get_students_count(self):
-        StudentsGroup = apps.get_model("courses", "StudentsGroup")
-        students_count = (
-            StudentsGroup.objects.filter(course_id__school__name=self.school.name)
-                .values("students")
-                .distinct()
-                .count()
-        )
-        return students_count
+        UserGroup = apps.get_model("users", "UserGroup")
+        return UserGroup.objects.filter(
+            school__name=self.school.name, group__name="Student"
+        ).count()
 
-    def get_completed_lessons_count(self):
-        StudentsGroup = apps.get_model("courses", "StudentsGroup")
+    def get_completed_lessons_count(self, start_date=None, end_date=None):
         UserProgressLogs = apps.get_model("courses", "UserProgressLogs")
-        groups = StudentsGroup.objects.filter(course_id__school__name=self.school.name)
         user_progress_logs = UserProgressLogs.objects.filter(
-            user__in=groups.values("students__id")
+            completed=True,
+            lesson__section__course__school__name=self.school.name,
         )
+        if start_date and end_date:
+            user_progress_logs = user_progress_logs.filter(
+                updated_at__gte=start_date, updated_at__lte=end_date
+            )
+        if start_date:
+            user_progress_logs = user_progress_logs.filter(updated_at__gte=start_date)
+        if end_date:
+            user_progress_logs = user_progress_logs.filter(updated_at__lte=end_date)
+        completed_lessons = user_progress_logs.distinct().count()
 
-        completed_lessons = (
-            user_progress_logs.filter(completed=True).values("lesson").distinct()
-        )
-
-        return completed_lessons.count()
+        return completed_lessons
 
     def __str__(self):
         return f"Статистика для школы {self.school.name}"
@@ -206,6 +201,4 @@ def create_school_statistics(sender, instance, created, **kwargs):
     if created:
         SchoolStatistics.objects.create(
             school=instance,
-            start_date=date.today(),
-            end_date=date.today()
         )
