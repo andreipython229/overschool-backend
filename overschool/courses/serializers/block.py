@@ -51,7 +51,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
 
 class BlockDetailSerializer(serializers.ModelSerializer):
     video = serializers.SerializerMethodField()
-    picture = serializers.SerializerMethodField()
+    picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BaseLessonBlock
@@ -63,6 +63,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "code",
             "language",
             "picture",
+            "picture_url",
             "order",
             "type",
         ]
@@ -71,7 +72,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
     def get_video(self, obj):
         return s3.get_link(obj.video.name) if obj.video else None
 
-    def get_picture(self, obj):
+    def get_picture_url(self, obj):
         return s3.get_link(obj.picture.name) if obj.picture else None
 
     def to_representation(self, instance):
@@ -85,6 +86,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             del data["description"]
         if data.get("picture") is None and instance.type != "picture":
             del data["picture"]
+            del data["picture_url"]
         if data.get("video") is None and instance.type != "video":
             del data["video"]
         return data
