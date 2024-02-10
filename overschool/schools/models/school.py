@@ -164,12 +164,6 @@ class SchoolStatistics(models.Model):
         )
         return last_lesson["updated_at"] if last_lesson else None
 
-    def get_students_count(self):
-        UserGroup = apps.get_model("users", "UserGroup")
-        return UserGroup.objects.filter(
-            school__name=self.school.name, group__name="Student"
-        ).count()
-
     def get_completed_lessons_count(self, start_date=None, end_date=None):
         UserProgressLogs = apps.get_model("courses", "UserProgressLogs")
         user_progress_logs = UserProgressLogs.objects.filter(
@@ -184,9 +178,24 @@ class SchoolStatistics(models.Model):
             user_progress_logs = user_progress_logs.filter(updated_at__gte=start_date)
         if end_date:
             user_progress_logs = user_progress_logs.filter(updated_at__lte=end_date)
-        completed_lessons = user_progress_logs.distinct().count()
 
-        return completed_lessons
+        return user_progress_logs.distinct().count()
+
+    def get_added_students_count(self, start_date=None, end_date=None):
+        UserGroup = apps.get_model("users", "UserGroup")
+        students_count = UserGroup.objects.filter(
+            school__name=self.school.name, group__name="Student"
+        )
+        if start_date and end_date:
+            students_count = students_count.filter(
+                created_at__gte=start_date, created_at__lte=end_date
+            )
+        if start_date:
+            students_count = students_count.filter(created_at__gte=start_date)
+        if end_date:
+            students_count = students_count.filter(created_at__lte=end_date)
+
+        return students_count.distinct().count()
 
     def __str__(self):
         return f"Статистика для школы {self.school.name}"
