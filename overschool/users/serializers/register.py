@@ -6,9 +6,6 @@ class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
-    patronymic = serializers.CharField(required=False)
 
     def validate(self, attrs):
         if not any([attrs.get("email"), attrs.get("phone_number")]):
@@ -35,17 +32,9 @@ class SignupSerializer(serializers.Serializer):
         validated_data.pop("password_confirmation")
         password = validated_data.pop("password")
 
-        first_name = validated_data.pop("first_name")
-        last_name = validated_data.pop("last_name")
-        patronymic = validated_data.pop("patronymic", "")
-
         user = User(**validated_data)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.patronymic = patronymic
         user.set_password(password)
         user.save()
-        return user.id
 
 
 class PasswordChangeSerializer(serializers.Serializer):
