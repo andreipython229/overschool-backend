@@ -4,12 +4,10 @@ from users.models import User
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
-
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
-
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
     patronymic = serializers.CharField(required=False)
 
     def validate(self, attrs):
