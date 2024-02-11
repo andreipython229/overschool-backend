@@ -45,6 +45,7 @@ class SignupSerializer(serializers.Serializer):
         user.patronymic = patronymic
         user.set_password(password)
         user.save()
+        return user.id
 
 
 class PasswordChangeSerializer(serializers.Serializer):

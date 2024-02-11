@@ -31,21 +31,20 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
         email = request.data.get("email")
         if User.objects.filter(email=email).exists():
             return HttpResponse("User already exists")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        user_id = serializer.save()
 
-        serializer.save()
-        response = HttpResponse("/api/user/", status=201)
-        return response
+        response_data = {
+            "user_id": user_id
+        }
+        return Response(response_data, status=201)
 
 
 def generate_random_password(length=10):
-    # Создаем строку, содержащую цифры и буквы в верхнем и нижнем регистре
     characters = string.ascii_letters + string.digits
-
-    # Генерируем пароль с указанной длиной
     password = "".join(random.choice(characters) for _ in range(length))
-
     return password
 
 
