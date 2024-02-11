@@ -8,6 +8,10 @@ class SignupSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    patronymic = serializers.CharField(required=False)
+
     def validate(self, attrs):
         if not any([attrs.get("email"), attrs.get("phone_number")]):
             raise serializers.ValidationError(
@@ -32,10 +36,17 @@ class SignupSerializer(serializers.Serializer):
     def create(self, validated_data):
         validated_data.pop("password_confirmation")
         password = validated_data.pop("password")
+
+        first_name = validated_data.pop("first_name")
+        last_name = validated_data.pop("last_name")
+        patronymic = validated_data.pop("patronymic", "")
+
         user = User(**validated_data)
-        user.set_password(password)  # Установка пароля с помощью set_password
+        user.first_name = first_name
+        user.last_name = last_name
+        user.patronymic = patronymic
+        user.set_password(password)
         user.save()
-        return user
 
 
 class PasswordChangeSerializer(serializers.Serializer):

@@ -86,22 +86,24 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели группы студентов без учителя
     """
-    role = serializers.CharField(max_length=50, required=False)
     group_settings = StudentsGroupSettingsSerializer(required=False)
     students = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
+    type = serializers.CharField()
+    teacher_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=False, required=False
+    )
 
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id", "students", "group_settings", "certificate", "role")
+        fields = ("type", "name", "course_id", "students", "teacher_id", "group_settings", "certificate",)
 
     def validate(self, attrs):
         request = self.context.get("request")
         view = self.context.get("view")
         course = attrs.get("course_id")
         students = attrs.get("students")
-        role = attrs.pop('role', None)
         if request.method == "POST" and not course:
             raise serializers.ValidationError("Курс должен быть указан.")
 
