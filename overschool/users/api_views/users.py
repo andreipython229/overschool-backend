@@ -1,5 +1,6 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import BaseLesson, StudentsGroup, UserProgressLogs
+from courses.paginators import StudentsPagination
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
@@ -32,6 +33,7 @@ class AllUsersViewSet(viewsets.GenericViewSet):
 
     queryset = User.objects.all()
     serializer_class = AllUsersSerializer
+    pagination_class = StudentsPagination
 
     def list(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -48,9 +50,31 @@ class AllUsersViewSet(viewsets.GenericViewSet):
         user = request.user
         is_admin = user.groups.filter(group__name="Admin", school=school).exists()
 
+        # Получаем параметры запроса
+        role = request.GET.get("role")
+
         if is_admin:
             # Если пользователь - админ, вернуть только пользователей из этой школы
-            queryset = User.objects.filter(groups__school=school).distinct()
+            if role == "student":
+                queryset = User.objects.filter(
+                    groups__school=school, groups__group__name="Student"
+                ).distinct()
+            elif role == "staff":
+                queryset = (
+                    User.objects.filter(groups__school=school)
+                    .exclude(groups__group__name="Student")
+                    .distinct()
+                )
+            else:
+                queryset = User.objects.filter(groups__school=school).distinct()
+            # Применяем пагинацию к queryset
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(
+                    page, many=True, context={"school": school}
+                )
+                return self.get_paginated_response(serializer.data)
+
             serializer = self.get_serializer(
                 queryset, many=True, context={"school": school}
             )
@@ -71,7 +95,9 @@ class GetCertificateView(APIView):
         course_id = self.request.data.get("course_id")
         school_id = self.request.data.get("school_id")
 
-        groups = StudentsGroup.objects.filter(students=user_id, course_id=course_id, certificate=True)
+        groups = StudentsGroup.objects.filter(
+            students=user_id, course_id=course_id, certificate=True
+        )
 
         if not groups.exists():
             return Response(
@@ -85,7 +111,9 @@ class GetCertificateView(APIView):
 
         for base_lesson in base_lessons:
             try:
-                progress = UserProgressLogs.objects.get(user=user_id, lesson=base_lesson)
+                progress = UserProgressLogs.objects.get(
+                    user=user_id, lesson=base_lesson
+                )
                 if not progress.completed:
                     return Response(
                         {"error": f"Необходимо пройти урок {base_lesson.name}."},
@@ -95,7 +123,7 @@ class GetCertificateView(APIView):
             except UserProgressLogs.DoesNotExist:
                 return Response(
                     {"error": f"Необходимо пройти урок {base_lesson.name}."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
         school = get_object_or_404(School, school_id=school_id)
         user = get_object_or_404(User, id=user_id)
@@ -104,8 +132,8 @@ class GetCertificateView(APIView):
 
         certificate_data = {
             "school_name": school.name,
-            "school_owner": f'{owner.last_name} {owner.first_name} {owner.patronymic}',
-            "teacher": f'{teacher.last_name} {teacher.first_name} {teacher.patronymic}',
+            "school_owner": f"{owner.last_name} {owner.first_name} {owner.patronymic}",
+            "teacher": f"{teacher.last_name} {teacher.first_name} {teacher.patronymic}",
             "user_full_name": f"{user.last_name} {user.first_name} {user.patronymic}",
             "course_name": course.name,
             "course_description": course.description,
