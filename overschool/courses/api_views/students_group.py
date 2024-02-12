@@ -509,7 +509,6 @@ class StudentsGroupViewSet(
 
         return Response(student_data)
 
-
     @action(detail=True, methods=["GET"])
     def section_student_group(self, request, pk=None, *args, **kwargs):
         group = self.get_object()
@@ -653,7 +652,7 @@ class StudentsGroupWithoutTeacherViewSet(
     def perform_create(self, serializer):
         serializer.is_valid()
         course = serializer.validated_data["course_id"]
-        role = serializer.validated_data.get("role", "Admin")
+        type = serializer.validated_data["type"]
         school = self.get_school()
 
         if course.school != school:
@@ -682,10 +681,10 @@ class StudentsGroupWithoutTeacherViewSet(
         chat_name = f"{groupname}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
-        serializer.save(group_settings=group_settings, type="WITH_TEACHER")
-        student_group = serializer.save(chat=chat)
+        serializer.save(group_settings=group_settings, type=type)
+        student_group = serializer.save(chat=chat, user=self.request.user)
 
-        UserChat.objects.create(user=self.request.user, chat=chat, user_role=role)
+        UserChat.objects.create(user=self.request.user, chat=chat, user_role="Admin")
 
         return student_group
 
@@ -694,19 +693,18 @@ class StudentsGroupWithoutTeacherViewSet(
         school = self.get_school()
         students = serializer.validated_data.get("students", [])
         teacher = serializer.validated_data.get("teacher_id")
-        role = serializer.validated_data.get("role")
+
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
 
         current_group = self.get_object()
 
-        group = Group.objects.get(name=role)
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
-            role = serializer.validated_data.get("role", "Teacher")
-            UserChat.objects.create(user=teacher, chat=chat, user_role=role)
+            UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
+            current_group.teacher_id = teacher
 
         if teacher and teacher != previous_teacher:
             previous_chat = UserChat.objects.filter(
@@ -716,7 +714,10 @@ class StudentsGroupWithoutTeacherViewSet(
                 previous_chat.delete()
 
         for student in students:
-            role = serializer.validated_data.get("role", "Student")
-            UserChat.objects.create(user=student, chat=chat, user_role=role)
-
+            if UserChat.objects.filter(user=student, chat=chat).exists():
+                raise serializers.ValidationError("Пользователь уже присутствует в чате.")
+            else:
+                UserChat.objects.create(user=student, chat=chat, user_role="Student")
+                current_group.students.add(student)
+        current_group.save()
         serializer.save()

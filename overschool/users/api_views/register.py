@@ -40,10 +40,7 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
 
 
 def generate_random_password(length=10):
-    # Создаем строку, содержащую цифры и буквы в верхнем и нижнем регистре
     characters = string.ascii_letters + string.digits
-
-    # Генерируем пароль с указанной длиной
     password = "".join(random.choice(characters) for _ in range(length))
 
     return password
@@ -51,6 +48,9 @@ def generate_random_password(length=10):
 
 class SendPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    patronymic = serializers.CharField(required=False)
 
 
 class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
@@ -67,30 +67,40 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def post(self, request):
-        email = request.data.get("email")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data.get("email")
+        first_name = serializer.validated_data.get("first_name")
+        last_name = serializer.validated_data.get("last_name")
+        patronymic = serializer.validated_data.get("patronymic")
+
         if User.objects.filter(email=email).exists():
             return HttpResponse("User already exists")
-        # Генерируем пароль
+
         password = generate_random_password()
 
-        # Создаем пользователя и устанавливаем ему пароль
-        user = User(email=email)
-        user.password = make_password(password)
-        user.save()
+        user = User.objects.create(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            patronymic=patronymic,
+            password=make_password(password)
+        )
 
-        # Отправляем пароль на почту
+        # Отправка пароля на почту
         url = "https://overschool.by/login/"
         subject = "Новый пароль"
-        message = f"Ваш новый пароль : {password}, перейдите по ссылке: {url}"
+        message = f"Ваш новый пароль: {password}, перейдите по ссылке: {url}"
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=message
         )
+
         if send and send["status_code"] == 500:
             return Response(send["error"], status=send["status_code"])
-
         return Response(
-            {"message": "Password sent successfully"}, status=status.HTTP_200_OK
+            {"user_id": user.id}, status=status.HTTP_200_OK
         )
 
 

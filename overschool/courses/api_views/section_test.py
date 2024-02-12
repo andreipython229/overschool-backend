@@ -256,6 +256,25 @@ class TestViewSet(
         serializer = UserTestSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True)
+    def previous_tests(self, request, pk, *args, **kwargs):
+        """Список предыдущих тестов\n
+        <h2>/api/{school_name}/tests/{test_id}/previous_tests/</h2>\n
+        Список тестов курса, стоящих по порядку перед данным тестом и доступных для автогенерации на их основе списка вопросов"""
+
+        test = self.get_object()
+        section = test.section
+        previous_sections_tests = self.get_queryset().filter(
+            section__course=section.course, section__order__lt=section.order
+        )
+        current_section_tests = self.get_queryset().filter(
+            section=section, order__lt=test.order
+        )
+        serializer = TestSerializer(
+            previous_sections_tests | current_section_tests, many=True
+        )
+        return Response(serializer.data)
+
 
 TestViewSet = apply_swagger_auto_schema(
     tags=[
