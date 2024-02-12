@@ -59,8 +59,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                        .exclude(pk=view.get_object().pk)
-                        .count()
+                    .exclude(pk=view.get_object().pk)
+                    .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
@@ -86,18 +86,27 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели группы студентов без учителя
     """
+
     group_settings = StudentsGroupSettingsSerializer(required=False)
     students = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
-    type = serializers.CharField()
+    type = serializers.CharField(required=False)
     teacher_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=False, required=False
     )
 
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id", "students", "teacher_id", "group_settings", "certificate",)
+        fields = (
+            "type",
+            "name",
+            "course_id",
+            "students",
+            "teacher_id",
+            "group_settings",
+            "certificate",
+        )
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -118,8 +127,8 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                        .exclude(pk=view.get_object().pk)
-                        .count()
+                    .exclude(pk=view.get_object().pk)
+                    .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
