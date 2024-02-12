@@ -40,47 +40,49 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
         except School.DoesNotExist:
             return Response({"error": "School not found"})
 
-        if school.tariff:
+        if not school.tariff:
+            return Response({"error": "No tariff found for this school"})
 
-            if school.purchased_tariff_end_date:
-                days_left = (school.purchased_tariff_end_date - timezone.now()).days
-            elif school.trial_end_date:
-                days_left = (school.trial_end_date - timezone.now()).days
-            else:
-                days_left = None
+        # Вычисление оставшихся дней
+        days_left = (
+            (school.purchased_tariff_end_date - timezone.now()).days
+            if school.purchased_tariff_end_date
+            else (school.trial_end_date - timezone.now()).days
+            if school.trial_end_date
+            else None
+        )
 
-            users = User.objects.filter(groups__school=school)
+        # Подсчет количества студентов и сотрудников
+        students = UserGroup.objects.filter(
+            school=school, group__name="Student"
+        ).count()
+        staff = (
+            UserGroup.objects.filter(school=school)
+            .exclude(group__name="Student")
+            .count()
+        )
 
-            students = 0
-            staff = 0
+        # Получение количества курсов для школы
+        number_of_courses = Course.objects.filter(school=school).count()
 
-            for user in users:
-                user_group = UserGroup.objects.filter(user=user, school=school).first()
-                if user_group:
-                    role_name = user_group.group.name
-                    if role_name == "Student":
-                        students += 1
-                    else:
-                        staff += 1
+        # Подготовка данных о тарифе
+        tariff_details = {
+            "id": school.tariff.id,
+            "name": school.tariff.name,
+            "number_of_courses": school.tariff.number_of_courses,
+            "number_of_staff": school.tariff.number_of_staff,
+            "students_per_month": school.tariff.students_per_month,
+            "total_students": school.tariff.total_students,
+            "price": school.tariff.price,
+        }
 
-            courses_for_school = Course.objects.filter(school=school)
-            number_of_courses = courses_for_school.count()
+        data = {
+            "tariff_name": school.tariff.name,
+            "days_left": days_left,
+            "students": students,
+            "staff": staff,
+            "tariff_details": tariff_details,
+            "number_of_courses": number_of_courses,
+        }
 
-            data = {
-                "tariff_name": school.tariff.name,
-                "days_left": days_left,
-                "students": students,
-                "staff": staff,
-                "tariff_details": {
-                    "id": school.tariff.id,
-                    "name": school.tariff.name,
-                    "number_of_courses": school.tariff.number_of_courses,
-                    "number_of_staff": school.tariff.number_of_staff,
-                    "students_per_month": school.tariff.students_per_month,
-                    "total_students": school.tariff.total_students,
-                    "price": school.tariff.price,
-                },
-                "number_of_courses": number_of_courses,
-            }
-
-            return Response(data)
+        return Response(data)
