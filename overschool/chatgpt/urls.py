@@ -9,7 +9,7 @@ urlpatterns = [
         name="send_message"
     ),
     path(
-        "latest_messages/<int:user_id>/<int:overai_chat_id>/",
+        "latest_messages/<int:overai_chat_id>/",
         chatgpt.views.LastMessages.as_view(),
         name="latest_messages"
     ),
@@ -18,22 +18,22 @@ urlpatterns = [
          chatgpt.views.CreateChatView.as_view(),
          name='create_chat'
     ),
-    path('latest_chats/<int:user_id>/',
+    path('latest_chats/',
          chatgpt.views.LastTenChats.as_view(),
          name='latest_chats'
     ),
     path(
-        'delete_chats/<int:user_id>/',
+        'delete_chats/',
         chatgpt.views.DeleteChatsView.as_view(),
         name='delete_chats'
     ),
     path(
-        'user_welcome_message/<int:user_id>/',
+        'user_welcome_message/',
         chatgpt.views.UserWelcomeMessageView.as_view(),
         name='user_welcome_message'
     ),
     path(
-        'update_welcome_message/<int:user_id>/',
+        'update_welcome_message/',
         chatgpt.views.UserWelcomeMessageView.as_view(),
         name='update_welcome_message'),
 ]
