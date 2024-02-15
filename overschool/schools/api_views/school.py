@@ -303,140 +303,102 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     @action(detail=True)
     def stats(self, request, pk, *args, **kwargs):
-        queryset = StudentsGroup.objects.none()
-        user = self.request.user
         school = self.get_object()
+        user = self.request.user
+        queryset = StudentsGroup.objects.none()
+
         if user.groups.filter(group__name="Teacher", school=school).exists():
             queryset = StudentsGroup.objects.filter(
                 teacher_id=request.user, course_id__school=school
             )
-        if user.groups.filter(group__name="Admin", school=school).exists():
+        elif user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id__school=school)
 
         all_active_students = queryset.aggregate(total_users_count=Count("students"))[
             "total_users_count"
         ]
 
-        deleted_history_queryset = StudentsHistory.objects.none()
+        deleted_history_queryset = StudentsHistory.objects.filter(
+            students_group_id__course_id__school=school, is_deleted=True
+        )
 
         hide_deleted = self.request.GET.get("hide_deleted")
-        if not hide_deleted:
-            deleted_history_queryset = StudentsHistory.objects.filter(
-                students_group_id__course_id__school=school, is_deleted=True
-            )
+        if hide_deleted:
+            deleted_history_queryset = deleted_history_queryset.none()
 
         # Поиск
         search_value = self.request.GET.get("search_value")
         if search_value:
-            queryset = queryset.filter(
+            query_filter = (
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
-            deleted_history_queryset = deleted_history_queryset.filter(
-                Q(user_id__first_name__icontains=search_value)
-                | Q(user_id__last_name__icontains=search_value)
-                | Q(user_id__email__icontains=search_value)
-                | Q(students_group_id__name__icontains=search_value)
-                | Q(students_group_id__course_id__name__icontains=search_value)
-            )
+            queryset = queryset.filter(query_filter)
+            deleted_history_queryset = deleted_history_queryset.filter(query_filter)
 
         # Фильтры
-        first_name = self.request.GET.get("first_name")
-        if first_name:
-            queryset = queryset.filter(students__first_name=first_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                user__first_name=first_name
-            ).distinct()
-        last_name = self.request.GET.get("last_name")
-        if last_name:
-            queryset = queryset.filter(students__last_name=last_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                user__last_name=last_name
-            ).distinct()
-        course_name = self.request.GET.get("course_name")
-        if course_name:
-            queryset = queryset.filter(course_id__name=course_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                students_group_id__course_id__name=course_name
-            ).distinct()
-        group_name = self.request.GET.get("group_name")
-        if group_name:
-            queryset = queryset.filter(name=group_name).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                students_group_id__name=group_name
-            ).distinct()
-        last_active_min = self.request.GET.get("last_active_min")
-        if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
-            queryset = queryset.filter(
-                students__last_login__gte=last_active_min
-            ).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                user__last_login__gte=last_active_min
-            ).distinct()
-        last_active_max = self.request.GET.get("last_active_max")
-        if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
-            last_active_max += timedelta(days=1)
-            queryset = queryset.filter(
-                students__last_login__lte=last_active_max
-            ).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                user__last_login__lte=last_active_max
-            ).distinct()
-        last_active = self.request.GET.get("last_active")
-        if last_active:
-            last_active = datetime.strptime(last_active, "%Y-%m-%d")
-            queryset = queryset.filter(students__last_login=last_active).distinct()
-            deleted_history_queryset = deleted_history_queryset.filter(
-                user__last_login=last_active
-            ).distinct()
-        mark_sum = self.request.GET.get("mark_sum")
-        if mark_sum:
-            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
-            queryset = queryset.filter(mark_sum__exact=mark_sum)
-            deleted_history_queryset = deleted_history_queryset.annotate(
-                mark_sum=Sum("user__user_homeworks__mark")
-            )
-            deleted_history_queryset = deleted_history_queryset.filter(
-                mark_sum__exact=mark_sum
-            )
+        filter_parameters = {
+            "first_name": "students__first_name",
+            "last_name": "students__last_name",
+            "course_name": "course_id__name",
+            "group_name": "name",
+        }
 
-        average_mark = self.request.GET.get("average_mark")
-        if average_mark:
-            queryset = queryset.annotate(
-                average_mark=Avg("students__user_homeworks__mark")
-            )
-            queryset = queryset.filter(average_mark__exact=average_mark)
-            deleted_history_queryset = deleted_history_queryset.annotate(
-                average_mark=Avg("students__user_homeworks__mark")
-            )
-            deleted_history_queryset = deleted_history_queryset.filter(
-                average_mark__exact=average_mark
-            )
-        mark_sum_min = self.request.GET.get("mark_sum_min")
-        if mark_sum_min:
-            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
-            queryset = queryset.filter(mark_sum__gte=mark_sum_min)
-        mark_sum_max = self.request.GET.get("mark_sum_max")
-        if mark_sum_max:
-            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
-            queryset = queryset.filter(mark_sum__lte=mark_sum_max)
-        average_mark_min = self.request.GET.get("average_mark_min")
-        if average_mark_min:
-            queryset = queryset.annotate(
-                average_mark=Avg("students__user_homeworks__mark")
-            )
-            queryset = queryset.filter(average_mark__gte=average_mark_min)
-        average_mark_max = self.request.GET.get("average_mark_max")
-        if average_mark_max:
-            queryset = queryset.annotate(
-                average_mark=Avg("students__user_homeworks__mark")
-            )
-            queryset = queryset.filter(average_mark__lte=average_mark_max)
+        for param, field in filter_parameters.items():
+            value = self.request.GET.get(param)
+            if value:
+                queryset = queryset.filter(**{field: value})
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    **{field: value}
+                )
+
+        date_parameters = {
+            "last_active_min": "students__last_login__gte",
+            "last_active_max": "students__last_login__lte",
+            "last_active": "students__last_login",
+        }
+
+        for param, field in date_parameters.items():
+            value = self.request.GET.get(param)
+            if value:
+                value = datetime.strptime(value, "%Y-%m-%d")
+                if param == "last_active_max":
+                    value += timedelta(days=1)
+                queryset = queryset.filter(**{field: value})
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    **{field: value}
+                )
+
+        mark_parameters = {
+            "mark_sum": "students__user_homeworks__mark__exact",
+            "average_mark": "students__user_homeworks__mark__exact",
+            "mark_sum_min": "students__user_homeworks__mark__gte",
+            "mark_sum_max": "students__user_homeworks__mark__lte",
+            "average_mark_min": "students__user_homeworks__mark__gte",
+            "average_mark_max": "students__user_homeworks__mark__lte",
+        }
+
+        for param, field in mark_parameters.items():
+            value = self.request.GET.get(param)
+            if value:
+                if param in ["mark_sum", "average_mark"]:
+                    queryset = queryset.annotate(**{param: Sum(field)})
+                    deleted_history_queryset = deleted_history_queryset.annotate(
+                        **{param: Sum(field)}
+                    )
+                elif param.startswith("average"):
+                    queryset = queryset.annotate(**{param: Avg(field)})
+                    deleted_history_queryset = deleted_history_queryset.annotate(
+                        **{param: Avg(field)}
+                    )
+                else:
+                    queryset = queryset.filter(**{field: value})
+                    deleted_history_queryset = deleted_history_queryset.filter(
+                        **{field: value}
+                    )
 
         subquery_mark_sum = (
             UserHomework.objects.filter(user_id=OuterRef("students__id"))
@@ -738,7 +700,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             ).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
