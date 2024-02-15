@@ -21,9 +21,9 @@ from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSche
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserWelcomeMessageView(View):
-    def post(self, request, user_id):
+    def post(self, request):
         try:
-            user = User.objects.get(id=user_id)
+            user = request.user
             user.shown_welcome_message = True
             user.save()
             return JsonResponse({'message': 'show_welcome_message установлен в True'}, status=200)
@@ -32,9 +32,9 @@ class UserWelcomeMessageView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    def get(self, request, user_id):
+    def get(self, request):
         try:
-            user = User.objects.get(id=user_id)
+            user = request.user
             show_welcome_message = user.shown_welcome_message
             return JsonResponse({'show_welcome_message': show_welcome_message})
         except User.DoesNotExist:
@@ -54,9 +54,10 @@ class LastTenChats(APIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def get(self, request, user_id):
+    def get(self, request):
         try:
-            last_ten_chats = OverAiChat.objects.filter(user_id=user_id).annotate(max_id=Max('id')).order_by('-max_id')[:10]
+            user = request.user
+            last_ten_chats = OverAiChat.objects.filter(user_id=user).annotate(max_id=Max('id')).order_by('-max_id')[:10]
 
             chat_data = {
                 chat.id: chat.chat_name for chat in last_ten_chats
@@ -82,11 +83,11 @@ class SendMessageToGPT(APIView):
         try:
             data = json.loads(request.body)
             user_message = data.get('message', '')
-            user_id = data.get('user_id', '')
-            overai_chat_id = int(data.get('overai_chat_id', ''))
+            user = request.user.id
+            overai_chat_id = data.get('overai_chat_id', '')
             messages = []
 
-            past_messages = list(LastMessages.get(self, request, user_id, overai_chat_id))
+            past_messages = list(LastMessages.get(self, request, overai_chat_id))
 
             combined_data_str = past_messages[0].decode("utf-8")
             combined_data_list = json.loads(combined_data_str)
@@ -101,20 +102,18 @@ class SendMessageToGPT(APIView):
                     messages.append({"role": "assistant", "content": answer})
 
             messages.append({"role": "user", "content": user_message})
-
             response = self.run_provider(messages)
             overai_chat = OverAiChat.objects.get(id=overai_chat_id)
-
             if not UserMessage.objects.filter(overai_chat_id=overai_chat_id).exists():
                 overai_chat.chat_name = user_message
                 overai_chat.save()
             UserMessage.objects.create(
-                sender_id=user_id,
+                sender_id=user,
                 sender_question=user_message,
                 overai_chat_id=overai_chat
             )
             BotResponse.objects.create(
-                sender_id=user_id,
+                sender_id=user,
                 answer=response,
                 overai_chat_id=overai_chat
             )
@@ -152,12 +151,11 @@ class SendMessageToGPT(APIView):
 class LastMessages(APIView):
     parser_classes = [JSONParser]
 
-    def get(self, request, user_id, overai_chat_id):
-        user = int(user_id)
-        chat_id = int(overai_chat_id)
+    def get(self, request, overai_chat_id):
+        user = request.user
         try:
-            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:7]
-            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=chat_id).order_by('-message_date')[:7]
+            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by('-message_date')[:7]
+            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by('-message_date')[:7]
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
@@ -180,9 +178,7 @@ class CreateChatView(APIView):
         return super().dispatch(*args, **kwargs)
 
     def post(self, request):
-        user_id = request.data['user_id']
-
-        user = User.objects.get(id=user_id)
+        user = request.user
         new_chat = OverAiChat.objects.create(user_id=user)
 
         return JsonResponse({'overai_chat_id': new_chat.id}, status=200)
@@ -199,10 +195,11 @@ class DeleteChatsView(APIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def post(self, request, user_id):
+    def post(self, request):
         try:
             # Получаем чаты пользователя по его ID и удаляем те, у которых название 'Новый чат'
-            OverAiChat.objects.filter(user_id=user_id, chat_name='Новый чат').delete()
+            user = request.user
+            OverAiChat.objects.filter(user_id=user, chat_name='Новый чат').delete()
             return JsonResponse({'message': 'Чаты успешно удалены'}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
