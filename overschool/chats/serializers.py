@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Max
 from rest_framework import serializers
 
-from .models import Chat, Message
+from .models import Chat, Message, UserChat
 
 User = get_user_model()
 s3 = UploadToS3()
@@ -33,6 +33,24 @@ class UserChatSerializer(serializers.ModelSerializer):
             return s3.get_link(base_avatar_path)
 
 
+class UserChatRoleSerializer(serializers.ModelSerializer):
+    user = UserChatSerializer()
+
+    class Meta:
+        model = UserChat
+        fields = [
+            'user_role',
+            'user',
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return {
+            'user_role': data['user_role'],
+            **data['user']
+        }
+
+
 class ChatSerializer(serializers.ModelSerializer):
     senders = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
@@ -54,8 +72,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def get_senders(self, obj):
         user_chats = obj.userchat_set.all()
-        users = [user_chat.user for user_chat in user_chats]
-        serializer = UserChatSerializer(users, many=True)
+        serializer = UserChatRoleSerializer(user_chats, many=True)
         return serializer.data
 
     def get_last_message(self, obj):

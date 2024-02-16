@@ -54,6 +54,7 @@ def get_chats_info(user):
                     "last_name": user_chat_user.user.last_name,
                     "id": user_chat_user.user.id,
                     "username": user_chat_user.user.username,
+                    "user_role": user_chat_user.user_role,
                 }
                 for user_chat_user in user_chat.chat.userchat_set.select_related('user__profile')
             ]
@@ -110,6 +111,7 @@ def get_chats_info_async(user):
                     "last_name": user_chat_user.user.last_name,
                     "id": user_chat_user.user.id,
                     "username": user_chat_user.user.username,
+                    "user_role": user_chat_user.user_role,
                 }
                 for user_chat_user in user_chat.chat.userchat_set.select_related('user__profile')
             ]
