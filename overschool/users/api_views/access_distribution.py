@@ -1,11 +1,8 @@
 from datetime import datetime
 
+from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import (
-    Course,
-    StudentsGroup,
-    StudentsHistory,
-)
+from courses.models import Course, StudentsGroup, StudentsHistory
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
@@ -28,7 +25,7 @@ class AccessDistributionView(
 ):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -37,8 +34,8 @@ class AccessDistributionView(
     def check_existing_role(self, user, school, group):
         return (
             UserGroup.objects.filter(user=user, school=school)
-                .exclude(group=group)
-                .exists()
+            .exclude(group=group)
+            .exists()
         )
 
     def check_user_existing_roles(self, user, school):
@@ -64,7 +61,9 @@ class AccessDistributionView(
         message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
         sender_service.send_code_by_email(email=email, subject=subject, message=message)
 
-    def validate_tariff_plan(self, school, number_of_courses, number_of_staff, students_per_month):
+    def validate_tariff_plan(
+        self, school, number_of_courses, number_of_staff, students_per_month
+    ):
         try:
             tariff_id = school.tariff_id
             tariff = Tariff.objects.get(id=tariff_id)
@@ -78,31 +77,42 @@ class AccessDistributionView(
             ).count()
 
             if (
-                    number_of_courses
-                    and tariff.number_of_courses is not None
-                    and existing_courses_count + number_of_courses
-                    > tariff.number_of_courses
-
+                number_of_courses
+                and tariff.number_of_courses is not None
+                and existing_courses_count + number_of_courses
+                > tariff.number_of_courses
             ):
                 return False, "Превышено допустимое количество курсов"
 
             if (
-                    number_of_staff
-                    and tariff.number_of_staff is not None
-                    and existing_staff_count + number_of_staff > tariff.number_of_staff
+                number_of_staff
+                and tariff.number_of_staff is not None
+                and existing_staff_count + number_of_staff > tariff.number_of_staff
             ):
                 return False, "Превышено допустимое количество сотрудников"
 
             if (
-                    students_per_month
-                    and tariff.students_per_month is not None
-                    and existing_students_count + students_per_month
-                    > tariff.students_per_month
+                students_per_month
+                and tariff.students_per_month is not None
+                and existing_students_count + students_per_month
+                > tariff.students_per_month
             ):
                 return False, "Превышено допустимое количество учеников в месяц"
             return True, None
         except Tariff.DoesNotExist:
             return False, "Тариф для данной школы не найден"
+
+    def handle_teacher_group_fk(self, user, student_groups):
+        for student_group in student_groups:
+            previous_teacher = student_group.teacher_id
+            chat = student_group.chat
+            previous_chat = UserChat.objects.filter(
+                user=previous_teacher, chat=chat
+            ).first()
+            if previous_chat:
+                previous_chat.delete()
+            user.teacher_group_fk.add(student_group)
+            UserChat.objects.create(user=user, chat=chat, user_role="teacher")
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
@@ -118,11 +128,16 @@ class AccessDistributionView(
         student_groups_ids = serializer.validated_data.get("student_groups")
 
         number_of_courses = Course.objects.filter(school=self.get_school()).count()
-        number_of_staff = User.objects.filter(
-            students_group_fk__course_id__school=self.get_school(),
-            is_staff=True
-        ).distinct().count()
-        students_per_month = User.objects.filter(students_group_fk__course_id__school=self.get_school()).count()
+        number_of_staff = (
+            User.objects.filter(
+                students_group_fk__course_id__school=self.get_school(), is_staff=True
+            )
+            .distinct()
+            .count()
+        )
+        students_per_month = User.objects.filter(
+            students_group_fk__course_id__school=self.get_school()
+        ).count()
         valid, error_message = self.validate_tariff_plan(
             self.get_school(), number_of_courses, number_of_staff, students_per_month
         )
@@ -175,6 +190,15 @@ class AccessDistributionView(
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
+            if not UserGroup.objects.filter(
+                user=user, school=school, group=group
+            ).exists():
+                self.create_user_group(user, group, school)
+
+            if student_groups_ids:
+                if role == "Teacher":
+                    self.handle_teacher_group_fk(user, student_groups)
+
         return HttpResponse("Доступы предоставлены", status=201)
 
     @swagger_auto_schema(
@@ -219,8 +243,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
