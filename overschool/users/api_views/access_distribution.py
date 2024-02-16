@@ -175,17 +175,6 @@ class AccessDistributionView(
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
-            if not UserGroup.objects.filter(
-                    user=user, school=school, group=group
-            ).exists():
-                self.create_user_group(user, group, school)
-
-            if student_groups_ids:
-                if role == "Teacher":
-                    self.handle_teacher_group_fk(user, student_groups, [])
-                elif role == "Student":
-                    self.handle_students_group_fk(user, student_groups)
-
         return HttpResponse("Доступы предоставлены", status=201)
 
     @swagger_auto_schema(
