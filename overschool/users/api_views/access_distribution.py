@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
-from schools.models import School, Tariff
+from schools.models import School, Tariff, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
@@ -25,7 +25,7 @@ class AccessDistributionView(
 ):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
-    # parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser,)
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -61,46 +61,50 @@ class AccessDistributionView(
         message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
         sender_service.send_code_by_email(email=email, subject=subject, message=message)
 
-    def validate_tariff_plan(
-        self, school, number_of_courses, number_of_staff, students_per_month
-    ):
-        try:
-            tariff_id = school.tariff_id
-            tariff = Tariff.objects.get(id=tariff_id)
+    def validate_tariff_plan(self, new_user_count, role):
+        school = self.get_school()
 
-            existing_courses_count = Course.objects.filter(school=school).count()
-            existing_students_count = User.objects.filter(
-                students_group_fk__course_id__school=school
+        if role == "Student":
+            # Получение текущей даты и времени
+            current_datetime = datetime.now()
+            current_month = current_datetime.month
+            current_year = current_datetime.year
+
+            student_count_by_month = UserGroup.objects.filter(
+                group__name="Student",
+                school=school,
+                created_at__year=current_year,
+                created_at__month=current_month,
             ).count()
-            existing_staff_count = User.objects.filter(
-                students_group_fk__course_id__school=school, is_staff=True
+
+            if (
+                student_count_by_month + new_user_count
+                > school.tariff.students_per_month
+            ):
+                return (
+                    False,
+                    "Превышено количество новых учеников в месяц для выбранного тарифа",
+                )
+
+            if school.tariff.name == TariffPlan.INTERN:
+                student_count = UserGroup.objects.filter(
+                    group__name="Student", school=school
+                ).count()
+                if student_count + new_user_count > school.tariff.total_students:
+                    return False, "Превышено количество учеников для выбранного тарифа"
+
+        elif role in ["Teacher", "Admin"]:
+            staff_count = UserGroup.objects.filter(
+                group__name__in=["Teacher", "Admin"], school=school
             ).count()
-
             if (
-                number_of_courses
-                and tariff.number_of_courses is not None
-                and existing_courses_count + number_of_courses
-                > tariff.number_of_courses
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and staff_count + new_user_count > school.tariff.number_of_staff
             ):
-                return False, "Превышено допустимое количество курсов"
+                return False, "Превышено количество cотрудников для выбранного тарифа"
 
-            if (
-                number_of_staff
-                and tariff.number_of_staff is not None
-                and existing_staff_count + number_of_staff > tariff.number_of_staff
-            ):
-                return False, "Превышено допустимое количество сотрудников"
-
-            if (
-                students_per_month
-                and tariff.students_per_month is not None
-                and existing_students_count + students_per_month
-                > tariff.students_per_month
-            ):
-                return False, "Превышено допустимое количество учеников в месяц"
-            return True, None
-        except Tariff.DoesNotExist:
-            return False, "Тариф для данной школы не найден"
+        return True, None
 
     def handle_teacher_group_fk(self, user, student_groups):
         for student_group in student_groups:
@@ -127,23 +131,6 @@ class AccessDistributionView(
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
 
-        number_of_courses = Course.objects.filter(school=self.get_school()).count()
-        number_of_staff = (
-            User.objects.filter(
-                students_group_fk__course_id__school=self.get_school(), is_staff=True
-            )
-            .distinct()
-            .count()
-        )
-        students_per_month = User.objects.filter(
-            students_group_fk__course_id__school=self.get_school()
-        ).count()
-        valid, error_message = self.validate_tariff_plan(
-            self.get_school(), number_of_courses, number_of_staff, students_per_month
-        )
-        if not valid:
-            return HttpResponse(error_message, status=400)
-
         school = self.get_school()
         group = Group.objects.get(name=role)
 
@@ -155,6 +142,10 @@ class AccessDistributionView(
         )
         users = (users_by_id | users_by_email).distinct()
         new_user_count = users.exclude(groups__school=school).count()
+
+        valid, error_message = self.validate_tariff_plan(new_user_count, role)
+        if not valid:
+            return HttpResponse(error_message, status=400)
 
         student_groups = StudentsGroup.objects.none()
         if student_groups_ids:
