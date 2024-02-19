@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
+from courses.models.students.students_group import StudentsGroup
 
 s3 = UploadToS3()
 
@@ -266,9 +267,9 @@ class HomeworkStatisticsView(
             )
 
         if self.request.GET.get("group_name"):
-            queryset = queryset.filter(
-                user__students_group_fk__name=self.request.GET.get("group_name")
-            )
+            group_name = self.request.GET.get("group_name")
+            teacher_id = StudentsGroup.objects.filter(name=group_name).values_list('teacher_id', flat=True).first()
+            queryset = queryset.filter(teacher_id=teacher_id)
 
         if self.request.GET.get("start_date"):
             subquery = UserHomeworkCheck.objects.filter(
