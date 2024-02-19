@@ -75,8 +75,9 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         last_name = serializer.validated_data.get("last_name")
         patronymic = serializer.validated_data.get("patronymic")
 
-        if User.objects.filter(email=email).exists():
-            return Response("User already exists", status=status.HTTP_200_OK)
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            return Response({"user_id": existing_user.id}, status=status.HTTP_200_OK)
 
         password = generate_random_password()
 
