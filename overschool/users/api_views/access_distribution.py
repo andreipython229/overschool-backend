@@ -2,7 +2,13 @@ from datetime import datetime
 
 from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, StudentsGroup, StudentsHistory
+from courses.models import (
+    Course,
+    LessonAvailability,
+    LessonEnrollment,
+    StudentsGroup,
+    StudentsHistory,
+)
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
@@ -118,6 +124,32 @@ class AccessDistributionView(
             user.teacher_group_fk.add(student_group)
             UserChat.objects.create(user=user, chat=chat, user_role="teacher")
 
+    def handle_students_group_fk(self, user, student_groups):
+        for student_group in student_groups:
+            user.students_group_fk.add(student_group)
+            StudentsHistory.objects.create(user=user, students_group=student_group)
+
+            unavailable_lessons = list(
+                LessonEnrollment.objects.filter(student_group=student_group).values(
+                    "lesson_id"
+                )
+            )
+            unavailable_lessons = list(
+                map(lambda el: el["lesson_id"], unavailable_lessons)
+            )
+            for lesson in unavailable_lessons:
+                LessonAvailability.objects.update_or_create(
+                    student=user, lesson_id=lesson, defaults={"available": False}
+                )
+
+            if student_group.type == "WITH_TEACHER":
+                chat = student_group.chat
+                chat_exists = UserChat.objects.filter(
+                    user=user, chat=chat, user_role="student"
+                ).exists()
+                if not chat_exists:
+                    UserChat.objects.create(user=user, chat=chat, user_role="student")
+
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
         tags=["access_distribution"],
@@ -177,6 +209,10 @@ class AccessDistributionView(
                         status=400,
                     )
 
+        courses_ids = list(
+            map(lambda el: el["course_id"], list(student_groups.values("course_id")))
+        )
+
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
@@ -188,7 +224,21 @@ class AccessDistributionView(
 
             if student_groups_ids:
                 if role == "Teacher":
+                    if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
+                        return HttpResponse(
+                            f"Нельзя преподавать в нескольких группах одного и того же курса (email={user.email})",
+                            status=400,
+                        )
                     self.handle_teacher_group_fk(user, student_groups)
+                elif role == "Student":
+                    if user.students_group_fk.filter(
+                        course_id__in=courses_ids
+                    ).exists():
+                        return HttpResponse(
+                            f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
+                            status=400,
+                        )
+                    self.handle_students_group_fk(user, student_groups)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
