@@ -58,15 +58,13 @@ class AllUsersViewSet(viewsets.GenericViewSet):
             if role == "student":
                 queryset = User.objects.filter(
                     groups__school=school, groups__group__name="Student"
-                ).distinct()
+                )
             elif role == "staff":
-                queryset = (
-                    User.objects.filter(groups__school=school)
-                    .exclude(groups__group__name="Student")
-                    .distinct()
+                queryset = User.objects.filter(
+                    groups__school=school, groups__group__name__in=["Teacher", "Admin"]
                 )
             else:
-                queryset = User.objects.filter(groups__school=school).distinct()
+                queryset = User.objects.filter(groups__school=school)
             # Применяем пагинацию к queryset
             page = self.paginate_queryset(queryset)
             if page is not None:
