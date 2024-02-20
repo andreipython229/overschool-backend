@@ -97,6 +97,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     def post(self, request, *args, **kwargs):
         chat_creator = self.request.user
         role_creator = request.data.get("role_name")
+        role_reciever = request.data.get("role_reciever")
         role1 = ""
         role2 = ""
         if role_creator == "Admin":
@@ -108,6 +109,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         elif role_creator == "Student":
             role1 = "Ментор"
             role2 = "Студент"
+            role_reciever = "Teacher"
 
         chat_reciever_id = request.data.get("user_id")
 
@@ -133,8 +135,8 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                      f'{chat_reciever.email if role_creator != "Student" else chat_creator.email}'
             )
             user_chats = [
-                UserChat(user=chat_creator, chat=chat),
-                UserChat(user=chat_reciever, chat=chat),
+                UserChat(user=chat_creator, chat=chat, user_role=role_creator),
+                UserChat(user=chat_reciever, chat=chat, user_role=role_reciever),
             ]
 
             UserChat.objects.bulk_create(user_chats)

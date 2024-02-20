@@ -714,10 +714,9 @@ class StudentsGroupWithoutTeacherViewSet(
                 previous_chat.delete()
 
         for student in students:
-            if UserChat.objects.filter(user=student, chat=chat).exists():
-                raise serializers.ValidationError("Пользователь уже присутствует в чате.")
-            else:
+            if not UserChat.objects.filter(user=student, chat=chat).exists():
                 UserChat.objects.create(user=student, chat=chat, user_role="Student")
                 current_group.students.add(student)
+
         current_group.save()
         serializer.save()

@@ -75,8 +75,9 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         last_name = serializer.validated_data.get("last_name")
         patronymic = serializer.validated_data.get("patronymic")
 
-        if User.objects.filter(email=email).exists():
-            return HttpResponse("User already exists")
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            return Response({"user_id": existing_user.id}, status=status.HTTP_200_OK)
 
         password = generate_random_password()
 
@@ -85,7 +86,7 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
             first_name=first_name,
             last_name=last_name,
             patronymic=patronymic,
-            password=make_password(password)
+            password=make_password(password),
         )
 
         # Отправка пароля на почту
@@ -99,9 +100,7 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
 
         if send and send["status_code"] == 500:
             return Response(send["error"], status=send["status_code"])
-        return Response(
-            {"user_id": user.id}, status=status.HTTP_200_OK
-        )
+        return Response({"user_id": user.id}, status=status.HTTP_200_OK)
 
 
 class PasswordChangeView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):

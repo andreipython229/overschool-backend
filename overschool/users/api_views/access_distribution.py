@@ -1,8 +1,11 @@
 from datetime import datetime
 
+from chats.models import UserChat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
     Course,
+    LessonAvailability,
+    LessonEnrollment,
     StudentsGroup,
     StudentsHistory,
 )
@@ -12,7 +15,7 @@ from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
-from schools.models import School, Tariff
+from schools.models import School, Tariff, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
 from users.serializers import AccessDistributionSerializer
@@ -37,8 +40,8 @@ class AccessDistributionView(
     def check_existing_role(self, user, school, group):
         return (
             UserGroup.objects.filter(user=user, school=school)
-                .exclude(group=group)
-                .exists()
+            .exclude(group=group)
+            .exists()
         )
 
     def check_user_existing_roles(self, user, school):
@@ -64,45 +67,88 @@ class AccessDistributionView(
         message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
         sender_service.send_code_by_email(email=email, subject=subject, message=message)
 
-    def validate_tariff_plan(self, school, number_of_courses, number_of_staff, students_per_month):
-        try:
-            tariff_id = school.tariff_id
-            tariff = Tariff.objects.get(id=tariff_id)
+    def validate_tariff_plan(self, new_user_count, role):
+        school = self.get_school()
 
-            existing_courses_count = Course.objects.filter(school=school).count()
-            existing_students_count = User.objects.filter(
-                students_group_fk__course_id__school=school
+        if role == "Student":
+            # Получение текущей даты и времени
+            current_datetime = datetime.now()
+            current_month = current_datetime.month
+            current_year = current_datetime.year
+
+            student_count_by_month = UserGroup.objects.filter(
+                group__name="Student",
+                school=school,
+                created_at__year=current_year,
+                created_at__month=current_month,
             ).count()
-            existing_staff_count = User.objects.filter(
-                students_group_fk__course_id__school=school, is_staff=True
+
+            if (
+                student_count_by_month + new_user_count
+                > school.tariff.students_per_month
+            ):
+                return (
+                    False,
+                    "Превышено количество новых учеников в месяц для выбранного тарифа",
+                )
+
+            if school.tariff.name == TariffPlan.INTERN:
+                student_count = UserGroup.objects.filter(
+                    group__name="Student", school=school
+                ).count()
+                if student_count + new_user_count > school.tariff.total_students:
+                    return False, "Превышено количество учеников для выбранного тарифа"
+
+        elif role in ["Teacher", "Admin"]:
+            staff_count = UserGroup.objects.filter(
+                group__name__in=["Teacher", "Admin"], school=school
             ).count()
-
             if (
-                    number_of_courses
-                    and tariff.number_of_courses is not None
-                    and existing_courses_count + number_of_courses
-                    > tariff.number_of_courses
-
+                school.tariff.name
+                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and staff_count + new_user_count > school.tariff.number_of_staff
             ):
-                return False, "Превышено допустимое количество курсов"
+                return False, "Превышено количество cотрудников для выбранного тарифа"
 
-            if (
-                    number_of_staff
-                    and tariff.number_of_staff is not None
-                    and existing_staff_count + number_of_staff > tariff.number_of_staff
-            ):
-                return False, "Превышено допустимое количество сотрудников"
+        return True, None
 
-            if (
-                    students_per_month
-                    and tariff.students_per_month is not None
-                    and existing_students_count + students_per_month
-                    > tariff.students_per_month
-            ):
-                return False, "Превышено допустимое количество учеников в месяц"
-            return True, None
-        except Tariff.DoesNotExist:
-            return False, "Тариф для данной школы не найден"
+    def handle_teacher_group_fk(self, user, student_groups):
+        for student_group in student_groups:
+            previous_teacher = student_group.teacher_id
+            chat = student_group.chat
+            previous_chat = UserChat.objects.filter(
+                user=previous_teacher, chat=chat
+            ).first()
+            if previous_chat:
+                previous_chat.delete()
+            user.teacher_group_fk.add(student_group)
+            UserChat.objects.create(user=user, chat=chat, user_role="teacher")
+
+    def handle_students_group_fk(self, user, student_groups):
+        for student_group in student_groups:
+            user.students_group_fk.add(student_group)
+            StudentsHistory.objects.create(user=user, students_group=student_group)
+
+            unavailable_lessons = list(
+                LessonEnrollment.objects.filter(student_group=student_group).values(
+                    "lesson_id"
+                )
+            )
+            unavailable_lessons = list(
+                map(lambda el: el["lesson_id"], unavailable_lessons)
+            )
+            for lesson in unavailable_lessons:
+                LessonAvailability.objects.update_or_create(
+                    student=user, lesson_id=lesson, defaults={"available": False}
+                )
+
+            if student_group.type == "WITH_TEACHER":
+                chat = student_group.chat
+                chat_exists = UserChat.objects.filter(
+                    user=user, chat=chat, user_role="student"
+                ).exists()
+                if not chat_exists:
+                    UserChat.objects.create(user=user, chat=chat, user_role="student")
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
@@ -117,18 +163,6 @@ class AccessDistributionView(
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
 
-        number_of_courses = Course.objects.filter(school=self.get_school()).count()
-        number_of_staff = User.objects.filter(
-            students_group_fk__course_id__school=self.get_school(),
-            is_staff=True
-        ).distinct().count()
-        students_per_month = User.objects.filter(students_group_fk__course_id__school=self.get_school()).count()
-        valid, error_message = self.validate_tariff_plan(
-            self.get_school(), number_of_courses, number_of_staff, students_per_month
-        )
-        if not valid:
-            return HttpResponse(error_message, status=400)
-
         school = self.get_school()
         group = Group.objects.get(name=role)
 
@@ -140,6 +174,10 @@ class AccessDistributionView(
         )
         users = (users_by_id | users_by_email).distinct()
         new_user_count = users.exclude(groups__school=school).count()
+
+        valid, error_message = self.validate_tariff_plan(new_user_count, role)
+        if not valid:
+            return HttpResponse(error_message, status=400)
 
         student_groups = StudentsGroup.objects.none()
         if student_groups_ids:
@@ -171,19 +209,35 @@ class AccessDistributionView(
                         status=400,
                     )
 
+        courses_ids = list(
+            map(lambda el: el["course_id"], list(student_groups.values("course_id")))
+        )
+
         for user in users:
             if self.check_existing_role(user, school, group):
                 return self.handle_existing_roles(user, school, group)
 
             if not UserGroup.objects.filter(
-                    user=user, school=school, group=group
+                user=user, school=school, group=group
             ).exists():
                 self.create_user_group(user, group, school)
 
             if student_groups_ids:
                 if role == "Teacher":
-                    self.handle_teacher_group_fk(user, student_groups, [])
+                    if user.teacher_group_fk.filter(course_id__in=courses_ids).exists():
+                        return HttpResponse(
+                            f"Нельзя преподавать в нескольких группах одного и того же курса (email={user.email})",
+                            status=400,
+                        )
+                    self.handle_teacher_group_fk(user, student_groups)
                 elif role == "Student":
+                    if user.students_group_fk.filter(
+                        course_id__in=courses_ids
+                    ).exists():
+                        return HttpResponse(
+                            f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
+                            status=400,
+                        )
                     self.handle_students_group_fk(user, student_groups)
 
         return HttpResponse("Доступы предоставлены", status=201)
@@ -230,8 +284,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                        role == "Teacher"
-                        and user.teacher_group_fk.filter(course_id__school=school).first()
+                    role == "Teacher"
+                    and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
