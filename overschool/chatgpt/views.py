@@ -21,6 +21,12 @@ from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSche
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserWelcomeMessageView(View):
+    """
+    Приветственное сообщение в OVER AI:
+    - Было ли оно показано для конкретного пользователя или нет
+    - Обновление состояния на True, если не было показано приветственное сообщение
+    """
+
     def post(self, request):
         try:
             user = request.user
@@ -48,6 +54,10 @@ class UserWelcomeMessageView(View):
     name="get",
 )
 class LastTenChats(APIView):
+    """
+    Полуение последних 10 чатов для пользователя
+    """
+
     parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
@@ -73,6 +83,10 @@ class LastTenChats(APIView):
     name="post",
 )
 class SendMessageToGPT(APIView):
+    """
+    Отправление сообщения в OVER AI
+    """
+
     parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
@@ -81,17 +95,21 @@ class SendMessageToGPT(APIView):
 
     def post(self, request):
         try:
+            # Получаем данные из request
             data = json.loads(request.body)
             user_message = data.get('message', '')
             user = request.user.id
             overai_chat_id = data.get('overai_chat_id', '')
             messages = []
 
+            # Получаем последние сообщения для конкретного чата
             past_messages = list(LastMessages.get(self, request, overai_chat_id))
 
+            # Декодируем последние сообщения
             combined_data_str = past_messages[0].decode("utf-8")
             combined_data_list = json.loads(combined_data_str)
 
+            # Передача последних сообщений для OVER AI, для поддержки контекста
             for user_data, assistant_data in zip(combined_data_list[0][:4], combined_data_list[1][:4]):
                 sender_question = user_data.get("sender_question", "")
                 if sender_question:
@@ -102,16 +120,21 @@ class SendMessageToGPT(APIView):
                     messages.append({"role": "assistant", "content": answer})
 
             messages.append({"role": "user", "content": user_message})
+
+            # Запускаем получение ответа от провайдеров
             response = self.run_provider(messages)
             overai_chat = OverAiChat.objects.get(id=overai_chat_id)
+
             if not UserMessage.objects.filter(overai_chat_id=overai_chat_id).exists():
                 overai_chat.chat_name = user_message
                 overai_chat.save()
+
             UserMessage.objects.create(
                 sender_id=user,
                 sender_question=user_message,
                 overai_chat_id=overai_chat
             )
+
             BotResponse.objects.create(
                 sender_id=user,
                 answer=response,
@@ -122,6 +145,10 @@ class SendMessageToGPT(APIView):
             return JsonResponse({'error': str(e)}, status=500)
 
     def run_provider(self, messages):
+        """
+        Получение ответа от провайдера
+        """
+
         try:
             providers = AIProvider.objects.all()
             for provider in providers:
@@ -136,8 +163,8 @@ class SendMessageToGPT(APIView):
                         return response_str
                     else:
                         continue
-                except Exception as e:
-                    return f"Provider {provider.name} failed with exception: {e}"
+                except Exception:
+                    continue
 
             return "OVER AI Exception: No successful response from any provider"
         except Exception as e:
@@ -149,13 +176,19 @@ class SendMessageToGPT(APIView):
     name="get"
 )
 class LastMessages(APIView):
+    """
+    Получение последних сообщений от пользователя и ответов от OVER AI для конкретного чата
+    """
+
     parser_classes = [JSONParser]
 
     def get(self, request, overai_chat_id):
         user = request.user
         try:
-            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by('-message_date')[:7]
-            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by('-message_date')[:7]
+            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by(
+                '-message_date')[:7]
+            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by(
+                '-message_date')[:7]
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
@@ -171,6 +204,10 @@ class LastMessages(APIView):
     name="post"
 )
 class CreateChatView(APIView):
+    """
+    Создание чата пользователя
+    """
+
     parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
@@ -189,6 +226,10 @@ class CreateChatView(APIView):
     name="post"
 )
 class DeleteChatsView(APIView):
+    """
+    Удаление пустых чатов пользователя
+    """
+
     parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
