@@ -1,6 +1,7 @@
 from courses.api_views import (
     AnswerViewSet,
     BaseLessonBlockViewSet,
+    CourseCatalogViewSet,
     CourseViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
@@ -64,3 +65,9 @@ urlpatterns = router.urls
 router_video = routers.DefaultRouter()
 
 router_video.register("block_video", UploadVideoViewSet, basename="block_video")
+
+router_catalog = routers.DefaultRouter()
+
+router_catalog.register(
+    "course_catalog", CourseCatalogViewSet, basename="course_catalog"
+)

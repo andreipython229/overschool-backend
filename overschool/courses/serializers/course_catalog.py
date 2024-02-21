@@ -1,0 +1,37 @@
+from common_services.selectel_client import UploadToS3
+from courses.models import Course
+from rest_framework import serializers
+
+s3 = UploadToS3()
+
+
+class CourseCatalogSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор каталога курсов
+    """
+
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = [
+            "course_id",
+            "is_catalog",
+            "public",
+            "name",
+            "format",
+            "duration_days",
+            "price",
+            "description",
+            "photo",
+            "photo_url",
+            "school",
+        ]
+
+    def get_photo(self, obj):
+        if obj.photo:
+            return s3.get_link(obj.photo.name)
+        else:
+            # Если нет загруженной картинки, вернуть ссылку на дефолтное изображение
+            default_image_path = "base_course.jpg"
+            return s3.get_link(default_image_path)

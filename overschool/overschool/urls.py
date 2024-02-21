@@ -3,7 +3,11 @@ from common_services.api_views import (
     SubscribeClientView,
     UnsubscribeClientView,
 )
-from courses.api_views import BlockUpdateViewSet, LessonUpdateViewSet
+from courses.api_views import (
+    BlockUpdateViewSet,
+    CourseCatalogViewSet,
+    LessonUpdateViewSet,
+)
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -32,7 +36,13 @@ from users.api_views import (
     UserSchoolsView,
 )
 
-from .main_router import router, school_router, user_router, videos_router
+from .main_router import (
+    catalogs_router,
+    router,
+    school_router,
+    user_router,
+    videos_router,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -133,6 +143,7 @@ urlpatterns = [
     path("api/certificate/", GetCertificateView.as_view(), name="get_certificate"),
     path("api/chats/", include("chats.urls")),
     path("api/chatgpt/", include("chatgpt.urls")),
+    path("api/", include(catalogs_router.urls)),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
     path("video/<str:school_name>/", include(videos_router.urls)),
