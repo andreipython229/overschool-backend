@@ -58,4 +58,3 @@ class LastTenChatsSchema:
             operation_summary="Получить последние 10 чатов пользователя",
             responses={200: 'Успешный запрос', 500: 'Ошибка сервера'},
         )
-
