@@ -1,7 +1,10 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import Course, Public
 from courses.paginators import StudentsPagination
-from courses.serializers import CourseCatalogSerializer
+from courses.serializers.course_catalog import (
+    CourseCatalogDetailSerializer,
+    CourseCatalogSerializer,
+)
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
@@ -56,10 +59,9 @@ class CourseCatalogViewSet(
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
-        print(len(serializer.data))
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        serializer = CourseCatalogDetailSerializer(instance)
         return Response(serializer.data)

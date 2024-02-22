@@ -11,7 +11,6 @@ from .course import (
     CourseStudentsSerializer,
     CourseWithGroupsSerializer,
 )
-from .course_catalog import CourseCatalogSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import (
     LessonAvailabilitySerializer,
