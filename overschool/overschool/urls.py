@@ -5,6 +5,7 @@ from common_services.api_views import (
 )
 from courses.api_views import (
     BlockUpdateViewSet,
+    CourseAppealsViewSet,
     CourseCatalogViewSet,
     LessonUpdateViewSet,
 )
@@ -70,6 +71,11 @@ urlpatterns = [
         "api/forgot_password/",
         ForgotPasswordView.as_view(actions={"post": "post"}),
         name="forgot_password",
+    ),
+    path(
+        "api/course-appeals/",
+        CourseAppealsViewSet.as_view(actions={"post": "post"}),
+        name="course-appeals",
     ),
     path(
         "api/token-validate/",

@@ -4,7 +4,7 @@ from .common.base_lesson import (
     LessonAvailability,
     LessonEnrollment,
 )
-from .courses.course import Course, Public
+from .courses.course import Course, CourseAppeals, Public
 from .courses.section import Section
 from .homework.homework import Homework
 from .homework.user_homework import UserHomework, UserHomeworkStatusChoices

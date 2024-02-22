@@ -1,4 +1,4 @@
-from courses.models import Course
+from courses.models import Course, CourseAppeals
 from django.contrib import admin
 
 
@@ -14,3 +14,8 @@ class CourseAdmin(admin.ModelAdmin):
         "description",
         "photo",
     ]
+
+
+@admin.register(CourseAppeals)
+class CourseAppealsAdmin(admin.ModelAdmin):
+    pass

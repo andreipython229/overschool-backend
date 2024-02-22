@@ -11,6 +11,7 @@ from .course import (
     CourseStudentsSerializer,
     CourseWithGroupsSerializer,
 )
+from .course_appeals import CourseAppealsSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import (
     LessonAvailabilitySerializer,
