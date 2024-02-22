@@ -22,9 +22,11 @@ from courses.api_views import (
     UserTestViewSet,
 )
 from rest_framework import routers
+from schools.api_views import SchoolDocumentViewSet
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
+router.register("school_document", SchoolDocumentViewSet, basename="school_document")
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
