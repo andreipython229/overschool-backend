@@ -1,5 +1,6 @@
 from common_services.urls import router as common_services_router
 from courses.urls import router as courses_router
+from courses.urls import router_appeals as appeals_router
 from courses.urls import router_catalog as catalog_router
 from courses.urls import router_video as video_router
 from rest_framework import routers
@@ -20,3 +21,6 @@ videos_router.registry += video_router.registry
 
 catalogs_router = routers.DefaultRouter()
 catalogs_router.registry += catalog_router.registry
+
+appeal_router = routers.DefaultRouter()
+appeal_router.registry += appeals_router.registry

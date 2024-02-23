@@ -3,6 +3,7 @@ from courses.api_views import (
     BaseLessonBlockViewSet,
     CourseCatalogViewSet,
     CourseViewSet,
+    GetAppealsViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
     HomeworkViewSet,
@@ -73,3 +74,7 @@ router_catalog = routers.DefaultRouter()
 router_catalog.register(
     "course_catalog", CourseCatalogViewSet, basename="course_catalog"
 )
+
+router_appeals = routers.DefaultRouter()
+
+router_appeals.register("course-appeals", GetAppealsViewSet, basename="course-appeals")

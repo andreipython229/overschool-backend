@@ -38,6 +38,7 @@ from users.api_views import (
 )
 
 from .main_router import (
+    appeal_router,
     catalogs_router,
     router,
     school_router,
@@ -154,6 +155,7 @@ urlpatterns = [
     path("api/", include(school_router.urls)),
     path("video/<str:school_name>/", include(videos_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
+    path("api/<str:school_name>/", include(appeal_router.urls)),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),
