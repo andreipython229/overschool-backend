@@ -3,7 +3,12 @@ from common_services.api_views import (
     SubscribeClientView,
     UnsubscribeClientView,
 )
-from courses.api_views import BlockUpdateViewSet, LessonUpdateViewSet
+from courses.api_views import (
+    BlockUpdateViewSet,
+    CourseAppealsViewSet,
+    CourseCatalogViewSet,
+    LessonUpdateViewSet,
+)
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -32,7 +37,14 @@ from users.api_views import (
     UserSchoolsView,
 )
 
-from .main_router import router, school_router, user_router, videos_router
+from .main_router import (
+    appeal_router,
+    catalogs_router,
+    router,
+    school_router,
+    user_router,
+    videos_router,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -60,6 +72,11 @@ urlpatterns = [
         "api/forgot_password/",
         ForgotPasswordView.as_view(actions={"post": "post"}),
         name="forgot_password",
+    ),
+    path(
+        "api/course-appeals/",
+        CourseAppealsViewSet.as_view(actions={"post": "post"}),
+        name="course-appeals",
     ),
     path(
         "api/token-validate/",
@@ -133,10 +150,12 @@ urlpatterns = [
     path("api/certificate/", GetCertificateView.as_view(), name="get_certificate"),
     path("api/chats/", include("chats.urls")),
     path("api/chatgpt/", include("chatgpt.urls")),
+    path("api/", include(catalogs_router.urls)),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),
     path("video/<str:school_name>/", include(videos_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
+    path("api/<str:school_name>/", include(appeal_router.urls)),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),

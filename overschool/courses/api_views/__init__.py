@@ -1,6 +1,8 @@
 from .answer import AnswerViewSet
 from .block import BaseLessonBlockViewSet, BlockUpdateViewSet
 from .course import CourseViewSet
+from .course_appeals import CourseAppealsViewSet, GetAppealsViewSet
+from .course_catalog import CourseCatalogViewSet
 from .homework import HomeworkViewSet
 from .lesson import (
     LessonAvailabilityViewSet,
