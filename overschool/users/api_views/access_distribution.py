@@ -142,13 +142,15 @@ class AccessDistributionView(
                     student=user, lesson_id=lesson, defaults={"available": False}
                 )
 
-            if student_group.type == "WITH_TEACHER":
+            try:
                 chat = student_group.chat
                 chat_exists = UserChat.objects.filter(
                     user=user, chat=chat, user_role="student"
                 ).exists()
                 if not chat_exists:
                     UserChat.objects.create(user=user, chat=chat, user_role="student")
+            except:
+                print("Ошибка добавления ученика в чат")
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
