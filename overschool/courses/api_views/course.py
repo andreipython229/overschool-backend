@@ -159,12 +159,12 @@ class CourseViewSet(
             serializer = CourseGetSerializer(course)
 
         #Чат с типом "COURSE" и именем, связанным с курсом
-        chat_name = f"Чат курса '{course.name}'"
-        chat = Chat.objects.create(name=chat_name, type="COURSE")
-
-        admin = request.user
-
-        UserChat.objects.create(user=admin, chat=chat)
+        # chat_name = f"Чат курса '{course.name}'"
+        # chat = Chat.objects.create(name=chat_name, type="COURSE")
+        #
+        # admin = request.user
+        #
+        # UserChat.objects.create(user=admin, chat=chat)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

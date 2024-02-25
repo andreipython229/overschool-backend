@@ -122,7 +122,7 @@ class AccessDistributionView(
             if previous_chat:
                 previous_chat.delete()
             user.teacher_group_fk.add(student_group)
-            UserChat.objects.create(user=user, chat=chat, user_role="teacher")
+            UserChat.objects.create(user=user, chat=chat, user_role="Teacher")
 
     def handle_students_group_fk(self, user, student_groups):
         for student_group in student_groups:
@@ -145,10 +145,10 @@ class AccessDistributionView(
             if student_group.type == "WITH_TEACHER":
                 chat = student_group.chat
                 chat_exists = UserChat.objects.filter(
-                    user=user, chat=chat, user_role="student"
+                    user=user, chat=chat, user_role="Student"
                 ).exists()
                 if not chat_exists:
-                    UserChat.objects.create(user=user, chat=chat, user_role="student")
+                    UserChat.objects.create(user=user, chat=chat, user_role="Student")
 
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
