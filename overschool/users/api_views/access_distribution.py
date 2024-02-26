@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from chats.models import UserChat
+from chats.models import UserChat, Chat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
     Course,
@@ -122,7 +122,7 @@ class AccessDistributionView(
             if previous_chat:
                 previous_chat.delete()
             user.teacher_group_fk.add(student_group)
-            UserChat.objects.create(user=user, chat=chat, user_role="teacher")
+            UserChat.objects.create(user=user, chat=chat, user_role="Teacher")
 
     def handle_students_group_fk(self, user, student_groups):
         for student_group in student_groups:
@@ -145,7 +145,7 @@ class AccessDistributionView(
             try:
                 chat = student_group.chat
                 chat_exists = UserChat.objects.filter(
-                    user=user, chat=chat, user_role="student"
+                    user=user, chat=chat, user_role="Student"
                 ).exists()
                 if not chat_exists:
                     UserChat.objects.create(user=user, chat=chat, user_role="student")
@@ -327,6 +327,13 @@ class AccessDistributionView(
                             except:
                                 print("Ошибка удаления в StudentsHistory.")
 
+                            try:
+                                userchat = UserChat.objects.get(user=user, chat=student_group.chat)
+                                if userchat:
+                                    userchat.delete()
+                            except:
+                                print("Ошибка удаления UserChat.")
+
                             student_group.students.remove(user)
 
             else:
@@ -357,6 +364,13 @@ class AccessDistributionView(
                             history.save()
                         except:
                             print("Ошибка удаления в StudentsHistory.")
+
+                        try:
+                            userchat = UserChat.objects.get(user=user, chat=student_group.chat)
+                            if userchat:
+                                userchat.delete()
+                        except:
+                            print("Ошибка удаления UserChat.")
 
                         user.students_group_fk.remove(student_group)
 
