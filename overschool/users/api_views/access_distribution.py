@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from chats.models import UserChat
+from chats.models import UserChat, Chat
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
     Course,
@@ -325,6 +325,13 @@ class AccessDistributionView(
                             except:
                                 print("Ошибка удаления в StudentsHistory.")
 
+                            try:
+                                userchat = UserChat.objects.get(user=user, chat=student_group.chat)
+                                if userchat:
+                                    userchat.delete()
+                            except:
+                                print("Ошибка удаления UserChat.")
+
                             student_group.students.remove(user)
 
             else:
@@ -355,6 +362,13 @@ class AccessDistributionView(
                             history.save()
                         except:
                             print("Ошибка удаления в StudentsHistory.")
+
+                        try:
+                            userchat = UserChat.objects.get(user=user, chat=student_group.chat)
+                            if userchat:
+                                userchat.delete()
+                        except:
+                            print("Ошибка удаления UserChat.")
 
                         user.students_group_fk.remove(student_group)
 

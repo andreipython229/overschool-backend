@@ -135,6 +135,7 @@ class StudentsGroupViewSet(
         course = serializer.validated_data["course_id"]
         school = self.get_school()
         teacher = serializer.validated_data.get("teacher_id")
+        name = serializer.validated_data.get("name")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
@@ -167,6 +168,10 @@ class StudentsGroupViewSet(
         # обновляем чат с участниками группы
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
+
+        if current_group.name != name:
+            chat.name = name
+            chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat)
