@@ -18,7 +18,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-from users.models import Profile, UserGroup
+from users.models import Profile, UserGroup, User
 from users.serializers import UserProfileGetSerializer
 
 
@@ -135,6 +135,7 @@ class StudentsGroupViewSet(
         course = serializer.validated_data["course_id"]
         school = self.get_school()
         teacher = serializer.validated_data.get("teacher_id")
+        name = serializer.validated_data.get("name")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
@@ -167,6 +168,10 @@ class StudentsGroupViewSet(
         # обновляем чат с участниками группы
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
+
+        if current_group.name != name:
+            chat.name = name
+            chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat)
@@ -684,7 +689,14 @@ class StudentsGroupWithoutTeacherViewSet(
         serializer.save(group_settings=group_settings, type=type)
         student_group = serializer.save(chat=chat, user=self.request.user)
 
-        UserChat.objects.create(user=self.request.user, chat=chat, user_role="Admin")
+        admins = User.objects.filter(
+            groups__school=student_group.course_id.school, groups__group__name__in=["Admin"]
+        )
+        # UserChat.objects.create(user=self.request.user, chat=chat, user_role="Admin")
+        for admin in admins:
+            if not UserChat.objects.filter(user=admin, chat=chat, user_role='Admin').exists():
+                UserChat.objects.create(user=admin, chat=chat, user_role='Admin')
+
 
         return student_group
 
