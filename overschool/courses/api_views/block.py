@@ -57,7 +57,6 @@ class BaseLessonBlockViewSet(
 
     def get_serializer_class(self):
         if self.action == "perform_update":
-            print(self.request.data)
             return BlockUpdateSerializer
         else:
             return LessonBlockSerializer

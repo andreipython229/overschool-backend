@@ -17,6 +17,7 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = [
             "course_id",
             "public",
+            "is_catalog",
             "name",
             "format",
             "duration_days",
@@ -41,6 +42,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             "course_id",
+            "is_catalog",
             "public",
             "name",
             "format",
@@ -85,6 +87,7 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
         fields = [
             "course_id",
             "public",
+            "is_catalog",
             "name",
             "format",
             "duration_days",

@@ -238,7 +238,7 @@ STATICFILES_FINDERS = [
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648
+DATA_UPLOAD_MAX_MEMORY_SIZE = 4294967296
 
 
 # Default primary key field type
