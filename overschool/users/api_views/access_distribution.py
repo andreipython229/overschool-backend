@@ -12,6 +12,7 @@ from courses.models import (
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions
 from rest_framework.parsers import MultiPartParser
@@ -58,14 +59,18 @@ class AccessDistributionView(
 
     def create_user_group(self, user, group, school):
         user_group = user.groups.create(group=group, school=school)
-        self.send_email_notification(user.email, group.name, school.name)
         return user_group
 
-    def send_email_notification(self, email, group_name, school_name):
+    def send_email_notification(self, email, course_name, school_name):
         url = "https://overschool.by/login/"
         subject = "Добавление в группу"
-        message = f"Вы были добавлены в группу {group_name} в школе {school_name}. Перейдите по ссылке {url}"
-        sender_service.send_code_by_email(email=email, subject=subject, message=message)
+        html_message = render_to_string(
+            'added_to_course_template.html', {
+                'course_name': course_name,
+                'school_name': school_name,
+                'url': url
+            })
+        sender_service.send_code_by_email(email=email, subject=subject, message=html_message)
 
     def validate_tariff_plan(self, new_user_count, role):
         school = self.get_school()
@@ -124,7 +129,7 @@ class AccessDistributionView(
             user.teacher_group_fk.add(student_group)
             UserChat.objects.create(user=user, chat=chat, user_role="Teacher")
 
-    def handle_students_group_fk(self, user, student_groups):
+    def handle_students_group_fk(self, user, student_groups, course_name, school):
         for student_group in student_groups:
             user.students_group_fk.add(student_group)
             StudentsHistory.objects.create(user=user, students_group=student_group)
@@ -152,6 +157,8 @@ class AccessDistributionView(
             except:
                 print("Ошибка добавления ученика в чат")
 
+            self.send_email_notification(user.email, course_name, school.name)
+
     @swagger_auto_schema(
         request_body=AccessDistributionSerializer,
         tags=["access_distribution"],
@@ -164,8 +171,10 @@ class AccessDistributionView(
         emails = serializer.validated_data.get("emails")
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
+        course_id = request.data.get("course")
 
         school = self.get_school()
+        course = Course.objects.get(course_id=course_id)
         group = Group.objects.get(name=role)
 
         users_by_id = (
@@ -240,7 +249,7 @@ class AccessDistributionView(
                             f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
-                    self.handle_students_group_fk(user, student_groups)
+                    self.handle_students_group_fk(user, student_groups, course.name, school)
 
         return HttpResponse("Доступы предоставлены", status=201)
 

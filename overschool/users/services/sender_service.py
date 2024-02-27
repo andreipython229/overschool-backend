@@ -3,6 +3,10 @@ from __future__ import annotations
 from django.conf import settings
 from django.core.mail import send_mail
 
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
 
 class SenderServiceMixin:
     """Functionalities for sending registration messages to students and managers"""
@@ -11,18 +15,14 @@ class SenderServiceMixin:
         """
         Send code by email
         """
-        # Send the confirmation code via email
-        subject = subject
-        message = message
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [email]
+        html_message = message
+        text_message = strip_tags(message)  # удаляем HTML-теги
+
+        # Указываем тип содержимого как HTML
+        msg = EmailMultiAlternatives(subject, text_message, settings.DEFAULT_FROM_EMAIL, [email])
+        msg.attach_alternative(html_message, "text/html")
 
         try:
-            send_mail(
-                subject,
-                message,
-                from_email,
-                recipient_list,
-            )
+            msg.send()
         except Exception as e:
             return {"error": str(e), "status_code": 500}

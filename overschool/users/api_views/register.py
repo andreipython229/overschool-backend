@@ -5,6 +5,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.decorators import action
@@ -92,10 +93,14 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         # Отправка пароля на почту
         url = "https://overschool.by/login/"
         subject = "Новый пароль"
-        message = f"Ваш новый пароль: {password}, перейдите по ссылке: {url}"
+        html_message = render_to_string(
+            'new_user_notification.html', {
+                'password': password,
+                'url': url
+            })
 
         send = sender_service.send_code_by_email(
-            email=email, subject=subject, message=message
+            email=email, subject=subject, message=html_message
         )
 
         if send and send["status_code"] == 500:
