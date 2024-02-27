@@ -52,7 +52,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     is_catalog = models.BooleanField(
         verbose_name="Видимость в каталоге курсов",
         help_text="Видимость в каталоге курсов",
-        default=True,
+        default=False,
     )
     name = models.CharField(
         max_length=256,
