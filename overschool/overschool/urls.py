@@ -79,8 +79,8 @@ urlpatterns = [
         name="course-appeals",
     ),
     path(
-        "api/token-validate/",
-        TokenValidateView.as_view(actions={"post": "post"}),
+        "api/token-validate/<int:user_id>/<str:token>/",
+        TokenValidateView.as_view(actions={"get": "get"}),
         name="token-validate",
     ),
     path(

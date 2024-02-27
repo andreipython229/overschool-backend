@@ -1,17 +1,15 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth.tokens import default_token_generator
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.models import User
-from users.serializers import (
-    ForgotPasswordSerializer,
-    PasswordResetSerializer,
-    TokenValidateSerializer,
-)
+from users.serializers import ForgotPasswordSerializer, PasswordResetSerializer
 from users.services import SenderServiceMixin
+
+from overschool import settings
 
 
 class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
@@ -44,9 +42,12 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
         token = default_token_generator.make_token(user)
 
         # Отправляем ссылку для сбора пароля
+        reset_password_url = f"{settings.SITE_URL}/token-validate/{user.id}/{token}/"
         subject = "Восстановление доступа к Overschool"
-        message = f"Токен сброса пароля: {token}"
-
+        message = (
+            f"Ссылка для сброса пароля: {reset_password_url}\n"
+            "Если это письмо пришло вам по ошибке, просто проигнорируйте его."
+        )
         send = self.sender_service.send_code_by_email(
             email=email, subject=subject, message=message
         )
@@ -54,30 +55,31 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
             return Response(send["error"], status=send["status_code"])
 
         return Response(
-            "Токен сброса успешно отправлен. Проверьте свою электронную почту."
+            "Ссылка для сброса пароля была отправлена. Проверьте свою электронную почту."
         )
+
+
+class TokenValidateSerializer(serializers.Serializer):
+    pass
 
 
 class TokenValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """
     API для валидации токена
-    <h2>/api/token-validate/</h2>\n
+    <h2>/api/token-validate/<int:user_id>/<str:token>/</h2>\n
     """
 
     parser_classes = (MultiPartParser,)
     serializer_class = TokenValidateSerializer
     permission_classes = [permissions.AllowAny]
 
-    @swagger_auto_schema(method="post", request_body=TokenValidateSerializer)
-    @action(detail=False, methods=["POST"])
-    def post(self, request):
+    @action(detail=False, methods=["GET"])
+    def get(self, request, user_id, token):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        token = serializer.validated_data["token"]
-        email = serializer.validated_data["email"]
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response(
                 "Пользователя с таким электронным адресом не существует.", status=404
