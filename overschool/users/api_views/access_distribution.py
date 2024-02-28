@@ -153,7 +153,7 @@ class AccessDistributionView(
                     user=user, chat=chat, user_role="Student"
                 ).exists()
                 if not chat_exists:
-                    UserChat.objects.create(user=user, chat=chat, user_role="student")
+                    UserChat.objects.create(user=user, chat=chat, user_role="Student")
             except:
                 print("Ошибка добавления ученика в чат")
 
