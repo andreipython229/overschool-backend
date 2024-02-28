@@ -185,6 +185,15 @@ class StudentsGroupViewSet(
             if not UserChat.objects.filter(user=student, chat=chat).exists():
                 UserChat.objects.create(user=student, chat=chat)
 
+    def destroy(self, request, *args, **kwargs):
+        current_group = self.get_object()
+
+        if current_group.chat:
+            UserChat.objects.filter(chat=current_group.chat).delete()
+            current_group.chat.delete()
+
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=["GET"])
     def get_students_for_group(self, request, pk=None, *args, **kwargs):
         """Все студенты одной группы\n
