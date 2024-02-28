@@ -264,6 +264,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     }
                     lessons_data.append(lesson_data)
 
+                lessons_data.sort(key=lambda x: x['lesson_id'])
+
                 section_data = {
                     "section_id": section.section_id,
                     "name": section.name,
