@@ -165,7 +165,7 @@ class UploadToS3:
 
             return file_path
         except Exception as e:
-            # Произошла ошибка, так что нам нужно отменить многозадачную загрузку
+            # Произошла ошибка, нужно отменить многозадачную загрузку
             self.s3.abort_multipart_upload(
                 Bucket=S3_BUCKET, Key=file_path, UploadId=upload_id
             )

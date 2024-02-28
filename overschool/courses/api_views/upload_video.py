@@ -12,7 +12,6 @@ s3 = UploadToS3()
 
 
 class UploadVideoViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     SchoolMixin,
     viewsets.ModelViewSet,
