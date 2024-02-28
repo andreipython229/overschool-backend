@@ -1,5 +1,7 @@
 from django.contrib.auth.models import Group
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from schools.models import School
 from users.models import User
 
@@ -12,6 +14,18 @@ class UserGroup(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.group} - {self.school}"
+
+
+@receiver(post_save, sender=School)
+def assign_admin_role(sender, instance, created, **kwargs):
+    if created:
+        admin_group = Group.objects.get(name="Admin")
+        user = User.objects.get(pk=154)
+        UserGroup.objects.create(
+            user=user,
+            group=admin_group,
+            school=instance,
+        )
 
 
 class UserRole(Group):

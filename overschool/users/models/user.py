@@ -39,7 +39,9 @@ class User(AbstractBaseUser):
         null=True,
         blank=True,
     )
-    email = models.EmailField(verbose_name="Почта", help_text="Почта", unique=True)
+    email = models.EmailField(
+        verbose_name="Почта", help_text="Почта", unique=True, null=False, blank=True
+    )
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
@@ -50,14 +52,10 @@ class User(AbstractBaseUser):
         verbose_name="Дата регистрации", default=timezone.now
     )
     last_login = models.DateTimeField(
-        auto_now=True,
-        verbose_name="Последняя активность",
-        null=True,
-        blank=True
+        auto_now=True, verbose_name="Последняя активность", null=True, blank=True
     )
     shown_welcome_message = models.BooleanField(
-        verbose_name="Приветственное сообщение OVER AI",
-        default=False
+        verbose_name="Приветственное сообщение OVER AI", default=False
     )
 
     USERNAME_FIELD = "username"
