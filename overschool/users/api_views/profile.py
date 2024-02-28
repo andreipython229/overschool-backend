@@ -1,9 +1,11 @@
 import hashlib
+from urllib.parse import urlencode
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, serializers, status, viewsets
@@ -12,12 +14,10 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from users.models import Profile, User
 from users.permissions import OwnerProfilePermissions
-from users.serializers import (
-    EmailValidateSerializer,
-    UserProfileGetSerializer,
-    UserProfileSerializer,
-)
+from users.serializers import UserProfileGetSerializer, UserProfileSerializer
 from users.services import SenderServiceMixin
+
+from overschool import settings
 
 s3 = UploadToS3()
 
@@ -62,7 +62,6 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         instance = self.get_object()
         user = self.request.user
         new_email = request.data.get("user", {}).get("email")
-        email_confirm = False
         email = user.email
         if email != new_email:
             if User.objects.filter(email=new_email).exists():
@@ -70,27 +69,28 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "Пользователь с такой электронной почтой уже существует",
                     status=400,
                 )
-            email_confirm = True
             token = generate_hash_token(user)
 
+            reset_password_url = f"{settings.SITE_URL}/api/email-confirm/{token}/"
+            email_params = {"from_email": new_email}
+            reset_password_url_with_params = (
+                f"{reset_password_url}?{urlencode(email_params)}"
+            )
             subject = "Подтверждения электронной почты Overschool"
-            message = f"Токен подтверждения электронной почты: {token}"
+            message = (
+                f"Ссылка для подтверждения электронной почты:<br>"
+                f"<a href='{reset_password_url_with_params}'>{reset_password_url_with_params}</a><br><br>"
+                "Если это письмо пришло вам по ошибке, просто проигнорируйте его."
+            )
             send = self.sender_service.send_code_by_email(
                 email=new_email, subject=subject, message=message
             )
             if send and send["status_code"] == 500:
                 return Response(send["error"], status=send["status_code"])
-        user.email = (None,)
-        user.save()
-        user_data = request.data
-        user_data["user"]["email"] = email
-        serializer = UserProfileSerializer(instance, data=user_data)
-        if serializer.is_valid():
-            pass
-        else:
-            user.email = email
-            user.save()
-            raise serializers.ValidationError(serializer.errors)
+        if "user" in request.data and "email" in request.data["user"]:
+            del request.data["user"]["email"]
+        serializer = UserProfileSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("avatar"):
             if instance.avatar:
@@ -104,7 +104,6 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serializer.save()
 
         serialized_data = UserProfileGetSerializer(instance).data
-        serialized_data["email_confirm"] = email_confirm
 
         return Response(serialized_data, status=status.HTTP_200_OK)
 
@@ -112,33 +111,36 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 ProfileViewSet = apply_swagger_auto_schema(tags=["profiles"])(ProfileViewSet)
 
 
+class EmailValidateSerializer(serializers.Serializer):
+    pass
+
+
 class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """
     API для валидации email
-    <h2>/api/email-confirm/</h2>\n
+    <h2>/api/email-confirm/<str:token>/</h2>\n
     """
 
     parser_classes = (MultiPartParser,)
     serializer_class = EmailValidateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @swagger_auto_schema(
-        tags=["profiles"], method="post", request_body=EmailValidateSerializer
-    )
-    @action(detail=False, methods=["POST"])
-    def post(self, request):
+    @swagger_auto_schema(tags=["profiles"])
+    @action(detail=False, methods=["GET"])
+    def get(self, request, *args, **kwargs):
         user = request.user
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        token = serializer.validated_data["token"]
-        email = serializer.validated_data["email"]
+        token = kwargs.get("token")
         expected_token = generate_hash_token(user)
         try:
             if token == expected_token:
-                user.email = email
-                user.save()
-                return Response("Электронная почта успешно подтверждена", status=200)
+                from_email = request.GET.get("from_email")
+                if from_email:
+                    user.email = from_email
+                    user.save()
+                else:
+                    return Response("Токен не действителен", status=400)
+                # Редирект на главную
+                return redirect(settings.SITE_URL)
             else:
                 return Response("Токен не действителен", status=400)
         except:

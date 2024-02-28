@@ -42,10 +42,13 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
         token = default_token_generator.make_token(user)
 
         # Отправляем ссылку для сбора пароля
-        reset_password_url = f"{settings.SITE_URL}/token-validate/{user.id}/{token}/"
+        reset_password_url = (
+            f"{settings.SITE_URL}/api/token-validate/{user.id}/{token}/"
+        )
         subject = "Восстановление доступа к Overschool"
         message = (
-            f"Ссылка для сброса пароля: {reset_password_url}\n"
+            f"Ссылка для сброса пароля:<br>"
+            f"<a href='{reset_password_url}'>{reset_password_url}</a><br><br>"
             "Если это письмо пришло вам по ошибке, просто проигнорируйте его."
         )
         send = self.sender_service.send_code_by_email(
@@ -75,9 +78,6 @@ class TokenValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
 
     @action(detail=False, methods=["GET"])
     def get(self, request, user_id, token):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
