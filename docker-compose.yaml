@@ -33,7 +33,7 @@ services:
     depends_on:
       - redis
   nginx:
-    image: nginx:latest
+    image: nginx:stable
     container_name: nginx
     restart: always
     ports:
