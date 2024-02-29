@@ -89,8 +89,8 @@ class AccessDistributionView(
             ).count()
 
             if (
-                student_count_by_month + new_user_count
-                > school.tariff.students_per_month
+                    student_count_by_month + new_user_count
+                    > school.tariff.students_per_month
             ):
                 return (
                     False,
@@ -109,9 +109,9 @@ class AccessDistributionView(
                 group__name__in=["Teacher", "Admin"], school=school
             ).count()
             if (
-                school.tariff.name
-                in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-                and staff_count + new_user_count > school.tariff.number_of_staff
+                    school.tariff.name
+                    in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                    and staff_count + new_user_count > school.tariff.number_of_staff
             ):
                 return False, "Превышено количество cотрудников для выбранного тарифа"
 
@@ -171,10 +171,8 @@ class AccessDistributionView(
         emails = serializer.validated_data.get("emails")
         role = serializer.validated_data.get("role")
         student_groups_ids = serializer.validated_data.get("student_groups")
-        course_id = request.data.get("course")
 
         school = self.get_school()
-        course = Course.objects.get(course_id=course_id)
         group = Group.objects.get(name=role)
 
         users_by_id = (
@@ -229,7 +227,7 @@ class AccessDistributionView(
                 return self.handle_existing_roles(user, school, group)
 
             if not UserGroup.objects.filter(
-                user=user, school=school, group=group
+                    user=user, school=school, group=group
             ).exists():
                 self.create_user_group(user, group, school)
 
@@ -243,13 +241,17 @@ class AccessDistributionView(
                     self.handle_teacher_group_fk(user, student_groups)
                 elif role == "Student":
                     if user.students_group_fk.filter(
-                        course_id__in=courses_ids
+                            course_id__in=courses_ids
                     ).exists():
                         return HttpResponse(
                             f"Нельзя учиться в нескольких группах одного и того же курса (email={user.email})",
                             status=400,
                         )
-                    self.handle_students_group_fk(user, student_groups, course.name, school)
+
+                    if student_groups_ids:
+                        student_group = StudentsGroup.objects.get(group_id=student_groups_ids[0])
+                        course = Course.objects.get(course_id=student_group.course_id_id)
+                        self.handle_students_group_fk(user, student_groups, course.name, school)
 
         return HttpResponse("Доступы предоставлены", status=201)
 
@@ -295,8 +297,8 @@ class AccessDistributionView(
                 )
             if not student_groups_ids or role in ["Admin", "Manager"]:
                 if (
-                    role == "Teacher"
-                    and user.teacher_group_fk.filter(course_id__school=school).first()
+                        role == "Teacher"
+                        and user.teacher_group_fk.filter(course_id__school=school).first()
                 ):
                     return HttpResponse(
                         f"Группу нельзя оставить без преподавателя (email={user.email})",
