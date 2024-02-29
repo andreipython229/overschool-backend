@@ -20,16 +20,36 @@ class SchoolDocumentViewSet(
     http_method_names = ["get", "head", "post", "patch", "delete"]
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
                 SchoolDocuments.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
-        user = self.request.user
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
 
-        return SchoolDocuments.objects.filter(user=user, school=school_id)
+        return SchoolDocuments.objects.filter(school=self.get_school())
+
+    def get_permissions(self, *args, **kwargs):
+        school = self.get_school()
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user == school.owner:
+            return permissions
+        print(
+            user.groups.filter(group__name="Admin", school=school).exists(), self.action
+        )
+        if user.groups.filter(
+            group__name="Admin", school=school
+        ).exists() and self.action in ["list", "retrieve", "partial_update"]:
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -41,22 +61,17 @@ class SchoolDocumentViewSet(
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         user = self.request.user
-        owner = self.request.data.get("user")
-        school = self.request.data.get("school")
-        school_id = School.objects.get(name=school_name)
-        if (
-            school_id.school_id != school
-            or school_id.owner != owner
-            and school_id.owner != user
-        ):
+        school_id = self.request.data.get("school")
+        school = School.objects.get(name=school_name)
+        if school.school_id != school_id or school.owner != user:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-        serializer = SchoolDocumentsSerializer(data={**request.data})
+        serializer = SchoolDocumentsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        school_document = serializer.save()
+        school_document = serializer.save(user=user)
 
         if request.FILES.get("stamp"):
-            stamp = s3.upload_school_image(request.FILES["photo_background"], school)
+            stamp = s3.upload_school_image(request.FILES["stamp"], school)
             school_document.stamp = stamp
             school_document.save()
         if request.FILES.get("signature"):
@@ -69,16 +84,13 @@ class SchoolDocumentViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-
+        print("k")
         instance = self.get_object()
-        user = self.request.user
-        if instance.user != user:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         serializer = SchoolDocumentsUpdateSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("stamp"):
-            if instance.logo_school:
+            if instance.stamp:
                 s3.delete_file(str(instance.stamp))
             serializer.validated_data["stamp"] = s3.upload_school_image(
                 request.FILES["stamp"], instance.school_id
@@ -102,9 +114,6 @@ class SchoolDocumentViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        user = self.request.user
-        if instance.user != user:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         self.perform_destroy(instance)
         remove_resp = []
         if instance.stamp:

@@ -26,7 +26,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School, SchoolHeader, Tariff, TariffPlan
+from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
@@ -110,6 +110,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         )
         if school:
             SchoolHeader.objects.create(school=school, name=school.name)
+            SchoolDocuments.objects.create(school=school, user=request.user)
+
         # Создание записи в модели UserGroup для добавления пользователя в качестве администратора
         group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
@@ -263,6 +265,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         "mark": mark,
                     }
                     lessons_data.append(lesson_data)
+
+                lessons_data.sort(key=lambda x: x['lesson_id'])
 
                 section_data = {
                     "section_id": section.section_id,
