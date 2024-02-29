@@ -14,7 +14,6 @@ class SchoolDocumentsSerializer(serializers.ModelSerializer):
         model = SchoolDocuments
         fields = [
             "id",
-            "user",
             "school",
             "stamp",
             "signature",
