@@ -139,8 +139,7 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
                     user.save()
                 else:
                     return Response("Токен не действителен", status=400)
-                # Редирект на главную
-                return redirect(settings.SITE_URL)
+                return Response("Токен действителен", status=200)
             else:
                 return Response("Токен не действителен", status=400)
         except:
