@@ -25,6 +25,10 @@ class GetAppealsViewSet(
     http_method_names = ["get", "head", "retrieve"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                CourseAppeals.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
