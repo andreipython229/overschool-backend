@@ -86,7 +86,7 @@ class TokenValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
             )
         try:
             if default_token_generator.check_token(user, token):
-                return Response("Токен действителен", status=200)
+                return Response({"email": user.email}, status=200)
             else:
                 return Response("Токен не действителен", status=400)
         except:

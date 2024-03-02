@@ -41,6 +41,10 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Возвращаем только объекты пользователя, сделавшего запрос
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Profile.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         self.request.user.last_login = timezone.now()
         self.request.user.save()
         return Profile.objects.filter(user=self.request.user.id)
@@ -139,8 +143,7 @@ class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVie
                     user.save()
                 else:
                     return Response("Токен не действителен", status=400)
-                # Редирект на главную
-                return redirect(settings.SITE_URL)
+                return Response("Токен действителен", status=200)
             else:
                 return Response("Токен не действителен", status=400)
         except:
