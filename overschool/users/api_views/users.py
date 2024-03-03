@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import BaseLesson, StudentsGroup, UserProgressLogs
+from courses.models import BaseLesson, StudentsGroup, UserProgressLogs, Section
 from courses.paginators import StudentsPagination
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -105,6 +105,14 @@ class GetCertificateView(APIView):
 
         group = groups.first()
         course = group.course_id
+        sections = Section.objects.filter(course=course)
+        section_data = []
+        for section in sections:
+            section_data.append({
+                "id": section.section_id,
+                "name": section.name
+            })
+
         base_lessons = BaseLesson.objects.filter(section__course=course, active=True)
 
         for base_lesson in base_lessons:
@@ -135,6 +143,7 @@ class GetCertificateView(APIView):
             "user_full_name": f"{user.last_name} {user.first_name} {user.patronymic}",
             "course_name": course.name,
             "course_description": course.description,
+            "sections": section_data,
         }
 
         return Response(certificate_data, status=status.HTTP_200_OK)
