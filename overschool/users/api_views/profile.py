@@ -75,7 +75,7 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 )
             token = generate_hash_token(user)
 
-            reset_password_url = f"{settings.SITE_URL}/api/email-confirm/{token}/"
+            reset_password_url = f"{settings.SITE_URL}/email-confirm/{token}/"
             email_params = {"from_email": new_email}
             reset_password_url_with_params = (
                 f"{reset_password_url}?{urlencode(email_params)}"
