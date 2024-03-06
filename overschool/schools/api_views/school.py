@@ -533,7 +533,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
                         reciever=item["students__id"],
-                        chat_type="PERSONAL",
+                        type="PERSONAL",
                     ),
                 }
             )
