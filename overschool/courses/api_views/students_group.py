@@ -174,7 +174,7 @@ class StudentsGroupViewSet(
             chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
-            UserChat.objects.create(user=teacher, chat=chat)
+            UserChat.objects.create(user=teacher, chat=chat, role="Teacher")
         if teacher and teacher != previous_teacher:
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
