@@ -267,7 +267,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     }
                     lessons_data.append(lesson_data)
 
-                lessons_data.sort(key=lambda x: x['order'])
+                lessons_data.sort(key=lambda x: x["order"])
 
                 section_data = {
                     "section_id": section.section_id,
@@ -532,8 +532,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "filtered_active_students": filtered_active_students,
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
-                        reciever=item["students__id"],
-                        type="PERSONAL",
+                        receiver=item["students__id"],
+                        chat_type="PERSONAL",
                     ),
                 }
             )
