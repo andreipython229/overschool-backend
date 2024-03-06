@@ -77,11 +77,11 @@ class UserChat(models.Model):
             return False
 
     @classmethod
-    def get_existed_chat_id_by_type(cls, chat_creator, receiver, chat_type):
+    def get_existed_chat_id_by_type(cls, chat_creator, reciever, chat_type):
         chat_ids = (
             cls.objects.filter(
                 Q(user=chat_creator, chat__type=chat_type)
-                & Q(chat__userchat__user=receiver, chat__type=chat_type)
+                & Q(chat__userchat__user=reciever, chat__type=chat_type)
             )
             .values_list("chat__id", flat=True)
             .distinct()
