@@ -42,9 +42,7 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
         token = default_token_generator.make_token(user)
 
         # Отправляем ссылку для сбора пароля
-        reset_password_url = (
-            f"{settings.SITE_URL}/api/token-validate/{user.id}/{token}/"
-        )
+        reset_password_url = f"{settings.SITE_URL}/token-validate/{user.id}/{token}/"
         subject = "Восстановление доступа к Overschool"
         message = (
             f"Ссылка для сброса пароля:<br>"
