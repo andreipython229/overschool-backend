@@ -14,6 +14,7 @@ from .students.students_group import StudentsGroup
 from .students.students_group_settings import StudentsGroupSettings
 from .students.students_history import StudentsHistory
 from .students.students_table_info import StudentsTableInfo
+from .students.students_training_duration import TrainingDuration
 from .students.user_progress import UserProgressLogs
 from .test.answer import Answer
 from .test.question import Question

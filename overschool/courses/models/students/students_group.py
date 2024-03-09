@@ -3,8 +3,8 @@ from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models.user import User
 
-from .students_group_settings import StudentsGroupSettings
 from ..courses.course import Course
+from .students_group_settings import StudentsGroupSettings
 
 
 class StudentsGroup(TimeStampMixin, models.Model):
@@ -37,7 +37,7 @@ class StudentsGroup(TimeStampMixin, models.Model):
         help_text="Преподаватель, который ведёт эту группу",
         related_name="teacher_group_fk",
         blank=True,
-        null=True
+        null=True,
     )
     students = models.ManyToManyField(
         User,
@@ -49,26 +49,22 @@ class StudentsGroup(TimeStampMixin, models.Model):
     group_settings = models.OneToOneField(
         StudentsGroupSettings,
         on_delete=models.CASCADE,
-        related_name='students_group_settings_fk',
+        related_name="students_group_settings_fk",
         null=True,
-        blank=True
+        blank=True,
     )
     chat = models.OneToOneField(
-        Chat,
-        on_delete=models.CASCADE,
-        related_name='group',
-        null=True,
-        blank=True
+        Chat, on_delete=models.CASCADE, related_name="group", null=True, blank=True
     )
     TYPE_CHOICES = [
-        ('WITH_TEACHER', 'С учителем'),
-        ('WITHOUT_TEACHER', 'Без учителя'),
+        ("WITH_TEACHER", "С учителем"),
+        ("WITHOUT_TEACHER", "Без учителя"),
     ]
 
     type = models.CharField(
         max_length=20,
         choices=TYPE_CHOICES,
-        default='WITH_TEACHER',
+        default="WITH_TEACHER",
         verbose_name="Тип группы",
         help_text="Тип группы (С учителем / Без учителя)",
     )
@@ -76,6 +72,11 @@ class StudentsGroup(TimeStampMixin, models.Model):
         default=False,
         verbose_name="Доступ к сертификатам",
         help_text="Могут ли участники этой группы видеть сертификаты",
+    )
+    training_duration = models.PositiveIntegerField(
+        verbose_name="Продолжительность обучения",
+        help_text="Лимит продолжительности обучения в днях",
+        default=0,
     )
 
     def __str__(self):
