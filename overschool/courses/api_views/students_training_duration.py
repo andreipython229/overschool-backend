@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
@@ -16,6 +17,7 @@ class TrainingDurationViewSet(
 ):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TrainingDurationSerializer
+    http_method_names = ["post", "get"]
 
     def get_school(self):
         school_name = self.kwargs.get("school_name")
@@ -24,30 +26,59 @@ class TrainingDurationViewSet(
     def get_permissions(self, *args, **kwargs):
         permissions = super().get_permissions()
         user = self.request.user
+        school = self.get_school()
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Admin", school=self.get_school()).exists():
+        if user.groups.filter(group__name="Admin", school=school).exists():
             return permissions
+        if self.action in ["list", "retrieve"]:
+            if user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school
+            ).exists():
+                return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                TrainingDuration.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
+        school = self.get_school()
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return TrainingDuration.objects.filter(
+                students_group__course_id__school=school
+            )
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            return TrainingDuration.objects.filter(
+                students_group__course_id__school=school,
+                students_group__teacher_id=user,
+            )
+        if user.groups.filter(group__name="Student", school=school).exists():
+            return TrainingDuration.objects.filter(
+                students_group__course_id__school=school, user=user
+            )
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        student_id = serializer.validated_data.get("student")
-        students_group_id = serializer.validated_data.get("students_group")
+        student = serializer.validated_data.get("user")
+        students_group = serializer.validated_data.get("students_group")
 
-        try:
-            student = User.objects.get(id=student_id)
-            students_group = StudentsGroup.objects.get(
-                group_id=students_group_id,
-                students=student,
-                course_id__school=self.get_school(),
-            )
-        except:
+        if students_group.course_id.school != self.get_school():
             return Response(
-                f"В вашей школе такая группа с таким учеником не найдена.",
+                f"В вашей школе такая группа не найдена.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not student.students_group_fk.filter(
+            group_id=students_group.group_id
+        ).exists():
+            return Response(
+                f"Такой ученик не учится в этой группе.",
                 status=status.HTTP_403_FORBIDDEN,
             )
 
