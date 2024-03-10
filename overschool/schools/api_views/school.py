@@ -946,6 +946,15 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         return Response(serialized_data)
 
+    @action(detail=False, methods=["POST"])
+    def create_documents(self, request, *args, **kwargs):
+
+        all_schools = School.objects.all()
+        for school in all_schools:
+            if not SchoolDocuments.objects.filter(school=school).exists():
+                SchoolDocuments.objects.create(school=school, user=school.owner)
+        return Response("ok")
+
 
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """

@@ -39,6 +39,7 @@ from .students_table_info import (
     StudentsTableInfoDetailSerializer,
     StudentsTableInfoSerializer,
 )
+from .students_training_duration import TrainingDurationSerializer
 from .user_homework import (
     UserHomeworkDetailSerializer,
     UserHomeworkSerializer,

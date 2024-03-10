@@ -27,6 +27,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "students",
             "group_settings",
             "type",
+            "training_duration",
         ]
 
     def validate(self, attrs):
@@ -106,6 +107,7 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
             "teacher_id",
             "group_settings",
             "certificate",
+            "training_duration",
         )
 
     def validate(self, attrs):
