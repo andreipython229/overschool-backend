@@ -54,6 +54,11 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         help_text="Видимость в каталоге курсов",
         default=False,
     )
+    is_direct = models.BooleanField(
+        verbose_name="Доступ по прямой ссылке",
+        help_text="Позволяет получить доступ к курсу по прямой ссылке",
+        default=False,
+    )
     name = models.CharField(
         max_length=256,
         verbose_name="Название курса",

@@ -19,10 +19,17 @@ class CourseCatalogViewSet(
     """
 
     serializer_class = CourseCatalogSerializer
-    queryset = Course.objects.filter(is_catalog=True, public=Public.PUBLISHED)
     permission_classes = [permissions.AllowAny]
     pagination_class = StudentsPagination
     http_method_names = ["get", "head", "retrieve"]
+
+    def get_queryset(self):
+        if self.action == "retrieve":
+            # Для детального просмотра курса
+            return Course.objects.filter(is_direct=True, public=Public.PUBLISHED)
+        else:
+            # Для списка курсов в каталоге
+            return Course.objects.filter(is_catalog=True, public=Public.PUBLISHED)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

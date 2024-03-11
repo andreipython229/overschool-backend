@@ -106,6 +106,12 @@ class School(TimeStampMixin, OrderMixin):
         null=True,
         verbose_name="url договора оферты",
     )
+    contact_link = models.URLField(
+        verbose_name="Ссылка для связи",
+        help_text="Ссылка для связи с организатором курса по вопросам записи",
+        blank=True,
+        null=True,
+    )
 
     objects = SchoolManager()
 

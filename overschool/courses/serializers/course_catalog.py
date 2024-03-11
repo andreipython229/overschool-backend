@@ -18,6 +18,7 @@ class CourseCatalogSerializer(serializers.ModelSerializer):
         fields = [
             "course_id",
             "is_catalog",
+            "is_direct",
             "public",
             "name",
             "format",
@@ -51,6 +52,7 @@ class CourseCatalogDetailSerializer(serializers.ModelSerializer):
         fields = [
             "course_id",
             "is_catalog",
+            "is_direct",
             "public",
             "name",
             "format",
