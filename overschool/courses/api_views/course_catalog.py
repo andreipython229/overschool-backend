@@ -6,6 +6,7 @@ from courses.serializers.course_catalog import (
     CourseCatalogSerializer,
 )
 from django.contrib.postgres.search import SearchQuery, SearchVector
+from django.db.models import Q
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 
@@ -26,7 +27,9 @@ class CourseCatalogViewSet(
     def get_queryset(self):
         if self.action == "retrieve":
             # Для детального просмотра курса
-            return Course.objects.filter(is_direct=True, public=Public.PUBLISHED)
+            return Course.objects.filter(
+                Q(is_catalog=True) | Q(is_direct=True), public=Public.PUBLISHED
+            )
         else:
             # Для списка курсов в каталоге
             return Course.objects.filter(is_catalog=True, public=Public.PUBLISHED)
