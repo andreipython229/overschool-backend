@@ -46,6 +46,7 @@ class CourseCatalogDetailSerializer(serializers.ModelSerializer):
 
     photo = serializers.SerializerMethodField()
     sections = SectionSerializer(many=True, read_only=True)
+    contact_link = serializers.ReadOnlyField(source="school.contact_link")
 
     class Meta:
         model = Course
@@ -63,6 +64,7 @@ class CourseCatalogDetailSerializer(serializers.ModelSerializer):
             "photo_url",
             "school",
             "sections",
+            "contact_link",
         ]
 
     def get_photo(self, obj):

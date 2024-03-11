@@ -158,7 +158,7 @@ class CourseViewSet(
             course.save()
             serializer = CourseGetSerializer(course)
 
-        #Чат с типом "COURSE" и именем, связанным с курсом
+        # Чат с типом "COURSE" и именем, связанным с курсом
         # chat_name = f"Чат курса '{course.name}'"
         # chat = Chat.objects.create(name=chat_name, type="COURSE")
         #
@@ -262,13 +262,13 @@ class CourseViewSet(
             queryset = queryset.filter(name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
             last_active_max += timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__lte=last_active_max
@@ -363,9 +363,7 @@ class CourseViewSet(
             serializer = UserProfileGetSerializer(
                 profile, context={"request": self.request}
             )
-            courses = Course.objects.filter(course_id=item["course_id"])
-            sections = Section.objects.filter(course__in=courses)
-            section_data = SectionSerializer(sections, many=True).data
+
             serialized_data.append(
                 {
                     "course_id": item["course_id"],
@@ -382,7 +380,6 @@ class CourseViewSet(
                     "school_name": school.name,
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
-                    "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "progress": get_student_progress(
@@ -395,7 +392,8 @@ class CourseViewSet(
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
                         reciever=item["students__id"],
-                        type="PERSONAL"),
+                        type="PERSONAL",
+                    ),
                 }
             )
 
@@ -441,7 +439,8 @@ class CourseViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        serialized_data, key=lambda x: str(x.get(sort_by, "") or "").lower()
+                        serialized_data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
                     )
 
             else:
@@ -450,7 +449,6 @@ class CourseViewSet(
                     "date_removed",
                     "last_active",
                 ]:
-                    print("TEST")
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)
@@ -473,7 +471,9 @@ class CourseViewSet(
                 else:
                     sorted_data = sorted(
                         serialized_data,
-                        key=lambda x: str(x.get(sort_by, '') or '').lower(), reverse=True)
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                        reverse=True,
+                    )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
@@ -522,13 +522,13 @@ class CourseViewSet(
             queryset = queryset.filter(name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             queryset = queryset.filter(
                 students__last_login__gte=last_active_min
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
             last_active_max += timedelta(days=1)
             queryset = queryset.filter(
                 students__last_login__lte=last_active_max
@@ -642,7 +642,6 @@ class CourseViewSet(
             )
 
         return Response(serialized_data)
-
 
     @action(detail=True)
     def clone(self, request, pk, *args, **kwargs):
