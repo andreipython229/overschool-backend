@@ -150,25 +150,17 @@ class SendMessageToGPT(APIView):
         """
 
         try:
-            providers = AIProvider.objects.all()
-            for provider in providers:
-                try:
-                    response = g4f.ChatCompletion.create(
-                        model=g4f.models.gpt_35_turbo_0613,
-                        messages=messages,
-                        provider=getattr(g4f.Provider, provider.name)
-                    )
-                    response_str = ''.join(response)
-                    if response_str:
-                        return response_str
-                    else:
-                        continue
-                except Exception:
-                    continue
-
-            return "OVER AI Exception: No successful response from any provider"
-        except Exception as e:
-            return f"OVER AI Exception: {e}"
+            response = g4f.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages
+            )
+            response_str = ''.join(response)
+            if response_str:
+                return response_str
+            else:
+                return "Ошибка: нет подходящего ответа, попробуйте еще раз"
+        except Exception:
+            return "Ошибка: нет подходящего ответа, попробуйте еще раз"
 
 
 @method_decorator(
