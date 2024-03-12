@@ -321,12 +321,6 @@ class StudentsGroupViewSet(
                         average_mark=Avg("mark")
                     )["average_mark"],
                     "progress": get_student_progress(
-                        student.id, group.course_id, group
-                    ),
-                    "date_added": students_history.date_added
-                    if students_history
-                    else None,
-                    "progress": get_student_progress(
                         student.id, group.course_id, group.group_id
                     ),
                     "date_added": students_history.date_added
@@ -589,8 +583,11 @@ class StudentsGroupViewSet(
                     "name": lesson.name,
                     "availability": availability,
                     "active": lesson.active,
+                    "order": lesson.order,
                 }
                 lessons_data.append(lesson_data)
+
+            lessons_data.sort(key=lambda x: x["order"])
 
             section_data = {
                 "section_id": section.section_id,

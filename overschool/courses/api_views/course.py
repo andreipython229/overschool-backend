@@ -412,9 +412,7 @@ class CourseViewSet(
             serializer = UserProfileGetSerializer(
                 profile, context={"request": self.request}
             )
-            courses = Course.objects.filter(course_id=item["course_id"])
-            sections = Section.objects.filter(course__in=courses)
-            section_data = SectionSerializer(sections, many=True).data
+
             serialized_data.append(
                 {
                     "course_id": item["course_id"],
@@ -431,7 +429,6 @@ class CourseViewSet(
                     "school_name": school.name,
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
-                    "sections": section_data,
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
                     "progress": get_student_progress(
@@ -501,7 +498,6 @@ class CourseViewSet(
                     "date_removed",
                     "last_active",
                 ]:
-                    print("TEST")
                     sorted_data = sorted(
                         serialized_data,
                         key=lambda x: x.get(sort_by, datetime.min)

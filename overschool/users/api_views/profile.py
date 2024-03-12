@@ -74,7 +74,6 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     status=400,
                 )
             token = generate_hash_token(user)
-
             reset_password_url = f"{settings.SITE_URL}/email-confirm/{token}/"
             email_params = {"from_email": new_email}
             reset_password_url_with_params = (
@@ -91,8 +90,12 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
             if send and send["status_code"] == 500:
                 return Response(send["error"], status=send["status_code"])
+
         if "user" in request.data and "email" in request.data["user"]:
             del request.data["user"]["email"]
+        elif "user.email" in request.data:
+            del request.data["user.email"]
+
         serializer = UserProfileSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
