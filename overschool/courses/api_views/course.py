@@ -5,12 +5,14 @@ from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
+from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
     Course,
     Homework,
     Lesson,
     SectionTest,
     StudentsGroup,
+    TrainingDuration,
     UserProgressLogs,
 )
 from courses.models.courses.section import Section
@@ -25,8 +27,25 @@ from courses.serializers import (
     StudentsGroupSerializer,
 )
 from courses.services import get_student_progress
-from django.db.models import Avg, Count, F, Max, OuterRef, Q, Subquery, Sum
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    Max,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import ExtractDay, Now
+from django.db.models.lookups import GreaterThan, LessThan
 from django.forms.models import model_to_dict
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -113,10 +132,40 @@ class CourseViewSet(
             return Course.objects.filter(school__name=school_name)
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
+            sub_history = StudentsHistory.objects.filter(
+                students_group=OuterRef("group_id"), user=user, is_deleted=False
+            ).values("date_added")[:1]
+            sub_duration = TrainingDuration.objects.filter(
+                students_group=OuterRef("group_id"), user=user
+            ).values("limit")[:1]
+            student_groups = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
-            ).values_list("course_id", flat=True)
-            return Course.objects.filter(course_id__in=course_ids)
+            )
+            course_ids = student_groups.values_list("course_id", flat=True)
+            # Добавляем информацию для учеников о продолжительности их обучения
+            sub_group = student_groups.filter(course_id=OuterRef("course_id")).annotate(
+                limit=Case(
+                    When(Exists(Subquery(sub_duration)), then=Subquery(sub_duration)),
+                    When(training_duration__gt=0, then=F("training_duration")),
+                    default=None,
+                    output_field=IntegerField(),
+                ),
+                past_period=ExtractDay(Now() - Subquery(sub_history)),
+                remaining_period=Case(
+                    When(
+                        GreaterThan(F("limit"), 0)
+                        & GreaterThan(F("limit"), F("past_period")),
+                        then=F("limit") - F("past_period"),
+                    ),
+                    When(limit__gt=0, then=0),
+                    default=None,
+                ),
+            )
+            courses = Course.objects.filter(course_id__in=course_ids).annotate(
+                limit=Subquery(sub_group.values("limit")[:1]),
+                remaining_period=Subquery(sub_group.values("remaining_period")[:1]),
+            )
+            return courses
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
@@ -670,6 +719,33 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
 
+        group = None
+        if user.groups.filter(group__name="Student", school=school).exists():
+            try:
+                group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
+                limit = get_student_training_duration(group, user.id)
+                if limit:
+                    history = StudentsHistory.objects.get(
+                        user=user,
+                        students_group=group,
+                        is_deleted=False,
+                    )
+                    if history.date_added + timedelta(days=limit) < timezone.now():
+                        return Response(
+                            {"error": "Срок доступа к курсу истек."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя 1.")
+
+        elif user.groups.filter(group__name="Teacher", school=school).exists():
+            try:
+                group = StudentsGroup.objects.get(
+                    teacher_id=user.pk, course_id_id=course.pk
+                )
+            except Exception:
+                raise NotFound("Ошибка поиска группы пользователя.")
+
         data = queryset.values(
             course=F("course_id"),
             course_name=F("name"),
@@ -681,20 +757,6 @@ class CourseViewSet(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
         )
-
-        group = None
-        if user.groups.filter(group__name="Student", school=school).exists():
-            try:
-                group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
-            except Exception:
-                raise NotFound("Ошибка поиска группы пользователя 1.")
-        elif user.groups.filter(group__name="Teacher", school=school).exists():
-            try:
-                group = StudentsGroup.objects.get(
-                    teacher_id=user.pk, course_id_id=course.pk
-                )
-            except Exception:
-                raise NotFound("Ошибка поиска группы пользователя.")
 
         if group:
             result_data["group_settings"] = {

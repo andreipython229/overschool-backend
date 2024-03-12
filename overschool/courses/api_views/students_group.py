@@ -4,7 +4,14 @@ import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Homework, Lesson, Section, SectionTest, StudentsGroup
+from courses.models import (
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    TrainingDuration,
+)
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination, UserHomeworkPagination
@@ -20,6 +27,16 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, User, UserGroup
 from users.serializers import UserProfileGetSerializer
+
+
+def get_student_training_duration(group, student_id):
+    try:
+        training_duration = TrainingDuration.objects.get(
+            user_id=student_id, students_group=group
+        )
+        return training_duration.limit
+    except TrainingDuration.DoesNotExist:
+        return group.training_duration if group.training_duration else None
 
 
 class StudentsGroupViewSet(
@@ -75,6 +92,7 @@ class StudentsGroupViewSet(
             "retrieve",
             "get_students_for_group",
             "user_count_by_month",
+            "student_training_duration",
         ]:
             if user.groups.filter(
                 group__name__in=["Student", "Teacher"], school=school
@@ -612,6 +630,28 @@ class StudentsGroupViewSet(
         if page is not None:
             return self.get_paginated_response(page)
         return Response(datas)
+
+    @action(detail=True, methods=["GET"])
+    def student_training_duration(self, request, *args, **kwargs):
+        group = self.get_object()
+        student_id = request.query_params.get("student_id", None)
+        if not student_id:
+            return Response(
+                {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        user = self.request.user
+        if user.groups.filter(group__name="Student", school=self.get_school()).exists():
+            if int(student_id) != user.id:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if not group.students.filter(id=student_id).exists():
+            return Response(
+                {"error": "Указанный студент не учится в этой группе"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        limit = get_student_training_duration(group, student_id)
+
+        return Response({"limit": limit}, status=status.HTTP_200_OK)
 
 
 StudentsGroupViewSet = apply_swagger_auto_schema(
