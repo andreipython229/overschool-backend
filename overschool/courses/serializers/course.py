@@ -37,6 +37,9 @@ class CourseGetSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
+    # Поля для информации ученикам о продолжительности их обучения
+    limit = serializers.IntegerField(required=False)
+    remaining_period = serializers.IntegerField(required=False)
 
     class Meta:
         model = Course
@@ -53,6 +56,8 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "limit",
+            "remaining_period",
         ]
 
     def get_photo(self, obj):

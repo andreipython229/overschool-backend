@@ -4,7 +4,14 @@ import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Homework, Lesson, Section, SectionTest, StudentsGroup
+from courses.models import (
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    TrainingDuration,
+)
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination, UserHomeworkPagination
@@ -18,8 +25,18 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-from users.models import Profile, UserGroup, User
+from users.models import Profile, User, UserGroup
 from users.serializers import UserProfileGetSerializer
+
+
+def get_student_training_duration(group, student_id):
+    try:
+        training_duration = TrainingDuration.objects.get(
+            user_id=student_id, students_group=group
+        )
+        return training_duration.limit
+    except TrainingDuration.DoesNotExist:
+        return group.training_duration if group.training_duration else None
 
 
 class StudentsGroupViewSet(
@@ -75,9 +92,10 @@ class StudentsGroupViewSet(
             "retrieve",
             "get_students_for_group",
             "user_count_by_month",
+            "student_training_duration",
         ]:
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school
+                group__name__in=["Student", "Teacher"], school=school
             ).exists():
                 return permissions
             else:
@@ -140,8 +158,8 @@ class StudentsGroupViewSet(
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
         if (
-                teacher
-                and not teacher.groups.filter(school=school, group__name="Teacher").exists()
+            teacher
+            and not teacher.groups.filter(school=school, group__name="Teacher").exists()
         ):
             raise serializers.ValidationError(
                 "Пользователь, указанный в поле 'teacher_id', не является учителем в вашей школе."
@@ -157,7 +175,7 @@ class StudentsGroupViewSet(
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
                 if not UserGroup.objects.filter(
-                        user=student, group=group, school=school
+                    user=student, group=group, school=school
                 ).exists():
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
@@ -227,18 +245,18 @@ class StudentsGroupViewSet(
 
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
-            last_active_min = datetime.strptime(last_active_min, '%Y-%m-%d')
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             students = students.filter(last_login__gte=last_active_min)
 
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
-            last_active_max = datetime.strptime(last_active_max, '%Y-%m-%d')
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
             last_active_max += timedelta(days=1)
             students = students.filter(last_login__lte=last_active_max)
 
         last_active = self.request.GET.get("last_active")
         if last_active:
-            last_active = datetime.strptime(last_active, '%Y-%m-%d')
+            last_active = datetime.strptime(last_active, "%Y-%m-%d")
             students = students.filter(last_login=last_active)
 
         mark_sum = self.request.GET.get("mark_sum")
@@ -308,12 +326,15 @@ class StudentsGroupViewSet(
                     "date_added": students_history.date_added
                     if students_history
                     else None,
-                    "progress": get_student_progress(student.id, group.course_id, group.group_id),
-                    "date_added": students_history.date_added if students_history else None,
+                    "progress": get_student_progress(
+                        student.id, group.course_id, group.group_id
+                    ),
+                    "date_added": students_history.date_added
+                    if students_history
+                    else None,
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user,
-                        reciever=student.id,
-                        type="PERSONAL"),
+                        chat_creator=user, reciever=student.id, type="PERSONAL"
+                    ),
                 }
             )
 
@@ -359,7 +380,8 @@ class StudentsGroupViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        student_data, key=lambda x: str(x.get(sort_by, "") or "").lower()
+                        student_data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
                     )
 
             else:
@@ -512,12 +534,15 @@ class StudentsGroupViewSet(
                     "date_added": students_history.date_added
                     if students_history
                     else None,
-                    "progress": get_student_progress(student.id, group.course_id, group.group_id),
-                    "date_added": students_history.date_added if students_history else None,
+                    "progress": get_student_progress(
+                        student.id, group.course_id, group.group_id
+                    ),
+                    "date_added": students_history.date_added
+                    if students_history
+                    else None,
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user,
-                        reciever=student.id,
-                        type="PERSONAL"),
+                        chat_creator=user, reciever=student.id, type="PERSONAL"
+                    ),
                 }
             )
 
@@ -588,7 +613,7 @@ class StudentsGroupViewSet(
         group = self.get_object()
         school = self.get_school()
         if user.groups.filter(
-                group__name__in=["Admin", "Teacher"], school=school
+            group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(group_id=group.pk)
 
@@ -608,6 +633,28 @@ class StudentsGroupViewSet(
         if page is not None:
             return self.get_paginated_response(page)
         return Response(datas)
+
+    @action(detail=True, methods=["GET"])
+    def student_training_duration(self, request, *args, **kwargs):
+        group = self.get_object()
+        student_id = request.query_params.get("student_id", None)
+        if not student_id:
+            return Response(
+                {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        user = self.request.user
+        if user.groups.filter(group__name="Student", school=self.get_school()).exists():
+            if int(student_id) != user.id:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if not group.students.filter(id=student_id).exists():
+            return Response(
+                {"error": "Указанный студент не учится в этой группе"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        limit = get_student_training_duration(group, student_id)
+
+        return Response({"limit": limit}, status=status.HTTP_200_OK)
 
 
 StudentsGroupViewSet = apply_swagger_auto_schema(
@@ -699,13 +746,15 @@ class StudentsGroupWithoutTeacherViewSet(
         student_group = serializer.save(chat=chat, user=self.request.user)
 
         admins = User.objects.filter(
-            groups__school=student_group.course_id.school, groups__group__name__in=["Admin"]
+            groups__school=student_group.course_id.school,
+            groups__group__name__in=["Admin"],
         )
         # UserChat.objects.create(user=self.request.user, chat=chat, user_role="Admin")
         for admin in admins:
-            if not UserChat.objects.filter(user=admin, chat=chat, user_role='Admin').exists():
-                UserChat.objects.create(user=admin, chat=chat, user_role='Admin')
-
+            if not UserChat.objects.filter(
+                user=admin, chat=chat, user_role="Admin"
+            ).exists():
+                UserChat.objects.create(user=admin, chat=chat, user_role="Admin")
 
         return student_group
 
