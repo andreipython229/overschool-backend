@@ -6,11 +6,11 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from schools.models import School
+from schools.models import School, SchoolDocuments
 from users.models import User
 from users.permissions import OwnerUserPermissions
 from users.serializers import AllUsersSerializer, UserSerializer
-
+from schools.serializers import SchoolDocumentsDetailSerializer
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """Возвращаем только объекты пользователя, сделавшего запрос\n
@@ -136,6 +136,11 @@ class GetCertificateView(APIView):
         owner = get_object_or_404(User, id=school.owner.id)
         teacher = get_object_or_404(User, id=group.teacher_id.id)
 
+        # Добавляем печать и подпись из школьных документов (stamp, signature) в certificate_data
+        school_documents = get_object_or_404(SchoolDocuments, user=owner, school=school)
+        stamp = SchoolDocumentsDetailSerializer().get_stamp(school_documents)
+        signature = SchoolDocumentsDetailSerializer().get_signature(school_documents)
+
         certificate_data = {
             "school_name": school.name,
             "school_owner": f"{owner.last_name} {owner.first_name} {owner.patronymic}",
@@ -144,6 +149,8 @@ class GetCertificateView(APIView):
             "course_name": course.name,
             "course_description": course.description,
             "sections": section_data,
+            "stamp": stamp,
+            "signature": signature,
         }
 
         return Response(certificate_data, status=status.HTTP_200_OK)
