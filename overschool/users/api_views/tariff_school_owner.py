@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup
+from datetime import datetime
 
 User = get_user_model()
 
@@ -65,6 +66,18 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
         # Получение количества курсов для школы
         number_of_courses = Course.objects.filter(school=school).count()
 
+        # Количество добавленных студентов в месяц
+        current_datetime = datetime.now()
+        current_month = current_datetime.month
+        current_year = current_datetime.year
+
+        student_count_by_month = UserGroup.objects.filter(
+            group__name="Student",
+            school=school,
+            created_at__year=current_year,
+            created_at__month=current_month,
+        ).count()
+
         # Подготовка данных о тарифе
         tariff_details = {
             "id": school.tariff.id,
@@ -74,6 +87,7 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
             "students_per_month": school.tariff.students_per_month,
             "total_students": school.tariff.total_students,
             "price": school.tariff.price,
+            "student_count_by_month": student_count_by_month
         }
 
         data = {
