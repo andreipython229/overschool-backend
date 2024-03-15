@@ -1,8 +1,12 @@
+from channels.db import database_sync_to_async
 from chats.models import Chat, Message, UserChat
 from common_services.selectel_client import UploadToS3
+from courses.models.courses.course import CourseAppeals
+from django.contrib.auth import get_user_model
 from django.db import transaction
-from channels.db import database_sync_to_async
+from django.db.models import Q
 
+User = get_user_model()
 s3 = UploadToS3()
 
 
@@ -14,13 +18,11 @@ def get_avatar(obj):
         base_avatar_path = "users/avatars/base_avatar.jpg"
         return s3.get_link(base_avatar_path)
 
+
 def get_chats_info(user):
     with transaction.atomic():
-        user_chats = UserChat.objects.filter(
-            user=user
-        ).prefetch_related(
-            'chat__message_set',
-            'chat__userchat_set__user__profile'
+        user_chats = UserChat.objects.filter(user=user).prefetch_related(
+            "chat__message_set", "chat__userchat_set__user__profile"
         )
 
         total_unread_messages = 0
@@ -33,12 +35,12 @@ def get_chats_info(user):
                 "is_deleted": user_chat.chat.is_deleted,
                 "name": user_chat.chat.name,
                 "type": user_chat.chat.type,
-                "unread": user_chat.unread_messages_count or 0
+                "unread": user_chat.unread_messages_count or 0,
             }
 
             total_unread_messages += user_chat.unread_messages_count or 0
 
-            last_message = user_chat.chat.message_set.order_by('-sent_at').first()
+            last_message = user_chat.chat.message_set.order_by("-sent_at").first()
             chat_data["last_message"] = {
                 "content": last_message.content if last_message else None,
                 "id": last_message.id if last_message else None,
@@ -56,7 +58,9 @@ def get_chats_info(user):
                     "username": user_chat_user.user.username,
                     "user_role": user_chat_user.user_role,
                 }
-                for user_chat_user in user_chat.chat.userchat_set.select_related('user__profile')
+                for user_chat_user in user_chat.chat.userchat_set.select_related(
+                    "user__profile"
+                )
             ]
 
             chat_data["senders"] = users_data
@@ -73,11 +77,8 @@ def get_chats_info(user):
 @database_sync_to_async
 def get_chats_info_async(user):
     with transaction.atomic():
-        user_chats = UserChat.objects.filter(
-            user=user
-        ).prefetch_related(
-            'chat__message_set',
-            'chat__userchat_set__user__profile'
+        user_chats = UserChat.objects.filter(user=user).prefetch_related(
+            "chat__message_set", "chat__userchat_set__user__profile"
         )
 
         total_unread_messages = 0
@@ -90,12 +91,12 @@ def get_chats_info_async(user):
                 "is_deleted": user_chat.chat.is_deleted,
                 "name": user_chat.chat.name,
                 "type": user_chat.chat.type,
-                "unread": user_chat.unread_messages_count or 0
+                "unread": user_chat.unread_messages_count or 0,
             }
 
             total_unread_messages += user_chat.unread_messages_count or 0
 
-            last_message = user_chat.chat.message_set.order_by('-sent_at').first()
+            last_message = user_chat.chat.message_set.order_by("-sent_at").first()
             chat_data["last_message"] = {
                 "content": last_message.content if last_message else None,
                 "id": last_message.id if last_message else None,
@@ -113,7 +114,9 @@ def get_chats_info_async(user):
                     "username": user_chat_user.user.username,
                     "user_role": user_chat_user.user_role,
                 }
-                for user_chat_user in user_chat.chat.userchat_set.select_related('user__profile')
+                for user_chat_user in user_chat.chat.userchat_set.select_related(
+                    "user__profile"
+                )
             ]
 
             chat_data["senders"] = users_data
@@ -125,3 +128,22 @@ def get_chats_info_async(user):
         }
 
     return response_data
+
+
+# @database_sync_to_async
+# def get_unread_appeals_count(self, school):
+#     admins = (
+#         User.objects.filter(
+#             Q(groups__usergroup__group__name="Admin")
+#             & Q(groups__usergroup__school=school)
+#         )
+#         .distinct()
+#         .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
+#     )
+#
+#     if self.user in admins:
+#         unread_appeals = CourseAppeals.objects.filter(
+#             course__school=school, is_read=False
+#         ).count()
+#         return unread_appeals
+#     return 0

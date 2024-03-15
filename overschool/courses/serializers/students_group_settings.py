@@ -9,4 +9,5 @@ class StudentsGroupSettingsSerializer(serializers.ModelSerializer):
             "id",
             "strict_task_order",
             "task_submission_lock",
+            "overai_lock",
         ]
