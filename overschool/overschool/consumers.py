@@ -8,9 +8,8 @@ from chats.models import UserChat
 from chats.services import get_chats_info_async, get_unread_appeals_count
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q, Sum
+from schools.models import School
 from users.models import User
-
-from overschool.schools.models import School
 
 
 class InfoConsumers(AsyncWebsocketConsumer):
