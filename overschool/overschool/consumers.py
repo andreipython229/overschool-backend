@@ -5,7 +5,7 @@ from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chats.models import UserChat
-from chats.services import get_chats_info_async, get_unread_appeals_count
+from chats.services import get_chats_info_async
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q, Sum
 from schools.models import School
