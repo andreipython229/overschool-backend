@@ -83,28 +83,30 @@ class InfoConsumers(AsyncWebsocketConsumer):
         #     )
         # Получаем роли пользователя
         school_name = self.scope["url_route"]["kwargs"].get("school_name")
-        school = await database_sync_to_async(School.objects.get)(name=school_name)
-        is_admin = await database_sync_to_async(
-            self.user.groups.filter(
-                Q(usergroup__group__name="Admin") & Q(usergroup__school=school)
-            ).exists
-        )()
+        try:
+            school = await database_sync_to_async(School.objects.get)(name=school_name)
+            is_admin = await database_sync_to_async(
+                self.user.groups.filter(
+                    Q(usergroup__group__name="Admin") & Q(usergroup__school=school)
+                ).exists
+            )()
 
-        if is_admin:
-            unread_appeals_count = await get_unread_appeals_count(school)
+            if is_admin:
+                unread_appeals_count = await get_unread_appeals_count(school)
 
-            # Отправляем количество непрочитанных заявок через WebSocket
-            await self.send(
-                text_data=json.dumps(
-                    {
-                        "type": "unread_appeals_count",
-                        "school_id": school.id,
-                        "unread_count": unread_appeals_count,
-                    },
-                    cls=DjangoJSONEncoder,
+                # Отправляем количество непрочитанных заявок через WebSocket
+                await self.send(
+                    text_data=json.dumps(
+                        {
+                            "type": "unread_appeals_count",
+                            "school_id": school.id,
+                            "unread_count": unread_appeals_count,
+                        },
+                        cls=DjangoJSONEncoder,
+                    )
                 )
-            )
-
+        except School.DoesNotExist:
+            pass
         message = await get_chats_info_async(self.user)
         await self.send(
             text_data=json.dumps({"type": "full_chat_info", "message": message})
