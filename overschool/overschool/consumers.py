@@ -83,6 +83,7 @@ class InfoConsumers(AsyncWebsocketConsumer):
         #     )
         # Получаем роли пользователя
         school_name = self.scope["url_route"]["kwargs"].get("school_name")
+        print(school_name)
         try:
             school = await database_sync_to_async(School.objects.get)(name=school_name)
             is_admin = await database_sync_to_async(
@@ -101,8 +102,7 @@ class InfoConsumers(AsyncWebsocketConsumer):
                             "type": "unread_appeals_count",
                             "school_id": school.id,
                             "unread_count": unread_appeals_count,
-                        },
-                        cls=DjangoJSONEncoder,
+                        }
                     )
                 )
         except School.DoesNotExist:
