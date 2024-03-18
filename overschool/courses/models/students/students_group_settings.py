@@ -14,7 +14,7 @@ class StudentsGroupSettings(models.Model):
         help_text="При 'True' - ученики данной группы не могут отправлять домашки, они могут сделать его самостоятельно и перейти к следующему уроку"
     )
     overai_lock = models.BooleanField(
-        default=False,
+        default=True,
         verbose_name="Блокировка доступа к OVER AI",
         help_text="При 'True' - OVER AI включен для учеников данной группы"
     )
