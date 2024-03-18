@@ -2,7 +2,6 @@ from .school import (
     SchoolGetSerializer,
     SchoolSerializer,
     SchoolUpdateSerializer,
-    SelectTrialSerializer,
     TariffSerializer,
 )
 from .school_document import (

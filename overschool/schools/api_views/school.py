@@ -31,7 +31,6 @@ from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SchoolUpdateSerializer,
-    SelectTrialSerializer,
     TariffSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
@@ -52,8 +51,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return SchoolGetSerializer
-        if self.action in ["select_trial"]:
-            return SelectTrialSerializer
         else:
             return SchoolSerializer
 
@@ -103,10 +100,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         if School.objects.filter(name=serializer.validated_data["name"]).exists():
             return HttpResponse("Название школы уже существует.", status=400)
-
         school = serializer.save(
             owner=request.user,
-            tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+            tariff=Tariff.objects.get(name=TariffPlan.JUNIOR.value),
+            used_trial=True,
+            trial_end_date=timezone.now() + timezone.timedelta(days=14),
         )
         if school:
             SchoolHeader.objects.create(school=school, name=school.name)
@@ -164,42 +162,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=["post"])
-    def select_trial(self, request, pk=None):
-        school = self.get_object()
-
-        # Проверка разрешений для выбора пробного тарифа
-        if school.owner != request.user:
-            return Response(
-                {
-                    "error": "У вас нет прав на установку пробного периода для этой школы"
-                },
-                status=403,
-            )
-
-        # Проверка, что пробный тариф еще не использован
-        if not school.used_trial:
-            serializer = SelectTrialSerializer(school, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            tariff_choice = serializer.validated_data["tariff"]
-
-            # Получение объекта Tariff по выбранному тарифу
-            try:
-                tariff = Tariff.objects.get(name=tariff_choice)
-            except Tariff.DoesNotExist:
-                return Response({"error": "Указан некорректный тариф"}, status=400)
-            # Установка выбранного тарифа для школы
-            school.tariff = tariff
-            school.used_trial = True
-            school.trial_end_date = timezone.now() + timezone.timedelta(days=14)
-            school.save()
-
-            return Response(
-                {"message": "Пробный период успешно установлен"}, status=200
-            )
-        else:
-            return Response({"error": "Пробный период уже был использован"}, status=400)
 
     def get_student_sections_and_availability(self, student_id):
         student_groups = StudentsGroup.objects.filter(students__id=student_id)
