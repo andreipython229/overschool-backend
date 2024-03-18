@@ -29,14 +29,17 @@ from users.models import Profile, User, UserGroup
 from users.serializers import UserProfileGetSerializer
 
 
+# Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную
 def get_student_training_duration(group, student_id):
     try:
         training_duration = TrainingDuration.objects.get(
             user_id=student_id, students_group=group
         )
-        return training_duration.limit
+        return (training_duration.limit, training_duration.limit)
     except TrainingDuration.DoesNotExist:
-        return group.training_duration if group.training_duration else None
+        return (
+            (group.training_duration, None) if group.training_duration else (None, None)
+        )
 
 
 class StudentsGroupViewSet(
@@ -651,7 +654,10 @@ class StudentsGroupViewSet(
 
         limit = get_student_training_duration(group, student_id)
 
-        return Response({"limit": limit}, status=status.HTTP_200_OK)
+        return Response(
+            {"final_limit": limit[0], "individual_limit": limit[1]},
+            status=status.HTTP_200_OK,
+        )
 
 
 StudentsGroupViewSet = apply_swagger_auto_schema(

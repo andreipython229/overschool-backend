@@ -65,7 +65,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats"]
+            self.action in ["stats", "section_student"]
             and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
@@ -100,6 +100,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         if School.objects.filter(name=serializer.validated_data["name"]).exists():
             return HttpResponse("Название школы уже существует.", status=400)
+
         school = serializer.save(
             owner=request.user,
             tariff=Tariff.objects.get(name=TariffPlan.JUNIOR.value),
@@ -255,12 +256,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     )
     def section_student(self, request, pk=None, *args, **kwargs):
         school = self.get_object()
+        user = self.request.user
         student_id = request.query_params.get("student_id", None)
         if not student_id:
             return Response(
                 {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
             )
-        student_data = self.get_student_sections_and_availability(student_id)
+        student_groups = StudentsGroup.objects.filter(
+            course_id__school=school, students__id=student_id
+        )
+        if not user.groups.filter(group__name="Admin", school=school).exists():
+            if user.groups.filter(group__name="Teacher", school=school).exists():
+                student_groups = student_groups.filter(teacher_id=request.user)
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+        student_data = self.get_student_sections_and_availability(
+            student_id, student_groups
+        )
         response_data = {
             "school_name": school.name,
             "student_id": student_id,

@@ -722,7 +722,7 @@ class CourseViewSet(
         if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
-                limit = get_student_training_duration(group, user.id)
+                limit = get_student_training_duration(group, user.id)[0]
                 if limit:
                     history = StudentsHistory.objects.get(
                         user=user,
