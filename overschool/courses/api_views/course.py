@@ -188,8 +188,7 @@ class CourseViewSet(
             )
 
         if (
-            school_obj.tariff.name
-            in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+            school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
             and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
         ):
             return Response(

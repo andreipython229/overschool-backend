@@ -3,6 +3,7 @@ from courses.models import CourseAppeals
 from courses.paginators import StudentsPagination
 from courses.serializers.course_appeals import CourseAppealsSerializer
 from django.contrib.auth import get_user_model
+from django.db.models import F
 from rest_framework import permissions, status, viewsets
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -33,7 +34,9 @@ class GetAppealsViewSet(
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         if user.groups.filter(group__name="Admin", school=school).exists():
-            queryset = CourseAppeals.objects.filter(course__school=school)
+            queryset = CourseAppeals.objects.filter(course__school=school).order_by(
+                F("is_read").asc()
+            )
         else:
             queryset = CourseAppeals.objects.none()
         return queryset

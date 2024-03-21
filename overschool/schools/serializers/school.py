@@ -4,18 +4,6 @@ from schools.models import School, Tariff, TariffPlan
 from transliterate import translit
 
 
-class SelectTrialSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для выбора пробного тарифа школы
-    """
-
-    tariff = serializers.ChoiceField(choices=TariffPlan.choices)
-
-    class Meta:
-        model = School
-        fields = ["tariff"]
-
-
 class SchoolSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели школы

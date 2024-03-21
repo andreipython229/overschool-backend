@@ -12,7 +12,6 @@ User = get_user_model()
 
 class TariffPlan(models.TextChoices):
     "Тарифы для школы"
-    INTERN = "Intern", "Intern"
     JUNIOR = "Junior", "Junior"
     MIDDLE = "Middle", "Middle"
     SENIOR = "Senior", "Senior"
@@ -26,7 +25,7 @@ class Tariff(models.Model):
         help_text="Уникальный идентификатор тарифа",
     )
     name = models.CharField(
-        max_length=10, choices=TariffPlan.choices, default=TariffPlan.INTERN
+        max_length=10, choices=TariffPlan.choices, default=TariffPlan.JUNIOR
     )
     number_of_courses = models.IntegerField(
         null=True, blank=True, verbose_name="Количество курсов"
@@ -122,7 +121,7 @@ class School(TimeStampMixin, OrderMixin):
             and self.trial_end_date
             and self.trial_end_date <= timezone.now()
         ):
-            self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
+            self.tariff = None
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
@@ -130,7 +129,7 @@ class School(TimeStampMixin, OrderMixin):
             self.purchased_tariff_end_date
             and self.purchased_tariff_end_date <= timezone.now()
         ):
-            self.tariff = Tariff.objects.get(name=TariffPlan.INTERN.value)
+            self.tariff = None
             self.purchased_tariff_end_date = None
 
         self.save()

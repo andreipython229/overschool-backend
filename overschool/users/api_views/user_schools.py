@@ -42,10 +42,21 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
                     When(owner=self.request.user, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
-                )
+                ),
+                tariff_paid=Case(
+                    When(tariff=None, then=Value(False)),
+                    default=Value(True),
+                    output_field=BooleanField(),
+                ),
             )
             data = user_schools.values(
-                "school_id", "name", "header_school", "role", "is_owner"
+                "school_id",
+                "name",
+                "header_school",
+                "role",
+                "is_owner",
+                "tariff_paid",
+                "contact_link",
             )
             return Response(data)
         else:

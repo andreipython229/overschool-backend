@@ -1,4 +1,5 @@
 from django.contrib.auth.models import Group
+from django.utils import timezone
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan
@@ -41,7 +42,9 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         school = School(
             name=school_name,
             owner=user,
-            tariff=Tariff.objects.get(name=TariffPlan.INTERN.value),
+            tariff=Tariff.objects.get(name=TariffPlan.JUNIOR.value),
+            used_trial=True,
+            trial_end_date=timezone.now() + timezone.timedelta(days=14),
         )
 
         school.save()
