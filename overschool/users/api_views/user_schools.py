@@ -50,7 +50,13 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
                 ),
             )
             data = user_schools.values(
-                "school_id", "name", "header_school", "role", "is_owner", "tariff_paid"
+                "school_id",
+                "name",
+                "header_school",
+                "role",
+                "is_owner",
+                "tariff_paid",
+                "contact_link",
             )
             return Response(data)
         else:
