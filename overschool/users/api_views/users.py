@@ -1,5 +1,5 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import BaseLesson, StudentsGroup, UserProgressLogs, Section
+from courses.models import BaseLesson, StudentsGroup, UserProgressLogs, Section, Homework, Lesson, SectionTest
 from courses.paginators import StudentsPagination
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -107,10 +107,41 @@ class GetCertificateView(APIView):
         course = group.course_id
         sections = Section.objects.filter(course=course)
         section_data = []
+
         for section in sections:
+            lessons_data = []
+            for lesson in section.lessons.all():
+                availability = lesson.is_available_for_group(group.group_id)
+                try:
+                    Homework.objects.get(baselesson_ptr=lesson.id)
+                    obj_type = "homework"
+                except Homework.DoesNotExist:
+                    pass
+                try:
+                    Lesson.objects.get(baselesson_ptr=lesson.id)
+                    obj_type = "lesson"
+                except Lesson.DoesNotExist:
+                    pass
+                try:
+                    SectionTest.objects.get(baselesson_ptr=lesson.id)
+                    obj_type = "test"
+                except SectionTest.DoesNotExist:
+                    pass
+
+                lesson_data = {
+                    "lesson_id": lesson.id,
+                    "type": obj_type,
+                    "name": lesson.name,
+                    "order": lesson.order,
+                }
+                lessons_data.append(lesson_data)
+
+            lessons_data.sort(key=lambda x: x["order"])
+
             section_data.append({
                 "id": section.section_id,
-                "name": section.name
+                "name": section.name,
+                "lessons": lessons_data,
             })
 
         base_lessons = BaseLesson.objects.filter(section__course=course, active=True)
