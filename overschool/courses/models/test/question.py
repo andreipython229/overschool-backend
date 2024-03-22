@@ -1,6 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
-from common_services.services import TruncateFileName, limit_size
+from common_services.services import TruncateFileName, limit_image_size
 from django.db import models
 from model_clone import CloneMixin
 
@@ -45,7 +45,7 @@ class Question(TimeStampMixin, CloneMixin, models.Model):
         verbose_name="Картинка",
         null=True,
         blank=True,
-        validators=[limit_size],
+        validators=[limit_image_size],
         upload_to=TruncateFileName(300),
     )
     is_any_answer_correct = models.BooleanField(

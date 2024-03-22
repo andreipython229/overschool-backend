@@ -1,6 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
-from common_services.services import TruncateFileName, limit_size
+from common_services.services import TruncateFileName, limit_image_size
 from django.db import models
 
 from .question import Question
@@ -35,7 +35,7 @@ class Answer(TimeStampMixin, models.Model):
     picture = models.ImageField(
         verbose_name="Картинка",
         max_length=300,
-        validators=[limit_size],
+        validators=[limit_image_size],
         upload_to=TruncateFileName(300),
         null=True,
         blank=True,

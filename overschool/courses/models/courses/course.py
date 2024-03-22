@@ -1,6 +1,6 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from common_services.services import TruncateFileName, limit_size
+from common_services.services import TruncateFileName, limit_image_size
 from django.contrib.postgres.search import SearchVectorField
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -99,7 +99,7 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     photo = models.ImageField(
         verbose_name="Фотография",
         help_text="Главная фотография",
-        validators=[limit_size],
+        validators=[limit_image_size],
         max_length=300,
         upload_to=TruncateFileName(300),
         blank=True,
