@@ -11,6 +11,7 @@ class StudentsGroupAdmin(admin.ModelAdmin):
 class StudentsHistoryAdmin(admin.ModelAdmin):
     list_display = [
         "user",
+        "course",
         "students_group",
         "date_added",
         "date_removed",
@@ -20,3 +21,8 @@ class StudentsHistoryAdmin(admin.ModelAdmin):
     search_fields = ["user__username", "students_group__name"]
     date_hierarchy = "date_added"
     readonly_fields = ["date_added", "date_removed"]
+
+    def course(self, obj):
+        return obj.students_group.course_id
+
+    course.short_description = "Курс"
