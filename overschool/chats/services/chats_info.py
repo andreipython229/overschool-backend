@@ -142,6 +142,5 @@ def get_unread_appeals_count(user, school):
         unread_appeals = CourseAppeals.objects.filter(
             course__school=school, is_read=False
         ).count()
-        print("unread_appeals: ", unread_appeals)
         return unread_appeals
     return 0
