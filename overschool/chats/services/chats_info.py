@@ -130,20 +130,20 @@ def get_chats_info_async(user):
     return response_data
 
 
-# @database_sync_to_async
-# def get_unread_appeals_count(self, school):
-#     admins = (
-#         User.objects.filter(
-#             Q(groups__usergroup__group__name="Admin")
-#             & Q(groups__usergroup__school=school)
-#         )
-#         .distinct()
-#         .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
-#     )
-#
-#     if self.user in admins:
-#         unread_appeals = CourseAppeals.objects.filter(
-#             course__school=school, is_read=False
-#         ).count()
-#         return unread_appeals
-#     return 0
+@database_sync_to_async
+def get_unread_appeals_count(self, school):
+    admins = (
+        User.objects.filter(
+            Q(groups__usergroup__group__name="Admin")
+            & Q(groups__usergroup__school=school)
+        )
+        .distinct()
+        .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
+    )
+
+    if self.user in admins:
+        unread_appeals = CourseAppeals.objects.filter(
+            course__school=school, is_read=False
+        ).count()
+        return unread_appeals
+    return 0

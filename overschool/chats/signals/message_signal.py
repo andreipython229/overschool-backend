@@ -40,29 +40,29 @@ def update_user_unread_message(sender, instance, **kwargs):
         )
 
 
-# @receiver(post_save, sender=CourseAppeals)
-# def send_unread_appeals_count(sender, instance, created, **kwargs):
-#     if created:
-#         school = instance.course.school
-#         unread_appeals = CourseAppeals.objects.filter(
-#             course__school=school, is_read=False
-#         ).count()
-#
-#         admins = (
-#             User.objects.filter(
-#                 Q(groups__usergroup__group__name="Admin")
-#                 & Q(groups__usergroup__school=school)
-#             )
-#             .distinct()
-#             .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
-#         )
-#
-#         for admin in admins:
-#             async_to_sync(channel_layer.group_send)(
-#                 f"user_{admin.id}_group",
-#                 {
-#                     "type": "unread_appeals_count",
-#                     "unread_count": unread_appeals,
-#                     "school_id": school.id,
-#                 },
-#             )
+@receiver(post_save, sender=CourseAppeals)
+def send_unread_appeals_count(sender, instance, created, **kwargs):
+    if created:
+        school = instance.course.school
+        unread_appeals = CourseAppeals.objects.filter(
+            course__school=school, is_read=False
+        ).count()
+
+        admins = (
+            User.objects.filter(
+                Q(groups__usergroup__group__name="Admin")
+                & Q(groups__usergroup__school=school)
+            )
+            .distinct()
+            .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
+        )
+
+        for admin in admins:
+            async_to_sync(channel_layer.group_send)(
+                f"user_{admin.id}_group",
+                {
+                    "type": "unread_appeals_count",
+                    "unread_count": unread_appeals,
+                    "school_id": school.id,
+                },
+            )
