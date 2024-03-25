@@ -50,11 +50,10 @@ def send_unread_appeals_count(sender, instance, created, **kwargs):
 
         admins = (
             User.objects.filter(
-                Q(groups__usergroup__group__name="Admin")
-                & Q(groups__usergroup__school=school)
+                Q(groups__group__name="Admin") & Q(groups__school=school)
             )
             .distinct()
-            .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
+            .prefetch_related("groups__school", "groups__group")
         )
 
         for admin in admins:
@@ -63,6 +62,6 @@ def send_unread_appeals_count(sender, instance, created, **kwargs):
                 {
                     "type": "unread_appeals_count",
                     "unread_count": unread_appeals,
-                    "school_id": school.id,
+                    "school_id": school.school_id,
                 },
             )

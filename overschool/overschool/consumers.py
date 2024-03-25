@@ -85,6 +85,7 @@ class InfoConsumers(AsyncWebsocketConsumer):
         school_name = self.scope["url_route"]["kwargs"].get("school_name")
         try:
             school = await database_sync_to_async(School.objects.get)(name=school_name)
+            print(school)
             is_admin = await database_sync_to_async(
                 self.user.groups.filter(
                     Q(group__name="Admin") & Q(school=school.school_id)
@@ -92,7 +93,7 @@ class InfoConsumers(AsyncWebsocketConsumer):
             )()
 
             if is_admin:
-                unread_appeals_count = await get_unread_appeals_count(school)
+                unread_appeals_count = await get_unread_appeals_count(self.user, school)
 
                 # Отправляем количество непрочитанных заявок через WebSocket
                 await self.send(
