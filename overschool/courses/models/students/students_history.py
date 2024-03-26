@@ -1,5 +1,6 @@
 from django.db import models
 from users.models.user import User
+
 from .students_group import StudentsGroup
 
 
@@ -44,8 +45,8 @@ class StudentsHistory(models.Model):
     )
 
     def __str__(self):
-        return f'{self.user} {self.students_group}'
+        return f"{self.user} {self.students_group}"
 
     class Meta:
-        verbose_name = "Student history"
-        verbose_name_plural = "Student history"
+        verbose_name = "История студента"
+        verbose_name_plural = "История студентов"

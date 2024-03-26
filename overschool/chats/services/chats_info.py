@@ -1,7 +1,7 @@
 from channels.db import database_sync_to_async
 from chats.models import Chat, Message, UserChat
 from common_services.selectel_client import UploadToS3
-from courses.models.courses.course import CourseAppeals
+from courses.models.courses.course import Course, CourseAppeals
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
@@ -130,20 +130,17 @@ def get_chats_info_async(user):
     return response_data
 
 
-# @database_sync_to_async
-# def get_unread_appeals_count(self, school):
-#     admins = (
-#         User.objects.filter(
-#             Q(groups__usergroup__group__name="Admin")
-#             & Q(groups__usergroup__school=school)
-#         )
-#         .distinct()
-#         .prefetch_related("groups__usergroup__school", "groups__usergroup__group")
-#     )
-#
-#     if self.user in admins:
-#         unread_appeals = CourseAppeals.objects.filter(
-#             course__school=school, is_read=False
-#         ).count()
-#         return unread_appeals
-#     return 0
+@database_sync_to_async
+def get_unread_appeals_count(user, school):
+    admins = (
+        User.objects.filter(Q(groups__group__name="Admin") & Q(groups__school=school))
+        .distinct()
+        .prefetch_related("groups__school", "groups__group")
+    )
+
+    if user in admins:
+        unread_appeals = CourseAppeals.objects.filter(
+            course__school=school, is_read=False
+        ).count()
+        return unread_appeals
+    return 0
