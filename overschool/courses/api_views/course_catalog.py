@@ -1,12 +1,12 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import Course, Public
+from courses.models import BaseLesson, Course, Public
 from courses.paginators import StudentsPagination
 from courses.serializers.course_catalog import (
     CourseCatalogDetailSerializer,
     CourseCatalogSerializer,
 )
 from django.contrib.postgres.search import SearchQuery, SearchVector
-from django.db.models import Q
+from django.db.models import Count, Q
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 
@@ -25,14 +25,17 @@ class CourseCatalogViewSet(
     http_method_names = ["get", "head", "retrieve"]
 
     def get_queryset(self):
+        courses = Course.objects.annotate(
+            baselessons_count=Count("sections__lessons")
+        ).filter(baselessons_count__gte=5)
         if self.action == "retrieve":
             # Для детального просмотра курса
-            return Course.objects.filter(
+            return courses.filter(
                 Q(is_catalog=True) | Q(is_direct=True), public=Public.PUBLISHED
             )
         else:
             # Для списка курсов в каталоге
-            return Course.objects.filter(is_catalog=True, public=Public.PUBLISHED)
+            return courses.filter(is_catalog=True, public=Public.PUBLISHED)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

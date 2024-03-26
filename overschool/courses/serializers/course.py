@@ -38,6 +38,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
+    baselessons_count = serializers.IntegerField(required=False)
     # Поля для информации ученикам о продолжительности их обучения
     limit = serializers.IntegerField(required=False)
     remaining_period = serializers.IntegerField(required=False)
@@ -58,6 +59,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "baselessons_count",
             "limit",
             "remaining_period",
         ]
