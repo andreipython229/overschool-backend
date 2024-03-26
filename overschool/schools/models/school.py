@@ -117,17 +117,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-            self.used_trial
-            and self.trial_end_date
-            and self.trial_end_date <= timezone.now()
+                self.used_trial
+                and self.trial_end_date
+                and self.trial_end_date <= timezone.now()
         ):
             self.tariff = None
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-            self.purchased_tariff_end_date
-            and self.purchased_tariff_end_date <= timezone.now()
+                self.purchased_tariff_end_date
+                and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = None
             self.purchased_tariff_end_date = None
@@ -208,6 +208,39 @@ class SchoolStatistics(models.Model):
     class Meta:
         verbose_name = "Статистика школы"
         verbose_name_plural = "Статистика школ"
+
+
+class SchoolPaymentMethod(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    payment_method = models.CharField(
+        max_length=25,
+        verbose_name="Метод оплаты",
+        help_text="Метод оплаты",
+        default=None
+    )
+    payment_method_name = models.CharField(
+        max_length=100,
+        verbose_name="Название метода оплаты",
+        help_text="Название метода оплаты"
+    )
+    payment_link = models.CharField(
+        unique=True,
+        max_length=400,
+        verbose_name="Ссылка",
+        help_text="Ссылка на страницу для оплаты"
+    )
+    secret_key = models.CharField(
+        max_length=100,
+        verbose_name="Секретный ключ",
+        help_text="Секретный ключ"
+    )
+
+    def __str__(self):
+        return f"{self.payment_method_name} - {self.school}"
+
+    class Meta:
+        verbose_name = "Оплата курсов для школы"
+        verbose_name_plural = "Оплата курсов для школ"
 
 
 @receiver(post_save, sender=School)

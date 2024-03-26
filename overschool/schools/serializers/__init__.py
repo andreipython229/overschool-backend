@@ -14,3 +14,4 @@ from .school_header import (
     SchoolHeaderSerializer,
     SchoolHeaderUpdateSerializer,
 )
+from .payment_methods import SchoolPaymentMethodSerializer
