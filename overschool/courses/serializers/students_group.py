@@ -27,6 +27,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "students",
             "group_settings",
             "type",
+            "certificate",
             "training_duration",
         ]
 
