@@ -73,6 +73,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
+        certificate = validated_data.pop('certificate', None)
         instance = super().update(instance, validated_data)
 
         if group_settings_data:
@@ -80,6 +81,10 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             for key, value in group_settings_data.items():
                 setattr(group_settings, key, value)
             group_settings.save()
+
+        if certificate is not None:
+            instance.certificate = certificate
+            instance.save()
 
         return instance
 
@@ -142,6 +147,8 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
+        certificate = validated_data.pop('certificate', None)
+
         instance = super().update(instance, validated_data)
 
         if group_settings_data:
@@ -149,6 +156,10 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
             for key, value in group_settings_data.items():
                 setattr(group_settings, key, value)
             group_settings.save()
+
+        if certificate is not None:
+            instance.certificate = certificate
+            instance.save()
 
         return instance
 
