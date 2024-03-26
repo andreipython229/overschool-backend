@@ -129,7 +129,9 @@ class CourseViewSet(
         school_id = School.objects.get(name=school_name).school_id
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Course.objects.filter(school__name=school_name)
+            return Course.objects.filter(school__name=school_name).annotate(
+                baselessons_count=Count("sections__lessons")
+            )
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
             sub_history = StudentsHistory.objects.filter(
