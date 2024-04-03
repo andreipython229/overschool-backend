@@ -41,6 +41,24 @@ class Tariff(models.Model):
     )
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
 
+    @property
+    def discount_3_months(self):
+        discount = 10  # Скидка при оплате за 3 месяца (в процентах)
+        discounted_price = round(float(self.price) * (1 - discount / 100) * 3, 2)
+        return discounted_price
+
+    @property
+    def discount_6_months(self):
+        discount = 20  # Скидка при оплате за 6 месяцев (в процентах)
+        discounted_price = round(float(self.price) * (1 - discount / 100) * 6, 2)
+        return discounted_price
+
+    @property
+    def discount_12_months(self):
+        discount = 30  # Скидка при оплате за 12 месяцев (в процентах)
+        discounted_price = round(float(self.price) * (1 - discount / 100) * 12, 2)
+        return discounted_price
+
     def __str__(self):
         return f"{self.name} - {self.price}"
 
@@ -117,17 +135,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-                self.used_trial
-                and self.trial_end_date
-                and self.trial_end_date <= timezone.now()
+            self.used_trial
+            and self.trial_end_date
+            and self.trial_end_date <= timezone.now()
         ):
             self.tariff = None
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-                self.purchased_tariff_end_date
-                and self.purchased_tariff_end_date <= timezone.now()
+            self.purchased_tariff_end_date
+            and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = None
             self.purchased_tariff_end_date = None
@@ -216,23 +234,21 @@ class SchoolPaymentMethod(models.Model):
         max_length=25,
         verbose_name="Метод оплаты",
         help_text="Метод оплаты",
-        default=None
+        default=None,
     )
     payment_method_name = models.CharField(
         max_length=100,
         verbose_name="Название метода оплаты",
-        help_text="Название метода оплаты"
+        help_text="Название метода оплаты",
     )
     payment_link = models.CharField(
         unique=True,
         max_length=400,
         verbose_name="Ссылка",
-        help_text="Ссылка на страницу для оплаты"
+        help_text="Ссылка на страницу для оплаты",
     )
     secret_key = models.CharField(
-        max_length=100,
-        verbose_name="Секретный ключ",
-        help_text="Секретный ключ"
+        max_length=100, verbose_name="Секретный ключ", help_text="Секретный ключ"
     )
 
     def __str__(self):

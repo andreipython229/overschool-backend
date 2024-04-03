@@ -43,40 +43,84 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
         if serializer.is_valid():
             data = serializer.validated_data
             tariff = data["tariff"]
-            pays_count = data["pays_count"]
-            promo_code = request.data.get("promo_code", " ")
+            pays_count = data.get(
+                "pays_count"
+            )  # Может быть None для ежемесячной оплаты
+            promo_code = request.data.get("promo_code")
+            subscription_type = data.get("subscription_type")
 
-            bepaid_client = BePaidClient(
-                shop_id=settings.BEPAID_SHOP_ID,
-                secret_key=settings.BEPAID_SECRET_KEY,
-                is_test=True,
-            )
-            to_pay_sum = Tariff.objects.values_list("price", flat=True).get(name=tariff)
+            # Получаем объект тарифа
+            tariff_obj = Tariff.objects.get(name=tariff)
+
+            # Вычисляем сумму с учетом скидки за предоплату, если указано pays_count
+            if pays_count is not None:
+                if pays_count in [3, 6, 12]:
+                    if pays_count == 3:
+                        to_pay_sum = tariff_obj.discount_3_months
+                    elif pays_count == 6:
+                        to_pay_sum = tariff_obj.discount_6_months
+                    elif pays_count == 12:
+                        to_pay_sum = tariff_obj.discount_12_months
+                else:
+                    return Response(
+                        {"error": "Недопустимое значение pays_count"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                # Иначе используем базовую цену без скидки
+                to_pay_sum = tariff_obj.price
+
+            # Применяем скидку промокода, если он указан
+
             if promo_code:
                 try:
                     promo_code_obj = PromoCode.objects.get(
                         name=promo_code, uses_count__gt=0
                     )
+                    to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
                 except PromoCode.DoesNotExist:
                     return Response(
                         {"error": "Промокод не найден"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                to_pay_sum = float(to_pay_sum) * (1 - promo_code_obj.discount / 100)
 
-            subscribe_res = bepaid_client.subscribe_client(
-                request=request,
-                to_pay_sum=to_pay_sum * 100,
-                days_interval=serializer.fields["days_interval"].default,
-                pays_count=pays_count,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                email=user.email,
-                phone=str(user.phone_number),
-                tariff=tariff,
-                school=school,
-                promo_code=promo_code,
+            # Создаем подписку
+            bepaid_client = BePaidClient(
+                shop_id=settings.BEPAID_SHOP_ID,
+                secret_key=settings.BEPAID_SECRET_KEY,
+                is_test=True,
             )
+
+            if subscription_type == "upfront":
+                # Вычисляем количество дней, на которые пользователь оплатил подписку
+                subscription_days = 30 * pays_count
+
+                # Создаем подписку с указанным количеством дней
+                subscribe_res = bepaid_client.subscribe_client(
+                    request=request,
+                    to_pay_sum=to_pay_sum * 100,
+                    days_interval=subscription_days,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    email=user.email,
+                    phone=str(user.phone_number),
+                    tariff=tariff,
+                    school=school,
+                    promo_code=promo_code,
+                )
+            else:  # Подписка ежемесячная
+                subscribe_res = bepaid_client.subscribe_client(
+                    request=request,
+                    to_pay_sum=to_pay_sum * 100,
+                    days_interval=serializer.fields["days_interval"].default,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    email=user.email,
+                    phone=str(user.phone_number),
+                    tariff=tariff,
+                    school=school,
+                    promo_code=promo_code,
+                )
 
             return Response(subscribe_res, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

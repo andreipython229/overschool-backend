@@ -25,7 +25,6 @@ class BePaidClient:
         request,
         to_pay_sum,
         days_interval,
-        pays_count,
         first_name,
         last_name,
         email,
@@ -36,11 +35,9 @@ class BePaidClient:
     ):
         to_pay_sum = float(to_pay_sum)
         days_interval = float(days_interval)
-        pays_count = float(pays_count)
 
         payload = json.dumps(
             {
-                "test": self.is_test,
                 "additional_data": {
                     "tariff": tariff,
                     "school": school,
@@ -48,6 +45,7 @@ class BePaidClient:
                 },
                 "notification_url": settings.NOTIFICATION_URL_BEPAID,
                 "plan": {
+                    "test": self.is_test,
                     "currency": "BYN",
                     "plan": {
                         "amount": to_pay_sum,
@@ -56,7 +54,12 @@ class BePaidClient:
                     },
                     "shop_id": self.shop_id,
                     "title": "Подписка на тарифный план школы",
+                    "language": "ru",
+                    "infinite": True,
+                    "billing_cycles": None,
+                    "number_payment_attempts": 3,
                 },
+                "return_url": f"https://overschool.by/school/{school}/tariff-plans",
                 "settings": {"language": "ru"},
                 "customer": {
                     "first_name": first_name,
@@ -65,8 +68,6 @@ class BePaidClient:
                     "phone": phone,
                     "ip": get_client_ip(request),
                 },
-                "billing_cycles": pays_count,
-                "number_payment_attempts": 10,
             }
         )
         response = requests.post(
