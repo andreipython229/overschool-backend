@@ -49,12 +49,29 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                     Tariff, name=notification["additional_data"]["tariff"]
                 )
                 school.tariff = tariff
-                school.purchased_tariff_end_date = timezone.now() + timezone.timedelta(
-                    days=30
-                )
+
+                # Получаем количество дней подписки
+                subscription_days = notification["plan"]["interval"]
+
+                # Вычисляем дату окончания подписки
+                if school.purchased_tariff_end_date:
+                    expiration_date = (
+                        school.purchased_tariff_end_date
+                        + timezone.timedelta(days=subscription_days)
+                    )
+                else:
+                    expiration_date = timezone.now() + timezone.timedelta(
+                        days=subscription_days
+                    )
+
+                school.purchased_tariff_end_date = expiration_date
                 school.save()
+
                 UserSubscription.objects.create(
-                    user=school.owner, school=school, subscription_id=notification["id"]
+                    user=school.owner,
+                    school=school,
+                    subscription_id=notification["id"],
+                    expires_at=expiration_date,
                 )
             return Response(status=status.HTTP_200_OK)
         else:

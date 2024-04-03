@@ -101,6 +101,12 @@ class SchoolGetSerializer(serializers.ModelSerializer):
 
 class TariffSerializer(serializers.ModelSerializer):
     price_rf_rub = serializers.SerializerMethodField()
+    discount_3_months_byn = serializers.SerializerMethodField()
+    discount_3_months_rub = serializers.SerializerMethodField()
+    discount_6_months_byn = serializers.SerializerMethodField()
+    discount_6_months_rub = serializers.SerializerMethodField()
+    discount_12_months_byn = serializers.SerializerMethodField()
+    discount_12_months_rub = serializers.SerializerMethodField()
 
     class Meta:
         model = Tariff
@@ -113,12 +119,15 @@ class TariffSerializer(serializers.ModelSerializer):
             "students_per_month",
             "total_students",
             "price_rf_rub",
+            "discount_3_months_byn",
+            "discount_3_months_rub",
+            "discount_6_months_byn",
+            "discount_6_months_rub",
+            "discount_12_months_byn",
+            "discount_12_months_rub",
         ]
 
-    def get_price_rf_rub(self, obj):
-        if float(obj.price) == 0.00:
-            return 0.00
-
+    def rf_rate(self):
         # Получение курса российского рубля от НБРБ
         url = "https://api.nbrb.by/exrates/rates/456"
 
@@ -126,6 +135,55 @@ class TariffSerializer(serializers.ModelSerializer):
         if response.status_code == 200:
             data = response.json()
             rate = data.get("Cur_OfficialRate", 1)
-            return round((float(obj.price) / rate) * 100)
-        else:
+            return rate
+        return None
+
+    def get_price_rf_rub(self, obj):
+        if float(obj.price) == 0.00:
+            return 0.00
+
+        rate = self.rf_rate()
+        if rate is None:
             return None
+        return round(
+            (float(obj.price) / rate) * 100, 2
+        )  # округление до двух знаков после запятой
+
+    def get_discount_3_months_byn(self, obj):
+        if obj.discount_3_months is not None:
+            return obj.discount_3_months
+        return None
+
+    def get_discount_3_months_rub(self, obj):
+        if obj.discount_3_months is not None:
+            rate = self.rf_rate()
+            if rate is None:
+                return None
+            return round((float(obj.discount_3_months) / rate) * 100, 2)
+        return None
+
+    def get_discount_6_months_byn(self, obj):
+        if obj.discount_6_months is not None:
+            return obj.discount_6_months
+        return None
+
+    def get_discount_6_months_rub(self, obj):
+        if obj.discount_6_months is not None:
+            rate = self.rf_rate()
+            if rate is None:
+                return None
+            return round((float(obj.discount_6_months) / rate) * 100, 2)
+        return None
+
+    def get_discount_12_months_byn(self, obj):
+        if obj.discount_12_months is not None:
+            return obj.discount_12_months
+        return None
+
+    def get_discount_12_months_rub(self, obj):
+        if obj.discount_12_months is not None:
+            rate = self.rf_rate()
+            if rate is None:
+                return None
+            return round((float(obj.discount_12_months) / rate) * 100, 2)
+        return None

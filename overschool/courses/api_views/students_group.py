@@ -171,6 +171,11 @@ class StudentsGroupViewSet(
         # Получите текущую группу перед сохранением изменений
         current_group = self.get_object()
 
+        certificate = self.request.data.get("certificate")
+        if certificate is not None:
+            current_group.certificate = certificate
+            current_group.save()
+
         students = serializer.validated_data.get("students", [])
         group = Group.objects.get(name="Student")
 
@@ -183,7 +188,6 @@ class StudentsGroupViewSet(
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                     )
-
         serializer.save()
 
         # обновляем чат с участниками группы

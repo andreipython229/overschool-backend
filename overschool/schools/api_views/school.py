@@ -19,6 +19,8 @@ from courses.services import get_student_progress
 from django.db.models import Avg, Count, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
@@ -26,12 +28,14 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan
+from rest_framework.views import APIView
+from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan, SchoolPaymentMethod
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
+    SchoolPaymentMethodSerializer
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -65,8 +69,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats", "section_student"]
-            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+                self.action in ["stats", "section_student"]
+                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -940,3 +944,45 @@ class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     queryset = Tariff.objects.all()
     serializer_class = TariffSerializer
     http_method_names = ["get", "head"]
+
+
+class AddPaymentMethodViewSet(viewsets.ModelViewSet):
+    queryset = SchoolPaymentMethod.objects.all()
+    serializer_class = SchoolPaymentMethodSerializer
+
+    def get_payment_methods(self, school_id):
+        payment_methods = SchoolPaymentMethod.objects.filter(school=school_id)
+        serializer = self.get_serializer(payment_methods, many=True)
+        return serializer.data
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            school_id = serializer.data['school']
+            response = self.get_payment_methods(school_id)
+            return Response(response, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        school_id = request.query_params.get('school_id')
+        if school_id:
+            queryset = self.queryset.filter(school=school_id)
+        else:
+            queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['DELETE'])
+    def delete(self, request):
+        try:
+            payment_link = request.data.get('paymentLink')
+            instance = self.queryset.get(payment_link=payment_link)
+            instance.delete()
+            school_id = instance.school_id
+            response = self.get_payment_methods(school_id)
+            return Response(response, status=status.HTTP_200_OK)
+        except SchoolPaymentMethod.DoesNotExist:
+            return Response({"message": "Payment method not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
