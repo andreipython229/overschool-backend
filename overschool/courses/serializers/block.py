@@ -18,6 +18,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "language",
             "picture",
             "type",
+            "formula",
             "order",
         ]
         read_only_fields = ["order"]
@@ -30,8 +31,9 @@ class LessonBlockSerializer(serializers.ModelSerializer):
         description = data.get("description")
         code = data.get("code")
         picture = data.get("picture")
+        formula = data.get("formula")
 
-        fields_to_check = [video, url, description, code, picture]
+        fields_to_check = [video, url, description, code, picture, formula]
 
         non_empty_fields = [field for field in fields_to_check if field is not None]
         if len(non_empty_fields) > 1:
@@ -64,6 +66,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "language",
             "picture",
             "picture_url",
+            "formula",
             "order",
             "type",
         ]
@@ -89,6 +92,8 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             del data["picture_url"]
         if data.get("video") is None and instance.type != "video":
             del data["video"]
+        if data.get("formula") is None and instance.type != "formula":
+            del data["formula"]
         return data
 
 
@@ -104,6 +109,7 @@ class BlockUpdateSerializer(serializers.ModelSerializer):
             "code",
             "language",
             "picture",
+            "formula",
             "file_use",
         ]
 
@@ -113,8 +119,9 @@ class BlockUpdateSerializer(serializers.ModelSerializer):
         description = data.get("description")
         code = data.get("code")
         picture = data.get("picture")
+        formula = data.get("formula")
 
-        fields_to_check = [video, url, description, code, picture]
+        fields_to_check = [video, url, description, code, picture, formula]
 
         non_empty_fields = [field for field in fields_to_check if field is not None]
         if len(non_empty_fields) > 1:

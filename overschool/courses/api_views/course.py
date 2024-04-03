@@ -15,6 +15,7 @@ from courses.models import (
     TrainingDuration,
     UserProgressLogs,
 )
+from courses.models.courses.course import Public
 from courses.models.courses.section import Section
 from courses.models.homework.user_homework import UserHomework
 from courses.models.students.students_history import StudentsHistory
@@ -27,6 +28,7 @@ from courses.serializers import (
     StudentsGroupSerializer,
 )
 from courses.services import get_student_progress
+from django.db import transaction
 from django.db.models import (
     Avg,
     Case,
@@ -81,7 +83,8 @@ class CourseViewSet(
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
-    parser_classes = (MultiPartParser,)
+
+    # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -894,6 +897,36 @@ class CourseViewSet(
         )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @transaction.atomic
+    @action(detail=False, methods=["POST"])
+    def create_courses_fully(self, request, *args, **kwargs):
+        """Создание курсов с модулями и уроками\n
+        <h2>/api/{school_name}/courses/create_courses_fully/</h2>\n
+        Создание курсов с модулями и уроками"""
+
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        courses_data = request.data.get("courses", [])
+        with transaction.atomic():
+            for course_data in courses_data:
+                course = Course.objects.create(
+                    school=school,
+                    name=course_data["name"],
+                    description=course_data["description"],
+                    public=Public.PUBLISHED,
+                    is_catalog=True,
+                )
+                for section_data in course_data["sections"]:
+                    section = Section.objects.create(
+                        course=course, name=section_data["title"]
+                    )
+                    for lesson_data in section_data["lessons"]:
+                        Lesson.objects.create(
+                            section=section, name=lesson_data, active=True
+                        )
+
+        return Response("Курсы созданы")
 
 
 CourseViewSet = apply_swagger_auto_schema(

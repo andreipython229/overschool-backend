@@ -134,6 +134,7 @@ class BlockType(models.TextChoices):
     PICTURE = "picture", "picture"
     DESCRIPTION = "description", "description"
     CODE = "code", "code"
+    FORMULA = "formula", "formula"
 
 
 class BaseLessonBlock(OrderMixin, models.Model):
@@ -179,6 +180,13 @@ class BaseLessonBlock(OrderMixin, models.Model):
         verbose_name="Картинка",
         help_text="Картинка к уроку",
         upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    formula = models.CharField(
+        max_length=500,
+        verbose_name="Формула",
+        help_text="Формула",
         blank=True,
         null=True,
     )
