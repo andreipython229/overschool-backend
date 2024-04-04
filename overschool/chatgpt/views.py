@@ -5,7 +5,8 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from django.http import JsonResponse
-from django.db.models import Max
+from django.db.models import Max, Window, F, Count, Q
+from django.db.models.functions import RowNumber
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -17,6 +18,33 @@ from users.models.user import User
 from .models import UserMessage, BotResponse, OverAiChat, AIProvider
 from .serializers import UserMessageSerializer, BotResponseSerializer, OverAiChatSerializer
 from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSchema, LastTenChatsSchema
+
+
+class AssignChatOrderView(APIView):
+    """
+    Назначение порядка чатов пользователя
+    """
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        try:
+            # Получаем данные о порядке чатов из запроса
+            chat_data = request.data
+
+            # Обновляем порядок чатов в базе данных
+            for chat_id, chat_info in chat_data.items():
+                # Получаем объект чата по его id
+                chat = OverAiChat.objects.get(id=chat_id)
+                # Обновляем порядковый номер чата
+                chat.order = chat_info['order']
+                chat.save()
+
+            return JsonResponse({'success': True}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -67,10 +95,13 @@ class LastTenChats(APIView):
     def get(self, request):
         try:
             user = request.user
-            last_ten_chats = OverAiChat.objects.filter(user_id=user).annotate(max_id=Max('id')).order_by('-max_id')[:10]
+            last_ten_chats = OverAiChat.objects.filter(user_id=user, order__gte=1, order__lte=10).order_by('order')[:10]
 
             chat_data = {
-                chat.id: chat.chat_name for chat in last_ten_chats
+                chat.id: {
+                    'order': chat.order,
+                    'chat_name': chat.chat_name
+                } for chat in last_ten_chats
             }
 
             return JsonResponse(chat_data, safe=False)
@@ -209,20 +240,30 @@ class CreateChatView(APIView):
     def post(self, request):
         user = request.user
         new_chat = OverAiChat.objects.create(user_id=user)
+        order = 2
+
+        last_10_chats = OverAiChat.objects.filter(user_id=user).exclude(id=new_chat.id).order_by('-order')[:10][::-1]
+
+        for chat in last_10_chats:
+            chat.order = order
+            chat.save()
+            order += 1
+
+        new_chat.order = 1
+        new_chat.save()
+
+        new_last_10_chats = OverAiChat.objects.filter(user_id=user, order__range=(1, 10)).order_by('-order')
+
+        # Устанавливаем порядковый номер 0 для всех остальных чатов пользователя, не включенных в последние 10
+        OverAiChat.objects.filter(user_id=user).exclude(id__in=[chat.id for chat in new_last_10_chats]).update(order=0)
 
         return JsonResponse({'overai_chat_id': new_chat.id}, status=200)
 
 
-@method_decorator(
-    OverAiChatSchemas.delete_chats_schema(),
-    name="post"
-)
-class DeleteChatsView(APIView):
+class DeleteChatView(APIView):
     """
-    Удаление пустых чатов пользователя
+    Удаление чата пользователя
     """
-
-    parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
@@ -230,9 +271,39 @@ class DeleteChatsView(APIView):
 
     def post(self, request):
         try:
-            # Получаем чаты пользователя по его ID и удаляем те, у которых название 'Новый чат'
             user = request.user
-            OverAiChat.objects.filter(user_id=user, chat_name='Новый чат').delete()
-            return JsonResponse({'message': 'Чаты успешно удалены'}, status=200)
+            chat_id = request.data.get('chat_id')
+            chat_list = request.data.get('orderData')
+            cleaned_order_data = [chat_data for chat_data in chat_list if chat_data.get('id') != chat_id]
+            sorted_cleaned_order_data = sorted(cleaned_order_data, key=lambda x: x['order'])
+
+            if not OverAiChat.objects.filter(id=chat_id).exists():
+                return JsonResponse({'error': 'Чат с указанным ID не найден'}, status=404)
+
+            UserMessage.objects.filter(overai_chat_id=chat_id).delete()
+            BotResponse.objects.filter(overai_chat_id=chat_id).delete()
+            OverAiChat.objects.filter(id=chat_id).delete()
+
+            # Устанавливаем 0 для всех чатов
+            OverAiChat.objects.filter(user_id=user.id).update(order=0)
+
+            # Присваиваем им новые значения от 1 до 9
+            new_order = 1
+            for chat_data in sorted_cleaned_order_data:
+                chat_id = chat_data.get('id')
+
+                # Установка нового порядка чата
+                OverAiChat.objects.filter(id=chat_id).update(order=new_order)
+                new_order += 1
+
+            order_data_ids = [chat_data.get('id') for chat_data in chat_list]
+            latest_chat = OverAiChat.objects.filter(user_id=user.id).exclude(id__in=order_data_ids).order_by(
+                '-id').first()
+
+            if latest_chat:
+                latest_chat.order = 10
+                latest_chat.save()
+
+            return JsonResponse({'message': 'Чат успешно удален'}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

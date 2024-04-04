@@ -23,11 +23,6 @@ urlpatterns = [
          name='latest_chats'
     ),
     path(
-        'delete_chats/',
-        chatgpt.views.DeleteChatsView.as_view(),
-        name='delete_chats'
-    ),
-    path(
         'user_welcome_message/',
         chatgpt.views.UserWelcomeMessageView.as_view(),
         name='user_welcome_message'
@@ -36,4 +31,13 @@ urlpatterns = [
         'update_welcome_message/',
         chatgpt.views.UserWelcomeMessageView.as_view(),
         name='update_welcome_message'),
+    path(
+        'delete_chat/',
+        chatgpt.views.DeleteChatView.as_view(),
+        name='delete_chat'),
+    path(
+        'assign_chat_order/',
+        chatgpt.views.AssignChatOrderView.as_view(),
+        name='assign_chat_order'
+    ),
 ]
