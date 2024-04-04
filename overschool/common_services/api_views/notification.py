@@ -61,7 +61,7 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                 school.tariff = tariff
 
                 # Получаем количество дней подписки
-                subscription_days = notification["plan"]["interval"]
+                subscription_days = notification["plan"]["plan"]["interval"]
 
                 # Вычисляем дату окончания подписки
                 if school.purchased_tariff_end_date:
