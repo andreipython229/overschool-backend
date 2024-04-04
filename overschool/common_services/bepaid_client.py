@@ -43,7 +43,6 @@ class BePaidClient:
                     "school": school,
                     "promo_code": promo_code,
                 },
-                "notification_url": settings.NOTIFICATION_URL_BEPAID,
                 "plan": {
                     "test": self.is_test,
                     "currency": "BYN",
@@ -60,6 +59,7 @@ class BePaidClient:
                     "number_payment_attempts": 3,
                 },
                 "return_url": f"https://overschool.by/school/{school}/tariff-plans",
+                "notification_url": settings.NOTIFICATION_URL_BEPAID,
                 "settings": {"language": "ru"},
                 "customer": {
                     "first_name": first_name,
