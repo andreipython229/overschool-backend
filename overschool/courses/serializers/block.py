@@ -1,11 +1,41 @@
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLessonBlock
+from courses.models import BaseLessonBlock, BlockButton
 from rest_framework import serializers
 
 s3 = UploadToS3()
 
 
+class BlockButtonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlockButton
+        fields = [
+            "id",
+            "block",
+            "name",
+            "link",
+            "color",
+        ]
+
+    def validate(self, data):
+        instance = getattr(self, "instance", None)
+        block = data.get("block")
+        block_obj = BaseLessonBlock.objects.filter(id=block, type="buttons")
+        if not block_obj.exists():
+            raise serializers.ValidationError("Блок для кнопок с таким id не найден")
+
+        if block and instance is None:
+            existing_buttons_count = BlockButton.objects.filter(block=block).count()
+            if existing_buttons_count >= 4:
+                raise serializers.ValidationError(
+                    "Больше добавлять нельзя, в блоке уже 4 кнопки есть"
+                )
+        return data
+
+
 class LessonBlockSerializer(serializers.ModelSerializer):
+
+    buttons = BlockButtonSerializer(required=False, many=True)
+
     class Meta:
         model = BaseLessonBlock
         fields = [
@@ -19,6 +49,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "picture",
             "type",
             "formula",
+            "buttons",
             "order",
         ]
         read_only_fields = ["order"]
@@ -54,6 +85,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
 class BlockDetailSerializer(serializers.ModelSerializer):
     video = serializers.SerializerMethodField()
     picture_url = serializers.SerializerMethodField()
+    buttons = BlockButtonSerializer(required=False, many=True)
 
     class Meta:
         model = BaseLessonBlock
@@ -67,6 +99,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "picture",
             "picture_url",
             "formula",
+            "buttons",
             "order",
             "type",
         ]
@@ -94,6 +127,8 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             del data["video"]
         if data.get("formula") is None and instance.type != "formula":
             del data["formula"]
+        if data.get("buttons") is None and instance.type != "buttons":
+            del data["buttons"]
         return data
 
 

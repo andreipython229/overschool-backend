@@ -1,7 +1,8 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, BaseLessonBlock
+from courses.models import BaseLesson, BaseLessonBlock, BlockButton
 from courses.serializers import (
+    BlockButtonSerializer,
     BlockDetailSerializer,
     BlockUpdateSerializer,
     LessonBlockSerializer,
@@ -147,6 +148,80 @@ class BaseLessonBlockViewSet(
         self.perform_destroy(instance)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BlockButtonViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
+    http_method_names = ["post", "delete", "patch"]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = BlockButtonSerializer
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                BlockButton.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return BlockButton.objects.filter(
+                block__base_lesson__section__course__school__name=school_name
+            )
+
+        return BlockButton.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        block = self.request.data.get("block")
+        if block is not None:
+            blocks = BaseLessonBlock.objects.filter(
+                base_lesson__section__course__school__name=school_name, type="buttons"
+            )
+            try:
+                blocks.get(pk=block)
+            except block.model.DoesNotExist:
+                raise NotFound("В вашей школе не найден такой блок нужного типа.")
+
+        serializer = BlockButtonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        block = self.request.data.get("block")
+        if block is not None:
+            blocks = BaseLessonBlock.objects.filter(
+                base_lesson__section__course__school__name=school_name, type="buttons"
+            )
+            try:
+                blocks.get(pk=block)
+            except block.model.DoesNotExist:
+                raise NotFound("В вашей школе не найден такой блок нужного типа.")
+
+        instance = self.get_object()
+        serializer = BlockButtonSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class BlockUpdateViewSet(
