@@ -3,6 +3,7 @@ import base64
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
@@ -24,11 +25,20 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
     serializer_class = PaymentNotificationSerializer
 
     def post(self, request):
-        auth_header = request.META["HTTP_AUTHORIZATION"]
-        auth_type, auth_b64_string = auth_header.split(" ")
-        auth_bytes = base64.b64decode(auth_b64_string)
-        auth_string = auth_bytes.decode("utf-8")
-        signature = auth_string.split(":")[1]
+        try:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            auth_type, auth_b64_string = auth_header.split(" ")
+            auth_bytes = base64.b64decode(auth_b64_string)
+            auth_string = auth_bytes.decode("utf-8")
+            signature = auth_string.split(":")[1]
+        except KeyError:
+            # Если заголовок HTTP_AUTHORIZATION отсутствует
+            return JsonResponse(
+                {"error": "Отсутствует заголовок HTTP_AUTHORIZATION"}, status=400
+            )
+        except Exception as e:
+            # Обработка других возможных ошибок
+            return JsonResponse({"error": str(e)}, status=500)
 
         if settings.BEPAID_SECRET_KEY == signature:
             notification = request.data
@@ -51,8 +61,10 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                 school.tariff = tariff
 
                 # Получаем количество дней подписки
-                subscription_days = notification["plan"]["interval"]
+                subscription_days = notification["plan"]["plan"]["interval"]
 
+                if notification["additional_data"]["trial_days"]:
+                    subscription_days += notification["additional_data"]["trial_days"]
                 # Вычисляем дату окончания подписки
                 if school.purchased_tariff_end_date:
                     expiration_date = (
@@ -65,6 +77,7 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                     )
 
                 school.purchased_tariff_end_date = expiration_date
+                school.trial_end_date = None
                 school.save()
 
                 UserSubscription.objects.create(
@@ -73,6 +86,13 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                     subscription_id=notification["id"],
                     expires_at=expiration_date,
                 )
+            else:
+                # Обработка случаев, когда состояние уведомления не "active"
+                return Response(
+                    {"error": "Статус оплаты не подтвержден."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             return Response(status=status.HTTP_200_OK)
         else:
             return Response(

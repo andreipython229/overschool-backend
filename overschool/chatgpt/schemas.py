@@ -11,14 +11,6 @@ class OverAiChatSchemas:
             operation_summary="Создать новый чат OverAI",
         )
 
-    @staticmethod
-    def delete_chats_schema():
-        return swagger_auto_schema(
-            tags=["over ai"],
-            operation_description="Удалить пустые чаты пользователя",
-            operation_summary="Удалить пустые чаты пользователя",
-        )
-
 
 class LastMessagesSchema:
     @staticmethod
