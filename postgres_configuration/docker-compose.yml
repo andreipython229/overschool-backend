@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: overone
     volumes:
-      - postgres:/data/postgres
+      - postgres_data:/var/lib/postgresql/data
       - ./postgres-custom.conf:/etc/postgresql/postgresql.conf
     ports:
       - "5432:5432"
@@ -28,5 +28,5 @@ services:
       - "db:pgsql-server"
 
 volumes:
-  postgres:
+  postgres_data:
   pgadmin:
