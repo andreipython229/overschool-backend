@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: overone
-      POSTGRES_INITDB_ARGS: "--max_connections=500"
     volumes:
       - postgres:/data/postgres
+      - ./postgres-custom.conf:/etc/postgresql/postgresql.conf
     ports:
       - "5432:5432"
     restart: always
