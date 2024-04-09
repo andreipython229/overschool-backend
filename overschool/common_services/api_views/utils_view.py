@@ -2,6 +2,7 @@ from common_services.bepaid_client import BePaidClient
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.serializers import SubscriptionSerializer
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,7 +22,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
             return Response(
                 {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
             )
-        school_obj = School.objects.get(name=school)
+        school_obj = get_object_or_404(School, name=school)
         if user != school_obj.owner:
             return Response(
                 {"error": "Пользователь не является владельцем школы"},
@@ -33,13 +34,26 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
             user=user, school=school_obj
         ).first()
 
-        if user_subscription:
-            return Response(
-                {"error": "Пользователь уже имеет активную подписку для этой школы"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Создаем подписку
+        bepaid_client = BePaidClient(
+            shop_id=settings.BEPAID_SHOP_ID,
+            secret_key=settings.BEPAID_SECRET_KEY,
+            is_test=True,
+        )
 
-        serializer = SubscriptionSerializer(data=request.data)
+        # Если есть активная подписка, проверяем ее статус
+        if user_subscription:
+            subscription_status = bepaid_client.get_subscription_status(
+                user_subscription.subscription_id
+            )
+            if subscription_status["state"] != "active":
+                # Если подписка не активна, удаляем ее
+                user_subscription.delete()
+
+        serializer = SubscriptionSerializer(
+            data=request.data,
+            context={"school": school_obj, "user_subscription": user_subscription},
+        )
         if serializer.is_valid():
             data = serializer.validated_data
             tariff = data["tariff"]
@@ -48,6 +62,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
             )  # Может быть None для ежемесячной оплаты
             promo_code = request.data.get("promo_code")
             subscription_type = data.get("subscription_type")
+            trial_days = data.get("trial_days")
 
             # Получаем объект тарифа
             tariff_obj = Tariff.objects.get(name=tariff)
@@ -84,13 +99,6 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            # Создаем подписку
-            bepaid_client = BePaidClient(
-                shop_id=settings.BEPAID_SHOP_ID,
-                secret_key=settings.BEPAID_SECRET_KEY,
-                is_test=True,
-            )
-
             if subscription_type == "upfront":
                 # Вычисляем количество дней, на которые пользователь оплатил подписку
                 subscription_days = 30 * pays_count
@@ -107,6 +115,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
                     tariff=tariff,
                     school=school,
                     promo_code=promo_code,
+                    trial_days=trial_days,
                 )
             else:  # Подписка ежемесячная
                 subscribe_res = bepaid_client.subscribe_client(
@@ -120,6 +129,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
                     tariff=tariff,
                     school=school,
                     promo_code=promo_code,
+                    trial_days=trial_days,
                 )
 
             return Response(subscribe_res, status=status.HTTP_200_OK)

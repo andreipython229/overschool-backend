@@ -63,6 +63,8 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                 # Получаем количество дней подписки
                 subscription_days = notification["plan"]["plan"]["interval"]
 
+                if notification["additional_data"]["trial_days"]:
+                    subscription_days += notification["additional_data"]["trial_days"]
                 # Вычисляем дату окончания подписки
                 if school.purchased_tariff_end_date:
                     expiration_date = (
@@ -75,6 +77,7 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                     )
 
                 school.purchased_tariff_end_date = expiration_date
+                school.trial_end_date = None
                 school.save()
 
                 UserSubscription.objects.create(

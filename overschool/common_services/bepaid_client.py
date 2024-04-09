@@ -32,47 +32,58 @@ class BePaidClient:
         tariff,
         school,
         promo_code: str | None,
+        trial_days: int | None = None,
     ):
         to_pay_sum = float(to_pay_sum)
         days_interval = float(days_interval)
 
-        payload = json.dumps(
-            {
-                "additional_data": {
-                    "tariff": tariff,
-                    "school": school,
-                    "promo_code": promo_code,
-                },
+        payload = {
+            "additional_data": {
+                "tariff": tariff,
+                "school": school,
+                "promo_code": promo_code,
+                "trial_days": trial_days,
+            },
+            "plan": {
+                "test": self.is_test,
+                "currency": "BYN",
                 "plan": {
-                    "test": self.is_test,
-                    "currency": "BYN",
-                    "plan": {
-                        "amount": to_pay_sum,
-                        "interval": days_interval,
-                        "interval_unit": "day",
-                    },
-                    "shop_id": self.shop_id,
-                    "title": "Подписка на тарифный план школы",
-                    "language": "ru",
-                    "infinite": True,
-                    "billing_cycles": None,
-                    "number_payment_attempts": 3,
+                    "amount": to_pay_sum,
+                    "interval": days_interval,
+                    "interval_unit": "day",
                 },
-                "return_url": f"https://overschool.by/school/{school}/tariff-plans",
-                "notification_url": settings.NOTIFICATION_URL_BEPAID,
-                "settings": {"language": "ru"},
-                "customer": {
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "email": email,
-                    "phone": phone,
-                    "ip": get_client_ip(request),
-                },
+                "shop_id": self.shop_id,
+                "title": f"Подписка на тарифный план школы - {tariff}",
+                "language": "ru",
+                "infinite": True,
+                "billing_cycles": None,
+                "number_payment_attempts": 3,
+            },
+            "return_url": f"https://overschool.by/school/{school}/tariff-plans",
+            "notification_url": settings.NOTIFICATION_URL_BEPAID,
+            "settings": {"language": "ru"},
+            "customer": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "phone": phone,
+                "ip": get_client_ip(request),
+            },
+        }
+
+        # Добавление информации о бесплатном триальном периоде, если он задан
+        if trial_days is not None:
+            payload["plan"]["trial"] = {
+                "amount": 0,  # Установка стоимости триала в 0
+                "interval": trial_days,
+                "interval_unit": "day",
+                "as_first_payment": True,
             }
-        )
+
+        payload_json = json.dumps(payload)
         response = requests.post(
             "https://api.bepaid.by/subscriptions",
-            data=payload,
+            data=payload_json,
             auth=(self.shop_id, self.secret_key),
             headers=self.headers,
         )
