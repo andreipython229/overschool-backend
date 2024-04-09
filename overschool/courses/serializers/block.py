@@ -19,9 +19,6 @@ class BlockButtonSerializer(serializers.ModelSerializer):
     def validate(self, data):
         instance = getattr(self, "instance", None)
         block = data.get("block")
-        block_obj = BaseLessonBlock.objects.filter(id=block, type="buttons")
-        if not block_obj.exists():
-            raise serializers.ValidationError("Блок для кнопок с таким id не найден")
 
         if block and instance is None:
             existing_buttons_count = BlockButton.objects.filter(block=block).count()

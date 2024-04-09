@@ -71,7 +71,7 @@ class BaseLessonBlockViewSet(
             )
             try:
                 base_lessons.get(pk=base_lesson)
-            except base_lesson.model.DoesNotExist:
+            except BaseLesson.DoesNotExist:
                 raise NotFound(
                     "Указанный базовый урок не относится ни к одному курсу этой школы."
                 )
@@ -195,7 +195,7 @@ class BlockButtonViewSet(
             )
             try:
                 blocks.get(pk=block)
-            except block.model.DoesNotExist:
+            except BaseLessonBlock.DoesNotExist:
                 raise NotFound("В вашей школе не найден такой блок нужного типа.")
 
         serializer = BlockButtonSerializer(data=request.data)
@@ -217,7 +217,7 @@ class BlockButtonViewSet(
                 raise NotFound("В вашей школе не найден такой блок нужного типа.")
 
         instance = self.get_object()
-        serializer = BlockButtonSerializer(instance, data=request.data)
+        serializer = BlockButtonSerializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
