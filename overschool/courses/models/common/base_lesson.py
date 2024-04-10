@@ -135,6 +135,7 @@ class BlockType(models.TextChoices):
     DESCRIPTION = "description", "description"
     CODE = "code", "code"
     FORMULA = "formula", "formula"
+    BUTTONS = "buttons", "buttons"
 
 
 class BaseLessonBlock(OrderMixin, models.Model):
@@ -201,6 +202,35 @@ class BaseLessonBlock(OrderMixin, models.Model):
     class Meta:
         verbose_name = "Блок урока"
         verbose_name_plural = "Блоки уроков"
+
+
+class BlockButton(models.Model):
+    """Кнопки со ссылками блока урока"""
+
+    block = models.ForeignKey(
+        BaseLessonBlock, on_delete=models.CASCADE, related_name="buttons"
+    )
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Текст кнопки",
+        help_text="Текст кнопки",
+    )
+    link = models.URLField(
+        max_length=500,
+        verbose_name="Ссылка",
+        help_text="Ссылка для перехода по кнопке",
+    )
+    color = models.CharField(
+        max_length=50,
+        verbose_name="Цвет кнопки",
+        help_text="Цвет кнопки",
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = "Кнопка блока урока"
+        verbose_name_plural = "Кнопки блока урока"
 
 
 class LessonAvailability(models.Model):

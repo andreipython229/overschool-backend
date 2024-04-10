@@ -1,6 +1,7 @@
 from courses.api_views import (
     AnswerViewSet,
     BaseLessonBlockViewSet,
+    BlockButtonViewSet,
     CourseCatalogViewSet,
     CourseViewSet,
     GetAppealsViewSet,
@@ -31,6 +32,7 @@ router.register("school_document", SchoolDocumentViewSet, basename="school_docum
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
+router.register("block_buttons", BlockButtonViewSet, basename="block_buttons")
 router.register("students_group", StudentsGroupViewSet, basename="students_group")
 router.register(
     "students_group_no_teacher",

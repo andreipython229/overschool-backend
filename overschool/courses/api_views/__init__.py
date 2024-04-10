@@ -1,5 +1,5 @@
 from .answer import AnswerViewSet
-from .block import BaseLessonBlockViewSet, BlockUpdateViewSet
+from .block import BaseLessonBlockViewSet, BlockButtonViewSet, BlockUpdateViewSet
 from .course import CourseViewSet
 from .course_appeals import CourseAppealsViewSet, GetAppealsViewSet
 from .course_catalog import CourseCatalogViewSet
