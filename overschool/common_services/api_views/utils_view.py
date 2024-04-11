@@ -46,7 +46,7 @@ class SubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView
             subscription_status = bepaid_client.get_subscription_status(
                 user_subscription.subscription_id
             )
-            if subscription_status["state"] != "active":
+            if subscription_status["state"] not in ["active", "trial"]:
                 # Если подписка не активна, удаляем ее
                 user_subscription.delete()
 
