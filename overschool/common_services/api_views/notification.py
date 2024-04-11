@@ -74,33 +74,64 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                         expiration_date = timezone.now() + timezone.timedelta(
                             days=subscription_days
                         )
-                    if notification["state"] == "trial":
-                        if notification["additional_data"]["trial_days"]:
-                            subscription_days = notification["additional_data"][
-                                "trial_days"
-                            ]
-                            # Вычисляем дату окончания подписки
-                            if school.purchased_tariff_end_date:
-                                expiration_date = (
-                                    school.purchased_tariff_end_date
-                                    + timezone.timedelta(days=subscription_days)
-                                )
-                            else:
-                                expiration_date = timezone.now() + timezone.timedelta(
-                                    days=subscription_days
-                                )
-
                     school.purchased_tariff_end_date = expiration_date
                     school.trial_end_date = None
                     school.save()
 
-                    UserSubscription.objects.create(
+                    subscription, created = UserSubscription.objects.get_or_create(
                         user=school.owner,
                         school=school,
                         subscription_id=notification["id"],
                         expires_at=expiration_date,
                     )
+                    # Если запись уже существует и была обновлена или создана новая запись
+                    if not created:
+                        # Обновляем поля subscription_id и expires_at
+                        subscription.subscription_id = notification["id"]
+                        subscription.expires_at = expiration_date
+                        subscription.save()
                     return Response(status=status.HTTP_200_OK)
+
+                if notification["state"] == "trial":
+                    if notification["additional_data"]["trial_days"]:
+                        subscription_days = notification["additional_data"][
+                            "trial_days"
+                        ]
+                        school = get_object_or_404(
+                            School, name=notification["additional_data"]["school"]
+                        )
+                        tariff = get_object_or_404(
+                            Tariff, name=notification["additional_data"]["tariff"]
+                        )
+                        school.tariff = tariff
+                        # Вычисляем дату окончания подписки
+                        if school.purchased_tariff_end_date:
+                            expiration_date = (
+                                school.purchased_tariff_end_date
+                                + timezone.timedelta(days=subscription_days)
+                            )
+                        else:
+                            expiration_date = timezone.now() + timezone.timedelta(
+                                days=subscription_days
+                            )
+
+                        school.purchased_tariff_end_date = expiration_date
+                        school.trial_end_date = None
+                        school.save()
+
+                        subscription, created = UserSubscription.objects.get_or_create(
+                            user=school.owner,
+                            school=school,
+                            subscription_id=notification["id"],
+                            expires_at=expiration_date,
+                        )
+                        # Если запись уже существует и была обновлена или создана новая запись
+                        if not created:
+                            # Обновляем поля subscription_id и expires_at
+                            subscription.subscription_id = notification["id"]
+                            subscription.expires_at = expiration_date
+                            subscription.save()
+                        return Response(status=status.HTTP_200_OK)
                 else:
                     # Обработка случаев, когда состояние уведомления не "active" или "trial"
                     return Response(
