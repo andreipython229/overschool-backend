@@ -1,6 +1,7 @@
 from .common.base_lesson import (
     BaseLesson,
     BaseLessonBlock,
+    BlockButton,
     LessonAvailability,
     LessonEnrollment,
 )
