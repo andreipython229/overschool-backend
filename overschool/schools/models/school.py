@@ -229,7 +229,10 @@ class SchoolStatistics(models.Model):
 
 
 class SchoolPaymentMethod(models.Model):
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE
+    )
     payment_method = models.CharField(
         max_length=25,
         verbose_name="Метод оплаты",
@@ -240,23 +243,108 @@ class SchoolPaymentMethod(models.Model):
         max_length=100,
         verbose_name="Название метода оплаты",
         help_text="Название метода оплаты",
+        default=None,
     )
-    payment_link = models.CharField(
+    account_no = models.CharField(
         unique=True,
-        max_length=400,
-        verbose_name="Ссылка",
-        help_text="Ссылка на страницу для оплаты",
+        max_length=200,
+        verbose_name="Номер лицевого счета",
+        help_text="Номер лицевого счета",
+        default=None,
     )
-    secret_key = models.CharField(
-        max_length=100, verbose_name="Секретный ключ", help_text="Секретный ключ"
+    api_key = models.CharField(
+        unique=True,
+        max_length=200,
+        verbose_name="API-ключ",
+        help_text="API-ключ",
+        default=None,
     )
 
     def __str__(self):
         return f"{self.payment_method_name} - {self.school}"
 
     class Meta:
-        verbose_name = "Оплата курсов для школы"
-        verbose_name_plural = "Оплата курсов для школ"
+        verbose_name = "Оплата"
+        verbose_name_plural = "Оплата"
+
+
+class SchoolPaymentLink(models.Model):
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        default=0
+    )
+    api_key = models.CharField(
+        max_length=200,
+        verbose_name="API-ключ",
+        help_text="API-ключ",
+        default=None,
+    )
+    payment_method = models.ForeignKey(
+        SchoolPaymentMethod,
+        on_delete=models.CASCADE,
+    )
+    invoice_no = models.IntegerField(
+        verbose_name="Номер счета",
+        help_text="Номер счета",
+        default=0,
+    )
+    payment_link = models.CharField(
+        max_length=200,
+        verbose_name="Ссылка для оплаты",
+        help_text="Ссылка для оплаты",
+        default=None,
+    )
+    status = models.CharField(
+        max_length=50,
+        verbose_name="Статус оплаты",
+        help_text="Статус оплаты",
+        default=None,
+        null=True
+    )
+    created = models.DateTimeField(
+        verbose_name="Время создания ссылки",
+        help_text="Время создания ссылки",
+        auto_now_add=True
+    )
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        verbose_name="Сумма оплаты",
+        help_text="Сумма оплаты",
+    )
+    currency = models.CharField(
+        max_length=3,
+        verbose_name="Код валюты",
+        help_text="Код валюты",
+        default=None,
+        null=True
+    )
+    first_name = models.CharField(
+        max_length=60,
+        verbose_name="Имя плательщика",
+        help_text="Имя плательщика",
+        default=None,
+        null=True
+    )
+    last_name = models.CharField(
+        max_length=60,
+        verbose_name="Фамилия плательщика",
+        help_text="Фамилия плательщика",
+        default=None,
+        null=True
+    )
+    patronymic = models.CharField(
+        max_length=60,
+        verbose_name="Отчество плательщика",
+        help_text="Отчество плательщика",
+        default=None,
+        null=True
+    )
+
+    class Meta:
+        verbose_name = "Ссылка на оплату"
+        verbose_name_plural = "Ссылки на оплату"
 
 
 @receiver(post_save, sender=School)

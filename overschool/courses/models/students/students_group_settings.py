@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class StudentsGroupSettings(models.Model):
     ''' Модель настроек для группы студентов '''
 
@@ -14,7 +15,7 @@ class StudentsGroupSettings(models.Model):
         help_text="При 'True' - ученики данной группы не могут отправлять домашки, они могут сделать его самостоятельно и перейти к следующему уроку"
     )
     overai_lock = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name="Блокировка доступа к OVER AI",
         help_text="При 'True' - OVER AI включен для учеников данной группы"
     )
