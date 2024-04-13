@@ -146,9 +146,9 @@ class StudentsGroupViewSet(
 
         student_group = serializer.save(chat=chat)
 
-        UserChat.objects.create(user=teacher, chat=chat)
+        UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
         for student in students:
-            UserChat.objects.create(user=student, chat=chat)
+            UserChat.objects.create(user=student, chat=chat, user_role="Student")
 
         return student_group
 
@@ -199,7 +199,7 @@ class StudentsGroupViewSet(
             chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
-            UserChat.objects.create(user=teacher, chat=chat, role="Teacher")
+            UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
         if teacher and teacher != previous_teacher:
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
@@ -208,7 +208,7 @@ class StudentsGroupViewSet(
                 previous_chat.delete()
         for student in students:
             if not UserChat.objects.filter(user=student, chat=chat).exists():
-                UserChat.objects.create(user=student, chat=chat)
+                UserChat.objects.create(user=student, chat=chat, user_role="Student")
 
     def destroy(self, request, *args, **kwargs):
         current_group = self.get_object()
