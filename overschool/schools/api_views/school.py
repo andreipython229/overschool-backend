@@ -29,13 +29,22 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan, SchoolPaymentMethod
+from schools.models import (
+    School,
+    SchoolDocuments,
+    SchoolHeader,
+    Tariff,
+    TariffPlan,
+    SchoolPaymentMethod,
+    SchoolPaymentLink,
+)
 from schools.serializers import (
     SchoolGetSerializer,
     SchoolSerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
-    SchoolPaymentMethodSerializer
+    SchoolPaymentMethodSerializer,
+    SchoolPaymentLinkSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -938,7 +947,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     """
     API endpoint для тарифов.
-
     """
 
     queryset = Tariff.objects.all()
@@ -947,6 +955,10 @@ class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
 
 class AddPaymentMethodViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint для добавления способа оплаты курсов
+    """
+
     queryset = SchoolPaymentMethod.objects.all()
     serializer_class = SchoolPaymentMethodSerializer
 
@@ -976,13 +988,99 @@ class AddPaymentMethodViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['DELETE'])
     def delete(self, request):
         try:
-            payment_link = request.data.get('paymentLink')
-            instance = self.queryset.get(payment_link=payment_link)
+            account_no = request.data.get('account_no')
+            instance = self.queryset.get(account_no=account_no)
             instance.delete()
             school_id = instance.school_id
             response = self.get_payment_methods(school_id)
             return Response(response, status=status.HTTP_200_OK)
         except SchoolPaymentMethod.DoesNotExist:
             return Response({"message": "Payment method not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint для работы с ссылками оплаты курсов
+    """
+
+    queryset = SchoolPaymentLink.objects.all()
+    serializer_class = SchoolPaymentLinkSerializer
+
+    def create(self, request):
+        data = request.data
+
+        try:
+            required_fields = [
+                'invoice_no',
+                'school_id',
+                'payment_method',
+                'payment_link',
+                'amount',
+                'api_key',
+                'currency'
+            ]
+            for field in required_fields:
+                if field not in data:
+                    return Response({'error': f'Field "{field}" is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            payment_method_id = data['payment_method']
+            payment_method = SchoolPaymentMethod.objects.get(id=payment_method_id)
+
+            SchoolPaymentLink.objects.create(
+                invoice_no=data['invoice_no'],
+                school_id=data['school_id'],
+                payment_method=payment_method,
+                payment_link=data['payment_link'],
+                amount=data['amount'],
+                api_key=data['api_key'],
+                currency=data['currency'],
+            )
+            return Response({'response': 'success'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        school_id = request.query_params.get('school_id')
+        if school_id:
+            queryset = self.queryset.filter(school_id=school_id)
+        else:
+            queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['DELETE'])
+    def delete(self, request):
+        try:
+            invoice_no = request.data.get('invoice_no')
+            instance = self.queryset.get(invoice_no=invoice_no)
+            instance.delete()
+            return Response(response, status=status.HTTP_200_OK)
+        except SchoolPaymentLink.DoesNotExist:
+            return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def partial_update(self, request, pk=None):
+        try:
+            data = request.data
+            payment_link = data['data'].get('payment_link')
+            new_payment_link_data = {
+                'status': data['data'].get('status'),
+                'first_name': data['data'].get('first_name'),
+                'last_name': data['data'].get('last_name'),
+                'patronymic': data['data'].get('patronymic')
+            }
+
+            instance = self.queryset.get(payment_link=payment_link)
+            for key, value in new_payment_link_data.items():
+                setattr(instance, key, value)
+            instance.save()
+
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except SchoolPaymentLink.DoesNotExist:
+            return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

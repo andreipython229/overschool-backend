@@ -30,7 +30,7 @@ class StudentsGroupSettings(models.Model):
         help_text="При 'True' - ученики данной группы не могут двигаться по курсу дальше, пока не наберут необходимый процент правильных ответов очередного теста",
     )
     overai_lock = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name="Блокировка доступа к OVER AI",
         help_text="При 'True' - OVER AI включен для учеников данной группы",
     )
