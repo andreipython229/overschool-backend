@@ -114,13 +114,16 @@ class BePaidClient:
         return response.json()
 
     def unsubscribe(self, subscription_id):
-        response = requests.delete(
-            f"https://api.bepaid.by/subscriptions/{subscription_id}",
+        cancel_reason = "Отписано по просьбе пользователя"
+
+        payload = {"cancel_reason": cancel_reason}
+        response = requests.post(
+            f"https://api.bepaid.by/subscriptions/{subscription_id}/cancel",
             auth=(self.shop_id, self.secret_key),
             headers=self.headers,
+            json=payload,
         )
-        # Возвращаем пустой словарь, так как отписка не возвращает данные
-        return {}
+        return response.json()
 
 
 bepaid_client = BePaidClient(

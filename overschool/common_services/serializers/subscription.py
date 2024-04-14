@@ -60,8 +60,9 @@ class SubscriptionSerializer(serializers.Serializer):
                     else:
                         data["trial_days"] = 0  # Если тариф уже истек, то триал равен 0
         if user_subscription:
-            bepaid_client.unsubscribe(user_subscription.subscription_id)
-
-            user_subscription.delete()
-
+            response = bepaid_client.unsubscribe(user_subscription.subscription_id)
+            if response.status_code == 200:
+                user_subscription.delete()
+            else:
+                raise serializers.ValidationError("Не удалось отменить подписку")
         return data

@@ -175,7 +175,12 @@ class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIVi
                 status=status.HTTP_400_BAD_REQUEST,
             )
         subscription_id = user_subscription.subscription_id
-        bepaid_client.unsubscribe(subscription_id)
+        response = bepaid_client.unsubscribe(subscription_id)
+        if response.status_code != 200:
+            return Response(
+                {"error": "Не удалось отписаться от подписки"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user_subscription.delete()
 
