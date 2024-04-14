@@ -72,7 +72,7 @@ class BePaidClient:
         }
 
         # Добавление информации о бесплатном триальном периоде, если он задан
-        if trial_days is not None:
+        if trial_days is not None and trial_days != 0:
             payload["plan"]["trial"] = {
                 "amount": 0,  # Установка стоимости триала в 0
                 "interval": trial_days,
