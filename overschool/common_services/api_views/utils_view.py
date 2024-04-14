@@ -151,9 +151,11 @@ class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIVi
                 {"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND
             )
         school_obj = School.objects.get(name=school)
-        if user != school_obj.owner:
+        if not (user == school_obj.owner or user.is_staff and user.is_superuser):
             return Response(
-                {"error": "Пользователь не является владельцем школы"},
+                {
+                    "error": "Пользователь не является владельцем школы или администратором"
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -164,7 +166,7 @@ class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIVi
         )
 
         user_subscription = UserSubscription.objects.filter(
-            user=user, school=school_obj
+            user=school_obj.owner, school=school_obj
         ).first()
 
         if not user_subscription:
