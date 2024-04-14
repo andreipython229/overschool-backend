@@ -39,9 +39,9 @@ class SubscriptionSerializer(serializers.Serializer):
             current_tariff = school.tariff
 
             if current_tariff:
-                if TariffPlan[tariff] <= TariffPlan[current_tariff.name.upper()]:
+                if TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
                     raise serializers.ValidationError(
-                        "Вы можете перейти только на тариф выше текущего. Или имеете активную подписку."
+                        "Вы можете перейти только на тариф выше текущего."
                     )
                 if school.purchased_tariff_end_date:
                     # Расчет длительности триала
