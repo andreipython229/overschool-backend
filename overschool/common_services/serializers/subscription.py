@@ -39,7 +39,7 @@ class SubscriptionSerializer(serializers.Serializer):
             current_tariff = school.tariff
 
             if current_tariff:
-                if TariffPlan[tariff] <= TariffPlan[current_tariff.name.upper()]:
+                if TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
                     raise serializers.ValidationError(
                         "Вы можете перейти только на тариф выше текущего."
                     )
@@ -60,8 +60,9 @@ class SubscriptionSerializer(serializers.Serializer):
                     else:
                         data["trial_days"] = 0  # Если тариф уже истек, то триал равен 0
         if user_subscription:
-            bepaid_client.unsubscribe(user_subscription.subscription_id)
-
-            user_subscription.delete()
-
+            response = bepaid_client.unsubscribe(user_subscription.subscription_id)
+            if response.status_code == 200:
+                user_subscription.delete()
+            else:
+                raise serializers.ValidationError("Не удалось отменить подписку")
         return data

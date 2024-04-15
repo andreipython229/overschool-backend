@@ -119,19 +119,19 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                         school.trial_end_date = None
                         school.save()
 
-                        subscription, created = UserSubscription.objects.get_or_create(
-                            user=school.owner,
-                            school=school,
-                            subscription_id=notification["id"],
-                            expires_at=expiration_date,
-                        )
-                        # Если запись уже существует и была обновлена или создана новая запись
-                        if not created:
-                            # Обновляем поля subscription_id и expires_at
-                            subscription.subscription_id = notification["id"]
-                            subscription.expires_at = expiration_date
-                            subscription.save()
                         return Response(status=status.HTTP_200_OK)
+                if notification["state"] == "canceled":
+                    school = get_object_or_404(
+                        School, name=notification["additional_data"]["school"]
+                    )
+                    subscription = UserSubscription.objects.filter(
+                        user=school.owner,
+                        school=school,
+                        subscription_id=notification["id"],
+                    )
+                    if subscription.exists():
+                        subscription.delete()
+                    return Response(status=status.HTTP_200_OK)
                 else:
                     # Обработка случаев, когда состояние уведомления не "active" или "trial"
                     return Response(
