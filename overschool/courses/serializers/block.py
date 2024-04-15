@@ -124,7 +124,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             del data["video"]
         if data.get("formula") is None and instance.type != "formula":
             del data["formula"]
-        if data.get("buttons") is None and instance.type != "buttons":
+        if not len(data.get("buttons")) and instance.type != "buttons":
             del data["buttons"]
         return data
 
