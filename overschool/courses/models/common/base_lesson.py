@@ -219,6 +219,8 @@ class BlockButton(models.Model):
         max_length=500,
         verbose_name="Ссылка",
         help_text="Ссылка для перехода по кнопке",
+        blank=True,
+        null=True,
     )
     color = models.CharField(
         max_length=50,
