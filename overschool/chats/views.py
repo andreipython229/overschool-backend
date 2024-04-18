@@ -153,7 +153,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                 chat=chat,
                 sender=chat_creator if role_creator != "Student" else chat_reciever,
                 content="""
-                    Приветствую Вас в чате техподдержки!☺️
+                    Приветствую Вас в чате техподдержки!😊
                     Если Вам будет нужна помощь, пожалуйста, напишите мне)👋""",
             )
 
