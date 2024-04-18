@@ -5,10 +5,10 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import PermissionDenied
 
 from .constants import CustomResponses
 from .models import Chat, ChatLink, Message, UserChat
@@ -64,11 +64,16 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name__in=["Admin","Teacher", "Student",]).exists():
+        if user.groups.filter(
+            group__name__in=[
+                "Admin",
+                "Teacher",
+                "Student",
+            ]
+        ).exists():
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-
 
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
@@ -98,11 +103,11 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         chat_creator = self.request.user
         role_creator = request.data.get("role_name")
         role_reciever = request.data.get("role_reciever")
-        print(role_creator + ' and ' + role_reciever)
+        print(role_creator + " and " + role_reciever)
         role1 = ""
         role2 = ""
         if role_creator == "Admin":
-            role1 ="Администратор"
+            role1 = "Администратор"
             role2 = "Студент"
         elif role_creator == "Teacher":
             role1 = "Ментор"
@@ -120,7 +125,9 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                 {"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        existed_chat_id = UserChat.get_existed_chat_id_by_type(chat_creator, chat_reciever, type="PERSONAL")
+        existed_chat_id = UserChat.get_existed_chat_id_by_type(
+            chat_creator, chat_reciever, type="PERSONAL"
+        )
         if existed_chat_id:
             existed_chat = Chat.objects.get(id=existed_chat_id)
             user_chat_serializer = ChatSerializer(
@@ -130,10 +137,10 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         else:
             chat = Chat.objects.create(
                 type="PERSONAL",
-                name=f'{role1}:'
-                     f'{chat_creator.email if role_creator != "Student" else chat_reciever.email}:'
-                     f'{role2}:'
-                     f'{chat_reciever.email if role_creator != "Student" else chat_creator.email}'
+                name=f"{role1}:"
+                f'{chat_creator.email if role_creator != "Student" else chat_reciever.email}:'
+                f"{role2}:"
+                f'{chat_reciever.email if role_creator != "Student" else chat_creator.email}',
             )
             user_chats = [
                 UserChat(user=chat_creator, chat=chat, user_role=role_creator),
@@ -145,10 +152,14 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             Message.objects.create(
                 chat=chat,
                 sender=chat_creator if role_creator != "Student" else chat_reciever,
-                content="Приветствую в персональном чате!",
+                content="""
+                    Приветствую Вас в чате техподдержки!☺️
+                    Если Вам будет нужна помощь, пожалуйста, напишите мне)👋""",
             )
 
-            existed_chat_id = UserChat.get_existed_chat_id_by_type(chat_creator, chat_reciever, "PERSONAL")
+            existed_chat_id = UserChat.get_existed_chat_id_by_type(
+                chat_creator, chat_reciever, "PERSONAL"
+            )
             if existed_chat_id:
                 existed_chat = Chat.objects.get(id=existed_chat_id)
                 user_chat_serializer = ChatSerializer(
@@ -396,11 +407,11 @@ class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-from rest_framework.decorators import api_view
 from courses.models import StudentsGroup
+from rest_framework.decorators import api_view
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_or_update_group_chat(request, group_id):
 
     if not group_id:
@@ -418,42 +429,60 @@ def create_or_update_group_chat(request, group_id):
     # Проверяем, есть ли у группы чат
     if not group.chat:
         # Создаем чат
-        chat = Chat.objects.create(type='GROUP', name=group.name)
+        chat = Chat.objects.create(type="GROUP", name=group.name)
         group.chat = chat
         group.save()
 
         # Создаем UserChat для студентов группы
         for student in group.students.all():
-            UserChat.objects.create(user=student, chat=chat, user_role='Student')
+            UserChat.objects.create(user=student, chat=chat, user_role="Student")
 
         # Если есть преподаватель, создаем UserChat для него
         if group.teacher_id:
-            UserChat.objects.create(user=group.teacher_id, chat=chat, user_role='Teacher')
+            UserChat.objects.create(
+                user=group.teacher_id, chat=chat, user_role="Teacher"
+            )
 
         # Создаем UserChat для администраторов
         for admin in admins:
-            if not UserChat.objects.filter(user=admin, chat=group.chat, user_role='Admin').exists():
-                UserChat.objects.create(user=admin, chat=group.chat, user_role='Admin')
+            if not UserChat.objects.filter(
+                user=admin, chat=group.chat, user_role="Admin"
+            ).exists():
+                UserChat.objects.create(user=admin, chat=group.chat, user_role="Admin")
 
         return Response(status=status.HTTP_201_CREATED)
     else:
         user_chats = UserChat.objects.filter(chat=group.chat)
         for user_chat in user_chats:
-            if user_chat.user not in group.students.all() and user_chat.user != group.teacher_id:
+            if (
+                user_chat.user not in group.students.all()
+                and user_chat.user != group.teacher_id
+            ):
                 user_chat.delete()  # Удаляем чаты для неактуальных студентов
 
         # Создаем UserChat для студентов
         for student in group.students.all():
             if not UserChat.objects.filter(user=student, chat=group.chat).exists():
-                UserChat.objects.create(user=student, chat=group.chat, user_role='Student')
+                UserChat.objects.create(
+                    user=student, chat=group.chat, user_role="Student"
+                )
 
         # Создаем UserChat для преподавателя
-        if group.teacher_id and not UserChat.objects.filter(user=group.teacher_id, chat=group.chat).exists():
-            UserChat.objects.create(user=group.teacher_id, chat=group.chat, user_role='Teacher')
+        if (
+            group.teacher_id
+            and not UserChat.objects.filter(
+                user=group.teacher_id, chat=group.chat
+            ).exists()
+        ):
+            UserChat.objects.create(
+                user=group.teacher_id, chat=group.chat, user_role="Teacher"
+            )
 
         # Создаем UserChat для администраторов
         for admin in admins:
-            if not UserChat.objects.filter(user=admin, chat=group.chat, user_role='Admin').exists():
-                UserChat.objects.create(user=admin, chat=group.chat, user_role='Admin')
+            if not UserChat.objects.filter(
+                user=admin, chat=group.chat, user_role="Admin"
+            ).exists():
+                UserChat.objects.create(user=admin, chat=group.chat, user_role="Admin")
 
         return Response(status=status.HTTP_200_OK)
