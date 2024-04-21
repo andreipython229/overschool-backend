@@ -8,6 +8,7 @@ from courses.api_views import (
     CourseAppealsViewSet,
     CourseCatalogViewSet,
     LessonUpdateViewSet,
+    SectionUpdateViewSet,
     TrainingDurationViewSet,
 )
 from django.conf import settings
@@ -147,6 +148,11 @@ urlpatterns = [
         "api/<str:school_name>/block_order/",
         BlockUpdateViewSet.as_view(actions={"post": "shuffle_blocks"}),
         name="block_order",
+    ),
+    path(
+        "api/<str:school_name>/section_order/",
+        SectionUpdateViewSet.as_view(actions={"post": "shuffle_sections"}),
+        name="section_order",
     ),
     path(
         "api/<str:school_name>/students_training_duration/",
