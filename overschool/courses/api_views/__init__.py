@@ -11,7 +11,7 @@ from .lesson import (
     LessonViewSet,
 )
 from .question import QuestionViewSet
-from .section import SectionViewSet
+from .section import SectionUpdateViewSet, SectionViewSet
 from .section_test import TestViewSet
 from .student_progress import StudentProgressViewSet
 from .students_group import StudentsGroupViewSet, StudentsGroupWithoutTeacherViewSet
