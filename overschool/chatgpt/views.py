@@ -193,8 +193,7 @@ class SendMessageToGPT(APIView):
                 return response_str
             else:
                 return "Ошибка: нет подходящего ответа, попробуйте еще раз"
-        except Exception as exception:
-            print("Exception: ", exception)
+        except Exception:
             return "Ошибка: нет подходящего ответа, попробуйте еще раз"
 
 
