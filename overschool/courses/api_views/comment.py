@@ -19,11 +19,27 @@ class CommentViewSet(viewsets.ModelViewSet):
         Создание нового комментария.
         """
 
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        author = request.user
+        lesson_id = request.data.get('lesson')
+        content = request.data.get('content')
+
+        if lesson_id is None or content is None:
+            return Response({'error': 'Необходимо указать урок и содержание комментария'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            lesson = BaseLesson.objects.get(id=lesson_id)
+        except BaseLesson.DoesNotExist:
+            return Response({'error': 'Урок с указанным ID не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        Comment.objects.create(
+            author=author,
+            lesson=lesson,
+            content=content,
+            public=False
+        )
+
+        return Response(status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, *args, **kwargs):
         """
