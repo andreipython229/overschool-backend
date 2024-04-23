@@ -132,9 +132,9 @@ class StudentsGroupViewSet(
                     "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                 )
 
-        # Создаем чат с названием "Чат с [имя группы]"
-        groupname = serializer.validated_data.get("name", "")
-        chat_name = f"{groupname}"
+        # Создаем чат с названием "Чат с [имя курса]"
+        course_name = course.name
+        chat_name = f"{course_name}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Создаём модель настроек группы
@@ -744,9 +744,9 @@ class StudentsGroupWithoutTeacherViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-        # Создаем чат с названием "Чат с [имя группы]"
-        groupname = serializer.validated_data.get("name", "")
-        chat_name = f"{groupname}"
+        # Создаем чат с названием "Чат с [имя курса]"
+        course_name = course.name
+        chat_name = f"{course_name}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         serializer.save(group_settings=group_settings, type=type)
