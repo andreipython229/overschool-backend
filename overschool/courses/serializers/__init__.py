@@ -26,7 +26,11 @@ from .question import (
     QuestionListGetSerializer,
     QuestionSerializer,
 )
-from .section import SectionRetrieveSerializer, SectionSerializer
+from .section import (
+    SectionOrderSerializer,
+    SectionRetrieveSerializer,
+    SectionSerializer,
+)
 from .section_test import TestSerializer
 from .students_group import (
     GroupsInCourseSerializer,
@@ -51,3 +55,4 @@ from .user_homework_check import (
     UserHomeworkCheckSerializer,
 )
 from .user_test import UserTestSerializer
+from .comment import CommentSerializer

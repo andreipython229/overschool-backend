@@ -34,8 +34,3 @@ class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model)
     class Meta:
         verbose_name = "Раздел"
         verbose_name_plural = "Разделы"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["course", "order"], name="unique_course_section_order"
-            ),
-        ]

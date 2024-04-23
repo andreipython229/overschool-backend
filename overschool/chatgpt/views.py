@@ -1,5 +1,7 @@
 import json
 import g4f
+from g4f.client import Client
+
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -181,11 +183,12 @@ class SendMessageToGPT(APIView):
         """
 
         try:
-            response = g4f.ChatCompletion.create(
+            response = Client().chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages
             )
-            response_str = ''.join(response)
+            
+            response_str = ''.join(response.choices[0].message.content)
             if response_str:
                 return response_str
             else:

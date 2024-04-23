@@ -1,6 +1,14 @@
-from courses.models import Section, Lesson, SectionTest, Homework, StudentsGroupSettings, StudentsGroup
-from courses.serializers import LessonSerializer, HomeworkSerializer
+from courses.models import (
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    StudentsGroupSettings,
+)
+from courses.serializers import HomeworkSerializer, LessonSerializer
 from rest_framework import serializers
+
 from .students_group_settings import StudentsGroupSettingsSerializer
 
 
@@ -106,14 +114,27 @@ class SectionRetrieveSerializer(serializers.ModelSerializer):
 
     def get_group_settings(self, obj):
         user = self.context["request"].user
-        if user.groups.filter(group__name="Student", school=obj.course.school_id).exists():
+        if user.groups.filter(
+            group__name="Student", school=obj.course.school_id
+        ).exists():
             try:
-                group = StudentsGroup.objects.get(course_id=obj.course_id, students=user.pk)
-                group_settings = StudentsGroupSettings.objects.get(pk=group.group_settings_id)
-                group_settings_data = StudentsGroupSettingsSerializer(group_settings).data
+                group = StudentsGroup.objects.get(
+                    course_id=obj.course_id, students=user.pk
+                )
+                group_settings = StudentsGroupSettings.objects.get(
+                    pk=group.group_settings_id
+                )
+                group_settings_data = StudentsGroupSettingsSerializer(
+                    group_settings
+                ).data
                 return group_settings_data
             except StudentsGroup.DoesNotExist:
                 return None
             except StudentsGroupSettings.DoesNotExist:
                 return None
         return None
+
+
+class SectionOrderSerializer(serializers.Serializer):
+    section_id = serializers.IntegerField()
+    order = serializers.IntegerField()
