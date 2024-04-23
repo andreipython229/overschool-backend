@@ -14,11 +14,16 @@ from courses.models import (
     UserProgressLogs,
     UserTest,
 )
-from courses.serializers import SectionRetrieveSerializer, SectionSerializer
+from courses.serializers import (
+    SectionOrderSerializer,
+    SectionRetrieveSerializer,
+    SectionSerializer,
+)
 from django.db.models import F
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
-from rest_framework import permissions, status, viewsets
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import MultiPartParser
@@ -274,3 +279,35 @@ class SectionViewSet(
 SectionViewSet = apply_swagger_auto_schema(
     tags=["sections"], excluded_methods=["partial_update"]
 )(SectionViewSet)
+
+
+class SectionUpdateViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
+):
+    serializer_class = None
+
+    @swagger_auto_schema(method="post", request_body=SectionOrderSerializer)
+    @action(detail=False, methods=["POST"])
+    def shuffle_sections(self, request, *args, **kwargs):
+
+        data = request.data
+
+        # сериализатор с полученными данными
+        serializer = SectionOrderSerializer(data=data, many=True)
+
+        if serializer.is_valid():
+            for section_data in serializer.validated_data:
+                section_id = section_data["section_id"]
+                new_order = section_data["order"]
+
+                # Обновите порядок секции в базе данных
+                try:
+                    section = Section.objects.get(section_id=section_id)
+                    section.order = new_order
+                    section.save()
+                except Exception as e:
+                    return Response(str(e), status=500)
+            return Response("Секции успешно обновлены", status=status.HTTP_200_OK)
+
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -11,7 +11,7 @@ from .lesson import (
     LessonViewSet,
 )
 from .question import QuestionViewSet
-from .section import SectionViewSet
+from .section import SectionUpdateViewSet, SectionViewSet
 from .section_test import TestViewSet
 from .student_progress import StudentProgressViewSet
 from .students_group import StudentsGroupViewSet, StudentsGroupWithoutTeacherViewSet
@@ -22,3 +22,4 @@ from .upload_video import UploadVideoViewSet
 from .user_homework import HomeworkStatisticsView, UserHomeworkViewSet
 from .user_homework_check import HomeworkCheckViewSet
 from .user_test import UserTestViewSet
+from .comment import CommentViewSet

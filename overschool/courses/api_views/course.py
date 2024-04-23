@@ -778,6 +778,7 @@ class CourseViewSet(
                 {
                     "section_name": value["section_name"],
                     "section": value["section"],
+                    "order": value["section_order"],
                     "lessons": [],
                 }
             )
