@@ -268,7 +268,7 @@ class SchoolPaymentMethod(models.Model):
         verbose_name_plural = "Оплата"
 
 
-class SchoolPaymentLink(models.Model):
+class SchoolExpressPayLink(models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,

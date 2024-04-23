@@ -55,3 +55,4 @@ from .user_homework_check import (
     UserHomeworkCheckSerializer,
 )
 from .user_test import UserTestSerializer
+from .comment import CommentSerializer

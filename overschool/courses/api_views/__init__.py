@@ -22,3 +22,4 @@ from .upload_video import UploadVideoViewSet
 from .user_homework import HomeworkStatisticsView, UserHomeworkViewSet
 from .user_homework_check import HomeworkCheckViewSet
 from .user_test import UserTestViewSet
+from .comment import CommentViewSet

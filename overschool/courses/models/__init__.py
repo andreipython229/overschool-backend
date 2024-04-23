@@ -5,6 +5,7 @@ from .common.base_lesson import (
     LessonAvailability,
     LessonEnrollment,
 )
+from .comments.comment import Comment
 from .courses.course import Course, CourseAppeals, Public
 from .courses.section import Section
 from .homework.homework import Homework
