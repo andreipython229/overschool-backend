@@ -23,8 +23,10 @@ class StudentsGroupSettingsSerializer(serializers.ModelSerializer):
         success_test = attrs.get("success_test_to_go_on")
 
         if (
-            (not order or submit_lock)
+            not order
             and True in [submit_homework, submit_test, success_test]
+            or submit_lock
+            and submit_homework
             or success_test
             and not submit_test
         ):
