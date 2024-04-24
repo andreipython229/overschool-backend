@@ -36,29 +36,37 @@ class SubscriptionSerializer(serializers.Serializer):
         user_subscription = self.context.get("user_subscription")
         school = self.context.get("school")
         if school:
-            current_tariff = school.tariff
+            current_tariff = school.tariff.name.upper()
 
             if current_tariff:
-                if TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
-                    raise serializers.ValidationError(
-                        "Вы можете перейти только на тариф выше текущего."
-                    )
-                if school.purchased_tariff_end_date:
-                    # Расчет длительности триала
-                    remaining_days = (
-                        school.purchased_tariff_end_date - timezone.now()
-                    ).days
-                    # Если осталось больше 0 дней, берем половину оставшихся дней
-                    if remaining_days > 0:
-                        half_remaining_days = math.ceil(remaining_days / 2)
-
-                        # Для перехода с Junior на Senior нужно брать половину от половины
-                        if TariffPlan[tariff] == TariffPlan.SENIOR:
-                            half_remaining_days = math.ceil(half_remaining_days / 2)
-
-                        data["trial_days"] = half_remaining_days
+                if TariffPlan[tariff] < TariffPlan[current_tariff]:
+                    if current_tariff == "JUNIOR" and tariff == "MEDIUM":
+                        trial_divisor = 2
+                    elif current_tariff == "MEDIUM" and tariff == "SENIOR":
+                        trial_divisor = 2
+                    elif current_tariff == "JUNIOR" and tariff == "SENIOR":
+                        trial_divisor = 4
                     else:
-                        data["trial_days"] = 0  # Если тариф уже истек, то триал равен 0
+                        raise serializers.ValidationError(
+                            "Вы можете перейти только на тариф выше текущего."
+                        )
+                    if school.purchased_tariff_end_date:
+                        # Расчет длительности триала
+                        remaining_days = (
+                            school.purchased_tariff_end_date - timezone.now()
+                        ).days
+                        # Если осталось больше 0 дней, берем половину оставшихся дней
+                        if remaining_days > 0:
+                            trial_days = max(
+                                math.ceil(remaining_days / trial_divisor), 0
+                            )
+                        else:
+                            trial_days = 0
+                else:
+                    trial_days = 0
+            else:
+                trial_days = 0
+            data["trial_days"] = trial_days
         if user_subscription:
             response = bepaid_client.unsubscribe(user_subscription.subscription_id)
             if response.status_code == 200:
