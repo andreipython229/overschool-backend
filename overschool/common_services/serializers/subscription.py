@@ -39,16 +39,16 @@ class SubscriptionSerializer(serializers.Serializer):
             current_tariff = school.tariff.name.upper()
 
             if current_tariff:
-                if TariffPlan[tariff] < TariffPlan[current_tariff]:
-                    if current_tariff == "JUNIOR" and tariff == "MEDIUM":
+                if TariffPlan[tariff] > TariffPlan[current_tariff]:
+                    if current_tariff == "JUNIOR" and tariff == "MIDDLE":
                         trial_divisor = 2
-                    elif current_tariff == "MEDIUM" and tariff == "SENIOR":
+                    elif current_tariff == "MIDDLE" and tariff == "SENIOR":
                         trial_divisor = 2
                     elif current_tariff == "JUNIOR" and tariff == "SENIOR":
                         trial_divisor = 4
                     else:
                         raise serializers.ValidationError(
-                            "Вы можете перейти только на тариф выше текущего."
+                            "Неверная логика перехода между тарифами."
                         )
                     if school.purchased_tariff_end_date:
                         # Расчет длительности триала
@@ -62,6 +62,10 @@ class SubscriptionSerializer(serializers.Serializer):
                             )
                         else:
                             trial_days = 0
+                elif TariffPlan[tariff] < TariffPlan[current_tariff]:
+                    raise serializers.ValidationError(
+                        "Вы можете перейти только на тариф выше текущего."
+                    )
                 else:
                     trial_days = 0
             else:
@@ -69,7 +73,7 @@ class SubscriptionSerializer(serializers.Serializer):
             data["trial_days"] = trial_days
         if user_subscription:
             response = bepaid_client.unsubscribe(user_subscription.subscription_id)
-            if response.status_code == 200:
+            if response["state"] == "canceled":
                 user_subscription.delete()
             else:
                 raise serializers.ValidationError("Не удалось отменить подписку")
