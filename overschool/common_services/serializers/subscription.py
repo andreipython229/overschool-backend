@@ -40,11 +40,11 @@ class SubscriptionSerializer(serializers.Serializer):
 
             if current_tariff:
                 if TariffPlan[tariff] > TariffPlan[current_tariff.name.upper()]:
-                    if current_tariff == "JUNIOR" and tariff == "MIDDLE":
+                    if current_tariff.name.upper() == "JUNIOR" and tariff == "MIDDLE":
                         trial_divisor = 2
-                    elif current_tariff == "MIDDLE" and tariff == "SENIOR":
+                    elif current_tariff.name.upper() == "MIDDLE" and tariff == "SENIOR":
                         trial_divisor = 2
-                    elif current_tariff == "JUNIOR" and tariff == "SENIOR":
+                    elif current_tariff.name.upper() == "JUNIOR" and tariff == "SENIOR":
                         trial_divisor = 4
                     else:
                         raise serializers.ValidationError(
