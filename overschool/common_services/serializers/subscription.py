@@ -36,10 +36,10 @@ class SubscriptionSerializer(serializers.Serializer):
         user_subscription = self.context.get("user_subscription")
         school = self.context.get("school")
         if school:
-            current_tariff = school.tariff.name.upper()
+            current_tariff = school.tariff
 
             if current_tariff:
-                if TariffPlan[tariff] > TariffPlan[current_tariff]:
+                if TariffPlan[tariff] > TariffPlan[current_tariff.name.upper()]:
                     if current_tariff == "JUNIOR" and tariff == "MIDDLE":
                         trial_divisor = 2
                     elif current_tariff == "MIDDLE" and tariff == "SENIOR":
@@ -62,7 +62,7 @@ class SubscriptionSerializer(serializers.Serializer):
                             )
                         else:
                             trial_days = 0
-                elif TariffPlan[tariff] < TariffPlan[current_tariff]:
+                elif TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
                     raise serializers.ValidationError(
                         "Вы можете перейти только на тариф выше текущего."
                     )
