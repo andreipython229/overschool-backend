@@ -176,12 +176,13 @@ class UnsubscribeClientView(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIVi
             )
         subscription_id = user_subscription.subscription_id
         response = bepaid_client.unsubscribe(subscription_id)
-        if response.status_code != 200:
+
+        if response["state"] == "canceled":
+            user_subscription.delete()
+        else:
             return Response(
                 {"error": "Не удалось отписаться от подписки"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        user_subscription.delete()
 
         return Response({"message": "Подписка отменена"}, status=status.HTTP_200_OK)
