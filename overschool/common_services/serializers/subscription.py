@@ -39,29 +39,41 @@ class SubscriptionSerializer(serializers.Serializer):
             current_tariff = school.tariff
 
             if current_tariff:
-                if TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
+                if TariffPlan[tariff] > TariffPlan[current_tariff.name.upper()]:
+                    if current_tariff.name.upper() == "JUNIOR" and tariff == "MIDDLE":
+                        trial_divisor = 2
+                    elif current_tariff.name.upper() == "MIDDLE" and tariff == "SENIOR":
+                        trial_divisor = 2
+                    elif current_tariff.name.upper() == "JUNIOR" and tariff == "SENIOR":
+                        trial_divisor = 4
+                    else:
+                        raise serializers.ValidationError(
+                            "Неверная логика перехода между тарифами."
+                        )
+                    if school.purchased_tariff_end_date:
+                        # Расчет длительности триала
+                        remaining_days = (
+                            school.purchased_tariff_end_date - timezone.now()
+                        ).days
+                        # Если осталось больше 0 дней, берем половину оставшихся дней
+                        if remaining_days > 0:
+                            trial_days = max(
+                                math.ceil(remaining_days / trial_divisor), 0
+                            )
+                        else:
+                            trial_days = 0
+                elif TariffPlan[tariff] < TariffPlan[current_tariff.name.upper()]:
                     raise serializers.ValidationError(
                         "Вы можете перейти только на тариф выше текущего."
                     )
-                if school.purchased_tariff_end_date:
-                    # Расчет длительности триала
-                    remaining_days = (
-                        school.purchased_tariff_end_date - timezone.now()
-                    ).days
-                    # Если осталось больше 0 дней, берем половину оставшихся дней
-                    if remaining_days > 0:
-                        half_remaining_days = math.ceil(remaining_days / 2)
-
-                        # Для перехода с Junior на Senior нужно брать половину от половины
-                        if TariffPlan[tariff] == TariffPlan.SENIOR:
-                            half_remaining_days = math.ceil(half_remaining_days / 2)
-
-                        data["trial_days"] = half_remaining_days
-                    else:
-                        data["trial_days"] = 0  # Если тариф уже истек, то триал равен 0
+                else:
+                    trial_days = 0
+            else:
+                trial_days = 0
+            data["trial_days"] = trial_days
         if user_subscription:
             response = bepaid_client.unsubscribe(user_subscription.subscription_id)
-            if response.status_code == 200:
+            if response["state"] == "canceled":
                 user_subscription.delete()
             else:
                 raise serializers.ValidationError("Не удалось отменить подписку")

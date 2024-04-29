@@ -38,8 +38,9 @@ from schools.models import (
     Tariff,
     TariffPlan,
     SchoolPaymentMethod,
-    SchoolPaymentLink,
+    SchoolExpressPayLink,
     ProdamusPaymentLink
+
 )
 from schools.serializers import (
     SchoolGetSerializer,
@@ -47,8 +48,9 @@ from schools.serializers import (
     SchoolUpdateSerializer,
     TariffSerializer,
     SchoolPaymentMethodSerializer,
-    SchoolPaymentLinkSerializer,
+    SchoolExpressPayLinkSerializer,
     ProdamusLinkSerializer
+    SchoolExpressPayLinkSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -1055,8 +1057,8 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
     API endpoint для работы с ссылками оплаты курсов
     """
 
-    queryset = SchoolPaymentLink.objects.all()
-    serializer_class = SchoolPaymentLinkSerializer
+    queryset = SchoolExpressPayLink.objects.all()
+    serializer_class = SchoolExpressPayLinkSerializer
 
     def create(self, request):
         data = request.data
@@ -1078,7 +1080,7 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             payment_method_id = data['payment_method']
             payment_method = SchoolPaymentMethod.objects.get(id=payment_method_id)
 
-            SchoolPaymentLink.objects.create(
+            SchoolExpressPayLink.objects.create(
                 invoice_no=data['invoice_no'],
                 school_id=data['school_id'],
                 payment_method=payment_method,
@@ -1107,7 +1109,7 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             instance = self.queryset.get(invoice_no=invoice_no)
             instance.delete()
             return Response(response, status=status.HTTP_200_OK)
-        except SchoolPaymentLink.DoesNotExist:
+        except SchoolExpressPayLink.DoesNotExist:
             return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1130,7 +1132,7 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
 
             serializer = self.get_serializer(instance)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except SchoolPaymentLink.DoesNotExist:
+        except SchoolExpressPayLink.DoesNotExist:
             return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

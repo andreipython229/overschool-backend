@@ -1,6 +1,8 @@
 import requests
 from rest_framework import serializers
-from schools.models import SchoolPaymentMethod, SchoolPaymentLink, ProdamusPaymentLink
+
+from schools.models import SchoolPaymentMethod, SchoolExpressPayLink, ProdamusPaymentLink
+
 from transliterate import translit
 
 
@@ -15,13 +17,13 @@ class SchoolPaymentMethodSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class SchoolPaymentLinkSerializer(serializers.ModelSerializer):
+class SchoolExpressPayLinkSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели ссылки для оплаты курсов для школы
     """
 
     class Meta:
-        model = SchoolPaymentLink
+        model = SchoolExpressPayLink
         fields = '__all__'
 
 

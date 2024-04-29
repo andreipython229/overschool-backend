@@ -104,16 +104,10 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                             Tariff, name=notification["additional_data"]["tariff"]
                         )
                         school.tariff = tariff
-                        # Вычисляем дату окончания подписки
-                        if school.purchased_tariff_end_date:
-                            expiration_date = (
-                                school.purchased_tariff_end_date
-                                + timezone.timedelta(days=subscription_days)
-                            )
-                        else:
-                            expiration_date = timezone.now() + timezone.timedelta(
-                                days=subscription_days
-                            )
+
+                        expiration_date = timezone.now() + timezone.timedelta(
+                            days=subscription_days
+                        )
 
                         school.purchased_tariff_end_date = expiration_date
                         school.trial_end_date = None

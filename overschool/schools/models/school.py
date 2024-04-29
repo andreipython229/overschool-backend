@@ -279,8 +279,7 @@ class SchoolPaymentMethod(models.Model):
 
 
 
-
-class SchoolPaymentLink(models.Model):
+class SchoolExpressPayLink(models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,

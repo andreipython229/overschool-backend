@@ -14,4 +14,5 @@ from .school_header import (
     SchoolHeaderSerializer,
     SchoolHeaderUpdateSerializer,
 )
-from .payment_methods import SchoolPaymentMethodSerializer, SchoolPaymentLinkSerializer, ProdamusLinkSerializer
+
+from .payment_methods import SchoolPaymentMethodSerializer, SchoolExpressPayLinkSerializer, ProdamusLinkSerializer

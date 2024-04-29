@@ -14,6 +14,7 @@ from courses.models import (
     StudentsGroup,
     TrainingDuration,
     UserProgressLogs,
+    UserTest,
 )
 from courses.models.courses.course import Public
 from courses.models.courses.section import Section
@@ -766,6 +767,9 @@ class CourseViewSet(
             result_data["group_settings"] = {
                 "task_submission_lock": group.group_settings.task_submission_lock,
                 "strict_task_order": group.group_settings.strict_task_order,
+                "submit_homework_to_go_on": group.group_settings.submit_homework_to_go_on,
+                "submit_test_to_go_on": group.group_settings.submit_test_to_go_on,
+                "success_test_to_go_on": group.group_settings.success_test_to_go_on,
             }
             result_data["teacher_id"] = group.teacher_id_id
 
@@ -778,6 +782,7 @@ class CourseViewSet(
                 {
                     "section_name": value["section_name"],
                     "section": value["section"],
+                    "order": value["section_order"],
                     "lessons": [],
                 }
             )
@@ -802,6 +807,13 @@ class CourseViewSet(
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
+                    sended = None
+                    if obj in a:
+                        sended = UserHomework.objects.filter(
+                            homework=obj, user=user
+                        ).exists()
+                    if obj in c:
+                        sended = UserTest.objects.filter(test=obj, user=user).exists()
                     dict_obj = model_to_dict(obj)
                     result_data["sections"][index]["lessons"].append(
                         {
@@ -815,6 +827,7 @@ class CourseViewSet(
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),
+                            "sended": sended,
                             "completed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, completed=True
                             ).exists(),

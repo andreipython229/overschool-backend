@@ -1,3 +1,5 @@
+from django.urls import path
+
 from courses.api_views import (
     AnswerViewSet,
     BaseLessonBlockViewSet,
@@ -22,6 +24,7 @@ from courses.api_views import (
     UploadVideoViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
+    CommentViewSet
 )
 from rest_framework import routers
 from schools.api_views import SchoolDocumentViewSet
@@ -64,6 +67,7 @@ router.register("questions", QuestionViewSet, basename="questions")
 router.register("answers", AnswerViewSet, basename="answers")
 router.register("usertest", UserTestViewSet, basename="test_user")
 router.register("student_progress", StudentProgressViewSet, basename="student_progress")
+router.register("lesson_comments", CommentViewSet, basename="lesson_comments")
 
 urlpatterns = router.urls
 

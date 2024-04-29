@@ -230,7 +230,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "/static/"
+STATIC_URL = "/backend-static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -425,11 +425,11 @@ YANDEX_SECRET = env.str("YANDEX_SECRET")
 # selectel credentials
 SEL_AUTH_KEY = env.str("SEL_AUTH_KEY")
 ACCOUNT_ID = env.str("ACCOUNT_ID")
-CONTAINER_NAME = "overschool_dev" if DEBUG else "overschool"
+CONTAINER_NAME = env.str("S3_BUCKET")
 CONTAINER_KEY = env.str("CONTAINER_KEY")
 
 S3_SECRET_KEY = env.str("S3_SECRET_KEY")
 S3_ACCESS_KEY = env.str("S3_ACCESS_KEY")
 REGION_NAME = env.str("REGION_NAME")
 ENDPOINT_URL = env.str("ENDPOINT_URL")
-S3_BUCKET = env.str("S3_BUCKET") if not DEBUG else "overschool_dev"
+S3_BUCKET = env.str("S3_BUCKET")
