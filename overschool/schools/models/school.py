@@ -135,17 +135,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-            self.used_trial
-            and self.trial_end_date
-            and self.trial_end_date <= timezone.now()
+                self.used_trial
+                and self.trial_end_date
+                and self.trial_end_date <= timezone.now()
         ):
             self.tariff = None
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-            self.purchased_tariff_end_date
-            and self.purchased_tariff_end_date <= timezone.now()
+                self.purchased_tariff_end_date
+                and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = None
             self.purchased_tariff_end_date = None
@@ -263,12 +263,14 @@ class SchoolPaymentMethod(models.Model):
         default=None
     )
 
-    payment_url = models.URLField(verbose_name="URL платежного кабинета",
-                                  max_length=250,
-                                  help_text='Ссылка платежного кабинета Продамус',
-                                  default=None,
-                                  null=True,
-                                  blank=True)
+    payment_url = models.URLField(
+        verbose_name="URL платежного кабинета",
+        max_length=250,
+        help_text='Ссылка платежного кабинета Продамус',
+        default=None,
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.payment_method_name} - {self.school}"
@@ -276,7 +278,6 @@ class SchoolPaymentMethod(models.Model):
     class Meta:
         verbose_name = "Оплата"
         verbose_name_plural = "Оплата"
-
 
 
 class SchoolExpressPayLink(models.Model):
@@ -359,11 +360,28 @@ class SchoolExpressPayLink(models.Model):
         verbose_name_plural = "Ссылки на оплату"
 
 
+class SchoolStudentsTableSettings(models.Model):
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE
+    )
+    is_students_grouped = models.BooleanField(
+        default=True,
+        verbose_name="Сгруппированы ли студенты в таблице",
+        help_text="Сгруппированы ли студенты в таблице"
+    )
+
+    class Meta:
+        verbose_name = "Настройки группировки студентов"
+        verbose_name_plural = "Настройки группировки студентов"
+
+
 @receiver(post_save, sender=School)
 def create_school_statistics(sender, instance, created, **kwargs):
     if created:
         SchoolStatistics.objects.create(
             school=instance,)
+
 
 class ProdamusPaymentLink(models.Model):
 

@@ -1,6 +1,6 @@
 import requests
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan
+from schools.models import School, Tariff, TariffPlan, SchoolStudentsTableSettings, SchoolStudentsTableSettings
 from transliterate import translit
 
 
@@ -187,3 +187,9 @@ class TariffSerializer(serializers.ModelSerializer):
                 return None
             return round((float(obj.discount_12_months) / rate) * 100, 2)
         return None
+
+
+class SchoolStudentsTableSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SchoolStudentsTableSettings
+        fields = '__all__'

@@ -3,6 +3,7 @@ from .school import (
     SchoolSerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
+    SchoolStudentsTableSettingsSerializer
 )
 from .school_document import (
     SchoolDocumentsDetailSerializer,
