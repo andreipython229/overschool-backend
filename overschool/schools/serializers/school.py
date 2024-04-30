@@ -1,6 +1,6 @@
 import requests
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan, SchoolStudentsTableSettings
+from schools.models import School, Tariff, TariffPlan, SchoolStudentsTableSettings, SchoolStudentsTableSettings
 from transliterate import translit
 
 

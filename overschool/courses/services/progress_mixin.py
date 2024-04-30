@@ -18,16 +18,20 @@ class LessonProgressMixin:
         except UserProgressLogs.DoesNotExist:
 
             if isinstance(instance, Lesson):
-                UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True, completed=True)
+                UserProgressLogs.objects.create(
+                    user=user, lesson=instance, viewed=True, completed=True
+                )
             else:
                 UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 
     def check_lesson_progress(self, instance, user, baselesson):
+        school = baselesson.section.course.school
         if user.groups.filter(
             group__name__in=[
                 "Admin",
                 "Teacher",
-            ]
+            ],
+            school=school,
         ).exists():
             return None
 
@@ -53,11 +57,15 @@ class LessonProgressMixin:
                 # Если есть запись в логе - то отдаём урок
                 UserProgressLogs.objects.get(user=user, lesson=instance)
             except UserProgressLogs.DoesNotExist:
-                course_lessons = BaseLesson.objects.filter(
-                    section__course_id=baselesson.section.course, active=True
-                ).exclude(
-                    lessonavailability__student=user,
-                ).order_by("section__order", "order")
+                course_lessons = (
+                    BaseLesson.objects.filter(
+                        section__course_id=baselesson.section.course, active=True
+                    )
+                    .exclude(
+                        lessonavailability__student=user,
+                    )
+                    .order_by("section__order", "order")
+                )
 
                 print("TEST LESSONS = ", course_lessons)
                 # Если урок стоит первым в курсе - то отдаём урок
@@ -65,11 +73,15 @@ class LessonProgressMixin:
                     self.create_log(user=user, instance=instance)
                     return None
                 # Проверяем является ли урок минимальным в секции
-                is_minimum_order = not BaseLesson.objects.filter(
-                    section=instance.section, order__lt=instance.order, active=True
-                ).exclude(
-                    lessonavailability__student=user,
-                ).exists()
+                is_minimum_order = (
+                    not BaseLesson.objects.filter(
+                        section=instance.section, order__lt=instance.order, active=True
+                    )
+                    .exclude(
+                        lessonavailability__student=user,
+                    )
+                    .exists()
+                )
 
                 if is_minimum_order:
                     # берём последний урок из предыдущей секции
@@ -104,7 +116,8 @@ class LessonProgressMixin:
                 previous_lesson = (
                     BaseLesson.objects.filter(
                         section=instance.section, order__lt=instance.order, active=True
-                    ).exclude(
+                    )
+                    .exclude(
                         lessonavailability__student=user,
                     )
                     .order_by("-order")
