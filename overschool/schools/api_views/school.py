@@ -1139,6 +1139,10 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
 
 
 class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
+    """
+    Управление группировкой учеников в таблицах
+    """
+
     queryset = SchoolStudentsTableSettings.objects.all()
     serializer_class = SchoolStudentsTableSettingsSerializer
     lookup_field = 'school_id'
@@ -1146,7 +1150,7 @@ class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
     def retrieve(self, request, *args, **kwargs):
         school_id = kwargs.get('school_id')
         instance = self.get_object(school_id)
-        serializer = self.serializer_class(instance)  # Используйте атрибут serializer_class
+        serializer = self.serializer_class(instance)
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
