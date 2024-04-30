@@ -39,8 +39,8 @@ from schools.models import (
     TariffPlan,
     SchoolPaymentMethod,
     SchoolExpressPayLink,
-    ProdamusPaymentLink
-
+    ProdamusPaymentLink,
+    SchoolStudentsTableSettings
 )
 from schools.serializers import (
     SchoolGetSerializer,
@@ -50,7 +50,7 @@ from schools.serializers import (
     SchoolPaymentMethodSerializer,
     SchoolExpressPayLinkSerializer,
     ProdamusLinkSerializer,
-    SchoolExpressPayLinkSerializer,
+    SchoolStudentsTableSettingsSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
@@ -1136,3 +1136,27 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
+    queryset = SchoolStudentsTableSettings.objects.all()
+    serializer_class = SchoolStudentsTableSettingsSerializer
+    lookup_field = 'school_id'
+
+    def retrieve(self, request, *args, **kwargs):
+        school_id = kwargs.get('school_id')
+        instance = self.get_object(school_id)
+        serializer = self.serializer_class(instance)  # Используйте атрибут serializer_class
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        school_id = request.data.get('school')
+        instance = self.get_object(school_id)
+        serializer = self.serializer_class(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def get_object(self, school_id):
+        obj, created = SchoolStudentsTableSettings.objects.get_or_create(school_id=school_id)
+        return obj
