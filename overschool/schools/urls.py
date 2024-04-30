@@ -17,7 +17,7 @@ router.register("schools_tariff", TariffViewSet, basename="schools_tariff")
 router.register("payment_method", AddPaymentMethodViewSet, basename='payment-method')
 router.register("payment_link", SchoolPaymentLinkViewSet, basename='payment-link'),
 router.register("prodamus_payment_link", ProdamusPaymentLinkViewSet, basename='prodamus-payment-link')
-
+router.register("school_students_table_settings", SchoolStudentsTableSettingsViewSet, basename='school_students_table_settings')
 
 urlpatterns = router.urls
 
