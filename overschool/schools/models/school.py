@@ -238,6 +238,7 @@ class SchoolPaymentMethod(models.Model):
         verbose_name="Метод оплаты",
         help_text="Метод оплаты",
         default=None,
+        null=True
     )
     payment_method_name = models.CharField(
         max_length=100,
@@ -251,14 +252,23 @@ class SchoolPaymentMethod(models.Model):
         verbose_name="Номер лицевого счета",
         help_text="Номер лицевого счета",
         default=None,
+        null=True,
+        blank=True
     )
     api_key = models.CharField(
         unique=True,
         max_length=200,
         verbose_name="API-ключ",
         help_text="API-ключ",
-        default=None,
+        default=None
     )
+
+    payment_url = models.URLField(verbose_name="URL платежного кабинета",
+                                  max_length=250,
+                                  help_text='Ссылка платежного кабинета Продамус',
+                                  default=None,
+                                  null=True,
+                                  blank=True)
 
     def __str__(self):
         return f"{self.payment_method_name} - {self.school}"
@@ -266,6 +276,7 @@ class SchoolPaymentMethod(models.Model):
     class Meta:
         verbose_name = "Оплата"
         verbose_name_plural = "Оплата"
+
 
 
 class SchoolExpressPayLink(models.Model):
@@ -288,6 +299,7 @@ class SchoolExpressPayLink(models.Model):
         verbose_name="Номер счета",
         help_text="Номер счета",
         default=0,
+        null=True
     )
     payment_link = models.CharField(
         max_length=200,
@@ -351,5 +363,60 @@ class SchoolExpressPayLink(models.Model):
 def create_school_statistics(sender, instance, created, **kwargs):
     if created:
         SchoolStatistics.objects.create(
-            school=instance,
-        )
+            school=instance,)
+
+class ProdamusPaymentLink(models.Model):
+
+    '''Модель для хранения данных, используемых при формировании платежной ссылки Prodamus'''
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, default=0)
+    school_payment_method = models.ForeignKey(SchoolPaymentMethod, on_delete=models.CASCADE)
+    created = models.DateTimeField(verbose_name="Время создания ссылки", help_text="Время создания ссылки", auto_now_add=True)
+    payment_link = models.CharField(max_length=700, verbose_name="Сформированная ссылка для оплаты", help_text="Ссылка для оплаты", null=True, blank=True)
+    api_key = models.CharField(max_length=200, verbose_name="API-ключ", help_text="API-ключ", default='')
+    do = models.CharField(max_length=20, help_text='Тип действий (link или pay)')
+    name = models.CharField(max_length=200, verbose_name='Наименование товара', help_text='Наименование товара', default=None)
+    price = models.DecimalField(max_digits=10, decimal_places=2, help_text='Цена товара')
+    quantity = models.PositiveIntegerField(help_text='Кол-во товара')
+    sys = models.CharField(max_length=100, verbose_name='код системы интернет-магазина', help_text='код системы интернет-магазина', null=True, blank=True)
+    sku = models.CharField(max_length=200, verbose_name='ID товара в системе интернет-магазин', help_text='ID товара в системе интернет-магазин', null=True, blank=True)
+
+    order_id = models.PositiveIntegerField(help_text='Номер заказа в системе интернет-магазина', null=True, blank=True)
+    customer_phone = models.CharField(max_length=20, verbose_name='Мобильный телефон клиента',
+                                      help_text='Можно сформировать ссылку на оплату не указывая номер телефона покупателя, он заполнит это поле самостоятельно в окне оплаты', null=True, blank=True)
+    customer_email = models.EmailField(help_text='Email клиента', null=True, blank=True)
+    customer_extra = models.TextField(null=True, help_text='Дополнительные данные', blank=True)
+    tax_type = models.PositiveIntegerField(default=0, help_text='Ставка НДС')
+    tax_sum = models.DecimalField(max_digits=10, decimal_places=2, null=True, help_text='Сумма налога', blank=True)
+    payment_method = models.CharField(max_length=2, help_text='Метод оплаты', null=True, blank=True)
+    payment_object = models.CharField(max_length=2, help_text='Тип оплачиваемой позиции', blank=True)
+    subscription = models.PositiveIntegerField(null=True, help_text='ID подписки', blank=True)
+    subscription_date_start = models.DateTimeField(null=True, help_text='Дата начала подписки', blank=True)
+    vk_user_id = models.PositiveIntegerField(null=True, help_text='ID пользователя VK', blank=True)
+    vk_user_name = models.CharField(max_length=200, null=True, help_text='Имя пользователя VK', blank=True)
+
+    urlReturn = models.URLField(help_text='URL для возврата пользователя без оплаты', null=True, blank=True)
+    urlSuccess = models.URLField(help_text='URL для возврата пользователя при успешной оплате', null=True, blank=True)
+    urlNotification = models.URLField(help_text='URL для уведомления интернет-магазина о поступлении оплаты по заказу. Для того, чтобы система учла этот параметр, также должен быть передан параметр sys',
+                                      null=True, blank=True)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
+                                         help_text='Сумма скидки на заказ')
+    npd_income_type = models.CharField(max_length=20, default='FROM_INDIVIDUAL', help_text='Тип плательщика', blank=True)
+    npd_income_inn = models.PositiveIntegerField(null=True, help_text='ИНН плательщика', blank=True)
+    npd_income_company = models.CharField(max_length=200, null=True, help_text='Название компании плательщика', blank=True)
+    link_expired = models.DateTimeField(null=True, help_text='Срок действия ссылки', blank=True)
+    paid_content = models.TextField(null=True, help_text='Текст для пользователя после оплаты', blank=True)
+    ref = models.CharField(max_length=40, help_text='идентификатор партнера (ПРОМОКОД)', null=True, blank=True)
+    type = models.CharField(max_length=40, help_text='Если передано значение json, то ответ от Продамуса придет в формате json', null=True, blank=True)
+    callbackType = models.CharField(max_length=40, help_text='Если передано значение json, то веб-хуки от Продамуса будут приходить в формате json', null=True, blank=True)
+    currency = models.CharField(max_length=10, help_text='Валюта платежа. Возможные значения: rub, usd, eur, kzt', null=True, blank=True)
+    payments_limit = models.PositiveIntegerField(null=True, help_text='Лимит оплат по сформированной ссылке', verbose_name='Лимит оплат по сформированной ссылке', blank=True)
+    acquiring = models.CharField(max_length=40, help_text='Эквайринг.Возможные значения: sbrf, monet, qiwi, xpay, xpaykz', null=True, verbose_name='Эквайринг', blank=True)
+    signature = models.CharField(max_length=64, null=True, blank=True, help_text='Подпись, создаваемая на основе секретного ключа и данных для создания ссылки', verbose_name='Подпись запроса')
+
+    class Meta:
+        verbose_name = 'Ссылка на платеж Prodamus'
+        verbose_name_plural = 'Ссылки на платежи Prodamus'
+
+
+
