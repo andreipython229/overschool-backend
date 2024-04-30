@@ -7,7 +7,8 @@ from schools.api_views import (
     TariffViewSet,
     AddPaymentMethodViewSet,
     SchoolPaymentLinkViewSet,
-    ProdamusPaymentLinkViewSet
+    ProdamusPaymentLinkViewSet,
+    SchoolStudentsTableSettingsViewSet
 )
 
 router = routers.DefaultRouter()
