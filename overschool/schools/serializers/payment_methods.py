@@ -6,7 +6,6 @@ from schools.models import SchoolPaymentMethod, SchoolExpressPayLink, ProdamusPa
 from transliterate import translit
 
 
-
 class SchoolPaymentMethodSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели оплаты курсов для школы

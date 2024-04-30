@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
-            model_name="schoolexpresspaylink",
+            model_name="schoolpaymentlink",
             name="invoice_no",
             field=models.IntegerField(
                 default=0,
