@@ -7,14 +7,16 @@ from schools.api_views import (
     TariffViewSet,
     AddPaymentMethodViewSet,
     SchoolPaymentLinkViewSet,
+    SchoolStudentsTableSettingsViewSet
 )
 
 router = routers.DefaultRouter()
 router.register("schools", SchoolViewSet, basename="schools")
 router.register("school_headers", SchoolHeaderViewSet, basename="school_headers")
 router.register("schools_tariff", TariffViewSet, basename="schools_tariff")
-router.register("payment_method", AddPaymentMethodViewSet, basename='payment-method')
-router.register("payment_link", SchoolPaymentLinkViewSet, basename='payment-link')
+router.register("payment_method", AddPaymentMethodViewSet, basename='payment_method')
+router.register("payment_link", SchoolPaymentLinkViewSet, basename='payment_link')
+router.register("school_students_table_settings", SchoolStudentsTableSettingsViewSet, basename='school_students_table_settings')
 
 urlpatterns = router.urls
 

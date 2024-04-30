@@ -135,17 +135,17 @@ class School(TimeStampMixin, OrderMixin):
     def check_trial_status(self):
         # Проверка статуса пробного периода
         if (
-            self.used_trial
-            and self.trial_end_date
-            and self.trial_end_date <= timezone.now()
+                self.used_trial
+                and self.trial_end_date
+                and self.trial_end_date <= timezone.now()
         ):
             self.tariff = None
             self.trial_end_date = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
-            self.purchased_tariff_end_date
-            and self.purchased_tariff_end_date <= timezone.now()
+                self.purchased_tariff_end_date
+                and self.purchased_tariff_end_date <= timezone.now()
         ):
             self.tariff = None
             self.purchased_tariff_end_date = None
@@ -345,6 +345,22 @@ class SchoolExpressPayLink(models.Model):
     class Meta:
         verbose_name = "Ссылка на оплату"
         verbose_name_plural = "Ссылки на оплату"
+
+
+class SchoolStudentsTableSettings(models.Model):
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE
+    )
+    is_students_grouped = models.BooleanField(
+        default=True,
+        verbose_name="Сгруппированы ли студенты в таблице",
+        help_text="Сгруппированы ли студенты в таблице"
+    )
+
+    class Meta:
+        verbose_name = "Настройки группировки студентов"
+        verbose_name_plural = "Настройки группировки студентов"
 
 
 @receiver(post_save, sender=School)
