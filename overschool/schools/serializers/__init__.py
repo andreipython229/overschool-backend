@@ -3,6 +3,7 @@ from .school import (
     SchoolSerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
+    SchoolStudentsTableSettingsSerializer
 )
 from .school_document import (
     SchoolDocumentsDetailSerializer,
@@ -14,4 +15,5 @@ from .school_header import (
     SchoolHeaderSerializer,
     SchoolHeaderUpdateSerializer,
 )
-from .payment_methods import SchoolPaymentMethodSerializer, SchoolExpressPayLinkSerializer
+
+from .payment_methods import SchoolPaymentMethodSerializer, SchoolExpressPayLinkSerializer, ProdamusLinkSerializer
