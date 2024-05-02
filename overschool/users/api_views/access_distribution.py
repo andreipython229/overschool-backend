@@ -39,11 +39,12 @@ class AccessDistributionView(
         return School.objects.get(name=school_name)
 
     def check_existing_role(self, user, school, group):
-        return (
+        existing_group = (
             UserGroup.objects.filter(user=user, school=school)
             .exclude(group=group)
-            .exists()
+            .first()
         )
+        return existing_group.group.name if existing_group else None
 
     def check_user_existing_roles(self, user, school):
         try:
@@ -51,10 +52,11 @@ class AccessDistributionView(
         except:
             return None
 
-    def handle_existing_roles(self, user, school, group):
+    def handle_existing_role(self, user, role):
         return HttpResponse(
             f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
             status=400,
+            reason=role,
         )
 
     def create_user_group(self, user, group, school):
@@ -215,8 +217,9 @@ class AccessDistributionView(
         )
 
         for user in users:
-            if self.check_existing_role(user, school, group):
-                return self.handle_existing_roles(user, school, group)
+            existing_role = self.check_existing_role(user, school, group)
+            if existing_role:
+                return self.handle_existing_role(user, existing_role)
 
             if not UserGroup.objects.filter(
                 user=user, school=school, group=group
