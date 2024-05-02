@@ -1,7 +1,6 @@
-import json
 import os
 import telebot
-
+from time import gmtime
 from .models import TgUsers, Notifications
 
 bot_token = os.environ.get('TG_BOT_TOKEN')
@@ -9,16 +8,20 @@ bot = telebot.TeleBot(bot_token)
 
 
 class SendNotifications:
-    _last_notifications = []
+    _last_notifications = {}
 
     @staticmethod
     def last_notifications(user_homework, last_check_status, last_check_mark):
-        try:
-            if last_check_status == SendNotifications._last_notifications[-1]:
-                return
-            else:
-                SendNotifications.send_telegram_notification(user_homework, last_check_status, last_check_mark)
-        except Exception:
+
+        """
+            Функция для обработки дубликатов при создании домашек
+        """
+
+        duplicate = {last_check_status: gmtime()}
+        if duplicate in SendNotifications._last_notifications.values():
+            return
+        else:
+            print("отпрвляется сообщение", duplicate, SendNotifications._last_notifications.values())
             SendNotifications.send_telegram_notification(user_homework, last_check_status, last_check_mark)
 
     @staticmethod
@@ -38,11 +41,13 @@ class SendNotifications:
 
                 bot.send_message(
                     chat_id=mentor_chat_id,
-                    text='Ученик прислал работу на проверку! Не забудьте проверить работу учеников на платформе!'
+                    text='Ученик прислал работу на проверку! Не забудьте проверить работу ученика на платформе!'
                 )
                 print('сообщение отправлено ментору')
 
-                SendNotifications._last_notifications.append(last_check_status)
+                SendNotifications._last_notifications[last_check_status] = {
+                    last_check_status: gmtime()
+                }
             except Exception as e:
                 return f"{e}"
         else:
@@ -57,14 +62,17 @@ class SendNotifications:
                 }
 
                 student_chat_id = student[user_homework.user_id]['tg_user_id']
-                number_hw = user_homework.text
+                # number_hw = user_homework.text
 
                 bot.send_message(
                     chat_id=student_chat_id,
-                    text=f"Ваше задание '{number_hw}' {last_check_status.lower()}, с отметкой {last_check_mark}"
+                    text=f"Ментор проверил ваше задание. Зайдите на платформу для дополнительной информации!"
+                    # text=f"Ваше задание '{number_hw}' {last_check_status.lower()}, с отметкой {last_check_mark}"
                 )
                 print('сообщение отправлено студенту')
 
-                SendNotifications._last_notifications.append(last_check_status)
+                SendNotifications._last_notifications[last_check_status] = {
+                    last_check_status: gmtime()
+                }
             except Exception as e:
                 return f"{e}"
