@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # "channels",
     "sentry_sdk",
     "chatgpt.apps.ChatGPTConfig",
+    "tg_notifications.apps.TgNotificationsConfig",
 ]
 ADMINS = [
     # ...

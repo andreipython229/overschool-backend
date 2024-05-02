@@ -1,3 +1,5 @@
+import logging
+import traceback
 from datetime import datetime, timedelta
 
 import pytz
@@ -37,6 +39,8 @@ from schools.models import (
     TariffPlan,
     SchoolPaymentMethod,
     SchoolExpressPayLink,
+    ProdamusPaymentLink,
+    SchoolStudentsTableSettings
 )
 from schools.serializers import (
     SchoolGetSerializer,
@@ -45,9 +49,14 @@ from schools.serializers import (
     TariffSerializer,
     SchoolPaymentMethodSerializer,
     SchoolExpressPayLinkSerializer,
+    ProdamusLinkSerializer,
+    SchoolStudentsTableSettingsSerializer,
 )
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
+
+# from schools.services import Hmac
+from schools.services import Hmac
 
 s3 = UploadToS3()
 
@@ -1000,6 +1009,49 @@ class AddPaymentMethodViewSet(viewsets.ModelViewSet):
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class ProdamusPaymentLinkViewSet(viewsets.ModelViewSet):
+    queryset = ProdamusPaymentLink.objects.all()
+    serializer_class = ProdamusLinkSerializer
+
+    def create(self, request):
+        try:
+            data = request.data
+            signature_data = data.copy()
+            signature_data.pop('school', None)  # Remove 'school' from signature data
+            signature_data.pop('api_key', None) # Remove 'api_key' from signature
+            signature_data.pop('payment_link', None)
+            signature_data.pop('created', None)
+            signature_data.pop('school_payment_method', None)
+
+            signature = Hmac.create_signature(signature_data, request.data.get('api_key'))
+            logging.getLogger(__name__).debug(f"Api key: {request.data.get('api_key')}")
+            logging.getLogger(__name__).debug(f"Signature_data: {signature_data}")
+            logging.getLogger(__name__).debug(f"Generated signature: {signature}")
+
+            data['signature'] = signature
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+
+            serializer.instance.signature = signature
+            serializer.instance.save()
+            created_id = serializer.instance.id
+
+            return Response({'id': created_id, 'signature': signature}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+            return Response({'error': str(e.args), 'traceback': traceback_str}, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        school_id = request.query_params.get('school_id')
+        if school_id:
+            queryset = self.queryset.filter(school_id=school_id)
+        else:
+            queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
     """
     API endpoint для работы с ссылками оплаты курсов
@@ -1084,3 +1136,31 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
+    """
+    Управление группировкой учеников в таблицах
+    """
+
+    queryset = SchoolStudentsTableSettings.objects.all()
+    serializer_class = SchoolStudentsTableSettingsSerializer
+    lookup_field = 'school_id'
+
+    def retrieve(self, request, *args, **kwargs):
+        school_id = kwargs.get('school_id')
+        instance = self.get_object(school_id)
+        serializer = self.serializer_class(instance)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        school_id = request.data.get('school')
+        instance = self.get_object(school_id)
+        serializer = self.serializer_class(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def get_object(self, school_id):
+        obj, created = SchoolStudentsTableSettings.objects.get_or_create(school_id=school_id)
+        return obj
