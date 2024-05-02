@@ -5,6 +5,8 @@ from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models import (
+    Course,
+    GroupCourseAccess,
     Homework,
     Lesson,
     Section,
@@ -15,10 +17,16 @@ from courses.models import (
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination, UserHomeworkPagination
-from courses.serializers import StudentsGroupSerializer, StudentsGroupWTSerializer
+from courses.serializers import (
+    GroupCourseAccessSerializer,
+    MultipleGroupCourseAccessSerializer,
+    StudentsGroupSerializer,
+    StudentsGroupWTSerializer,
+)
 from courses.services import get_student_progress
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Q, Sum
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -797,3 +805,91 @@ class StudentsGroupWithoutTeacherViewSet(
 
         current_group.save()
         serializer.save()
+
+
+class GroupCourseAccessViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
+    """Эндпоинт получения, создания, удаления разрешений к курсам\n
+    <h2>/api/{school_name}/group_course_access/</h2>\n
+    Разрешения (только пользователи с группой 'Admin')
+    """
+
+    serializer_class = GroupCourseAccessSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "head", "post", "delete", "options"]
+
+    def get_school(self):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        return school
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        user = self.request.user
+        school = self.get_school()
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return GroupCourseAccess.objects.none()
+        user = self.request.user
+
+        if user.groups.filter(group__name="Admin", school=self.get_school()).exists():
+            return GroupCourseAccess.objects.filter(
+                course_id__school__school_id=self.get_school().school_id
+            )
+
+    def get_serializer_class(self):
+        if self.action == "create" or self.action == "perform_create":
+            return MultipleGroupCourseAccessSerializer
+        return GroupCourseAccessSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Проверка администратора школы и связь с курсами групп
+        group_course_access_objects = []
+        for data in serializer.validated_data:
+            group_obj = get_object_or_404(StudentsGroup, group_id=data["group"])
+            course_obj = get_object_or_404(Course, course_id=data["course"])
+            if (
+                not group_obj.course_id.school == self.get_school()
+                or not course_obj.school == self.get_school()
+            ):
+                return Response(
+                    {
+                        "detail": "Вы не можете назначать разрешения для групп или курсов других школ"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            group_course_access_objects.append(
+                GroupCourseAccess(group=group_obj, course=course_obj)
+            )
+
+        GroupCourseAccess.objects.bulk_create(group_course_access_objects)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # Проверка принадлежности группы и курса к школе текущего администратора
+        if (
+            not instance.group.course_id.school == self.get_school()
+            or not instance.course.school == self.get_school()
+        ):
+            return Response(
+                {
+                    "detail": "Вы не можете удалять разрешения для групп или курсов других школ"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)

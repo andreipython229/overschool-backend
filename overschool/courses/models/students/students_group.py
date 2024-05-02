@@ -85,3 +85,15 @@ class StudentsGroup(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Группа студентов"
         verbose_name_plural = "Группы студентов"
+
+
+class GroupCourseAccess(models.Model):
+    group = models.ForeignKey(StudentsGroup, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.group) + " " + str(self.course)
+
+    class Meta:
+        verbose_name = "Разрешение на курс"
+        verbose_name_plural = "Разрешения на курсы"

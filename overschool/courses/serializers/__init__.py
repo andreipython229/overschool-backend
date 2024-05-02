@@ -6,6 +6,7 @@ from .block import (
     LessonBlockSerializer,
     LessonOrderSerializer,
 )
+from .comment import CommentSerializer
 from .course import (
     CourseGetSerializer,
     CourseSerializer,
@@ -33,9 +34,11 @@ from .section import (
 )
 from .section_test import TestSerializer
 from .students_group import (
+    GroupCourseAccessSerializer,
     GroupsInCourseSerializer,
     GroupStudentsSerializer,
     GroupUsersByMonthSerializer,
+    MultipleGroupCourseAccessSerializer,
     StudentsGroupSerializer,
     StudentsGroupWTSerializer,
 )
@@ -55,4 +58,3 @@ from .user_homework_check import (
     UserHomeworkCheckSerializer,
 )
 from .user_test import UserTestSerializer
-from .comment import CommentSerializer

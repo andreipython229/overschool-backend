@@ -1,3 +1,4 @@
+from .comments.comment import Comment
 from .common.base_lesson import (
     BaseLesson,
     BaseLessonBlock,
@@ -5,14 +6,13 @@ from .common.base_lesson import (
     LessonAvailability,
     LessonEnrollment,
 )
-from .comments.comment import Comment
 from .courses.course import Course, CourseAppeals, Public
 from .courses.section import Section
 from .homework.homework import Homework
 from .homework.user_homework import UserHomework, UserHomeworkStatusChoices
 from .homework.user_homework_check import UserHomeworkCheck
 from .lesson.lesson import Lesson
-from .students.students_group import StudentsGroup
+from .students.students_group import GroupCourseAccess, StudentsGroup
 from .students.students_group_settings import StudentsGroupSettings
 from .students.students_history import StudentsHistory
 from .students.students_table_info import StudentsTableInfo
