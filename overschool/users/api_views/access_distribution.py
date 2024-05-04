@@ -59,7 +59,7 @@ class AccessDistributionView(
             reason=role,
         )
 
-    def create_user_group(self, user, group, school):
+    def create_user_group(self, user, group, school, pseudonym):
         user_group = user.groups.create(group=group, school=school)
         return user_group
 
@@ -112,6 +112,7 @@ class AccessDistributionView(
         return True, None
 
     def handle_teacher_group_fk(self, user, student_groups):
+        print("user: ", user)
         for student_group in student_groups:
             previous_teacher = student_group.teacher_id
             chat = student_group.chat
@@ -158,12 +159,14 @@ class AccessDistributionView(
         tags=["access_distribution"],
     )
     def post(self, request, *args, **kwargs):
+        print(request.data)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user_ids = serializer.validated_data.get("user_ids")
         emails = serializer.validated_data.get("emails")
         role = serializer.validated_data.get("role")
+        pseudonym = serializer.validated_data.get("pseudonym")
         student_groups_ids = serializer.validated_data.get("student_groups")
 
         school = self.get_school()
@@ -218,13 +221,14 @@ class AccessDistributionView(
 
         for user in users:
             existing_role = self.check_existing_role(user, school, group)
+            print("existing_role: ", existing_role)
             if existing_role:
                 return self.handle_existing_role(user, existing_role)
 
             if not UserGroup.objects.filter(
                 user=user, school=school, group=group
             ).exists():
-                self.create_user_group(user, group, school)
+                self.create_user_group(user, group, school, pseudonym)
 
             if student_groups_ids:
                 if role == "Teacher":
