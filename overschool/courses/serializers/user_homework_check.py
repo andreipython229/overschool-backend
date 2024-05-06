@@ -1,6 +1,7 @@
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import AudioFileGetSerializer, TextFileGetSerializer
 from courses.models import UserHomeworkCheck
+from users.models import UserPseudonym
 from rest_framework import serializers
 
 s3 = UploadToS3()
@@ -29,6 +30,7 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
         source="author.first_name", read_only=True
     )
     author_last_name = serializers.CharField(source="author.last_name", read_only=True)
+    author_pseudonym = serializers.SerializerMethodField()
     profile_avatar = serializers.SerializerMethodField()
 
     class Meta:
@@ -44,6 +46,7 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             "author",
             "author_first_name",
             "author_last_name",
+            "author_pseudonym",
             "profile_avatar",
             "text_files",
             "audio_files",
@@ -54,6 +57,7 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             "audio_files",
             "author_first_name",
             "author_last_name",
+            "author_pseudonym",
             "profile_avatar",
             "author",
         ]
@@ -65,3 +69,17 @@ class UserHomeworkCheckDetailSerializer(serializers.ModelSerializer):
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "users/avatars/base_avatar.jpg"
             return s3.get_link(base_avatar_path)
+
+    def get_author_pseudonym(self, obj):
+        try:
+            author = obj.author
+            # Проверяем, есть ли у автора псевдоним
+            if author:
+                author_pseudonym = author.pseudonyms_as_user.get(
+                    school=obj.user_homework.homework.section.course.school)
+                return author_pseudonym.pseudonym
+            else:
+                return None
+        except UserPseudonym.DoesNotExist:
+            return None
+

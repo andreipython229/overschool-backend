@@ -1,29 +1,43 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from .models import UserPseudonym
-from .serializers import UserPseudonymSerializer
+from django.shortcuts import get_object_or_404
+
+from ..models.user_pseudonym import UserPseudonym
+from ..serializers.user_pseudonym import UserPseudonymSerializer
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from schools.school_mixin import SchoolMixin
+from schools.models import School
+from users.models import User
 
 
-class UserPseudonymViewSet(viewsets.ViewSet):
+class UserPseudonymViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ViewSet
+):
     """
-    ViewSet для работы с псевдонимами сотрудников школы
+    API endpoint для работы с псевдонимами сотрудников школы
     """
-    
+
     queryset = UserPseudonym.objects.all()
     serializer_class = UserPseudonymSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def list(self, request):
-        """
-        Возвращает список всех псевдонимов сотрудников школы
-        """
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
 
-        queryset = UserPseudonym.objects.all()
-        serializer = UserPseudonymSerializer(queryset, many=True)
-        return Response(serializer.data)
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def retrieve(self, request, pk=None):
         """
-        Возвращает псевдоним сотрудника школы по его идентификатору
+        Возвращаем псевдоним сотрудника школы по его идентификатору
         """
 
         queryset = UserPseudonym.objects.all()
@@ -31,13 +45,31 @@ class UserPseudonymViewSet(viewsets.ViewSet):
         serializer = UserPseudonymSerializer(user_pseudonym)
         return Response(serializer.data)
 
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, school_name=None):
         """
-        Обновляет псевдоним сотрудника
+        Обновление псевдонима сотрудника
         """
 
-        user = request.user
-        school = request.data.get('school')
-        user_pseudonym = UserPseudonym.objects.filter(user=user, school=school)
-        user_pseudonym.save()
-        return Response(serializer.errors, status=status.HTTP_200_OK)
+        user_id = request.data.get('user')
+        try:
+            user_instance = User.objects.get(pk=int(user_id))
+        except User.DoesNotExist:
+            raise Http404("Пользователь с таким идентификатором не найден")
+
+        try:
+            school_instance = School.objects.get(name=school_name)
+        except School.DoesNotExist:
+            raise Http404("Школа с таким именем не найдена")
+
+        user_pseudonym = UserPseudonym.objects.filter(user=user_instance, school=school_instance).first()
+        if user_pseudonym:
+            serializer = UserPseudonymSerializer(user_pseudonym, data=request.data)
+        else:
+            user_pseudonym = UserPseudonym.objects.create(user=user_instance, school=school_instance)
+            serializer = UserPseudonymSerializer(user_pseudonym, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,8 +1,9 @@
 from rest_framework import routers
-from users.api_views import ProfileViewSet, UserViewSet
+from users.api_views import ProfileViewSet, UserViewSet, UserPseudonymViewSet
 
 router = routers.DefaultRouter()
 router.register("user", UserViewSet, basename="user")
 router.register("profile", ProfileViewSet, basename="profile")
+router.register(r'(?P<school_name>\w+)/user_pseudonym', UserPseudonymViewSet, basename="user_pseudonym")
 
 urlpatterns = router.urls

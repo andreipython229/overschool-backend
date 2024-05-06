@@ -14,7 +14,7 @@ class UserPseudonym(models.Model):
         related_name='pseudonyms_as_user'
     )
     school = models.ForeignKey(
-        User,
+        School,
         on_delete=models.CASCADE,
         related_name='pseudonyms_as_school'
     )
