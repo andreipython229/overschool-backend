@@ -54,9 +54,8 @@ class AccessDistributionView(
 
     def handle_existing_role(self, user, role):
         return HttpResponse(
-            f"Пользователь уже имеет другую роль в этой школе (email={user.email})",
+            f"Пользователь уже имеет другую роль в этой школе (email={user.email});{role}",
             status=400,
-            reason=role,
         )
 
     def create_user_group(self, user, group, school, pseudonym):
