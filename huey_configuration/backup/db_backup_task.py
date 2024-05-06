@@ -28,7 +28,7 @@ def backup_db():
 
 
 @huey.periodic_task(
-    crontab(day_of_week="sun", hour=3, minute=0),
+    crontab(minute=0, hour=1, day_of_week=2),
     max_retries=2,
     delay=None,
 )
