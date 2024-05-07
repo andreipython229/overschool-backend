@@ -846,7 +846,7 @@ class GroupCourseAccessViewSet(
             )
 
     def get_serializer_class(self):
-        if self.action == "create" or self.action == "perform_create":
+        if self.action == "create":
             return MultipleGroupCourseAccessSerializer
         return GroupCourseAccessSerializer
 
@@ -857,11 +857,15 @@ class GroupCourseAccessViewSet(
         # Проверка администратора школы и связь с курсами групп
         group_course_access_objects = []
         for data in serializer.validated_data:
+            current_group_obj = get_object_or_404(
+                StudentsGroup, group_id=data["current_group"]
+            )
             group_obj = get_object_or_404(StudentsGroup, group_id=data["group"])
             course_obj = get_object_or_404(Course, course_id=data["course"])
             if (
                 not group_obj.course_id.school == self.get_school()
                 or not course_obj.school == self.get_school()
+                or not current_group_obj.course_id.school == self.get_school()
             ):
                 return Response(
                     {
@@ -870,7 +874,9 @@ class GroupCourseAccessViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             group_course_access_objects.append(
-                GroupCourseAccess(group=group_obj, course=course_obj)
+                GroupCourseAccess(
+                    current_group=current_group_obj, group=group_obj, course=course_obj
+                )
             )
 
         GroupCourseAccess.objects.bulk_create(group_course_access_objects)
@@ -878,18 +884,5 @@ class GroupCourseAccessViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-
-        # Проверка принадлежности группы и курса к школе текущего администратора
-        if (
-            not instance.group.course_id.school == self.get_school()
-            or not instance.course.school == self.get_school()
-        ):
-            return Response(
-                {
-                    "detail": "Вы не можете удалять разрешения для групп или курсов других школ"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
