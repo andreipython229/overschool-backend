@@ -28,13 +28,13 @@ def backup_db():
 
 
 @huey.periodic_task(
-    crontab(minute=0, hour=1, day_of_week=2),
+    crontab(minute=0, hour=1, day_of_week=3),
     max_retries=2,
     delay=None,
 )
 def weekly_backup():
     # Путь для файла резервной копии
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Получаем имя базы данных из словаря db_config
     db = list(db_config.keys())[0]
