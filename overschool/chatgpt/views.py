@@ -85,7 +85,7 @@ class UserWelcomeMessageView(View):
 )
 class LastTenChats(APIView):
     """
-    Полуение последних 10 чатов для пользователя
+    Получение последних 10 чатов для пользователя
     """
 
     parser_classes = [JSONParser]
