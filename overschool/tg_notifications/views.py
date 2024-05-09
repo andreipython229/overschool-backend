@@ -17,7 +17,7 @@ class CheckNotification:
                 notifications.tg_user_id: {
                     'messages': notifications.messages_notifications,
                     'homeworks': notifications.homework_notifications,
-                    'comleted_courses': notifications.copleted_courcses_notifications,
+                    'completed_courses': notifications.completed_courses_notifications,
                 } for notifications in query
             }
 

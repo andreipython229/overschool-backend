@@ -21,7 +21,7 @@ class Notifications(models.Model):
         verbose_name="Уведомления о поступлении сообщений с платформы",
     )
 
-    copleted_courcses_notifications = models.BooleanField(
+    completed_courses_notifications = models.BooleanField(
         default=True,
         verbose_name="Уведомления о прохождении курса учеником",
     )

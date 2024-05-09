@@ -1,4 +1,4 @@
-from ..models import TgUsers, Notifications
+from ..models import TgUsers
 from schools.models import School
 from users.models import User
 from ..views import bot, CheckNotification
@@ -35,7 +35,7 @@ class CompletedCourseNotifications:
                 # проверка на уведомления
 
                 notifications = CheckNotification.notifications(tg_admin.id)
-                if notifications[tg_admin.id]['comleted_courses'] is True:
+                if notifications[tg_admin.id]['completed_courses'] is True:
 
                     bot.send_message(
                         chat_id=tg_admin.tg_user_id,
