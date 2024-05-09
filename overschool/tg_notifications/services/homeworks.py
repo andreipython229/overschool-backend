@@ -24,7 +24,6 @@ class HomeworkNotifications:
         if last_check_status == 'Ждет проверки':
             try:
                 teacher_id = user_homework.teacher_id
-
                 mentor = TgUsers.objects.get(user_id=teacher_id)
 
                 notifications = CheckNotification.notifications(mentor.id)

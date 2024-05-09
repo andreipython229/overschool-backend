@@ -327,7 +327,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             return_dict["school_name"] = school_name
             return_dict["courses"] = courses
 
-            CompletedCourseNotifications.last_complited_course_notifications(
+            CompletedCourseNotifications.last_completed_course_notifications(
                 progress_percent, student, course["course_id"], course["course_name"], school_id
             )
 

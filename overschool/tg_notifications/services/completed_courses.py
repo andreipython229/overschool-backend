@@ -6,22 +6,24 @@ from ..views import bot, CheckNotification
 
 class CompletedCourseNotifications:
 
-    _last_complited_course_notifications = {}
+    _last_completed_course_notifications = {}
 
     @staticmethod
-    def last_complited_course_notifications(user_progress, student, course_id, course_name, school_id):
+    def last_completed_course_notifications(user_progress, student, course_id, course_name, school_id):
         """
             Функция для обработки дубликатов
         """
 
         duplicate = {student.pk: course_id}
-        if duplicate in CompletedCourseNotifications._last_complited_course_notifications.values():
+        if duplicate in CompletedCourseNotifications._last_completed_course_notifications.values():
             return
         else:
-            CompletedCourseNotifications.send_complited_course_notification(user_progress, student, course_id, course_name, school_id)
+            CompletedCourseNotifications.send_completed_course_notification(
+                user_progress, student, course_id, course_name, school_id
+            )
 
     @staticmethod
-    def send_complited_course_notification(user_progress, student, course_id, course_name, school_id):
+    def send_completed_course_notification(user_progress, student, course_id, course_name, school_id):
         if user_progress != 100:
             return
         else:
@@ -39,10 +41,11 @@ class CompletedCourseNotifications:
 
                     bot.send_message(
                         chat_id=tg_admin.tg_user_id,
-                        text=f"Ученик {student.last_name} {student.first_name} прошел курс {course_name}. Зайдите на платформу для дополнительной информации!"
+                        text=f"Ученик {student.last_name} {student.first_name} прошел курс {course_name}.\
+                              Зайдите на платформу для дополнительной информации!"
                     )
 
-                    CompletedCourseNotifications._last_complited_course_notifications[student.pk] = {
+                    CompletedCourseNotifications._last_completed_course_notifications[student.pk] = {
                         student.pk: course_id
                     }
                     print('Уведомление отправлено!')
