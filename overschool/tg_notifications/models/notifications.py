@@ -21,6 +21,11 @@ class Notifications(models.Model):
         verbose_name="Уведомления о поступлении сообщений с платформы",
     )
 
+    copleted_courcses_notifications = models.BooleanField(
+        default=True,
+        verbose_name="Уведомления о прохождении курса учеником",
+    )
+
     tg_user = models.ForeignKey(
         TgUsers,
         on_delete=models.SET_NULL,

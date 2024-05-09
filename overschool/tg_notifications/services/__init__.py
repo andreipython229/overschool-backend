@@ -1,0 +1,3 @@
+from .homeworks import HomeworkNotifications
+from .completed_courses import CompletedCourseNotifications
+from .messages import MessegesNotifications
