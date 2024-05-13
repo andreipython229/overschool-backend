@@ -27,6 +27,8 @@ from courses.services import get_student_progress
 from django.contrib.auth.models import Group
 from django.db.models import Avg, Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -850,6 +852,51 @@ class GroupCourseAccessViewSet(
             return MultipleGroupCourseAccessSerializer
         return GroupCourseAccessSerializer
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "group_id",
+                openapi.IN_QUERY,
+                description="Идентификатор группы",
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        tags=["group course access"],
+        operation_description="Эндпоинт получения всех доступов группы по group_id.",
+    )
+    def list(self, request, *args, **kwargs):
+        # Получаем идентификатор группы из параметров запроса
+        group_id = self.request.query_params.get("group_id")
+
+        # Проверяем, что идентификатор группы передан
+        if not group_id:
+            return Response(
+                {"detail": "Параметр 'group_id' обязателен для запроса"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Получаем объект группы или возвращаем 404, если группа не найдена
+        group = get_object_or_404(StudentsGroup, group_id=group_id)
+
+        # Получаем все доступы для указанной группы
+        accesses = GroupCourseAccess.objects.filter(current_group=group)
+
+        serializer = self.get_serializer(accesses, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        tags=["group course access"],
+        operation_description="Эндпоинт получения доступа по id.",
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        tags=["group course access"],
+        operation_description="Эндпоинт создания доступов для группы, новые доступы перезаписывают старые.",
+    )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
@@ -878,11 +925,43 @@ class GroupCourseAccessViewSet(
                     current_group=current_group_obj, group=group_obj, course=course_obj
                 )
             )
+        # Удаляем старые записи
+        GroupCourseAccess.objects.filter(current_group=current_group_obj).delete()
 
+        # Создаем новые записи
         GroupCourseAccess.objects.bulk_create(group_course_access_objects)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "group_id",
+                openapi.IN_QUERY,
+                description="Идентификатор группы",
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        tags=["group course access"],
+        operation_description="Эндпоинт удаления всех доступов для группы по group_id.",
+    )
+    @action(detail=False, methods=["delete"])
+    def custom_destroy(self, request, *args, **kwargs):
+        group_id = request.query_params.get("group_id")
+        if group_id:
+            GroupCourseAccess.objects.filter(current_group_id=group_id).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {"error": "group_id parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @swagger_auto_schema(
+        tags=["group course access"],
+        operation_description="Эндпоинт удаления доступа по id.",
+    )
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
+        group_id = kwargs.get("group_id")
+        GroupCourseAccess.objects.filter(current_group_id=group_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
