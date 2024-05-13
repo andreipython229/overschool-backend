@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
-from tg_notifications.views import SendNotifications
+from tg_notifications.services import CompletedCourseNotifications
 
 
 @method_decorator(
@@ -327,7 +327,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             return_dict["school_name"] = school_name
             return_dict["courses"] = courses
 
-            SendNotifications.last_complited_course_notifications(
+            CompletedCourseNotifications.last_completed_course_notifications(
                 progress_percent, student, course["course_id"], course["course_name"], school_id
             )
 
