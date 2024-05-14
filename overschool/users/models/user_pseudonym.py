@@ -6,7 +6,9 @@ from schools.models.school import School
 
 
 class UserPseudonym(models.Model):
-    """Модель псевдонима сотрудника в школе"""
+    """
+    Модель псевдонима сотрудника в школе
+    """
 
     user = models.ForeignKey(
         User,
