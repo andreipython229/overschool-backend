@@ -1,4 +1,3 @@
-import logging
 import traceback
 from datetime import datetime, timedelta
 
@@ -30,7 +29,6 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from schools.models import (
     School,
     SchoolDocuments,
@@ -55,7 +53,6 @@ from schools.serializers import (
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
 
-# from schools.services import Hmac
 from schools.services import Hmac
 
 s3 = UploadToS3()
@@ -1017,17 +1014,13 @@ class ProdamusPaymentLinkViewSet(viewsets.ModelViewSet):
         try:
             data = request.data
             signature_data = data.copy()
-            signature_data.pop('school', None)  # Remove 'school' from signature data
-            signature_data.pop('api_key', None) # Remove 'api_key' from signature
+            signature_data.pop('school', None)
+            signature_data.pop('api_key', None)
             signature_data.pop('payment_link', None)
             signature_data.pop('created', None)
             signature_data.pop('school_payment_method', None)
 
             signature = Hmac.create_signature(signature_data, request.data.get('api_key'))
-            logging.getLogger(__name__).debug(f"Api key: {request.data.get('api_key')}")
-            logging.getLogger(__name__).debug(f"Signature_data: {signature_data}")
-            logging.getLogger(__name__).debug(f"Generated signature: {signature}")
-
             data['signature'] = signature
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)

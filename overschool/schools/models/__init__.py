@@ -9,3 +9,4 @@ from .school import \
     SchoolStudentsTableSettings
 from .school_document import SchoolDocuments
 from .school_header import SchoolHeader
+from .schoolMeetings import SchoolMeetings
