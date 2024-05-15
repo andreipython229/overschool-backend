@@ -58,7 +58,8 @@ class TgORM:
             notification = [{
                 "homework_notifications": True,
                 "messages_notifications": False,
-                "tg_user_id": tg_user_id[0]
+                "tg_user_id": tg_user_id[0],
+                "completed_courses_notifications": True
             }]
             insert_tg_notifications = insert(db_tg_notifications).values(notification)
             session.execute(insert_tg_notifications)
