@@ -32,12 +32,12 @@ services:
 #      - "8002:8002"
 #    depends_on:
 #      - redis
-#  over_bot:
-#    build:
-#      context: .
-#      dockerfile: over_bot.Dockerfile
-#    image: over_bot
-#    restart: always
+  over_bot:
+    build:
+      context: .
+      dockerfile: over_bot.Dockerfile
+    image: over_bot
+    restart: always
   nginx:
     image: nginx:stable
     container_name: nginx
