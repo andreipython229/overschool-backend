@@ -53,13 +53,20 @@ class TgORM:
             )
             res = session.execute(query)
             tg_user_id = res.first()
-            print(tg_user_id[0])
 
-            notification = [{
-                "homework_notifications": True,
-                "messages_notifications": False,
-                "tg_user_id": tg_user_id[0]
-            }]
+            query_notif = (select(db_tg_notifications.c.tg_user_id))
+            res_notif = session.execute(query_notif)
+            result_notif = res_notif.unique().all()
+
+            if (int(f'{tg_user_id[0]}'),) not in result_notif:
+                notification = [{
+                    "homework_notifications": True,
+                    "messages_notifications": False,
+                    "tg_user_id": tg_user_id[0],
+                    "completed_courses_notifications": True
+                }]
+            else:
+                return 'Верификация уже пройдена!'
             insert_tg_notifications = insert(db_tg_notifications).values(notification)
             session.execute(insert_tg_notifications)
             session.commit()

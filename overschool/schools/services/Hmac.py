@@ -46,7 +46,9 @@ class Hmac:
 
     @staticmethod
     def verify(data, key, sign, algo='sha256'):
-        _sign = Hmac.create(data, key, algo)
+        sorted_data = Hmac._str_val_and_sort(data)
+        _sign = hmac.new(key.encode(), json.dumps(sorted_data, separators=(',', ':'), ensure_ascii=False).encode(),
+                         algo).hexdigest()
         return _sign and _sign.lower() == sign.lower()
 
     @staticmethod

@@ -1,12 +1,12 @@
-from django.urls import path
-
 from courses.api_views import (
     AnswerViewSet,
     BaseLessonBlockViewSet,
     BlockButtonViewSet,
+    CommentViewSet,
     CourseCatalogViewSet,
     CourseViewSet,
     GetAppealsViewSet,
+    GroupCourseAccessViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
     HomeworkViewSet,
@@ -24,8 +24,8 @@ from courses.api_views import (
     UploadVideoViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
-    CommentViewSet
 )
+from django.urls import path
 from rest_framework import routers
 from schools.api_views import SchoolDocumentViewSet
 
@@ -37,6 +37,9 @@ router.register("lessons", LessonViewSet, basename="lessons")
 router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
 router.register("block_buttons", BlockButtonViewSet, basename="block_buttons")
 router.register("students_group", StudentsGroupViewSet, basename="students_group")
+router.register(
+    "group_course_access", GroupCourseAccessViewSet, basename="group_course_access"
+)
 router.register(
     "students_group_no_teacher",
     StudentsGroupWithoutTeacherViewSet,

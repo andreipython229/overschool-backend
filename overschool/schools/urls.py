@@ -8,7 +8,8 @@ from schools.api_views import (
     AddPaymentMethodViewSet,
     SchoolPaymentLinkViewSet,
     ProdamusPaymentLinkViewSet,
-    SchoolStudentsTableSettingsViewSet
+    SchoolStudentsTableSettingsViewSet,
+    SchoolMeetingsViewSet
 )
 
 router = routers.DefaultRouter()
@@ -19,6 +20,9 @@ router.register("payment_method", AddPaymentMethodViewSet, basename='payment-met
 router.register("payment_link", SchoolPaymentLinkViewSet, basename='payment-link'),
 router.register("prodamus_payment_link", ProdamusPaymentLinkViewSet, basename='prodamus-payment-link')
 router.register("school_students_table_settings", SchoolStudentsTableSettingsViewSet, basename='school_students_table_settings')
+
+router_meetings = routers.DefaultRouter()
+router_meetings.register("school_meetings", SchoolMeetingsViewSet, basename='school_meetings')
 
 urlpatterns = router.urls
 

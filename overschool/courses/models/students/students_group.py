@@ -85,3 +85,33 @@ class StudentsGroup(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Группа студентов"
         verbose_name_plural = "Группы студентов"
+
+
+class GroupCourseAccess(models.Model):
+    current_group = models.ForeignKey(
+        StudentsGroup,
+        on_delete=models.CASCADE,
+        related_name="current_group_accesses",
+        verbose_name="Текущая группа",
+        help_text="Группа, для которой предоставлен доступ к курсу",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        verbose_name="Курс",
+        help_text="Курс, к которому предоставлен доступ",
+    )
+    group = models.ForeignKey(
+        StudentsGroup,
+        on_delete=models.CASCADE,
+        related_name="group_accesses",
+        verbose_name="Новая группа на курсе",
+        help_text="Группа на курсе, на которую предоставлен доступ",
+    )
+
+    def __str__(self):
+        return f"{self.current_group} -> {self.course} -> {self.group}"
+
+    class Meta:
+        verbose_name = "Доступ к курсу для группы"
+        verbose_name_plural = "Доступы к курсам для групп"

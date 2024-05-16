@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from courses.models import StudentsGroup
+from courses.models import GroupCourseAccess, StudentsGroup
 from rest_framework import serializers
 from users.models import User
 
@@ -73,7 +73,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
-        certificate = validated_data.pop('certificate', None)
+        certificate = validated_data.pop("certificate", None)
         instance = super().update(instance, validated_data)
 
         if group_settings_data:
@@ -147,7 +147,7 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
-        certificate = validated_data.pop('certificate', None)
+        certificate = validated_data.pop("certificate", None)
 
         instance = super().update(instance, validated_data)
 
@@ -199,3 +199,15 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentsGroup
         fields = ["group_id", "name", "teacher_id", "type"]
+
+
+class GroupCourseAccessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GroupCourseAccess
+        fields = ["id", "current_group", "course", "group"]
+
+
+class MultipleGroupCourseAccessSerializer(serializers.Serializer):
+    current_group = serializers.IntegerField()
+    course = serializers.IntegerField()
+    group = serializers.IntegerField()

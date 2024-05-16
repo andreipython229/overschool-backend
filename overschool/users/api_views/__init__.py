@@ -8,3 +8,4 @@ from .register_school_owner import SignupSchoolOwnerView
 from .tariff_school_owner import TariffSchoolOwner
 from .user_schools import UserSchoolsView
 from .users import AllUsersViewSet, GetCertificateView, UserViewSet
+from .user_pseudonym import UserPseudonymViewSet

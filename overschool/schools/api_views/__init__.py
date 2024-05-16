@@ -7,3 +7,4 @@ from .school import \
     SchoolStudentsTableSettingsViewSet
 from .school_document import SchoolDocumentViewSet
 from .school_header import SchoolHeaderViewSet
+from .schoolMeetings import SchoolMeetingsViewSet
