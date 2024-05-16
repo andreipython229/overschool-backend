@@ -41,27 +41,24 @@ def update_user_unread_message(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=CourseAppeals)
-def send_unread_appeals_count(sender, instance, created, **kwargs):
-    if created:
-        school = instance.course.school
-        unread_appeals = CourseAppeals.objects.filter(
-            course__school=school, is_read=False
-        ).count()
+def send_unread_appeals_count(sender, instance, **kwargs):
+    school = instance.course.school
+    unread_appeals = CourseAppeals.objects.filter(
+        course__school=school, is_read=False
+    ).count()
 
-        admins = (
-            User.objects.filter(
-                Q(groups__group__name="Admin") & Q(groups__school=school)
-            )
-            .distinct()
-            .prefetch_related("groups__school", "groups__group")
+    admins = (
+        User.objects.filter(Q(groups__group__name="Admin") & Q(groups__school=school))
+        .distinct()
+        .prefetch_related("groups__school", "groups__group")
+    )
+
+    for admin in admins:
+        async_to_sync(channel_layer.group_send)(
+            f"user_{admin.id}_group",
+            {
+                "type": "unread_appeals_count",
+                "unread_count": unread_appeals,
+                "school_id": school.school_id,
+            },
         )
-
-        for admin in admins:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{admin.id}_group",
-                {
-                    "type": "unread_appeals_count",
-                    "unread_count": unread_appeals,
-                    "school_id": school.school_id,
-                },
-            )

@@ -8,11 +8,14 @@ class StudentsGroupAdmin(admin.ModelAdmin):
 
 
 class GroupCourseAccessAdmin(admin.ModelAdmin):
-    list_display = ("id", "group_name", "course_name")
+    list_display = ("id", "current_group_name", "course_name", "group_name")
     list_display_links = ("id",)
 
-    list_filter = ("group__name", "course__name")
-    search_fields = ["group__name", "course__name"]
+    list_filter = ("current_group__name", "course__name", "group__name")
+    search_fields = ["current_group__name", "course__name", "group__name"]
+
+    def current_group_name(self, obj):
+        return obj.current_group.name
 
     def group_name(self, obj):
         return obj.group.name
@@ -20,8 +23,9 @@ class GroupCourseAccessAdmin(admin.ModelAdmin):
     def course_name(self, obj):
         return obj.course.name
 
-    group_name.short_description = "Название группы"
+    current_group_name.short_description = "Название группы"
     course_name.short_description = "Название курса"
+    group_name.short_description = "Название группы на новом курсе"
 
 
 admin.site.register(GroupCourseAccess, GroupCourseAccessAdmin)

@@ -4,7 +4,8 @@ from courses.models.homework.user_homework_check import UserHomeworkCheck
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from tg_notifications.views import SendNotifications
+from tg_notifications.services import HomeworkNotifications
+
 
 @receiver(post_save, sender=UserHomework)
 def complete_homework(sender, instance, **kwargs):
@@ -41,7 +42,7 @@ def update_user_homework_status(sender, instance, **kwargs):
         .values_list("mark", flat=True)
         .first()
     )
-    SendNotifications.last_notifications(
+    HomeworkNotifications.last_notifications(
         user_homework,
         last_check_status,
         last_check_mark

@@ -1,12 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from schools.models import School
 from transliterate import translit
 from users.serializers import SignupSchoolOwnerSerializer
 from users.services import JWTHandler, SenderServiceMixin
+from ..models.utm_label import UtmLabel
 
 sender_service = SenderServiceMixin()
 User = get_user_model()
@@ -25,6 +27,12 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
+        utm_source = request.data.get('utm_source', None)
+        utm_medium = request.data.get('utm_medium', None)
+        utm_campaign = request.data.get('utm_campaign', None)
+        utm_term = request.data.get('utm_term', None)
+        utm_content = request.data.get('utm_content', None)
+
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
         school_name = translit(request.data.get("school_name"), "ru", reversed=True)
@@ -51,6 +59,17 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=message
+        )
+
+        new_user = get_object_or_404(User, email=email)
+
+        UtmLabel.objects.create(
+            user=new_user,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            utm_term=utm_term,
+            utm_content=utm_content
         )
 
         if send and send["status_code"] == 500:

@@ -204,9 +204,10 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
 class GroupCourseAccessSerializer(serializers.ModelSerializer):
     class Meta:
         model = GroupCourseAccess
-        fields = ["id", "group", "course"]
+        fields = ["id", "current_group", "course", "group"]
 
 
 class MultipleGroupCourseAccessSerializer(serializers.Serializer):
-    group = serializers.IntegerField()
+    current_group = serializers.IntegerField()
     course = serializers.IntegerField()
+    group = serializers.IntegerField()

@@ -6,6 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
@@ -37,66 +38,77 @@ class TariffSchoolOwner(WithHeadersViewSet, SchoolMixin, APIView):
         user = self.request.user
 
         try:
-            school = School.objects.get(name=school_name, owner=user)
+            school = School.objects.get(name=school_name)
         except School.DoesNotExist:
             return Response({"error": "School not found"})
 
         if not school.tariff:
             return Response({"error": "No tariff found for this school"})
 
-        # Вычисление оставшихся дней
-        days_left = (
-            (school.purchased_tariff_end_date - timezone.now()).days
-            if school.purchased_tariff_end_date
-            else (school.trial_end_date - timezone.now()).days
-            if school.trial_end_date
-            else None
-        )
+        # Проверка, является ли пользователь анонимным
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-        # Подсчет количества студентов и сотрудников
-        students = UserGroup.objects.filter(
-            school=school, group__name="Student"
-        ).count()
-        staff = (
-            UserGroup.objects.filter(school=school)
-            .exclude(group__name="Student")
-            .count()
-        )
+        # Проверка, является ли пользователь владельцем школы или администратором
+        if user == school.owner or user.groups.filter(group__name="Admin", school=school).exists():
 
-        # Получение количества курсов для школы
-        number_of_courses = Course.objects.filter(school=school).count()
+            # Вычисление оставшихся дней
+            days_left = (
+                (school.purchased_tariff_end_date - timezone.now()).days
+                if school.purchased_tariff_end_date
+                else (school.trial_end_date - timezone.now()).days
+                if school.trial_end_date
+                else None
+            )
 
-        # Количество добавленных студентов в месяц
-        current_datetime = datetime.now()
-        current_month = current_datetime.month
-        current_year = current_datetime.year
+            # Подсчет количества студентов и сотрудников
+            students = UserGroup.objects.filter(
+                school=school, group__name="Student"
+            ).count()
+            staff = (
+                UserGroup.objects.filter(school=school)
+                .exclude(group__name="Student")
+                .count()
+            )
 
-        student_count_by_month = UserGroup.objects.filter(
-            group__name="Student",
-            school=school,
-            created_at__year=current_year,
-            created_at__month=current_month,
-        ).count()
+            # Получение количества курсов для школы
+            number_of_courses = Course.objects.filter(school=school).count()
 
-        # Подготовка данных о тарифе
-        tariff_details = {
-            "id": school.tariff.id,
-            "name": school.tariff.name,
-            "number_of_courses": school.tariff.number_of_courses,
-            "number_of_staff": school.tariff.number_of_staff,
-            "students_per_month": school.tariff.students_per_month,
-            "total_students": school.tariff.total_students,
-            "price": school.tariff.price,
-            "student_count_by_month": student_count_by_month
-        }
+            # Количество добавленных студентов в месяц
+            current_datetime = datetime.now()
+            current_month = current_datetime.month
+            current_year = current_datetime.year
 
-        data = {
-            "tariff_name": school.tariff.name,
-            "days_left": days_left,
-            "students": students,
-            "staff": staff,
-            "tariff_details": tariff_details,
-            "number_of_courses": number_of_courses,
-        }
+            student_count_by_month = UserGroup.objects.filter(
+                group__name="Student",
+                school=school,
+                created_at__year=current_year,
+                created_at__month=current_month,
+            ).count()
 
-        return Response(data)
+            # Подготовка данных о тарифе
+            tariff_details = {
+                "id": school.tariff.id,
+                "name": school.tariff.name,
+                "number_of_courses": school.tariff.number_of_courses,
+                "number_of_staff": school.tariff.number_of_staff,
+                "students_per_month": school.tariff.students_per_month,
+                "total_students": school.tariff.total_students,
+                "price": school.tariff.price,
+                "student_count_by_month": student_count_by_month
+            }
+
+            data = {
+                "tariff_name": school.tariff.name,
+                "days_left": days_left,
+                "students": students,
+                "staff": staff,
+                "tariff_details": tariff_details,
+                "number_of_courses": number_of_courses,
+            }
+
+            return Response(data)
+
+        else:
+            # Пользователь не является владельцем или администратором
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")

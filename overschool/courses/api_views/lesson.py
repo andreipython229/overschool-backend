@@ -315,9 +315,6 @@ class LessonViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        print(
-            list(filter(lambda el: el["video"] != "", instance.blocks.values("video")))
-        )
         files_to_delete = list(
             map(
                 lambda el: str(el["file"]),
