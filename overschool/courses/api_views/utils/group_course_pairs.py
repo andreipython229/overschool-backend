@@ -1,6 +1,6 @@
 import re
 
-# формирование массива и кортежей (group, course)
+# формирование списка из кортежей (group, course)
 def get_group_course_pairs(params):
     pairs = []
     # Используем регулярное выражение для поиска всех параметров group_name_* и course_name_*
