@@ -11,7 +11,7 @@ from courses.serializers import (
     UserHomeworkStatisticsSerializer,
 )
 from django.core.exceptions import PermissionDenied
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, Q
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.parsers import MultiPartParser
@@ -20,6 +20,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
 from courses.models.students.students_group import StudentsGroup
+from .utils import get_group_course_pairs
 
 s3 = UploadToS3()
 
@@ -200,8 +201,25 @@ class UserHomeworkViewSet(
 class HomeworkStatisticsView(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.ListAPIView
 ):
-    """Эндпоинт возвращает стаитстику по домашним работам\n
-    Эндпоинт возвращает стаитстику по домашним работам"""
+    """Эндпоинт домашних заданий ученика.\n
+    <h2>/api/{school_name}/homeworks_stats/</h2>\n
+    Для поиска по нескольким названиям групп использовать параметры group_name_{i}_{j}.
+    Пример:
+    /api/{school_name}/homeworks_stats/?group_name_0_1=Группа_1&group_name_0_2=Группа_2
+
+    Для поиска по нескольким названиема групп в конкретных курсах использовать параметры
+    group_name_{i}_{j} и course_name_{i}_{j}. При этом индексы как {i}, так и {j} должны сопадать
+    для обоих параметров в паре.
+    Пример:
+    /api/{school_name}/homeworks_stats/?group_name_0_1=Группа_1&course_name_0_1=Курс_1&group_name_0_2=Группа_2&course_name_0_2=Курс_2
+
+    Порядок следования как параметров, так и индексов в них не принципиален (можно в разнобой),
+    главное, чтобы индексы соответствовали требованиям выше
+
+    Для фильтрации одного курса для всех условий доступен парметр course_name без индексов
+    Пример:
+    /api/{school_name}/homeworks_stats/?course_name=Курс_1
+    """
 
     serializer_class = UserHomeworkStatisticsSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -266,10 +284,34 @@ class HomeworkStatisticsView(
                 homework__name__icontains=self.request.GET.get("homework_name")
             )
 
-        if self.request.GET.get("group_name"):
-            group_name = self.request.GET.get("group_name")
-            teacher_id = StudentsGroup.objects.filter(name=group_name).values_list('teacher_id', flat=True).first()
-            queryset = queryset.filter(teacher_id=teacher_id)
+        # фильтруем по group_name_{i} и course_name_{i}
+        group_course_pairs = get_group_course_pairs(self.request.GET)
+        if group_course_pairs:
+            # Создаем список Q-объектов для каждой пары (group_name, course_name), фильтруя по принадлежности к группе и имени курса.
+            queries = []
+            for group, course in group_course_pairs:
+                # Если в паре group course есть course
+                if course:
+                    query = Q(
+                        teacher_id__in=StudentsGroup.objects.filter(name=group).values_list('teacher_id', flat=True),
+                        homework__section__course__name=course
+                    )
+                # Если в паре group course нет course
+                else:
+                    query = Q(
+                        teacher_id__in=StudentsGroup.objects.filter(name=group).values_list('teacher_id', flat=True)
+                    )
+                queries.append(query)
+
+            # Извлекаем первый элемент списка для объединения.
+            combined_query = queries.pop()
+
+            # Объединяем остальные Q-объекты с помощью оператора | (OR).
+            for query in queries:
+                combined_query |= query
+
+            # Применяем объединенный запрос к queryset для фильтрации записей.
+            queryset = queryset.filter(combined_query)
 
         if self.request.GET.get("start_date"):
             subquery = UserHomeworkCheck.objects.filter(
