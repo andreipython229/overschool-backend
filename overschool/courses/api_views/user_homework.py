@@ -219,6 +219,11 @@ class HomeworkStatisticsView(
     Для фильтрации одного курса для всех условий доступен парметр course_name без индексов
     Пример:
     /api/{school_name}/homeworks_stats/?course_name=Курс_1
+
+    Для поиска по ФИО или email использовать параметр student (порядок следования ФИО, регистр и полнота текста не принципиальны)
+    Пример:
+    /api/{school_name}/homeworks_stats/?student=Фамилия Имя Отчество
+    /api/{school_name}/homeworks_stats/?student=email
     """
 
     serializer_class = UserHomeworkStatisticsSerializer
@@ -283,6 +288,26 @@ class HomeworkStatisticsView(
             queryset = queryset.filter(
                 homework__name__icontains=self.request.GET.get("homework_name")
             )
+
+        # поиск по email и ФИО (ФИО)
+        if self.request.GET.get("student"):
+            query_param = self.request.GET.get("student")
+            # Разделение строки поиска на отдельные слова
+            # Срезали лишние элементы, чтобы база не одурела от поиска
+            search_terms = query_param.split()[:3]
+
+            # Создание Q-объекта для накопления условий фильтрации
+            search_filter = Q()
+
+            # Построение фильтра для каждого слова
+            for term in search_terms:
+                search_filter |= Q(user__last_name__icontains=term)
+                search_filter |= Q(user__first_name__icontains=term)
+                search_filter |= Q(user__last_name__icontains=term)
+                search_filter |= Q(user__email__icontains=term)
+
+            # Применение фильтрации к QuerySet
+            queryset = queryset.filter(search_filter)
 
         # фильтруем по group_name_{i} и course_name_{i}
         group_course_pairs = get_group_course_pairs(self.request.GET)
