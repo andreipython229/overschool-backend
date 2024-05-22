@@ -9,8 +9,8 @@ class TgUsersSerializer(serializers.ModelSerializer):
         fields = ('tg_user_id', 'first_name')
 
 
-# class NotificationsSerializer(serializers.ModelSerializer):
-#
-#     class Meta:
-#         model = Notifications
-#         fields = ('__all__')
+class NotificationsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Notifications
+        fields = '__all__'

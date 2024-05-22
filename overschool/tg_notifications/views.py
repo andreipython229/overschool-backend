@@ -1,6 +1,10 @@
 import telebot
 import os
-from .models import Notifications
+
+from rest_framework.response import Response
+from rest_framework import viewsets, status
+from .models import Notifications, TgUsers
+from .serializers import NotificationsSerializer
 
 bot_token = os.environ.get('TG_BOT_TOKEN')
 bot = telebot.TeleBot(bot_token)
@@ -22,5 +26,21 @@ class CheckNotification:
             }
 
             return notifications
-        except Exception as e:
-            print(e)
+        except:
+            return
+
+
+class NotificationsViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationsSerializer
+
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                TgUsers.objects.none()
+            )
+        user = self.request.user
+        queryset = (Notifications.objects.filter(tg_user_id__user_id=user))
+        return queryset
+
+    class Meta:
+        model = Notifications
