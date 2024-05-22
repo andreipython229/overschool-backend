@@ -4,6 +4,7 @@ import zipfile
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 
 from overschool.settings import (
     ENDPOINT_URL,
@@ -62,11 +63,17 @@ class UploadToS3:
             return None
 
     def get_size_object(self, key):
-        response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
-        if "ContentLength" in response:
-            return response["ContentLength"]
-        else:
-            return None
+        try:
+            response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
+            if "ContentLength" in response:
+                return response["ContentLength"]
+            else:
+                return None
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return None
+            else:
+                raise
 
     def upload_course_image(self, uploaded_image, course):
         course_id = course.course_id
