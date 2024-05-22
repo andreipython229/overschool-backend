@@ -27,6 +27,7 @@ from courses.serializers import (
 )
 from courses.services import get_student_progress
 from django.contrib.auth.models import Group
+from django.db import transaction
 from django.db.models import Avg, Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
@@ -164,6 +165,7 @@ class StudentsGroupViewSet(
 
         return student_group
 
+    @transaction.atomic
     def perform_update(self, serializer):
         course = serializer.validated_data["course_id"]
         school = self.get_school()
@@ -190,7 +192,7 @@ class StudentsGroupViewSet(
 
         students = serializer.validated_data.get("students", [])
         group = Group.objects.get(name="Student")
-        print("Тут гуд")
+
         # Добавляем новых учеников в чат
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
@@ -212,9 +214,8 @@ class StudentsGroupViewSet(
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
-        print("Тут гуд2")
+
         if teacher and teacher != previous_teacher:
-            print("Тут не гуд")
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
             ).first()
@@ -223,21 +224,25 @@ class StudentsGroupViewSet(
 
             # Обновляем teacher в UserHomework и UserHomeworkCheck только для текущей группы
             user_homeworks = UserHomework.objects.filter(
-                user__in=students,
+                user__in=current_group.students.all(),
                 homework__section__course=current_group.course_id,
                 teacher=previous_teacher,
-            )
-            print("Тут не гуд2")
+            ).prefetch_related("user_homework_checks")
+
             for user_homework in user_homeworks:
                 user_homework.teacher = teacher
-                user_homework.save()
+            UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
 
-                user_homework_checks = UserHomeworkCheck.objects.filter(
-                    user_homework=user_homework, author=previous_teacher
+            user_homework_checks = []
+            for user_homework in user_homeworks:
+                user_homework_checks.extend(
+                    user_homework_check
+                    for user_homework_check in user_homework.user_homework_checks.all()
+                    if user_homework_check.author == previous_teacher
                 )
-                for user_homework_check in user_homework_checks:
-                    user_homework_check.author = teacher
-                    user_homework_check.save()
+            for user_homework_check in user_homework_checks:
+                user_homework_check.author = teacher
+            UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
 
         for student in students:
             if not UserChat.objects.filter(user=student, chat=chat).exists():
@@ -798,6 +803,7 @@ class StudentsGroupWithoutTeacherViewSet(
 
         return student_group
 
+    @transaction.atomic
     def perform_update(self, serializer):
         course = serializer.validated_data["course_id"]
         school = self.get_school()
@@ -825,20 +831,25 @@ class StudentsGroupWithoutTeacherViewSet(
 
             # Обновляем teacher в UserHomework и UserHomeworkCheck только для текущей группы
             user_homeworks = UserHomework.objects.filter(
-                user__in=students,
+                user__in=current_group.students.all(),
                 homework__section__course=current_group.course_id,
                 teacher=previous_teacher,
-            )
+            ).prefetch_related("user_homework_checks")
+
             for user_homework in user_homeworks:
                 user_homework.teacher = teacher
-                user_homework.save()
+            UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
 
-                user_homework_checks = UserHomeworkCheck.objects.filter(
-                    user_homework=user_homework, author=previous_teacher
+            user_homework_checks = []
+            for user_homework in user_homeworks:
+                user_homework_checks.extend(
+                    user_homework_check
+                    for user_homework_check in user_homework.user_homework_checks.all()
+                    if user_homework_check.author == previous_teacher
                 )
-                for user_homework_check in user_homework_checks:
-                    user_homework_check.author = teacher
-                    user_homework_check.save()
+            for user_homework_check in user_homework_checks:
+                user_homework_check.author = teacher
+            UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
 
         for student in students:
             if not UserChat.objects.filter(user=student, chat=chat).exists():
