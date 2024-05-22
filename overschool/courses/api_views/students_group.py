@@ -190,7 +190,7 @@ class StudentsGroupViewSet(
 
         students = serializer.validated_data.get("students", [])
         group = Group.objects.get(name="Student")
-
+        print("Тут гуд")
         # Добавляем новых учеников в чат
         for student in students:
             if not student.students_group_fk.filter(pk=current_group.pk).exists():
@@ -212,7 +212,9 @@ class StudentsGroupViewSet(
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
+        print("Тут гуд2")
         if teacher and teacher != previous_teacher:
+            print("Тут не гуд")
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
             ).first()
@@ -225,6 +227,7 @@ class StudentsGroupViewSet(
                 homework__section__course=current_group.course_id,
                 teacher=previous_teacher,
             )
+            print("Тут не гуд2")
             for user_homework in user_homeworks:
                 user_homework.teacher = teacher
                 user_homework.save()
