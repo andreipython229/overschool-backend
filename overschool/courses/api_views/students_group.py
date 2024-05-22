@@ -14,6 +14,8 @@ from courses.models import (
     StudentsGroup,
     TrainingDuration,
 )
+from courses.models.homework.user_homework import UserHomework
+from courses.models.homework.user_homework_check import UserHomeworkCheck
 from courses.models.students.students_group_settings import StudentsGroupSettings
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination, UserHomeworkPagination
@@ -799,6 +801,23 @@ class StudentsGroupWithoutTeacherViewSet(
             ).first()
             if previous_chat:
                 previous_chat.delete()
+
+            # Обновляем teacher в UserHomework и UserHomeworkCheck только для текущей группы
+            user_homeworks = UserHomework.objects.filter(
+                user__in=students,
+                homework__section__course=current_group.course_id,
+                teacher=previous_teacher,
+            )
+            for user_homework in user_homeworks:
+                user_homework.teacher = teacher
+                user_homework.save()
+
+                user_homework_checks = UserHomeworkCheck.objects.filter(
+                    user_homework=user_homework, author=previous_teacher
+                )
+                for user_homework_check in user_homework_checks:
+                    user_homework_check.author = teacher
+                    user_homework_check.save()
 
         for student in students:
             if not UserChat.objects.filter(user=student, chat=chat).exists():
