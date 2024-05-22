@@ -46,6 +46,7 @@ from .main_router import (
     school_router,
     user_router,
     videos_router,
+    tg_notifications_router
 )
 
 urlpatterns = [
@@ -168,6 +169,7 @@ urlpatterns = [
     path("video/<str:school_name>/", include(videos_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
     path("api/<str:school_name>/", include(appeal_router.urls)),
+    path("api/tg_notification/", include(tg_notifications_router.urls)),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),
