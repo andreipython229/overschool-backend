@@ -16,6 +16,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     students = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
+    course_name = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentsGroup
@@ -23,6 +24,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "name",
             "group_id",
             "course_id",
+            "course_name",
             "teacher_id",
             "students",
             "group_settings",
@@ -30,6 +32,9 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "certificate",
             "training_duration",
         ]
+
+    def get_course_name(self, obj):
+        return obj.course_id.name if obj.course_id else None
 
     def validate(self, attrs):
         request = self.context.get("request")
