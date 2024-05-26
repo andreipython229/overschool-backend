@@ -131,6 +131,7 @@ class SendMessageToGPT(APIView):
             # Получаем данные из request
             data = json.loads(request.body)
             user_message = data.get('message', '')
+            language = data.get('language', '')
             user = request.user.id
             overai_chat_id = data.get('overai_chat_id', '')
             messages = []
@@ -155,7 +156,7 @@ class SendMessageToGPT(APIView):
             messages.append({"role": "user", "content": user_message})
 
             # Запускаем получение ответа от провайдеров
-            response = self.run_provider(messages)
+            response = self.run_provider(messages, language)
             overai_chat = OverAiChat.objects.get(id=overai_chat_id)
 
             if not UserMessage.objects.filter(overai_chat_id=overai_chat_id).exists():
@@ -177,10 +178,17 @@ class SendMessageToGPT(APIView):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    def run_provider(self, messages):
+    def run_provider(self, messages, language):
         """
         Получение ответа от провайдера
         """
+
+        if language == 'ENG':
+            system_message = {"role": "user", "content": "Please respond only in English."}
+            messages.append(system_message)
+        else:
+            system_message = {"role": "user", "content": "Отвечай только на русском языке."}
+            messages.append(system_message)
 
         try:
             response = Client().chat.completions.create(

@@ -66,6 +66,8 @@ class AudioFileCheckSerializer(serializers.ModelSerializer):
 
     def get_file_size(self, obj):
         file_size = s3.get_size_object(obj.file.name)
+        if file_size is None:
+            obj.delete()
         return file_size
 
 
@@ -97,4 +99,6 @@ class AudioFileGetSerializer(serializers.ModelSerializer):
 
     def get_file_size(self, obj):
         file_size = s3.get_size_object(obj.file.name)
+        if file_size is None:
+            obj.delete()
         return file_size

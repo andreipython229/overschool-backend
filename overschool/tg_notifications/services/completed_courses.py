@@ -48,8 +48,5 @@ class CompletedCourseNotifications:
                     CompletedCourseNotifications._last_completed_course_notifications[student.pk] = {
                         student.pk: course_id
                     }
-                    print('Уведомление отправлено!')
-                else:
-                    print('Админ не включил уведомления о завершении курса!')
             except:
-                print('Админ школы не подключил тг уведомления!')
+                return

@@ -7,7 +7,7 @@ class HomeworkNotifications:
     _last_notifications = {}
 
     @staticmethod
-    def last_notifications(user_homework, last_check_status, last_check_mark):
+    def last_notifications(user_homework, last_check_status):
 
         """
             Функция для обработки дубликатов при создании домашек
@@ -17,10 +17,10 @@ class HomeworkNotifications:
         if duplicate in HomeworkNotifications._last_notifications.values():
             return
         else:
-            HomeworkNotifications.send_telegram_notification(user_homework, last_check_status, last_check_mark)
+            HomeworkNotifications.send_telegram_notification(user_homework, last_check_status)
 
     @staticmethod
-    def send_telegram_notification(user_homework, last_check_status, last_check_mark):
+    def send_telegram_notification(user_homework, last_check_status):
         if last_check_status == 'Ждет проверки':
             try:
                 teacher_id = user_homework.teacher_id
@@ -33,15 +33,12 @@ class HomeworkNotifications:
                         chat_id=mentor.tg_user_id,
                         text='Ученик прислал работу на проверку! Не забудьте проверить работу ученика на платформе!'
                     )
-                    print('сообщение отправлено ментору')
 
                     HomeworkNotifications._last_notifications[last_check_status] = {
                         last_check_status: gmtime()
                     }
-                else:
-                    print('Ментор не включил уведомления о присланных дз')
             except:
-                print('Ментор не включил уведомления')
+                return
 
         else:
             try:
@@ -55,9 +52,5 @@ class HomeworkNotifications:
                         chat_id=student.tg_user_id,
                         text=f"Ментор проверил ваше задание. Зайдите на платформу для дополнительной информации!"
                     )
-                    print('сообщение отправлено студенту')
-                else:
-                    print('Студент не включил уведомления о проверенных дз')
-
             except:
-                print('Студент не включил уведомления')
+                return

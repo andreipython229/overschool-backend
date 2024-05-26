@@ -118,6 +118,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         source="homework.section.course.name", read_only=True
     )
     group_id = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
+    teacher_name = serializers.SerializerMethodField()
     last_reply = serializers.SerializerMethodField()
 
     class Meta:
@@ -133,6 +135,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
             "homework_name",
             "course_name",
             "group_id",
+            "group_name",
+            "teacher_name",
             "status",
             "mark",
             "last_reply",
@@ -153,6 +157,21 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         ).first()
         if group:
             return group.group_id
+        return None
+
+    def get_group_name(self, obj):
+        group = obj.user.students_group_fk.filter(
+            course_id=obj.homework.section.course.course_id
+        ).first()
+        if group:
+            return group.name
+
+    def get_teacher_name(self, obj):
+        group = obj.user.students_group_fk.filter(
+            course_id=obj.homework.section.course.course_id
+        ).first()
+        if group:
+            return f"{group.teacher_id.last_name} {group.teacher_id.first_name}"
         return None
 
     def get_user_avatar(self, obj):

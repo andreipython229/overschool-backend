@@ -20,8 +20,8 @@ from courses.services import get_student_progress
 from django.db.models import Avg, Count, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
@@ -30,30 +30,29 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import (
+    ProdamusPaymentLink,
     School,
     SchoolDocuments,
+    SchoolExpressPayLink,
     SchoolHeader,
+    SchoolPaymentMethod,
+    SchoolStudentsTableSettings,
     Tariff,
     TariffPlan,
-    SchoolPaymentMethod,
-    SchoolExpressPayLink,
-    ProdamusPaymentLink,
-    SchoolStudentsTableSettings
 )
 from schools.serializers import (
+    ProdamusLinkSerializer,
+    SchoolExpressPayLinkSerializer,
     SchoolGetSerializer,
+    SchoolPaymentMethodSerializer,
     SchoolSerializer,
+    SchoolStudentsTableSettingsSerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
-    SchoolPaymentMethodSerializer,
-    SchoolExpressPayLinkSerializer,
-    ProdamusLinkSerializer,
-    SchoolStudentsTableSettingsSerializer,
 )
+from schools.services import Hmac
 from users.models import Profile, UserGroup, UserRole
 from users.serializers import UserProfileGetSerializer
-
-from schools.services import Hmac
 
 s3 = UploadToS3()
 
@@ -84,8 +83,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats", "section_student"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats", "section_student"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -183,8 +182,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_student_sections_and_availability(self, student_id):
-        student_groups = StudentsGroup.objects.filter(students__id=student_id)
+    def get_student_sections_and_availability(self, student_id, student_groups):
         student_data = []
 
         for group in student_groups:
@@ -977,13 +975,13 @@ class AddPaymentMethodViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            school_id = serializer.data['school']
+            school_id = serializer.data["school"]
             response = self.get_payment_methods(school_id)
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request):
-        school_id = request.query_params.get('school_id')
+        school_id = request.query_params.get("school_id")
         if school_id:
             queryset = self.queryset.filter(school=school_id)
         else:
@@ -991,19 +989,24 @@ class AddPaymentMethodViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['DELETE'])
+    @action(detail=True, methods=["DELETE"])
     def delete(self, request):
         try:
-            account_no = request.data.get('account_no')
+            account_no = request.data.get("account_no")
             instance = self.queryset.get(account_no=account_no)
             instance.delete()
             school_id = instance.school_id
             response = self.get_payment_methods(school_id)
             return Response(response, status=status.HTTP_200_OK)
         except SchoolPaymentMethod.DoesNotExist:
-            return Response({"message": "Payment method not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Payment method not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ProdamusPaymentLinkViewSet(viewsets.ModelViewSet):
@@ -1014,14 +1017,16 @@ class ProdamusPaymentLinkViewSet(viewsets.ModelViewSet):
         try:
             data = request.data
             signature_data = data.copy()
-            signature_data.pop('school', None)
-            signature_data.pop('api_key', None)
-            signature_data.pop('payment_link', None)
-            signature_data.pop('created', None)
-            signature_data.pop('school_payment_method', None)
+            signature_data.pop("school", None)
+            signature_data.pop("api_key", None)
+            signature_data.pop("payment_link", None)
+            signature_data.pop("created", None)
+            signature_data.pop("school_payment_method", None)
 
-            signature = Hmac.create_signature(signature_data, request.data.get('api_key'))
-            data['signature'] = signature
+            signature = Hmac.create_signature(
+                signature_data, request.data.get("api_key")
+            )
+            data["signature"] = signature
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
@@ -1030,13 +1035,19 @@ class ProdamusPaymentLinkViewSet(viewsets.ModelViewSet):
             serializer.instance.save()
             created_id = serializer.instance.id
 
-            return Response({'id': created_id, 'signature': signature}, status=status.HTTP_201_CREATED)
+            return Response(
+                {"id": created_id, "signature": signature},
+                status=status.HTTP_201_CREATED,
+            )
         except Exception as e:
             traceback_str = traceback.format_exc()
-            return Response({'error': str(e.args), 'traceback': traceback_str}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": str(e.args), "traceback": traceback_str},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def list(self, request):
-        school_id = request.query_params.get('school_id')
+        school_id = request.query_params.get("school_id")
         if school_id:
             queryset = self.queryset.filter(school_id=school_id)
         else:
@@ -1058,36 +1069,39 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
 
         try:
             required_fields = [
-                'invoice_no',
-                'school_id',
-                'payment_method',
-                'payment_link',
-                'amount',
-                'api_key',
-                'currency'
+                "invoice_no",
+                "school_id",
+                "payment_method",
+                "payment_link",
+                "amount",
+                "api_key",
+                "currency",
             ]
             for field in required_fields:
                 if field not in data:
-                    return Response({'error': f'Field "{field}" is required'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {"error": f'Field "{field}" is required'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            payment_method_id = data['payment_method']
+            payment_method_id = data["payment_method"]
             payment_method = SchoolPaymentMethod.objects.get(id=payment_method_id)
 
             SchoolExpressPayLink.objects.create(
-                invoice_no=data['invoice_no'],
-                school_id=data['school_id'],
+                invoice_no=data["invoice_no"],
+                school_id=data["school_id"],
                 payment_method=payment_method,
-                payment_link=data['payment_link'],
-                amount=data['amount'],
-                api_key=data['api_key'],
-                currency=data['currency'],
+                payment_link=data["payment_link"],
+                amount=data["amount"],
+                api_key=data["api_key"],
+                currency=data["currency"],
             )
-            return Response({'response': 'success'}, status=status.HTTP_201_CREATED)
+            return Response({"response": "success"}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request):
-        school_id = request.query_params.get('school_id')
+        school_id = request.query_params.get("school_id")
         if school_id:
             queryset = self.queryset.filter(school_id=school_id)
         else:
@@ -1095,27 +1109,31 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['DELETE'])
+    @action(detail=True, methods=["DELETE"])
     def delete(self, request):
         try:
-            invoice_no = request.data.get('invoice_no')
+            invoice_no = request.data.get("invoice_no")
             instance = self.queryset.get(invoice_no=invoice_no)
             instance.delete()
             return Response(response, status=status.HTTP_200_OK)
         except SchoolExpressPayLink.DoesNotExist:
-            return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def partial_update(self, request, pk=None):
         try:
             data = request.data
-            payment_link = data['data'].get('payment_link')
+            payment_link = data["data"].get("payment_link")
             new_payment_link_data = {
-                'status': data['data'].get('status'),
-                'first_name': data['data'].get('first_name'),
-                'last_name': data['data'].get('last_name'),
-                'patronymic': data['data'].get('patronymic')
+                "status": data["data"].get("status"),
+                "first_name": data["data"].get("first_name"),
+                "last_name": data["data"].get("last_name"),
+                "patronymic": data["data"].get("patronymic"),
             }
 
             instance = self.queryset.get(payment_link=payment_link)
@@ -1126,9 +1144,13 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except SchoolExpressPayLink.DoesNotExist:
-            return Response({"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
@@ -1138,16 +1160,16 @@ class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
 
     queryset = SchoolStudentsTableSettings.objects.all()
     serializer_class = SchoolStudentsTableSettingsSerializer
-    lookup_field = 'school_id'
+    lookup_field = "school_id"
 
     def retrieve(self, request, *args, **kwargs):
-        school_id = kwargs.get('school_id')
+        school_id = kwargs.get("school_id")
         instance = self.get_object(school_id)
         serializer = self.serializer_class(instance)
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
-        school_id = request.data.get('school')
+        school_id = request.data.get("school")
         instance = self.get_object(school_id)
         serializer = self.serializer_class(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1155,5 +1177,7 @@ class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
     def get_object(self, school_id):
-        obj, created = SchoolStudentsTableSettings.objects.get_or_create(school_id=school_id)
+        obj, created = SchoolStudentsTableSettings.objects.get_or_create(
+            school_id=school_id
+        )
         return obj
