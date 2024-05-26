@@ -1,8 +1,8 @@
 import telebot
 import os
 
-from rest_framework.response import Response
-from rest_framework import viewsets, status
+from rest_framework import viewsets
+
 from .models import Notifications, TgUsers
 from .serializers import NotificationsSerializer
 
@@ -39,7 +39,7 @@ class NotificationsViewSet(viewsets.ModelViewSet):
                 TgUsers.objects.none()
             )
         user = self.request.user
-        queryset = (Notifications.objects.filter(tg_user_id__user_id=user))
+        queryset = Notifications.objects.filter(tg_user_id__user_id=user)
         return queryset
 
     class Meta:

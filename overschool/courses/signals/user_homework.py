@@ -45,7 +45,6 @@ def update_user_homework_status(sender, instance, **kwargs):
     HomeworkNotifications.last_notifications(
         user_homework,
         last_check_status,
-        last_check_mark
     )
 
     if last_check_status:
