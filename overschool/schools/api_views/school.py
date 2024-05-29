@@ -314,6 +314,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "total_users_count"
         ]
 
+        unique_students_count = queryset.aggregate(unique_students_count=Count("students", distinct=True))[
+            "unique_students_count"]
+
         deleted_history_queryset = StudentsHistory.objects.none()
 
         hide_deleted = self.request.GET.get("hide_deleted")
@@ -521,6 +524,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         item["group_id"],
                     ),
                     "all_active_students": all_active_students,
+                    "unique_students_count": unique_students_count,
                     "filtered_active_students": filtered_active_students,
                     "chat_uuid": UserChat.get_existed_chat_id_by_type(
                         chat_creator=user,
