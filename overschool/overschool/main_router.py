@@ -7,6 +7,7 @@ from rest_framework import routers
 from schools.urls import router as schools_router
 from schools.urls import router_meetings as meeting_router
 from users.urls import router as users_router
+from tg_notifications.urls import router as tg_notifications_router
 from schools.urls import router_domain as domain_router
 
 router = routers.DefaultRouter()
@@ -26,3 +27,6 @@ catalogs_router.registry += catalog_router.registry
 
 appeal_router = routers.DefaultRouter()
 appeal_router.registry += appeals_router.registry
+
+notifications_router = routers.DefaultRouter()
+notifications_router.registry += tg_notifications_router.registry

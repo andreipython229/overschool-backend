@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from tg_notifications.services import MessagesNotifications
 
 channel_layer = get_channel_layer()
 User = get_user_model()
@@ -27,6 +28,7 @@ def new_message(sender, instance, created, **kwargs):
                     f"user_{user.id}_group",
                     {"type": "user_inform", "user_id": user.id, "message": message},
                 )
+            MessagesNotifications.send_messages_notifications(users, instance)
 
 
 @receiver(post_save, sender=UserChat)
