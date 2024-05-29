@@ -4,14 +4,17 @@ from ..models import TgUsers
 
 
 class HomeworkNotifications:
+
+    """
+        ТГ Уведомления для Менторов и учеников о проверке/отправке заданий
+    """
+
     _last_notifications = {}
 
     @staticmethod
     def last_notifications(user_homework, last_check_status):
 
-        """
-            Функция для обработки дубликатов при создании домашек
-        """
+        # Функция для обработки дубликатов при создании домашек
 
         duplicate = {last_check_status: gmtime()}
         if duplicate in HomeworkNotifications._last_notifications.values():
@@ -23,6 +26,9 @@ class HomeworkNotifications:
     def send_telegram_notification(user_homework, last_check_status):
         if last_check_status == 'Ждет проверки':
             try:
+
+                # ТГ Уведомления для Менторов
+
                 teacher_id = user_homework.teacher_id
                 mentor = TgUsers.objects.get(user_id=teacher_id)
 
@@ -42,6 +48,9 @@ class HomeworkNotifications:
 
         else:
             try:
+
+                # ТГ Уведомления для Учеников
+
                 user_id = user_homework.user_id
                 student = TgUsers.objects.get(user_id=user_id)
 

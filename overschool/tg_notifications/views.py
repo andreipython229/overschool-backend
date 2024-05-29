@@ -14,6 +14,11 @@ class CheckNotification:
 
     @staticmethod
     def notifications(user_id):
+
+        """
+            Данные из таблицы "tg_notifications_notifications" для проверки вкл/выкл уведомлений
+        """
+
         try:
             query = Notifications.objects.filter(tg_user_id=user_id)
 
