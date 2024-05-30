@@ -18,3 +18,4 @@ from .school_header import (
 
 from .payment_methods import SchoolPaymentMethodSerializer, SchoolExpressPayLinkSerializer, ProdamusLinkSerializer
 from .SchoolMeetings import SchoolMeetingsSerializer
+from .userDomain import DomainSerializer
