@@ -1,5 +1,4 @@
 from django.db import models
-
 from schools.models import School
 
 
@@ -11,3 +10,7 @@ class Domain(models.Model):
 
     def __str__(self):
         return self.domain_name
+
+    class Meta:
+        verbose_name = "Домен"
+        verbose_name_plural = "Домены"
