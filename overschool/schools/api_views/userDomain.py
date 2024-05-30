@@ -1,14 +1,18 @@
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from schools.models import Domain, School
+from schools.school_mixin import SchoolMixin
 from schools.serializers import DomainSerializer
 
 
-class DomainViewSet(viewsets.ModelViewSet):
+class DomainViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -25,6 +29,10 @@ class DomainViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Domain.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
@@ -40,12 +48,18 @@ class DomainViewSet(viewsets.ModelViewSet):
         serializer.save(school=school)
 
 
-class UnconfiguredDomainViewSet(viewsets.ViewSet):
+class UnconfiguredDomainSerializer(serializers.Serializer):
+    pass
+
+
+class UnconfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
+
+    serializer_class = UnconfiguredDomainSerializer
     permission_classes = [permissions.AllowAny]
 
     @swagger_auto_schema(
         operation_summary="Получение списка неподключенных доменов",
-        tags=["Domains"],
+        tags=["domains"],
     )
     def list(self, request):
         # Фильтруем домены и извлекаем уникальные имена
@@ -64,7 +78,7 @@ class UnconfiguredDomainViewSet(viewsets.ViewSet):
             items=openapi.Schema(type=openapi.TYPE_STRING),
             description="List of domain names to be updated",
         ),
-        tags=["Domains"],
+        tags=["domains"],
     )
     @action(detail=False, methods=["post"])
     def update_domains(self, request):
