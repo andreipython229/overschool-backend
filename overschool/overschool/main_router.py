@@ -8,9 +8,10 @@ from schools.urls import router as schools_router
 from schools.urls import router_meetings as meeting_router
 from users.urls import router as users_router
 from tg_notifications.urls import router as tg_notifications_router
+from schools.urls import router_domain as domain_router
 
 router = routers.DefaultRouter()
-router.registry += courses_router.registry + common_services_router.registry + meeting_router.registry
+router.registry += courses_router.registry + common_services_router.registry + meeting_router.registry + domain_router.registry
 
 user_router = routers.DefaultRouter()
 user_router.registry += users_router.registry

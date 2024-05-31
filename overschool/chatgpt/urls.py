@@ -15,13 +15,13 @@ urlpatterns = [
     ),
     path(
         'create_chat/',
-         chatgpt.views.CreateChatView.as_view(),
-         name='create_chat'
+        chatgpt.views.CreateChatView.as_view(),
+        name='create_chat'
     ),
     path('latest_chats/',
          chatgpt.views.LastTenChats.as_view(),
          name='latest_chats'
-    ),
+         ),
     path(
         'user_welcome_message/',
         chatgpt.views.UserWelcomeMessageView.as_view(),
