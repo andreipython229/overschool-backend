@@ -180,6 +180,7 @@ class SectionViewSet(
         """
         queryset = self.get_queryset()
         section = queryset.filter(pk=pk)
+        section_obj = section.first()
 
         user = self.request.user
         school_name = self.kwargs.get("school_name")
@@ -200,6 +201,13 @@ class SectionViewSet(
                 group = StudentsGroup.objects.get(
                     students=user, course_id_id__sections=pk
                 )
+                if section_obj.course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
         elif user.groups.filter(group__name="Teacher", school=school).exists():
