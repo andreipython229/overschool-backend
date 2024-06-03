@@ -10,29 +10,14 @@ bot_token = os.environ.get('TG_BOT_TOKEN')
 bot = telebot.TeleBot(bot_token)
 
 
-class CheckNotification:
+class BotNotifications:
 
     @staticmethod
-    def notifications(user_id):
-
-        """
-            Данные из таблицы "tg_notifications_notifications" для проверки вкл/выкл уведомлений
-        """
-
-        try:
-            query = Notifications.objects.filter(tg_user_id=user_id)
-
-            notifications = {
-                notifications.tg_user_id: {
-                    'messages': notifications.messages_notifications,
-                    'homeworks': notifications.homework_notifications,
-                    'completed_courses': notifications.completed_courses_notifications,
-                } for notifications in query
-            }
-
-            return notifications
-        except:
-            return
+    def send_notifications(tg_user_id, notifications):
+        bot.send_message(
+            chat_id=tg_user_id,
+            text=notifications
+        )
 
 
 class NotificationsViewSet(viewsets.ModelViewSet):
