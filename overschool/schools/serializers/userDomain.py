@@ -21,6 +21,8 @@ class DomainSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Domain name already exists')
         if not domain_regex.match(value):
             raise serializers.ValidationError('Invalid domain name.')
+        if value.lower() in ['sandbox.overschool.by', 'apidev.overschool.by']:
+            raise serializers.ValidationError('This domain is not allowed.')
         return value
 
     def update(self, instance, validated_data):
