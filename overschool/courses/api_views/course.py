@@ -728,6 +728,15 @@ class CourseViewSet(
         if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
+
+                if course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
                 limit = get_student_training_duration(group, user.id)[0]
                 if limit:
                     history = StudentsHistory.objects.get(
