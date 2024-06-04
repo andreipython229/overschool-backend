@@ -3,8 +3,8 @@ from schools.models import School
 
 
 class Domain(models.Model):
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
-    domain_name = models.CharField(max_length=255)
+    school = models.OneToOneField(School, on_delete=models.CASCADE, related_name='domain', unique=True)
+    domain_name = models.CharField(max_length=255, unique=True)
     nginx_configured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -14,3 +14,4 @@ class Domain(models.Model):
     class Meta:
         verbose_name = "Домен"
         verbose_name_plural = "Домены"
+
