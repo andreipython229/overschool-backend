@@ -1,7 +1,9 @@
+import logging
 from django.conf import settings
 from jwt import InvalidTokenError, decode
-from schools.models import School
+from schools.models import School, Domain
 from users.models import User
+from django.http import HttpResponseForbidden
 
 
 class CheckTrialStatusMiddleware:
@@ -30,6 +32,66 @@ class CheckTrialStatusMiddleware:
                     except School.DoesNotExist:
                         pass
             except InvalidTokenError:
+                pass
+
+        response = self.get_response(request)
+        return response
+
+
+class DomainAccessMiddleware:
+    EXCLUDED_PATHS = ["/api/login/"]
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        current_path = request.path
+
+        # Исключаем страницы логина и другие страницы
+        if current_path in DomainAccessMiddleware.EXCLUDED_PATHS:
+            response = self.get_response(request)
+            return response
+
+        access_token = request.COOKIES.get(settings.ACCESS)
+        if access_token:
+            try:
+                payload = decode(
+                    access_token,
+                    settings.JWT_SECRET_KEY,
+                    algorithms=[settings.ALGORITHM],
+                )
+                user = User.objects.get(pk=payload.get("sub"))
+                request.user = user
+
+            except InvalidTokenError:
+                request.user = None
+        else:
+            request.user = None
+
+        current_user = request.user
+        current_domain = request.get_host()  # Получение текущего домена из запроса
+
+        if current_user and current_user.is_authenticated:
+
+            # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
+            user_schools = set()
+            user_schools.update(School.objects.filter(owner=current_user))
+            user_schools.update(School.objects.filter(groups__user=current_user))
+
+            # Если есть школы у пользователя
+            if user_schools:
+                # Проверяем домены всех школ пользователя
+                school_domains = Domain.objects.filter(school__in=user_schools)
+                if not any(school_domain.domain_name == current_domain for school_domain in school_domains):
+                    return HttpResponseForbidden(
+                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен.")
+        else:
+            # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
+            try:
+                domain = Domain.objects.get(domain_name=current_domain)
+                if domain.school:
+                    return HttpResponseForbidden("Доступ запрещен. Необходимо выполнить вход.")
+            except Domain.DoesNotExist:
                 pass
 
         response = self.get_response(request)
