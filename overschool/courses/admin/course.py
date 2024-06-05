@@ -1,6 +1,11 @@
-from courses.models import Course, CourseAppeals
+from courses.models import Course, CourseAppeals, Folder
 from django.contrib import admin
 from rangefilter.filters import DateRangeFilter
+
+
+@admin.register(Folder)
+class FolderAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Course)
@@ -9,6 +14,7 @@ class CourseAdmin(admin.ModelAdmin):
         "course_id",
         "name",
         "is_catalog",
+        "folder",
         "format",
         "duration_days",
         "price",
