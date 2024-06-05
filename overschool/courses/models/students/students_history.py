@@ -44,6 +44,13 @@ class StudentsHistory(models.Model):
         help_text="Студент удален из группы",
     )
 
+    finish_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата завершения обучения",
+        help_text="Дата завершения обучения",
+    )
+
     def __str__(self):
         return f"{self.user} {self.students_group}"
 

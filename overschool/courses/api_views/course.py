@@ -170,6 +170,7 @@ class CourseViewSet(
             courses = Course.objects.filter(course_id__in=course_ids).annotate(
                 limit=Subquery(sub_group.values("limit")[:1]),
                 remaining_period=Subquery(sub_group.values("remaining_period")[:1]),
+                certificate=Subquery(sub_group.values("certificate")[:1]),
             )
             return courses
 
