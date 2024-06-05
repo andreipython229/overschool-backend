@@ -1,4 +1,3 @@
-import logging
 from django.conf import settings
 from jwt import InvalidTokenError, decode
 from schools.models import School, Domain
@@ -40,6 +39,16 @@ class CheckTrialStatusMiddleware:
 
 class DomainAccessMiddleware:
     EXCLUDED_PATHS = ["/api/login/"]
+    ALLOWED_DOMENS = ['dev.overschool.by',
+                      'apidev.overschool.by',
+                      'dev.api.overschool.by',
+                      'apidev.overschool.by:8000',
+                      'sandbox.overschool.by',
+                      'overschool.by',
+                      'localhost:8000',
+                      '127.0.0.1:8000',
+                      '45.87.219.3:8000',
+                      '45.135.234.137:8000']
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -72,7 +81,6 @@ class DomainAccessMiddleware:
         current_domain = request.get_host()  # Получение текущего домена из запроса
 
         if current_user and current_user.is_authenticated:
-
             # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
             user_schools = set()
             user_schools.update(School.objects.filter(owner=current_user))
@@ -82,17 +90,13 @@ class DomainAccessMiddleware:
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
-                if not any(school_domain.domain_name == current_domain for school_domain in school_domains):
+                if not any(school_domain.domain_name == current_domain for school_domain in school_domains) and (current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS):
                     return HttpResponseForbidden(
                         "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен.")
         else:
             # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
-            try:
-                domain = Domain.objects.get(domain_name=current_domain)
-                if domain.school:
-                    return HttpResponseForbidden("Доступ запрещен. Необходимо выполнить вход.")
-            except Domain.DoesNotExist:
-                pass
+            if current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS:
+                return HttpResponseForbidden("Доступ запрещен. Необходимо выполнить вход.")
 
         response = self.get_response(request)
         return response
