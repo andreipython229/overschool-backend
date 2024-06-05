@@ -1,6 +1,6 @@
 from common_services.selectel_client import UploadToS3
 from courses.models import Course
-from courses.serializers import SectionSerializer
+from courses.serializers import FolderSerializer, SectionSerializer
 from rest_framework import serializers
 
 s3 = UploadToS3()
@@ -12,6 +12,7 @@ class CourseCatalogSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
+    folder = FolderSerializer()
 
     class Meta:
         model = Course
@@ -19,6 +20,7 @@ class CourseCatalogSerializer(serializers.ModelSerializer):
             "course_id",
             "is_catalog",
             "is_direct",
+            "folder",
             "public",
             "name",
             "format",
@@ -44,6 +46,7 @@ class CourseCatalogDetailSerializer(serializers.ModelSerializer):
     Сериализатор каталога курса
     """
 
+    folder = FolderSerializer()
     photo = serializers.SerializerMethodField()
     sections = SectionSerializer(many=True, read_only=True)
     contact_link = serializers.ReadOnlyField(source="school.contact_link")
@@ -54,6 +57,7 @@ class CourseCatalogDetailSerializer(serializers.ModelSerializer):
             "course_id",
             "is_catalog",
             "is_direct",
+            "folder",
             "public",
             "name",
             "format",

@@ -11,6 +11,26 @@ from phonenumbers import is_possible_number, is_valid_number, parse
 from schools.models import School
 
 
+class Folder(models.Model):
+    name = models.CharField(
+        max_length=256, verbose_name="Название папка", help_text="Название папки"
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="folder_school",
+        verbose_name="ID школы",
+        help_text="ID школы",
+    )
+
+    def __str__(self):
+        return f"{self.name} - {self.school}"
+
+    class Meta:
+        verbose_name = "Папка"
+        verbose_name_plural = "Папки"
+
+
 class Public(models.TextChoices):
     "Варианты публикации для курса"
     PUBLISHED = "О", "Опубликован"
@@ -39,6 +59,15 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         related_name="course_school",
         verbose_name="ID школы",
         help_text="ID школы",
+    )
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="course_folder",
+        verbose_name="ID папки",
+        help_text="ID папки",
     )
     public = models.CharField(
         max_length=256,
@@ -75,7 +104,6 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         blank=True,
         null=True,
     )
-
     duration_days = models.PositiveIntegerField(
         verbose_name="Продолжительность курса",
         help_text="Продолжительность курса в днях",
