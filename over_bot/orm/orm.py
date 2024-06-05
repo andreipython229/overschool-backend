@@ -37,7 +37,7 @@ class TgORM:
                 insert_tg_user = insert(db_tg_users).values(tg_user)
                 session.execute(insert_tg_user)
                 session.commit()
-                return 'Верификация пройдена успешно!'
+                return 'Верификация пройдена успешно! Для настройки уведомлений вернитесь на платформу.'
             else:
                 return 'Верификация уже пройдена!'
 
