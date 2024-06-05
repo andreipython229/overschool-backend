@@ -6,6 +6,13 @@ from schools.models import Domain
 
 
 class DomainSerializer(serializers.ModelSerializer):
+    FORBIDDEN_DOMENS = ['dev.overschool.by',
+                      'apidev.overschool.by',
+                      'dev.api.overschool.by',
+                      'apidev.overschool.by:8000',
+                      'sandbox.overschool.by',
+                      'overschool.by',
+                      ]
     class Meta:
         model = Domain
         fields = ['id', 'domain_name']
@@ -21,7 +28,7 @@ class DomainSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Domain name already exists')
         if not domain_regex.match(value):
             raise serializers.ValidationError('Invalid domain name.')
-        if value.lower() in ['sandbox.overschool.by', 'apidev.overschool.by']:
+        if value.lower() in DomainSerializer.FORBIDDEN_DOMENS:
             raise serializers.ValidationError('This domain is not allowed.')
         return value
 
