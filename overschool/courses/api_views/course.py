@@ -8,6 +8,7 @@ from common_services.selectel_client import UploadToS3
 from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
     Course,
+    Folder,
     Homework,
     Lesson,
     SectionTest,
@@ -232,9 +233,23 @@ class CourseViewSet(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        folder = self.request.data.get("folder")
 
+        if folder and folder != "-1":
+            folders = Folder.objects.filter(school__name=school_name)
+            try:
+                folders.get(pk=folder)
+            except folders.model.DoesNotExist:
+                raise NotFound("Указанная папка не относится к этой школе.")
+
+        data = request.data.copy()
         instance = self.get_object()
-        serializer = CourseSerializer(instance, data=request.data, partial=True)
+        if folder == "-1":
+            instance.folder = None
+            instance.save()
+            data.pop("folder")
+
+        serializer = CourseSerializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("photo"):
