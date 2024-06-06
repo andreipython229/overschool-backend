@@ -54,6 +54,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
     # Поля для информации ученикам о продолжительности их обучения
     limit = serializers.IntegerField(required=False)
     remaining_period = serializers.IntegerField(required=False)
+    certificate = serializers.BooleanField(required=False)
 
     class Meta:
         model = Course
@@ -75,6 +76,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "baselessons_count",
             "limit",
             "remaining_period",
+            "certificate",
         ]
 
     def get_photo(self, obj):
