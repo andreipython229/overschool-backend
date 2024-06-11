@@ -7,6 +7,7 @@ from .notifications import CheckNotification
 
 
 class CompletedCourseNotifications:
+
     """
         ТГ Уведомления для Админов о завершении учеником курса
     """
