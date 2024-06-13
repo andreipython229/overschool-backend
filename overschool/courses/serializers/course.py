@@ -1,10 +1,20 @@
 from common_services.selectel_client import UploadToS3
-from courses.models import Course
+from courses.models import Course, Folder
 from rest_framework import serializers
 
 from .students_group import GroupsInCourseSerializer
 
 s3 = UploadToS3()
+
+
+class FolderSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели папки курса
+    """
+
+    class Meta:
+        model = Folder
+        fields = ["id", "name"]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -18,6 +28,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "course_id",
             "public",
             "is_catalog",
+            "folder",
             "is_direct",
             "name",
             "format",
@@ -38,16 +49,19 @@ class CourseGetSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
+    folder = FolderSerializer()
     baselessons_count = serializers.IntegerField(required=False)
     # Поля для информации ученикам о продолжительности их обучения
     limit = serializers.IntegerField(required=False)
     remaining_period = serializers.IntegerField(required=False)
+    certificate = serializers.BooleanField(required=False)
 
     class Meta:
         model = Course
         fields = [
             "course_id",
             "is_catalog",
+            "folder",
             "is_direct",
             "public",
             "name",
@@ -62,6 +76,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "baselessons_count",
             "limit",
             "remaining_period",
+            "certificate",
         ]
 
     def get_photo(self, obj):
@@ -90,6 +105,7 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
     """
 
     group_course_fk = GroupsInCourseSerializer(many=True)
+    folder = FolderSerializer()
 
     class Meta:
         model = Course
@@ -97,6 +113,7 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
             "course_id",
             "public",
             "is_catalog",
+            "folder",
             "is_direct",
             "name",
             "format",

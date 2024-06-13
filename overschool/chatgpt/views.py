@@ -1,5 +1,6 @@
 import json
 import g4f
+from langdetect import detect
 from g4f.client import Client
 
 from drf_yasg import openapi
@@ -182,26 +183,29 @@ class SendMessageToGPT(APIView):
         Получение ответа от провайдера
         """
 
+        # Добавление указания на язык ответа к последнему сообщению
         if language == 'ENG':
-            system_message = {"role": "user", "content": "Please respond only in English."}
-            messages.append(system_message)
+            messages[-1]["content"] += " (Respond in English)"
         else:
-            system_message = {"role": "user", "content": "Отвечай только на русском языке."}
-            messages.append(system_message)
+            messages[-1]["content"] += " (Ответь на русском языке)"
 
         try:
             response = Client().chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=messages
+                model=g4f.models.gpt_4o,
+                messages=messages,
             )
 
             response_str = ''.join(response.choices[0].message.content)
             if response_str:
-                return response_str
+                detected_language = detect(response_str)
+                if (detected_language == 'en') or (detected_language == 'ru'):
+                    return response_str
+                else:
+                    return "Ошибка получения ответа: попробуйте позже..."
             else:
-                return "Ошибка: нет подходящего ответа, попробуйте еще раз"
+                return "Ошибка: нет подходящего ответа, попробуйте позже..."
         except Exception:
-            return "Ошибка: нет подходящего ответа, попробуйте еще раз"
+            return "Ошибка: нет подходящего ответа, попробуйте позже..."
 
 
 @method_decorator(

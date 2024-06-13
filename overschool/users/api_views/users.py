@@ -1,17 +1,26 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import BaseLesson, StudentsGroup, UserProgressLogs, Section, Homework, Lesson, SectionTest
+from courses.models import (
+    BaseLesson,
+    Homework,
+    Lesson,
+    Section,
+    SectionTest,
+    StudentsGroup,
+    StudentsHistory,
+    UserProgressLogs,
+)
 from courses.paginators import StudentsPagination
-from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import School, SchoolDocuments
+from schools.serializers import SchoolDocumentsDetailSerializer
 from users.models import User
 from users.permissions import OwnerUserPermissions
 from users.serializers import AllUsersSerializer, UserSerializer
-from schools.serializers import SchoolDocumentsDetailSerializer
 
 
 class UserViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
@@ -33,7 +42,7 @@ class AllUsersViewSet(viewsets.GenericViewSet):
     <h2>/api/user/</h2>\n
     Возвращаем всех пользователей"""
 
-    queryset = User.objects.all().prefetch_related('pseudonyms_as_user')
+    queryset = User.objects.all().prefetch_related("pseudonyms_as_user")
     serializer_class = AllUsersSerializer
     pagination_class = StudentsPagination
 
@@ -60,11 +69,11 @@ class AllUsersViewSet(viewsets.GenericViewSet):
             if role == "student":
                 queryset = User.objects.filter(
                     groups__school=school, groups__group__name="Student"
-                ).prefetch_related('pseudonyms_as_user')
+                ).prefetch_related("pseudonyms_as_user")
             elif role == "staff":
                 queryset = User.objects.filter(
                     groups__school=school, groups__group__name__in=["Teacher", "Admin"]
-                ).prefetch_related('pseudonyms_as_user')
+                ).prefetch_related("pseudonyms_as_user")
             else:
                 queryset = User.objects.filter(groups__school=school)
             # Применяем пагинацию к queryset
@@ -107,13 +116,16 @@ class GetCertificateView(APIView):
 
         group = groups.first()
         course = group.course_id
+        finish_date = StudentsHistory.objects.get(
+            user=user_id, students_group=group
+        ).finish_date
         sections = Section.objects.filter(course=course)
         section_data = []
 
         for section in sections:
             lessons_data = []
             for lesson in section.lessons.all():
-                availability = lesson.is_available_for_group(group.group_id)
+                lesson.is_available_for_group(group.group_id)
                 try:
                     Homework.objects.get(baselesson_ptr=lesson.id)
                     obj_type = "homework"
@@ -140,11 +152,13 @@ class GetCertificateView(APIView):
 
             lessons_data.sort(key=lambda x: x["order"])
 
-            section_data.append({
-                "id": section.section_id,
-                "name": section.name,
-                "lessons": lessons_data,
-            })
+            section_data.append(
+                {
+                    "id": section.section_id,
+                    "name": section.name,
+                    "lessons": lessons_data,
+                }
+            )
 
         base_lessons = BaseLesson.objects.filter(section__course=course, active=True)
 
@@ -184,6 +198,7 @@ class GetCertificateView(APIView):
             "sections": section_data,
             "stamp": stamp,
             "signature": signature,
+            "date": finish_date,
         }
 
         return Response(certificate_data, status=status.HTTP_200_OK)

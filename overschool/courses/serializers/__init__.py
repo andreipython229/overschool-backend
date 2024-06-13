@@ -12,8 +12,10 @@ from .course import (
     CourseSerializer,
     CourseStudentsSerializer,
     CourseWithGroupsSerializer,
+    FolderSerializer,
 )
 from .course_appeals import CourseAppealsSerializer
+from .folder_course import FolderCourseSerializer, FolderViewSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import (
     LessonAvailabilitySerializer,

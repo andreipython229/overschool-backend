@@ -25,10 +25,20 @@ from courses.serializers import (
     StudentsGroupSerializer,
     StudentsGroupWTSerializer,
 )
-from courses.services import get_student_progress
+from courses.services import get_student_progress, progress_subquery
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.db.models import Avg, Count, F, Q, Sum
+from django.db.models import (
+    Avg,
+    Count,
+    DateTimeField,
+    F,
+    FloatField,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+)
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -265,6 +275,10 @@ class StudentsGroupViewSet(
         user = self.request.user
         school = self.get_school()
         students = group.students.none()
+        sort_by = request.GET.get("sort_by", "date_added")
+        sort_order = request.GET.get("sort_order", "desc")
+        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+        fields = self.request.GET.getlist("fields")
         if user.groups.filter(group__name="Teacher", school=school).exists():
             if group.teacher_id == user:
                 students = group.students.all()
@@ -334,55 +348,56 @@ class StudentsGroupViewSet(
             students = students.annotate(average_mark=Avg("user_homeworks__mark"))
             students = students.filter(average_mark__lte=average_mark_max)
 
-        student_data = []
-        for student in students:
-            profile = Profile.objects.get(user_id=student)
-            serializer = UserProfileGetSerializer(
-                profile, context={"request": self.request}
-            )
-            students_history = StudentsHistory.objects.filter(
-                user_id=student.id, students_group=group.group_id, is_deleted=False
-            ).first()
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
 
-            student_data.append(
-                {
-                    "course_id": group.course_id.course_id,
-                    "course_name": group.course_id.name,
-                    "group_id": group.group_id,
-                    "group_name": group.name,
-                    "student_id": student.id,
-                    "username": student.username,
-                    "first_name": student.first_name,
-                    "last_name": student.last_name,
-                    "email": student.email,
-                    "school_name": school.name,
-                    "avatar": serializer.data["avatar"],
-                    "last_active": student.date_joined,
-                    "last_login": student.last_login,
-                    "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
-                        "mark_sum"
-                    ],
-                    "average_mark": student.user_homeworks.aggregate(
-                        average_mark=Avg("mark")
-                    )["average_mark"],
-                    "progress": get_student_progress(
-                        student.id, group.course_id, group.group_id
-                    ),
-                    "date_added": students_history.date_added
-                    if students_history
-                    else None,
-                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user, reciever=student.id, type="PERSONAL"
-                    ),
-                }
-            )
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(user_id=OuterRef("pk"))
+            .order_by("date_added")
+            .values("date_added")[:1]
+        )
+
+        students = students.annotate(
+            mark_sum=Subquery(subquery_mark_sum),
+            average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added, output_field=DateTimeField()),
+        ).values(
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "date_joined",
+            "last_login",
+            "mark_sum",
+            "average_mark",
+            "date_added",
+        )
+
+        if sort_by == "progress":
+            for student in students:
+                user_id = student["id"]
+                course_id = group.course_id
+
+                if user_id and course_id:
+                    progress = progress_subquery(user_id, course_id)
+                else:
+                    progress = None
+
+                student["progress"] = progress
 
         # Сортировка
-        sort_by = request.GET.get("sort_by", "date_added")
-        sort_order = request.GET.get("sort_order", "desc")
-        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
         if sort_by in [
-            "first_name",
             "last_name",
             "email",
             "group_name",
@@ -401,7 +416,7 @@ class StudentsGroupViewSet(
                     "last_active",
                 ]:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: x.get(sort_by, datetime.min)
                         if x.get(sort_by) is not None
                         else default_date,
@@ -412,14 +427,14 @@ class StudentsGroupViewSet(
                     "mark_sum",
                 ]:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: x.get(sort_by, 0)
                         if x.get(sort_by) is not None
                         else 0,
                     )
                 else:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                     )
 
@@ -430,7 +445,7 @@ class StudentsGroupViewSet(
                     "last_active",
                 ]:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: x.get(sort_by, datetime.min)
                         if x.get(sort_by) is not None
                         else default_date,
@@ -442,7 +457,7 @@ class StudentsGroupViewSet(
                     "mark_sum",
                 ]:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: x.get(sort_by, 0)
                         if x.get(sort_by) is not None
                         else 0,
@@ -450,18 +465,111 @@ class StudentsGroupViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        student_data,
+                        students,
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                         reverse=True,
                     )
-
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
-            return paginator.get_paginated_response(paginated_data)
 
-        return Response(
-            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
-        )
+            student_data = []
+            for student in paginated_data:
+                profile = Profile.objects.get(user_id=student["id"])
+                serializer = UserProfileGetSerializer(
+                    profile, context={"request": self.request}
+                )
+
+                if "Прогресс" in fields and sort_by != "progress":
+                    student_data.append(
+                        {
+                            "course_id": group.course_id.course_id,
+                            "course_name": group.course_id.name,
+                            "group_id": group.group_id,
+                            "group_name": group.name,
+                            "student_id": student["id"],
+                            "first_name": student["first_name"],
+                            "last_name": student["last_name"],
+                            "email": student["email"],
+                            "school_name": school.name,
+                            "avatar": serializer.data["avatar"],
+                            "last_active": student["date_joined"],
+                            "last_login": student["last_login"],
+                            "mark_sum": student["mark_sum"],
+                            "average_mark": student["average_mark"],
+                            "progress": progress_subquery(
+                                student["id"], group.course_id.course_id
+                            ),
+                            "date_added": student["date_added"],
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+                elif sort_by == "progress":
+                    student_data.append(
+                        {
+                            "course_id": group.course_id.course_id,
+                            "course_name": group.course_id.name,
+                            "group_id": group.group_id,
+                            "group_name": group.name,
+                            "student_id": student["id"],
+                            "first_name": student["first_name"],
+                            "last_name": student["last_name"],
+                            "email": student["email"],
+                            "school_name": school.name,
+                            "avatar": serializer.data["avatar"],
+                            "last_active": student["date_joined"],
+                            "last_login": student["last_login"],
+                            "mark_sum": student["mark_sum"],
+                            "average_mark": student["average_mark"],
+                            "progress": student["progress"],
+                            "date_added": student["date_added"],
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+                else:
+                    student_data.append(
+                        {
+                            "course_id": group.course_id.course_id,
+                            "course_name": group.course_id.name,
+                            "group_id": group.group_id,
+                            "group_name": group.name,
+                            "student_id": student["id"],
+                            "first_name": student["first_name"],
+                            "last_name": student["last_name"],
+                            "email": student["email"],
+                            "school_name": school.name,
+                            "avatar": serializer.data["avatar"],
+                            "last_active": student["date_joined"],
+                            "last_login": student["last_login"],
+                            "mark_sum": student["mark_sum"],
+                            "average_mark": student["average_mark"],
+                            "date_added": student["date_added"],
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+
+            pagination_data = {
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": student_data,
+            }
+            return Response(pagination_data)
+        else:
+            return Response(
+                {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=True, methods=["GET"])
     def get_all_students_for_group(self, request, pk=None, *args, **kwargs):

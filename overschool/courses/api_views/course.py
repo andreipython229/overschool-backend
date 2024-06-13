@@ -8,6 +8,7 @@ from common_services.selectel_client import UploadToS3
 from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
     Course,
+    Folder,
     Homework,
     Lesson,
     SectionTest,
@@ -28,7 +29,7 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from courses.services import get_student_progress
+from courses.services import get_student_progress, progress_subquery
 from django.db import transaction
 from django.db.models import (
     Avg,
@@ -170,6 +171,7 @@ class CourseViewSet(
             courses = Course.objects.filter(course_id__in=course_ids).annotate(
                 limit=Subquery(sub_group.values("limit")[:1]),
                 remaining_period=Subquery(sub_group.values("remaining_period")[:1]),
+                certificate=Subquery(sub_group.values("certificate")[:1]),
             )
             return courses
 
@@ -231,9 +233,23 @@ class CourseViewSet(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        folder = self.request.data.get("folder")
 
+        if folder and folder != "-1":
+            folders = Folder.objects.filter(school__name=school_name)
+            try:
+                folders.get(pk=folder)
+            except folders.model.DoesNotExist:
+                raise NotFound("Указанная папка не относится к этой школе.")
+
+        data = request.data.copy()
         instance = self.get_object()
-        serializer = CourseSerializer(instance, data=request.data, partial=True)
+        if folder == "-1":
+            instance.folder = None
+            instance.save()
+            data.pop("folder")
+
+        serializer = CourseSerializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("photo"):
@@ -285,6 +301,10 @@ class CourseViewSet(
         course = self.get_object()
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
+        sort_by = request.GET.get("sort_by", "date_added")
+        sort_order = request.GET.get("sort_order", "desc")
+        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+        fields = self.request.GET.getlist('fields')
         if user.groups.filter(group__name="Teacher", school=school).exists():
             queryset = StudentsGroup.objects.filter(
                 teacher_id=request.user, course_id=course.course_id
@@ -385,11 +405,6 @@ class CourseViewSet(
             .values("date_added")[:1]
         )
 
-        subquery_date_removed = (
-            StudentsHistory.objects.none()
-            .order_by("-date_removed")
-            .values("date_removed")[:1]
-        )
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -408,74 +423,38 @@ class CourseViewSet(
             date_added=Subquery(subquery_date_added),
             date_removed=Subquery(subquery_date_removed),
         )
+
         filtered_active_students = queryset.count()
-        serialized_data = []
-        for item in data:
-            if not item["students__id"]:
-                continue
-            profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(
-                profile, context={"request": self.request}
-            )
 
-            serialized_data.append(
-                {
-                    "course_id": item["course_id"],
-                    "course_name": item["course_id__name"],
-                    "group_id": item["group_id"],
-                    "last_active": item["students__date_joined"],
-                    "last_login": item["students__last_login"],
-                    "email": item["students__email"],
-                    "first_name": item["students__first_name"],
-                    "student_id": item["students__id"],
-                    "avatar": serializer.data["avatar"],
-                    "last_name": item["students__last_name"],
-                    "group_name": item["name"],
-                    "school_name": school.name,
-                    "mark_sum": item["mark_sum"],
-                    "average_mark": item["average_mark"],
-                    "date_added": item["date_added"],
-                    "date_removed": item["date_removed"],
-                    "progress": get_student_progress(
-                        item["students__id"],
-                        item["course_id"],
-                        item["group_id"],
-                    ),
-                    "all_active_students": all_active_students,
-                    "filtered_active_students": filtered_active_students,
-                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user,
-                        reciever=item["students__id"],
-                        type="PERSONAL",
-                    ),
-                }
-            )
+        if sort_by == 'progress':
+            for obj in data:
+                user_id = obj.get("students__id")
+                course_id = obj.get("course_id")
 
-        # Сортировка
-        sort_by = request.GET.get("sort_by", "date_added")
-        sort_order = request.GET.get("sort_order", "desc")
-        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+                if user_id and course_id:
+                    progress = progress_subquery(user_id, course_id)
+                else:
+                    progress = None
+
+                obj['progress'] = progress
+
         if sort_by in [
-            "first_name",
+            "students__last_name",
             "last_name",
-            "email",
-            "group_name",
-            "course_name",
+            "students__email",
+            "name",
+            "course_id__name",
             "date_added",
             "date_removed",
             "progress",
             "average_mark",
             "mark_sum",
-            "last_active",
+            "students__date_joined",
         ]:
             if sort_order == "asc":
-                if sort_by in [
-                    "date_added",
-                    "date_removed",
-                    "last_active",
-                ]:
+                if sort_by in ["date_added", "date_removed", "students__date_joined"]:
                     sorted_data = sorted(
-                        serialized_data,
+                        data,
                         key=lambda x: x.get(sort_by, datetime.min)
                         if x.get(sort_by) is not None
                         else default_date,
@@ -486,25 +465,21 @@ class CourseViewSet(
                     "mark_sum",
                 ]:
                     sorted_data = sorted(
-                        serialized_data,
+                        data,
                         key=lambda x: x.get(sort_by, 0)
                         if x.get(sort_by) is not None
                         else 0,
                     )
                 else:
                     sorted_data = sorted(
-                        serialized_data,
+                        combined_data,
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                     )
 
             else:
-                if sort_by in [
-                    "date_added",
-                    "date_removed",
-                    "last_active",
-                ]:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
                     sorted_data = sorted(
-                        serialized_data,
+                        data,
                         key=lambda x: x.get(sort_by, datetime.min)
                         if x.get(sort_by) is not None
                         else default_date,
@@ -516,7 +491,7 @@ class CourseViewSet(
                     "mark_sum",
                 ]:
                     sorted_data = sorted(
-                        serialized_data,
+                        data,
                         key=lambda x: x.get(sort_by, 0)
                         if x.get(sort_by) is not None
                         else 0,
@@ -524,18 +499,151 @@ class CourseViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        serialized_data,
+                        data,
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                         reverse=True,
                     )
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)
-            return paginator.get_paginated_response(paginated_data)
 
-        return Response(
-            {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
-        )
+            serialized_data = []
+            for item in paginated_data:
+                if not item["students__id"]:
+                    continue
+                profile = Profile.objects.filter(user_id=item["students__id"]).first()
+                if profile is not None:
+                    serializer = UserProfileGetSerializer(
+                        profile, context={"request": self.request}
+                    )
+                if 'Прогресс' in fields and sort_by != 'progress':
+                    student_group = StudentsGroup.objects.filter(
+                        students__id=item['students__id'],
+                        course_id=item['course_id']
+                    ).first()
+                    if student_group:
+                        serialized_data.append(
+                            {
+                                "course_id": item["course_id"],
+                                "course_name": item["course_id__name"],
+                                "group_id": item["group_id"],
+                                "last_active": item["students__date_joined"],
+                                "last_login": item["students__last_login"],
+                                "email": item["students__email"],
+                                "first_name": item["students__first_name"],
+                                "student_id": item["students__id"],
+                                "avatar": serializer.data["avatar"],
+                                "last_name": item["students__last_name"],
+                                "group_name": item["name"],
+                                "school_name": school.name,
+                                "mark_sum": item["mark_sum"],
+                                "average_mark": item["average_mark"],
+                                "date_added": item["date_added"],
+                                "progress": progress_subquery(item['students__id'], item['course_id']),
+                                "all_active_students": all_active_students,
+                                "filtered_active_students": filtered_active_students,
+                                "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                    chat_creator=user,
+                                    reciever=item["students__id"],
+                                    type="PERSONAL",
+                                ),
+                            }
+                        )
+                    else:
+                        serialized_data.append(
+                            {
+                                "course_id": item["course_id"],
+                                "course_name": item["course_id__name"],
+                                "group_id": item["group_id"],
+                                "last_active": item["students__date_joined"],
+                                "last_login": item["students__last_login"],
+                                "email": item["students__email"],
+                                "first_name": item["students__first_name"],
+                                "student_id": item["students__id"],
+                                "avatar": serializer.data["avatar"],
+                                "last_name": item["students__last_name"],
+                                "group_name": item["name"],
+                                "school_name": school.name,
+                                "mark_sum": item["mark_sum"],
+                                "average_mark": item["average_mark"],
+                                "date_added": item["date_added"],
+                                "progress": 0,
+                                "all_active_students": all_active_students,
+                                "filtered_active_students": filtered_active_students,
+                                "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                    chat_creator=user,
+                                    reciever=item["students__id"],
+                                    type="PERSONAL",
+                                ),
+                            }
+                        )
+                elif sort_by == 'progress':
+                    serialized_data.append(
+                        {
+                            "course_id": item["course_id"],
+                            "course_name": item["course_id__name"],
+                            "group_id": item["group_id"],
+                            "last_active": item["students__date_joined"],
+                            "last_login": item["students__last_login"],
+                            "email": item["students__email"],
+                            "first_name": item["students__first_name"],
+                            "student_id": item["students__id"],
+                            "avatar": serializer.data["avatar"],
+                            "last_name": item["students__last_name"],
+                            "group_name": item["name"],
+                            "school_name": school.name,
+                            "mark_sum": item["mark_sum"],
+                            "average_mark": item["average_mark"],
+                            "date_added": item["date_added"],
+                            "progress": item["progress"],
+                            "all_active_students": all_active_students,
+                            "filtered_active_students": filtered_active_students,
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=item["students__id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+                else:
+                    serialized_data.append(
+                        {
+                            "course_id": item["course_id"],
+                            "course_name": item["course_id__name"],
+                            "group_id": item["group_id"],
+                            "last_active": item["students__date_joined"],
+                            "last_login": item["students__last_login"],
+                            "email": item["students__email"],
+                            "first_name": item["students__first_name"],
+                            "student_id": item["students__id"],
+                            "avatar": serializer.data["avatar"],
+                            "last_name": item["students__last_name"],
+                            "group_name": item["name"],
+                            "school_name": school.name,
+                            "mark_sum": item["mark_sum"],
+                            "average_mark": item["average_mark"],
+                            "date_added": item["date_added"],
+                            "all_active_students": all_active_students,
+                            "filtered_active_students": filtered_active_students,
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=item["students__id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+
+            pagination_data = {
+                'count': paginator.page.paginator.count,
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
+                'results': serialized_data,
+            }
+            return Response(pagination_data)
+        else:
+            return Response(
+                {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=True, methods=["GET"])
     def get_all_students_for_course(self, request, pk=None, *args, **kwargs):
