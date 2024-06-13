@@ -26,14 +26,14 @@ from courses.api_views import (
     UserHomeworkViewSet,
     UserTestViewSet,
 )
-from django.urls import path
 from rest_framework import routers
-from schools.api_views import SchoolDocumentViewSet
+from schools.api_views import BonusViewSet, SchoolDocumentViewSet
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
 router.register("folder_course", FolderCourseViewSet, basename="folder_course")
 router.register("school_document", SchoolDocumentViewSet, basename="school_document")
+router.register("school_bonuses", BonusViewSet, basename="school_bonuses"),
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
