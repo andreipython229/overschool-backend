@@ -9,7 +9,7 @@ from schools.api_views import (
     SchoolPaymentLinkViewSet,
     ProdamusPaymentLinkViewSet,
     SchoolStudentsTableSettingsViewSet,
-    SchoolMeetingsViewSet, DomainViewSet, UnconfiguredDomainViewSet
+    SchoolMeetingsViewSet, DomainViewSet, UnconfiguredDomainViewSet, ConfiguredDomainViewSet
 )
 
 router = routers.DefaultRouter()
@@ -21,6 +21,7 @@ router.register("payment_link", SchoolPaymentLinkViewSet, basename='payment-link
 router.register("prodamus_payment_link", ProdamusPaymentLinkViewSet, basename='prodamus-payment-link')
 router.register("school_students_table_settings", SchoolStudentsTableSettingsViewSet, basename='school_students_table_settings')
 router.register(r'unconfigured_domains', UnconfiguredDomainViewSet, basename='unconfigured_domains')
+router.register(r'configured_domains', ConfiguredDomainViewSet, basename='configured_domains')
 
 router_meetings = routers.DefaultRouter()
 router_meetings.register("school_meetings", SchoolMeetingsViewSet, basename='school_meetings')

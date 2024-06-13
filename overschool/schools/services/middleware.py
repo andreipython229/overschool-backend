@@ -1,8 +1,19 @@
+import json
 from django.conf import settings
 from jwt import InvalidTokenError, decode
 from schools.models import School, Domain
 from users.models import User
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse
+
+
+class HttpResponseAccessDenied(HttpResponse):
+    def __init__(self, data=None, message="Access Denied", *args, **kwargs):
+        content = json.dumps({
+            'status': 451,
+            'message': message,
+            'data': data,
+        })
+        super().__init__(content, status=451, content_type='application/json', *args, **kwargs)
 
 
 class CheckTrialStatusMiddleware:
@@ -91,12 +102,12 @@ class DomainAccessMiddleware:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
                 if not any(school_domain.domain_name == current_domain for school_domain in school_domains) and (current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS):
-                    return HttpResponseForbidden(
-                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен.")
+                    return HttpResponseAccessDenied(
+                        message="Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен.")
         else:
             # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
             if current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS:
-                return HttpResponseForbidden("Доступ запрещен. Необходимо выполнить вход.")
+                return HttpResponseAccessDenied(message="Доступ запрещен. Необходимо выполнить вход.")
 
         response = self.get_response(request)
         return response

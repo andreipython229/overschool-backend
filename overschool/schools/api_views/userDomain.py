@@ -18,29 +18,33 @@ class DomainViewSet(
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-
-        permissions = super().get_permissions()
         user = self.request.user
-        if user.is_anonymous:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Admin").exists():
-            return permissions
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            return super().get_permissions()
         else:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+            if self.action in [
+                "list",
+                "retrieve",
+            ]:
+                user = self.request.user
+                if user.is_anonymous:
+                    raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                else:
+                    return super().get_permissions()
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
                 Domain.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
-        user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
-
-        if user.groups.filter(group__name="Admin", school=school).exists():
-            return self.queryset.filter(school=school)
-        else:
-            return self.queryset.none()
+        return self.queryset.filter(school=school)
 
     def perform_create(self, serializer):
         school_name = self.kwargs.get("school_name")
@@ -53,7 +57,6 @@ class UnconfiguredDomainSerializer(serializers.Serializer):
 
 
 class UnconfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
-
     serializer_class = UnconfiguredDomainSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -98,3 +101,23 @@ class UnconfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewS
 
         # Возвращаем количество обновленных доменов
         return Response({"updated_count": updated_count}, status=status.HTTP_200_OK)
+
+
+class ConfiguredDomainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Domain
+        fields = ['id', 'school', 'domain_name']
+
+
+class ConfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
+    serializer_class = ConfiguredDomainSerializer
+    permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="Получение списка подключенных доменов",
+        tags=["domains"],
+    )
+    def list(self, request):
+        configured_domains = Domain.objects.filter(nginx_configured=True).distinct()
+        serializer = ConfiguredDomainSerializer(configured_domains, many=True)
+        return Response(serializer.data)

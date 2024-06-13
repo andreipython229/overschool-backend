@@ -8,7 +8,7 @@ from courses.models import (
     UserProgressLogs,
 )
 from courses.models.common.base_lesson import LessonAvailability, LessonEnrollment
-from django.db.models import Prefetch
+from django.db.models import Prefetch, OuterRef, Subquery, FloatField, ExpressionWrapper, Value
 
 # Прогресс для таблиц ********************************
 
@@ -58,3 +58,61 @@ def get_student_progress(student, course_id, group_id):
     )
 
     return progress_percent
+
+
+def progress_subquery(student_id, course_id):
+    all_base_lesson = BaseLesson.objects.filter(
+        section_id__course_id=course_id, active=True,
+    ).exclude(
+        lessonavailability__student=student_id,
+    )
+
+    lesson_viewed_ids = UserProgressLogs.objects.filter(
+        lesson_id__in=all_base_lesson.values('id'),
+        user_id=student_id
+    ).values_list("lesson_id", flat=True)
+
+    lesson_completed_ids = UserProgressLogs.objects.filter(
+        lesson_id__in=all_base_lesson.values('id'),
+        completed=True,
+        user_id=student_id
+    ).values_list("lesson_id", flat=True)
+
+    completed_lessons = Lesson.objects.filter(
+        section_id__course_id=course_id,
+        active=True
+    ).exclude(
+        lessonavailability__student=student_id
+    ).exclude(
+        lessonenrollment__student_group=OuterRef('pk')
+    ).filter(
+        baselesson_ptr_id__in=lesson_viewed_ids
+    ).count()
+
+    completed_homeworks = Homework.objects.filter(
+        section_id__course_id=course_id,
+        active=True
+    ).exclude(
+        lessonavailability__student=student_id
+    ).exclude(
+        lessonenrollment__student_group=OuterRef('pk')
+    ).filter(
+        baselesson_ptr_id__in=lesson_completed_ids
+    ).count()
+
+    completed_tests = SectionTest.objects.filter(
+        section_id__course_id=course_id,
+        active=True
+    ).exclude(
+        lessonavailability__student=student_id
+    ).exclude(
+        lessonenrollment__student_group=OuterRef('pk')
+    ).filter(
+        baselesson_ptr_id__in=lesson_completed_ids
+    ).count()
+
+    completed_all = completed_lessons + completed_homeworks + completed_tests
+
+    return round((completed_all / all_base_lesson.count()) * 100, 2)
+
+
