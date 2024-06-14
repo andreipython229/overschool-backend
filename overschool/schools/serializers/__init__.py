@@ -11,6 +11,7 @@ from .school import (
     SchoolUpdateSerializer,
     TariffSerializer,
 )
+from .school_bonus import BonusGetSerializer, BonusSerializer
 from .school_document import (
     SchoolDocumentsDetailSerializer,
     SchoolDocumentsSerializer,

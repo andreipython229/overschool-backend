@@ -11,6 +11,7 @@ from .school import (
     TariffPlan,
     Task,
 )
+from .school_bonus import Bonus
 from .school_document import SchoolDocuments
 from .school_header import SchoolHeader
 from .schoolMeetings import SchoolMeetings
