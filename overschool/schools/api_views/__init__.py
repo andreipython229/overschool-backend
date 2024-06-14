@@ -1,11 +1,17 @@
-from .school import \
-    SchoolViewSet, \
-    TariffViewSet, \
-    AddPaymentMethodViewSet, \
-    SchoolPaymentLinkViewSet, \
-    ProdamusPaymentLinkViewSet, \
-    SchoolStudentsTableSettingsViewSet
+from .school import (
+    AddPaymentMethodViewSet,
+    ProdamusPaymentLinkViewSet,
+    SchoolPaymentLinkViewSet,
+    SchoolStudentsTableSettingsViewSet,
+    SchoolTasksViewSet,
+    SchoolViewSet,
+    TariffViewSet,
+)
 from .school_document import SchoolDocumentViewSet
 from .school_header import SchoolHeaderViewSet
 from .schoolMeetings import SchoolMeetingsViewSet
-from .userDomain import DomainViewSet, UnconfiguredDomainViewSet, ConfiguredDomainViewSet
+from .userDomain import (
+    ConfiguredDomainViewSet,
+    DomainViewSet,
+    UnconfiguredDomainViewSet,
+)

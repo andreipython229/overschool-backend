@@ -1,19 +1,25 @@
 import json
+
 from django.conf import settings
-from jwt import InvalidTokenError, decode
-from schools.models import School, Domain
-from users.models import User
 from django.http import HttpResponse
+from jwt import InvalidTokenError, decode
+from schools.models import Domain, School
+from users.models import User
 
 
 class HttpResponseAccessDenied(HttpResponse):
     def __init__(self, data=None, message="Access Denied", *args, **kwargs):
-        content = json.dumps({
-            'status': 451,
-            'message': message,
-            'data': data,
-        })
-        super().__init__(content, status=451, content_type='application/json', *args, **kwargs)
+        content = json.dumps(
+            {
+                "status": 451,
+                "message": message,
+                "data": data,
+            },
+            ensure_ascii=False,
+        )
+        super().__init__(
+            content, status=451, content_type="application/json", *args, **kwargs
+        )
 
 
 class CheckTrialStatusMiddleware:
@@ -50,16 +56,18 @@ class CheckTrialStatusMiddleware:
 
 class DomainAccessMiddleware:
     EXCLUDED_PATHS = ["/api/login/"]
-    ALLOWED_DOMENS = ['dev.overschool.by',
-                      'apidev.overschool.by',
-                      'dev.api.overschool.by',
-                      'apidev.overschool.by:8000',
-                      'sandbox.overschool.by',
-                      'overschool.by',
-                      'localhost:8000',
-                      '127.0.0.1:8000',
-                      '45.87.219.3:8000',
-                      '45.135.234.137:8000']
+    ALLOWED_DOMENS = [
+        "dev.overschool.by",
+        "apidev.overschool.by",
+        "dev.api.overschool.by",
+        "apidev.overschool.by:8000",
+        "sandbox.overschool.by",
+        "overschool.by",
+        "localhost:8000",
+        "127.0.0.1:8000",
+        "45.87.219.3:8000",
+        "45.135.234.137:8000",
+    ]
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -101,13 +109,19 @@ class DomainAccessMiddleware:
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
-                if not any(school_domain.domain_name == current_domain for school_domain in school_domains) and (current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS):
+                if not any(
+                    school_domain.domain_name == current_domain
+                    for school_domain in school_domains
+                ) and (current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS):
                     return HttpResponseAccessDenied(
-                        message="Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен.")
+                        message="Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
+                    )
         else:
             # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
             if current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS:
-                return HttpResponseAccessDenied(message="Доступ запрещен. Необходимо выполнить вход.")
+                return HttpResponseAccessDenied(
+                    message="Доступ запрещен. Необходимо выполнить вход."
+                )
 
         response = self.get_response(request)
         return response

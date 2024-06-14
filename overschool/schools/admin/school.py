@@ -3,7 +3,7 @@ from datetime import datetime
 from django.contrib import admin
 from django.db.models import Count
 from rangefilter.filters import DateRangeFilter, DateRangeFilterBuilder
-from schools.models import School, SchoolStatistics, Tariff
+from schools.models import School, SchoolStatistics, SchoolTask, Tariff
 
 
 @admin.register(School)
@@ -13,6 +13,11 @@ class SchoolAdmin(admin.ModelAdmin):
 
 @admin.register(Tariff)
 class TariffAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(SchoolTask)
+class TaskAdmin(admin.ModelAdmin):
     pass
 
 

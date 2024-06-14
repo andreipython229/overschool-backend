@@ -1,12 +1,16 @@
 from .promocode import PromoCode
-from .school import \
-    School, \
-    SchoolStatistics, \
-    Tariff, TariffPlan, \
-    SchoolPaymentMethod, \
-    SchoolExpressPayLink, \
-    ProdamusPaymentLink, \
-    SchoolStudentsTableSettings
+from .school import (
+    ProdamusPaymentLink,
+    School,
+    SchoolExpressPayLink,
+    SchoolPaymentMethod,
+    SchoolStatistics,
+    SchoolStudentsTableSettings,
+    SchoolTask,
+    Tariff,
+    TariffPlan,
+    Task,
+)
 from .school_document import SchoolDocuments
 from .school_header import SchoolHeader
 from .schoolMeetings import SchoolMeetings

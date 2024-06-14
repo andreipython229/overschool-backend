@@ -1,6 +1,12 @@
 import requests
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan, SchoolStudentsTableSettings, SchoolStudentsTableSettings
+from schools.models import (
+    School,
+    SchoolStudentsTableSettings,
+    SchoolTask,
+    Tariff,
+    TariffPlan,
+)
 from transliterate import translit
 
 
@@ -192,4 +198,19 @@ class TariffSerializer(serializers.ModelSerializer):
 class SchoolStudentsTableSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolStudentsTableSettings
-        fields = '__all__'
+        fields = "__all__"
+
+
+class SchoolTaskSummarySerializer(serializers.Serializer):
+    total_tasks = serializers.IntegerField()
+    total_completed_tasks = serializers.IntegerField()
+    completion_percentage = serializers.FloatField()
+    tasks = serializers.ListField(child=serializers.DictField())
+
+    def to_representation(self, instance):
+        return {
+            "total_tasks": instance["total_tasks"],
+            "total_completed_tasks": instance["total_completed_tasks"],
+            "completion_percentage": instance["completion_percentage"],
+            "tasks": instance["tasks"],
+        }

@@ -21,6 +21,7 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from schools.api_views import SchoolTasksViewSet
 from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
@@ -44,9 +45,9 @@ from .main_router import (
     catalogs_router,
     router,
     school_router,
+    tg_notifications_router,
     user_router,
     videos_router,
-    tg_notifications_router
 )
 
 urlpatterns = [
@@ -60,6 +61,11 @@ urlpatterns = [
         "api/<str:school_name>/current_tariff/",
         TariffSchoolOwner.as_view(actions={"get": "get"}),
         name="current_tariff",
+    ),
+    path(
+        "api/<str:school_name>/school_tasks/",
+        SchoolTasksViewSet.as_view(actions={"get": "get"}),
+        name="school_tasks",
     ),
     path(
         "api/register_user/",

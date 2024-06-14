@@ -17,15 +17,7 @@ from courses.models import (
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress, progress_subquery
-from django.db.models import (
-    Avg,
-    Count,
-    OuterRef,
-    Q,
-    Subquery,
-    Sum,
-    F
-)
+from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from drf_yasg import openapi
@@ -35,6 +27,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from schools.models import (
     ProdamusPaymentLink,
     School,
@@ -43,9 +36,11 @@ from schools.models import (
     SchoolHeader,
     SchoolPaymentMethod,
     SchoolStudentsTableSettings,
+    SchoolTask,
     Tariff,
     TariffPlan,
 )
+from schools.school_mixin import SchoolMixin
 from schools.serializers import (
     ProdamusLinkSerializer,
     SchoolExpressPayLinkSerializer,
@@ -53,6 +48,7 @@ from schools.serializers import (
     SchoolPaymentMethodSerializer,
     SchoolSerializer,
     SchoolStudentsTableSettingsSerializer,
+    SchoolTaskSummarySerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
 )
@@ -89,8 +85,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats", "section_student"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats", "section_student"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
@@ -309,7 +305,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         queryset = StudentsGroup.objects.none()
         user = self.request.user
         school = self.get_object()
-        fields = self.request.GET.getlist('fields')
+        fields = self.request.GET.getlist("fields")
         sort_by = request.GET.get("sort_by", "date_added")
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
@@ -325,8 +321,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "total_users_count"
         ]
 
-        unique_students_count = queryset.aggregate(unique_students_count=Count("students", distinct=True))[
-            "unique_students_count"]
+        unique_students_count = queryset.aggregate(
+            unique_students_count=Count("students", distinct=True)
+        )["unique_students_count"]
 
         deleted_history_queryset = StudentsHistory.objects.none()
 
@@ -535,7 +532,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         filtered_active_students = combined_data.count()
 
-        if sort_by == 'progress':
+        if sort_by == "progress":
             for obj in combined_data:
                 user_id = obj.get("students__id")
                 course_id = obj.get("course_id")
@@ -545,7 +542,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 else:
                     progress = None
 
-                obj['progress'] = progress
+                obj["progress"] = progress
 
         # Сортировка
         if sort_by in [
@@ -562,7 +559,11 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "students__date_joined",
         ]:
             if sort_order == "asc":
-                if sort_by in ["date_added_student", "date_removed_student", "students__date_joined"]:
+                if sort_by in [
+                    "date_added_student",
+                    "date_removed_student",
+                    "students__date_joined",
+                ]:
                     sorted_data = sorted(
                         combined_data,
                         key=lambda x: x.get(sort_by, datetime.min)
@@ -625,10 +626,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     serializer = UserProfileGetSerializer(
                         profile, context={"request": self.request}
                     )
-                if 'Прогресс' in fields and sort_by != 'progress':
+                if "Прогресс" in fields and sort_by != "progress":
                     student_group = StudentsGroup.objects.filter(
-                        students__id=item['students__id'],
-                        course_id=item['course_id']
+                        students__id=item["students__id"], course_id=item["course_id"]
                     ).first()
                     if student_group:
                         serialized_data.append(
@@ -649,8 +649,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "average_mark": item["average_mark"],
                                 "date_added": item["date_added_student"],
                                 "date_removed": item["date_removed_student"],
-                                "is_deleted": True if item["date_removed_student"] is not None else False,
-                                "progress": progress_subquery(item['students__id'], item['course_id']),
+                                "is_deleted": True
+                                if item["date_removed_student"] is not None
+                                else False,
+                                "progress": progress_subquery(
+                                    item["students__id"], item["course_id"]
+                                ),
                                 "all_active_students": all_active_students,
                                 "unique_students_count": unique_students_count,
                                 "filtered_active_students": filtered_active_students,
@@ -680,7 +684,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "average_mark": item["average_mark"],
                                 "date_added": item["date_added_student"],
                                 "date_removed": item["date_removed_student"],
-                                "is_deleted": True if item["date_removed_student"] is not None else False,
+                                "is_deleted": True
+                                if item["date_removed_student"] is not None
+                                else False,
                                 "progress": 0,
                                 "all_active_students": all_active_students,
                                 "unique_students_count": unique_students_count,
@@ -711,7 +717,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "average_mark": item["average_mark"],
                             "date_added": item["date_added_student"],
                             "date_removed": item["date_removed_student"],
-                            "is_deleted": True if item["date_removed_student"] is not None else False,
+                            "is_deleted": True
+                            if item["date_removed_student"] is not None
+                            else False,
                             "all_active_students": all_active_students,
                             "unique_students_count": unique_students_count,
                             "filtered_active_students": filtered_active_students,
@@ -724,10 +732,10 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     )
 
             pagination_data = {
-                'count': paginator.page.paginator.count,
-                'next': paginator.get_next_link(),
-                'previous': paginator.get_previous_link(),
-                'results': serialized_data,
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": serialized_data,
             }
             return Response(pagination_data)
 
@@ -1246,3 +1254,43 @@ class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
             school_id=school_id
         )
         return obj
+
+
+class SchoolTasksViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+    """
+    API endpoint для работы с заданиями для школы
+    """
+
+    queryset = SchoolTask.objects.all()
+    serializer_class = SchoolTaskSummarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        tags=["school_tasks"],
+        operation_description="Получение заданий для школы",
+        operation_summary="Получение заданий для школы",
+    )
+    def get(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+
+        total_tasks = self.queryset.filter(school=school).count()
+        total_completed_tasks = self.queryset.filter(
+            school=school, completed=True
+        ).count()
+        completion_percentage = (
+            (total_completed_tasks / total_tasks) * 100 if total_tasks > 0 else 0
+        )
+
+        data = {
+            "total_tasks": total_tasks,
+            "total_completed_tasks": total_completed_tasks,
+            "completion_percentage": completion_percentage,
+            "tasks": [
+                {"task": task.get_task_display(), "completed": task.completed}
+                for task in self.queryset.filter(school=school)
+            ],
+        }
+
+        serializer = SchoolTaskSummarySerializer(data)
+        return Response(serializer.data)
