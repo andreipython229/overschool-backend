@@ -135,7 +135,7 @@ class TrainingProgram(PositionMixin, VisibilityMixin, models.Model):
         verbose_name = "Блок с программой обучения"
         verbose_name_plural = "Блоки с программой обучения"
 
-class TrainingPurpose(models.Model):
+class TrainingPurpose(PositionMixin, VisibilityMixin, models.Model):
     """Модель блока цель обучения"""
 
     id = models.AutoField(
