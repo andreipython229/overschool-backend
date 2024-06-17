@@ -1285,7 +1285,7 @@ class SchoolTasksViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView)
         data = {
             "total_tasks": total_tasks,
             "total_completed_tasks": total_completed_tasks,
-            "completion_percentage": completion_percentage,
+            "completion_percentage": round(completion_percentage),
             "tasks": [
                 {"task": task.get_task_display(), "completed": task.completed}
                 for task in self.queryset.filter(school=school)
