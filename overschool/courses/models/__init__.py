@@ -8,7 +8,15 @@ from .common.base_lesson import (
 )
 from .courses.course import Course, CourseAppeals, Folder, Public
 from .courses.section import Section
-from .courses.course_landing import HeaderBlock, StatsBlock, BlockCards, AudienceBlock, TrainingProgram, CourseLanding
+from .courses.course_landing import (
+    HeaderBlock,
+    StatsBlock,
+    BlockCards,
+    AudienceBlock,
+    TrainingProgram,
+    TrainingPurpose,
+    CourseLanding
+)
 from .homework.homework import Homework
 from .homework.user_homework import UserHomework, UserHomeworkStatusChoices
 from .homework.user_homework_check import UserHomeworkCheck

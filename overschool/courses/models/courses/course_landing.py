@@ -53,6 +53,12 @@ class BlockCards(models.Model):
         help_text="Уникальный идентификатор блока статистики курса",
     )
 
+    position = models.IntegerField(
+        verbose_name="Позиция в порядке следования карточек",
+        help_text="Номер следования в списке карточек",
+        default=0,
+    )
+
     photo = models.ImageField(
         verbose_name="Фотография",
         help_text="Фотография для карточки",
@@ -129,6 +135,34 @@ class TrainingProgram(PositionMixin, VisibilityMixin, models.Model):
         verbose_name = "Блок с программой обучения"
         verbose_name_plural = "Блоки с программой обучения"
 
+class TrainingPurpose(PositionMixin, VisibilityMixin, models.Model):
+    """Модель блока цель обучения"""
+
+    id = models.AutoField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID",
+        help_text="Уникальный идентификатор блока цели обучения",
+    )
+    description = RichTextField(
+        max_length=256,
+        verbose_name="Описание блока",
+        help_text="Описание блока",
+        blank=True,
+        null=True,
+    )
+    chips = models.ManyToManyField(
+        BlockCards,
+        verbose_name="Блок карточек",
+    )
+
+    def __str__(self):
+        return f"{self.id}"
+
+    class Meta:
+        verbose_name = "Блок с целью обучения обучения"
+        verbose_name_plural = "Блоки с целью обучения обучения"
+
 class CourseLanding(models.Model):
     """Модель лендинга курса"""
 
@@ -173,10 +207,17 @@ class CourseLanding(models.Model):
         verbose_name="Программа обучения",
         help_text="Блок с программой обучения курса",
     )
+    training_purpose = models.ForeignKey(
+        TrainingPurpose,
+        on_delete=models.CASCADE,
+        related_name="training_purpose_block",
+        verbose_name="Цель обучения",
+        help_text="Блок с целью обучения курсу",
+    )
 
     def __str__(self):
         return f"[{self.id}] {self.course.name}"
 
     class Meta:
-        verbose_name = "Блок с программой обучения"
-        verbose_name_plural = "Блоки с программой обучения"
+        verbose_name = "Блок с лендингом курса"
+        verbose_name_plural = "Блоки с лендингом курсов"
