@@ -34,6 +34,18 @@ from .section import (
     SectionRetrieveSerializer,
     SectionSerializer,
 )
+from .course_landing import (
+    LandingGetSerializer,
+    CourseInfoSerializer,
+    HeaderLandingSerializer,
+    StatsGetSerializer,
+    BlockCardsSerializer,
+    BlockCardsPhotoSerializer,
+    BlockCardsGetSerializer,
+    AudienceSerializer,
+    TrainingProgramSerializer,
+    TrainingPurposeSerializer,
+)
 from .section_test import TestSerializer
 from .students_group import (
     GroupCourseAccessSerializer,
