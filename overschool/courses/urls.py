@@ -4,6 +4,7 @@ from courses.api_views import (
     BlockButtonViewSet,
     CommentViewSet,
     CourseCatalogViewSet,
+    CourseLandingViewSet,
     CourseViewSet,
     FolderCourseViewSet,
     GetAppealsViewSet,
@@ -31,6 +32,7 @@ from schools.api_views import BonusViewSet, SchoolDocumentViewSet
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
+router.register("course_landing", CourseLandingViewSet, basename="course_landing")
 router.register("folder_course", FolderCourseViewSet, basename="folder_course")
 router.register("school_document", SchoolDocumentViewSet, basename="school_document")
 router.register("school_bonuses", BonusViewSet, basename="school_bonuses"),
