@@ -37,7 +37,8 @@ django-redis==5.4.0
 django-storages==1.12.3
 django-templated-mail==1.1.1
 djangorestframework==3.14.0
-djoser==2.1.0
+djangorestframework-simplejwt==5.3.1
+djoser==2.2.3
 drf-yasg==1.21.4
 environ==1.0
 flake8==4.0.1

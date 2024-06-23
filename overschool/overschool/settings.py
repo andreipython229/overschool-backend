@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from environ import Env
@@ -43,6 +44,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "rangefilter",
     "phonenumber_field",
     "drf_yasg",
@@ -136,7 +139,6 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "users.services.middleware.AuthOptionalMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "schools.services.middleware.DomainAccessMiddleware",
     "schools.services.middleware.CheckTrialStatusMiddleware",
@@ -245,7 +247,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "users.services.authentication.CustomAuthentication"
+        "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
 }
 
@@ -255,17 +257,14 @@ BEPAID_SECRET_KEY: str = os.getenv("BEPAID_SECRET_KEY")
 NOTIFICATION_URL_BEPAID: str = os.getenv("NOTIFICATION_URL_BEPAID")
 
 # jwt
-ALGORITHM: str = os.getenv("ALGORITHM")
-JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
-JWT_REFRESH_SECRET_KEY: str = os.getenv("JWT_REFRESH_SECRET_KEY")
-# время жизни jwt токенов
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
-# время жизни cookie с jwt токенами
-COOKIE_EXPIRE_SECONDS: int = REFRESH_TOKEN_EXPIRE_MINUTES * 60
-ACCESS: str = os.getenv("ACCESS")
-REFRESH: str = os.getenv("REFRESH")
-SESSION_COOKIE_DOMAIN: str = os.getenv("SESSION_COOKIE_DOMAIN")
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": os.getenv("ALGORITHM"),
+    "SIGNING_KEY": os.getenv("SECRET_KEY"),
+}
 
 # ckeditor settings
 CKEDITOR_UPLOAD_PATH = "static/ckeditor"
