@@ -263,7 +263,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": os.getenv("ALGORITHM"),
-    "SIGNING_KEY": os.getenv("SECRET_KEY"),
+    "SIGNING_KEY": os.getenv("SIGNING_KEY"),
 }
 
 # ckeditor settings
