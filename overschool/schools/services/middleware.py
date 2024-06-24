@@ -28,10 +28,11 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
         auth_header = request.META.get("HTTP_AUTHORIZATION", None)
         if auth_header and auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ")[1]
+
             try:
                 payload = jwt.decode(
                     access_token,
-                    settings.SECRET_KEY,
+                    settings.SIMPLE_JWT["SIGNING_KEY"],
                     algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
                 )
                 user = User.objects.get(pk=payload.get("user_id"))
@@ -82,7 +83,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
             try:
                 payload = jwt.decode(
                     access_token,
-                    settings.SECRET_KEY,
+                    settings.SIMPLE_JWT["SIGNING_KEY"],
                     algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
                 )
                 user = User.objects.get(pk=payload.get("user_id"))
