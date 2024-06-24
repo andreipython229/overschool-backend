@@ -7,12 +7,12 @@ from rest_framework.permissions import AllowAny
 from schools.models import School
 from transliterate import translit
 from users.serializers import SignupSchoolOwnerSerializer
-from users.services import JWTHandler, SenderServiceMixin
+from users.services import SenderServiceMixin
+
 from ..models.utm_label import UtmLabel
 
 sender_service = SenderServiceMixin()
 User = get_user_model()
-jwt_handler = JWTHandler()
 
 
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
@@ -27,11 +27,11 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
-        utm_source = request.data.get('utm_source', None)
-        utm_medium = request.data.get('utm_medium', None)
-        utm_campaign = request.data.get('utm_campaign', None)
-        utm_term = request.data.get('utm_term', None)
-        utm_content = request.data.get('utm_content', None)
+        utm_source = request.data.get("utm_source", None)
+        utm_medium = request.data.get("utm_medium", None)
+        utm_campaign = request.data.get("utm_campaign", None)
+        utm_term = request.data.get("utm_term", None)
+        utm_content = request.data.get("utm_content", None)
 
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
@@ -69,7 +69,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             utm_medium=utm_medium,
             utm_campaign=utm_campaign,
             utm_term=utm_term,
-            utm_content=utm_content
+            utm_content=utm_content,
         )
 
         if send and send["status_code"] == 500:

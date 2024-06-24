@@ -84,6 +84,15 @@ class UploadToS3:
         self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
 
+    def upload_course_landing_images(self, uploaded_image, course):
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/landing/{}@{}".format(
+            school_id, course_id, datetime.now(), uploaded_image.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
+        return file_path
+
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "{}_school/school_data/images/{}@{}".format(
             school_id, datetime.now(), uploaded_image.name

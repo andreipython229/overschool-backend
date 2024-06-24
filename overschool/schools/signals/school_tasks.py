@@ -45,15 +45,19 @@ def mark_create_first_lesson_complete(sender, instance, created, **kwargs):
     if (
         created
         and not SchoolTask.objects.filter(
-            school=instance.course.school, task=Task.CREATE_FIRST_LESSON, completed=True
+            school=instance.section.course.school,
+            task=Task.CREATE_FIRST_LESSON,
+            completed=True,
         ).exists()
     ):
-        complete_task_and_extend_trial(instance.course.school, Task.CREATE_FIRST_LESSON)
+        complete_task_and_extend_trial(
+            instance.section.course.school, Task.CREATE_FIRST_LESSON
+        )
 
 
 @receiver(post_save, sender=BaseLessonBlock)
 def mark_upload_video_complete(sender, instance, created, **kwargs):
-    if instance.block_type == BlockType.VIDEO and instance.video:
+    if instance.type == BlockType.VIDEO and instance.video:
         school = instance.base_lesson.section.course.school
         if not SchoolTask.objects.filter(
             school=school, task=Task.UPLOAD_VIDEO, completed=True
@@ -87,16 +91,21 @@ def mark_create_first_group_complete(sender, instance, created, **kwargs):
     if (
         created
         and not SchoolTask.objects.filter(
-            school=instance.school, task=Task.CREATE_FIRST_GROUP, completed=True
+            school=instance.course_id.school,
+            task=Task.CREATE_FIRST_GROUP,
+            completed=True,
         ).exists()
     ):
-        complete_task_and_extend_trial(instance.school, Task.CREATE_FIRST_GROUP)
+        complete_task_and_extend_trial(
+            instance.course_id.school, Task.CREATE_FIRST_GROUP
+        )
 
 
 @receiver(m2m_changed, sender=StudentsGroup.students.through)
 def mark_add_first_student_complete(sender, instance, action, **kwargs):
     if action == "post_add":
-        school = instance.course_id.school
+        group = instance.students_group_fk.first()
+        school = group.course_id.school
         if not SchoolTask.objects.filter(
             school=school, task=Task.ADD_FIRST_STUDENT, completed=True
         ).exists():

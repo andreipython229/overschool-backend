@@ -1,8 +1,9 @@
 import json
 
+import jwt
 from django.conf import settings
-from django.http import HttpResponse
-from jwt import InvalidTokenError, decode
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.deprecation import MiddlewareMixin
 from schools.models import Domain, School
 from users.models import User
 
@@ -22,21 +23,21 @@ class HttpResponseAccessDenied(HttpResponse):
         )
 
 
-class CheckTrialStatusMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
+class CheckTrialStatusMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ")[1]
 
-    def __call__(self, request):
-        access_token = request.COOKIES.get(settings.ACCESS)
-        if access_token:
             try:
-                payload = decode(
+                payload = jwt.decode(
                     access_token,
-                    settings.JWT_SECRET_KEY,
-                    algorithms=[settings.ALGORITHM],
+                    settings.SIMPLE_JWT["SIGNING_KEY"],
+                    algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
                 )
-                user = User.objects.get(pk=payload.get("sub"))
+                user = User.objects.get(pk=payload.get("user_id"))
                 request.user = user
+
                 # Вызываем метод check_trial_status() для аутентифицированного пользователя
                 if user.is_authenticated:
                     try:
@@ -47,16 +48,16 @@ class CheckTrialStatusMiddleware:
                             school.check_trial_status()
                     except School.DoesNotExist:
                         pass
-            except InvalidTokenError:
+            except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
                 pass
 
-        response = self.get_response(request)
+    def process_response(self, request, response):
         return response
 
 
-class DomainAccessMiddleware:
+class DomainAccessMiddleware(MiddlewareMixin):
     EXCLUDED_PATHS = ["/api/login/"]
-    ALLOWED_DOMENS = [
+    ALLOWED_DOMAINS = [
         "dev.overschool.by",
         "apidev.overschool.by",
         "dev.api.overschool.by",
@@ -69,29 +70,25 @@ class DomainAccessMiddleware:
         "45.135.234.137:8000",
     ]
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
+    def process_request(self, request):
         current_path = request.path
 
         # Исключаем страницы логина и другие страницы
-        if current_path in DomainAccessMiddleware.EXCLUDED_PATHS:
-            response = self.get_response(request)
-            return response
+        if current_path in self.EXCLUDED_PATHS:
+            return None
 
-        access_token = request.COOKIES.get(settings.ACCESS)
-        if access_token:
+        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ")[1]
             try:
-                payload = decode(
+                payload = jwt.decode(
                     access_token,
-                    settings.JWT_SECRET_KEY,
-                    algorithms=[settings.ALGORITHM],
+                    settings.SIMPLE_JWT["SIGNING_KEY"],
+                    algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
                 )
-                user = User.objects.get(pk=payload.get("sub"))
+                user = User.objects.get(pk=payload.get("user_id"))
                 request.user = user
-
-            except InvalidTokenError:
+            except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
                 request.user = None
         else:
             request.user = None
@@ -112,16 +109,16 @@ class DomainAccessMiddleware:
                 if not any(
                     school_domain.domain_name == current_domain
                     for school_domain in school_domains
-                ) and (current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS):
-                    return HttpResponseAccessDenied(
-                        message="Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
+                ) and (current_domain not in self.ALLOWED_DOMAINS):
+                    return HttpResponseForbidden(
+                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
                     )
         else:
             # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
-            if current_domain not in DomainAccessMiddleware.ALLOWED_DOMENS:
-                return HttpResponseAccessDenied(
-                    message="Доступ запрещен. Необходимо выполнить вход."
+            if current_domain not in self.ALLOWED_DOMAINS:
+                return HttpResponseForbidden(
+                    "Доступ запрещен. Необходимо выполнить вход."
                 )
 
-        response = self.get_response(request)
+    def process_response(self, request, response):
         return response

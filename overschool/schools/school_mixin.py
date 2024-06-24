@@ -4,6 +4,9 @@ from schools.models import School
 
 class SchoolMixin:
     def dispatch(self, request, *args, **kwargs):
+        # Вызов родительского dispatch для аутентификации пользователя
+        response = super().dispatch(request, *args, **kwargs)
+
         school_name = kwargs.get("school_name")
 
         # Проверка существования школы в базе данных
@@ -12,10 +15,15 @@ class SchoolMixin:
 
         # Проверка тарифа школы
         school = School.objects.get(name=school_name)
+        user = request.user
+
+        # Убедимся, что пользователь аутентифицирован
+        if not user.is_authenticated:
+            raise Http404("Пользователь не аутентифицирован")
+
         if school.tariff is None:  # Если тариф не оплачен
-            user = request.user
             if not user.groups.filter(group__name="Admin", school=school).exists():
                 # Блокировка доступа к API для пользователей, кроме администраторов
                 raise Http404("Тариф школы не оплачен")
 
-        return super().dispatch(request, *args, **kwargs)
+        return response
