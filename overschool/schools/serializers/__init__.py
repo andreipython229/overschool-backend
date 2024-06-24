@@ -24,3 +24,4 @@ from .school_header import (
 )
 from .SchoolMeetings import SchoolMeetingsSerializer
 from .userDomain import DomainSerializer
+from .school_newsletter import NewsletterTemplateSerializer

@@ -22,16 +22,16 @@ services:
     volumes:
       - .:/code/
       - static_volume:/code/staticfiles
-#  huey:
-#    build:
-#      context: .
-#      dockerfile: huey_task.Dockerfile
-#    image: huey
-#    restart: always
-#    ports:
-#      - "8002:8002"
-#    depends_on:
-#      - redis
+  huey:
+    build:
+      context: .
+      dockerfile: huey_task.Dockerfile
+    image: huey
+    restart: always
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
 #  over_bot:
 #    build:
 #      context: .
@@ -40,7 +40,7 @@ services:
 #    restart: always
   nginx:
     image: nginx:stable
-    container_name: nginx
+    container_name: nginxConf
     restart: always
     ports:
       - "80:80"
