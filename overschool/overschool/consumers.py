@@ -1,12 +1,11 @@
 import json
+from urllib.parse import parse_qs
 
-import jwt
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chats.models import UserChat
 from chats.services import get_chats_info_async, get_unread_appeals_count
-from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q, Sum
 from schools.models import School
@@ -16,29 +15,6 @@ from users.models import User
 class InfoConsumers(AsyncWebsocketConsumer):
     connected_users = []
 
-    async def get_user_id_from_token(self, token):
-        try:
-            decoded_token = jwt.decode(
-                token,
-                settings.SIMPLE_JWT["SIGNING_KEY"],
-                algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
-            )
-            return decoded_token["user_id"]
-        except jwt.InvalidTokenError:
-            raise DenyConnection("Invalid token")
-
-    def get_token_from_headers(self):
-        headers = self.scope["headers"]
-        token = None
-        for head in headers:
-            if head[0] == b"authorization":
-                auth_header = head[1].decode("utf-8")
-                if auth_header.startswith("Bearer "):
-                    token = auth_header.split("Bearer ")[1]
-        if token is None:
-            raise DenyConnection("No valid Bearer token found in Authorization header")
-        return token
-
     @database_sync_to_async
     def get_total_unread_count(self, user):
         unread_count = UserChat.objects.filter(
@@ -47,8 +23,11 @@ class InfoConsumers(AsyncWebsocketConsumer):
         return unread_count
 
     async def connect(self):
-        self.token = self.get_token_from_headers()
-        user_id = await self.get_user_id_from_token(self.token)
+        query_string = self.scope["query_string"].decode()
+        query_params = parse_qs(query_string)
+
+        # Получаем user_id из параметров запроса
+        user_id = query_params.get("user_id", [None])[0]
         if user_id is None:
             raise DenyConnection({"error": "user_id is None"})
 
