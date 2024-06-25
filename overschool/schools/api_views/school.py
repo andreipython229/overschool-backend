@@ -1,3 +1,4 @@
+import re
 import traceback
 from datetime import datetime, timedelta
 
@@ -336,10 +337,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         # Поиск
         search_value = self.request.GET.get("search_value")
         if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
             queryset = queryset.filter(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
+                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
@@ -347,6 +350,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
+                | Q(user_id__phone_number__icontains=cleaned_phone)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )
@@ -766,10 +770,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         # Поиск
         search_value = self.request.GET.get("search_value")
         if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
             queryset = queryset.filter(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
+                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
@@ -777,6 +783,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
+                | Q(user_id__phone_number__icontains=cleaned_phone)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )

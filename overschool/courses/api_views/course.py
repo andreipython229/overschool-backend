@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 import pytz
@@ -304,7 +305,7 @@ class CourseViewSet(
         sort_by = request.GET.get("sort_by", "date_added")
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
-        fields = self.request.GET.getlist('fields')
+        fields = self.request.GET.getlist("fields")
         if user.groups.filter(group__name="Teacher", school=school).exists():
             queryset = StudentsGroup.objects.filter(
                 teacher_id=request.user, course_id=course.course_id
@@ -317,10 +318,12 @@ class CourseViewSet(
         # Поиск
         search_value = self.request.GET.get("search_value")
         if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
             queryset = queryset.filter(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
+                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
             )
 
@@ -405,6 +408,12 @@ class CourseViewSet(
             .values("date_added")[:1]
         )
 
+        subquery_date_removed = (
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")[:1]
+        )
+
         data = queryset.values(
             "course_id",
             "course_id__name",
@@ -426,7 +435,7 @@ class CourseViewSet(
 
         filtered_active_students = queryset.count()
 
-        if sort_by == 'progress':
+        if sort_by == "progress":
             for obj in data:
                 user_id = obj.get("students__id")
                 course_id = obj.get("course_id")
@@ -436,7 +445,7 @@ class CourseViewSet(
                 else:
                     progress = None
 
-                obj['progress'] = progress
+                obj["progress"] = progress
 
         if sort_by in [
             "students__last_name",
@@ -472,7 +481,7 @@ class CourseViewSet(
                     )
                 else:
                     sorted_data = sorted(
-                        combined_data,
+                        data,
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                     )
 
@@ -516,10 +525,9 @@ class CourseViewSet(
                     serializer = UserProfileGetSerializer(
                         profile, context={"request": self.request}
                     )
-                if 'Прогресс' in fields and sort_by != 'progress':
+                if "Прогресс" in fields and sort_by != "progress":
                     student_group = StudentsGroup.objects.filter(
-                        students__id=item['students__id'],
-                        course_id=item['course_id']
+                        students__id=item["students__id"], course_id=item["course_id"]
                     ).first()
                     if student_group:
                         serialized_data.append(
@@ -539,7 +547,9 @@ class CourseViewSet(
                                 "mark_sum": item["mark_sum"],
                                 "average_mark": item["average_mark"],
                                 "date_added": item["date_added"],
-                                "progress": progress_subquery(item['students__id'], item['course_id']),
+                                "progress": progress_subquery(
+                                    item["students__id"], item["course_id"]
+                                ),
                                 "all_active_students": all_active_students,
                                 "filtered_active_students": filtered_active_students,
                                 "chat_uuid": UserChat.get_existed_chat_id_by_type(
@@ -577,7 +587,7 @@ class CourseViewSet(
                                 ),
                             }
                         )
-                elif sort_by == 'progress':
+                elif sort_by == "progress":
                     serialized_data.append(
                         {
                             "course_id": item["course_id"],
@@ -634,10 +644,10 @@ class CourseViewSet(
                     )
 
             pagination_data = {
-                'count': paginator.page.paginator.count,
-                'next': paginator.get_next_link(),
-                'previous': paginator.get_previous_link(),
-                'results': serialized_data,
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": serialized_data,
             }
             return Response(pagination_data)
         else:
@@ -665,10 +675,12 @@ class CourseViewSet(
         # Поиск
         search_value = self.request.GET.get("search_value")
         if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
             queryset = queryset.filter(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
+                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
             )
 
