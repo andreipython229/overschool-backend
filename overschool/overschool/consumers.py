@@ -6,6 +6,7 @@ from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chats.models import UserChat
 from chats.services import get_chats_info_async, get_unread_appeals_count
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q, Sum
 from schools.models import School
@@ -16,21 +17,26 @@ class InfoConsumers(AsyncWebsocketConsumer):
     connected_users = []
 
     async def get_user_id_from_token(self, token):
-        decoded_token = jwt.decode(token, options={"verify_signature": False})
-        return decoded_token["sub"]
+        try:
+            decoded_token = jwt.decode(
+                token,
+                settings.SIMPLE_JWT["SIGNING_KEY"],
+                algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+            )
+            return decoded_token["user_id"]
+        except jwt.InvalidTokenError:
+            raise DenyConnection("Invalid token")
 
     def get_token_from_headers(self):
         headers = self.scope["headers"]
         token = None
         for head in headers:
-            if head[0] == b"cookie":
-                cookies = head[1].decode("utf-8")
-                cookies_list = cookies.split(";")
-                for cookie in cookies_list:
-                    if "access_token" in cookie:
-                        token = cookie.replace("access_token=", "")
+            if head[0] == b"authorization":
+                auth_header = head[1].decode("utf-8")
+                if auth_header.startswith("Bearer "):
+                    token = auth_header.split("Bearer ")[1]
         if token is None:
-            raise DenyConnection({"error": "token error"})
+            raise DenyConnection("No valid Bearer token found in Authorization header")
         return token
 
     @database_sync_to_async
