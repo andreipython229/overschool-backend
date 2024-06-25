@@ -65,6 +65,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         "sandbox.overschool.by",
         "overschool.by",
         "localhost:8000",
+        "localhost:3000",
         "127.0.0.1:8000",
         "45.87.219.3:8000",
         "45.135.234.137:8000",
