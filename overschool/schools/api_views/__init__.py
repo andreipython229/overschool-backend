@@ -16,3 +16,4 @@ from .userDomain import (
     DomainViewSet,
     UnconfiguredDomainViewSet,
 )
+from .school_newsletter import NewsletterTemplateViewSet

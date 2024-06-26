@@ -9,6 +9,9 @@ REDIS_PORT = env("REDIS_PORT")
 
 huey = RedisHuey(url=f"redis://{REDIS_HOST}:{REDIS_PORT}/2")
 
+EMAIL_NAME = env.str("EMAIL_NAME")
+EMAIL_PASSWORD = env.str("EMAIL_PASSWORD")
+
 S3_SECRET_KEY = env.str("S3_SECRET_KEY")
 S3_ACCESS_KEY = env.str("S3_ACCESS_KEY")
 REGION_NAME = env.str("REGION_NAME")

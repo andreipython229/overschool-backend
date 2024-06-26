@@ -436,7 +436,6 @@ class CourseViewSet(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
             date_added=Subquery(subquery_date_added),
-            date_removed=Subquery(subquery_date_removed),
         )
 
         filtered_active_students = queryset.count()
