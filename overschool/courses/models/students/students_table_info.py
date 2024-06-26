@@ -1,5 +1,5 @@
-from django.db import models
 from common_services.mixins import AuthorMixin
+from django.db import models
 from schools.models import School
 
 
@@ -15,6 +15,7 @@ def get_default_students_table_info():
         {"id": 8, "order": 8, "name": "Дата добавления в группу", "checked": False},
         {"id": 9, "order": 9, "name": "Дата удаления из группы", "checked": False},
         {"id": 10, "order": 10, "name": "Прогресс", "checked": False},
+        {"id": 11, "order": 11, "name": "Номер телефона", "checked": False},
     ]
 
 

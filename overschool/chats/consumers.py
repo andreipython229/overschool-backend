@@ -1,10 +1,11 @@
 import json
 import uuid
+from urllib.parse import parse_qs
 
-import jwt
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import F
@@ -13,7 +14,6 @@ from users.models import User
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 
-from channels.layers import get_channel_layer
 channel_layer = get_channel_layer()
 
 
@@ -39,9 +39,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         with transaction.atomic():
             UserChat.objects.filter(chat=chat,).exclude(
                 user__in=self.connected_users_by_group.get(self.room_group_name, [])
-            ).update(
-                unread_messages_count=F("unread_messages_count") + 1
-            )
+            ).update(unread_messages_count=F("unread_messages_count") + 1)
             message = Message.objects.create(chat=chat, sender=user, content=message)
 
         return message.id
@@ -53,32 +51,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def set_room_group_name(self):
         self.room_group_name = f"chat_{self.chat_uuid}"
 
-    async def get_user_id_from_token(self, token):
-        decoded_token = jwt.decode(token, options={"verify_signature": False})
-        return decoded_token["sub"]
-
-    def get_token_from_headers(self):
-        headers = self.scope["headers"]
-        token = None
-        for head in headers:
-            if head[0] == b"cookie":
-                cookies = head[1].decode("utf-8")
-                cookies_list = cookies.split(";")
-                for cookie in cookies_list:
-                    if "access_token" in cookie:
-                        token = cookie.replace("access_token=", "")
-        if token is None:
-            raise DenyConnection(CustomResponses.invalid_cookie)
-        return token
-
     async def connect(self):
         self.chat_uuid = self.scope["url_route"]["kwargs"]["room_name"]
         self.chat = await self.is_chat_exist(self.chat_uuid)
         if self.chat is False:
             raise DenyConnection(CustomResponses.chat_not_exist)
 
-        self.token = self.get_token_from_headers()
-        user_id = await self.get_user_id_from_token(self.token)
+        query_string = self.scope["query_string"].decode()
+        query_params = parse_qs(query_string)
+
+        # Получаем user_id из параметров запроса
+        user_id = query_params.get("user_id", [None])[0]
+        print("user_id: ", user_id)
         if user_id is None:
             raise DenyConnection(CustomResponses.invalid_cookie)
 
@@ -115,8 +99,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Сбрасываем счетчик непрочитанных сообщений для данного пользователя и чата
         try:
             user_chat = await database_sync_to_async(UserChat.objects.get)(
-                user=self.user,
-                chat=self.chat
+                user=self.user, chat=self.chat
             )
             if user_chat.unread_messages_count > 0:
                 user_chat.unread_messages_count = 0

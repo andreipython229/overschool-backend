@@ -1,6 +1,6 @@
 import json
+from urllib.parse import parse_qs
 
-import jwt
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -15,24 +15,6 @@ from users.models import User
 class InfoConsumers(AsyncWebsocketConsumer):
     connected_users = []
 
-    async def get_user_id_from_token(self, token):
-        decoded_token = jwt.decode(token, options={"verify_signature": False})
-        return decoded_token["sub"]
-
-    def get_token_from_headers(self):
-        headers = self.scope["headers"]
-        token = None
-        for head in headers:
-            if head[0] == b"cookie":
-                cookies = head[1].decode("utf-8")
-                cookies_list = cookies.split(";")
-                for cookie in cookies_list:
-                    if "access_token" in cookie:
-                        token = cookie.replace("access_token=", "")
-        if token is None:
-            raise DenyConnection({"error": "token error"})
-        return token
-
     @database_sync_to_async
     def get_total_unread_count(self, user):
         unread_count = UserChat.objects.filter(
@@ -41,8 +23,11 @@ class InfoConsumers(AsyncWebsocketConsumer):
         return unread_count
 
     async def connect(self):
-        self.token = self.get_token_from_headers()
-        user_id = await self.get_user_id_from_token(self.token)
+        query_string = self.scope["query_string"].decode()
+        query_params = parse_qs(query_string)
+
+        # Получаем user_id из параметров запроса
+        user_id = query_params.get("user_id", [None])[0]
         if user_id is None:
             raise DenyConnection({"error": "user_id is None"})
 

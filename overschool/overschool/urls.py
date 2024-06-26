@@ -146,7 +146,7 @@ urlpatterns = [
     ),
     path(
         "api/logout/",
-        LogoutView.as_view(actions={"post": "post"}),
+        LogoutView.as_view(actions={"get": "get"}),
         name="logout",
     ),
     path(
