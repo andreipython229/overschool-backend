@@ -293,8 +293,9 @@ class StudentsGroupViewSet(
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
-                | Q(phone_number__icontains=cleaned_phone)
             )
+            if cleaned_phone:
+                students = students.filter(phone_number__icontains=cleaned_phone)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -380,6 +381,7 @@ class StudentsGroupViewSet(
             "first_name",
             "last_name",
             "email",
+            "phone_number",
             "date_joined",
             "last_login",
             "mark_sum",
@@ -493,6 +495,7 @@ class StudentsGroupViewSet(
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -521,6 +524,7 @@ class StudentsGroupViewSet(
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -547,6 +551,7 @@ class StudentsGroupViewSet(
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -595,8 +600,9 @@ class StudentsGroupViewSet(
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
-                | Q(phone_number__icontains=cleaned_phone)
             )
+            if cleaned_phone:
+                students = students.filter(phone_number__icontains=cleaned_phone)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -670,6 +676,7 @@ class StudentsGroupViewSet(
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
+                    "phone_number": student.phone_number,
                     "school_name": school.name,
                     "avatar": serializer.data["avatar"],
                     "last_active": student.date_joined,
@@ -680,12 +687,6 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "progress": get_student_progress(
-                        student.id, group.course_id, group
-                    ),
-                    "date_added": students_history.date_added
-                    if students_history
-                    else None,
                     "progress": get_student_progress(
                         student.id, group.course_id, group.group_id
                     ),

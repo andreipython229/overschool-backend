@@ -323,9 +323,12 @@ class CourseViewSet(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
-                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
             )
+            if cleaned_phone:
+                queryset = queryset.filter(
+                    students__phone_number__icontains=cleaned_phone
+                )
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -421,6 +424,7 @@ class CourseViewSet(
             "students__date_joined",
             "students__last_login",
             "students__email",
+            "students__phone_number",
             "students__first_name",
             "students__id",
             "students__profile__avatar",
@@ -538,6 +542,7 @@ class CourseViewSet(
                                 "last_active": item["students__date_joined"],
                                 "last_login": item["students__last_login"],
                                 "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
                                 "avatar": serializer.data["avatar"],
@@ -568,6 +573,7 @@ class CourseViewSet(
                                 "last_active": item["students__date_joined"],
                                 "last_login": item["students__last_login"],
                                 "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
                                 "avatar": serializer.data["avatar"],
@@ -596,6 +602,7 @@ class CourseViewSet(
                             "last_active": item["students__date_joined"],
                             "last_login": item["students__last_login"],
                             "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
                             "avatar": serializer.data["avatar"],
@@ -624,6 +631,7 @@ class CourseViewSet(
                             "last_active": item["students__date_joined"],
                             "last_login": item["students__last_login"],
                             "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
                             "avatar": serializer.data["avatar"],
@@ -680,9 +688,10 @@ class CourseViewSet(
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
-                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
             )
+            if cleaned_phone:
+                queryset = queryset.filter(students__phone_number=cleaned_phone)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -777,6 +786,7 @@ class CourseViewSet(
             "students__date_joined",
             "students__last_login",
             "students__email",
+            "students__phone_number",
             "students__first_name",
             "students__id",
             "students__profile__avatar",
@@ -800,6 +810,7 @@ class CourseViewSet(
                     "first_name": item["students__first_name"],
                     "last_name": item["students__last_name"],
                     "email": item["students__email"],
+                    "phone_number": item["students__phone_number"],
                     "course_name": item["course_id__name"],
                     "group_name": item["name"],
                     "last_active": item["students__date_joined"],

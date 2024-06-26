@@ -342,18 +342,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
-                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
+            if cleaned_phone:
+                queryset = queryset.filter(
+                    Q(students__phone_number__icontains=cleaned_phone)
+                )
             deleted_history_queryset = deleted_history_queryset.filter(
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
-                | Q(user_id__phone_number__icontains=cleaned_phone)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )
+            if cleaned_phone:
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    Q(user_id__phone_number__icontains=cleaned_phone)
+                )
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -499,6 +505,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "students__date_joined",
             "students__last_login",
             "students__email",
+            "students__phone_number",
             "students__first_name",
             "students__id",
             "students__profile__avatar",
@@ -520,6 +527,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 students__date_joined=F("user_id__date_joined"),
                 students__last_login=F("user_id__last_login"),
                 students__email=F("user_id__email"),
+                students__phone_number=F("user_id__phone_number"),
                 students__first_name=F("user_id__first_name"),
                 students__id=F("user_id"),
                 students__profile__avatar=F("user_id__profile__avatar"),
@@ -643,6 +651,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "last_active": item["students__date_joined"],
                                 "last_login": item["students__last_login"],
                                 "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
                                 "avatar": serializer.data["avatar"],
@@ -678,6 +687,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "last_active": item["students__date_joined"],
                                 "last_login": item["students__last_login"],
                                 "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
                                 "avatar": serializer.data["avatar"],
@@ -711,6 +721,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "last_active": item["students__date_joined"],
                             "last_login": item["students__last_login"],
                             "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
                             "avatar": serializer.data["avatar"],
@@ -775,18 +786,24 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
-                | Q(students__phone_number__icontains=cleaned_phone)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
+            if cleaned_phone:
+                queryset = queryset.filter(
+                    Q(students__phone_number__icontains=cleaned_phone)
+                )
             deleted_history_queryset = deleted_history_queryset.filter(
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
-                | Q(user_id__phone_number__icontains=cleaned_phone)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )
+            if cleaned_phone:
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    Q(user_id__phone_number__icontains=cleaned_phone)
+                )
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -920,6 +937,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "students__date_joined",
             "students__last_login",
             "students__email",
+            "students__phone_number",
             "students__first_name",
             "students__id",
             "students__profile__avatar",
@@ -944,6 +962,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "group_id": item["group_id"],
                     "last_active": item["students__date_joined"],
                     "email": item["students__email"],
+                    "phone_number": item["students__phone_number"],
                     "first_name": item["students__first_name"],
                     "student_id": item["students__id"],
                     "last_name": item["students__last_name"],
@@ -982,6 +1001,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "user_id__date_joined",
             "user_id__email",
             "user_id__first_name",
+            "user_id__phone_number",
             "user_id",
             "user_id__profile__avatar",
             "user_id__last_name",
@@ -1004,6 +1024,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     "group_id": item["students_group_id"],
                     "last_active": item["user_id__date_joined"],
                     "email": item["user_id__email"],
+                    "phone_number": item["user_id__phone_number"],
                     "first_name": item["user_id__first_name"],
                     "student_id": item["user_id"],
                     "last_name": item["user_id__last_name"],
