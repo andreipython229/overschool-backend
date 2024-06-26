@@ -40,7 +40,7 @@ services:
 #    restart: always
   nginx:
     image: nginx:stable
-    container_name: nginxConf
+    container_name: nginx
     restart: always
     ports:
       - "80:80"
