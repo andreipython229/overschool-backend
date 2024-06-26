@@ -319,16 +319,18 @@ class CourseViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            queryset = queryset.filter(
+
+            query = (
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
                 | Q(name__icontains=search_value)
             )
+
             if cleaned_phone:
-                queryset = queryset.filter(
-                    students__phone_number__icontains=cleaned_phone
-                )
+                query |= Q(students__phone_number__icontains=cleaned_phone)
+
+            queryset = queryset.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -684,14 +686,18 @@ class CourseViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            queryset = queryset.filter(
+
+            query = (
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
                 | Q(name__icontains=search_value)
             )
+
             if cleaned_phone:
-                queryset = queryset.filter(students__phone_number=cleaned_phone)
+                query |= Q(students__phone_number=cleaned_phone)
+
+            queryset = queryset.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")

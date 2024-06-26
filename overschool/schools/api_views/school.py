@@ -338,28 +338,36 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            queryset = queryset.filter(
+
+            query = (
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
+
             if cleaned_phone:
-                queryset = queryset.filter(
-                    Q(students__phone_number__icontains=cleaned_phone)
-                )
-            deleted_history_queryset = deleted_history_queryset.filter(
+                query |= Q(students__phone_number__icontains=cleaned_phone)
+
+            queryset = queryset.filter(query)
+
+            deleted_history_query = (
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )
+
             if cleaned_phone:
-                deleted_history_queryset = deleted_history_queryset.filter(
-                    Q(user_id__phone_number__icontains=cleaned_phone)
+                deleted_history_query |= Q(
+                    user_id__phone_number__icontains=cleaned_phone
                 )
+
+            deleted_history_queryset = deleted_history_queryset.filter(
+                deleted_history_query
+            )
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -782,28 +790,36 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            queryset = queryset.filter(
+
+            query = (
                 Q(students__first_name__icontains=search_value)
                 | Q(students__last_name__icontains=search_value)
                 | Q(students__email__icontains=search_value)
                 | Q(name__icontains=search_value)
                 | Q(course_id__name__icontains=search_value)
             )
+
             if cleaned_phone:
-                queryset = queryset.filter(
-                    Q(students__phone_number__icontains=cleaned_phone)
-                )
-            deleted_history_queryset = deleted_history_queryset.filter(
+                query |= Q(students__phone_number__icontains=cleaned_phone)
+
+            queryset = queryset.filter(query)
+
+            deleted_history_query = (
                 Q(user_id__first_name__icontains=search_value)
                 | Q(user_id__last_name__icontains=search_value)
                 | Q(user_id__email__icontains=search_value)
                 | Q(students_group_id__name__icontains=search_value)
                 | Q(students_group_id__course_id__name__icontains=search_value)
             )
+
             if cleaned_phone:
-                deleted_history_queryset = deleted_history_queryset.filter(
-                    Q(user_id__phone_number__icontains=cleaned_phone)
+                deleted_history_query |= Q(
+                    user_id__phone_number__icontains=cleaned_phone
                 )
+
+            deleted_history_queryset = deleted_history_queryset.filter(
+                deleted_history_query
+            )
 
         # Фильтры
         first_name = self.request.GET.get("first_name")

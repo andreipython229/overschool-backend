@@ -289,13 +289,17 @@ class StudentsGroupViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            students = students.filter(
+
+            query = (
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
             )
+
             if cleaned_phone:
-                students = students.filter(phone_number__icontains=cleaned_phone)
+                query |= Q(phone_number__icontains=cleaned_phone)
+
+            students = students.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -596,13 +600,17 @@ class StudentsGroupViewSet(
         search_value = self.request.GET.get("search_value")
         if search_value:
             cleaned_phone = re.sub(r"\D", "", search_value)
-            students = students.filter(
+
+            query = (
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
             )
+
             if cleaned_phone:
-                students = students.filter(phone_number__icontains=cleaned_phone)
+                query |= Q(phone_number__icontains=cleaned_phone)
+
+            students = students.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
