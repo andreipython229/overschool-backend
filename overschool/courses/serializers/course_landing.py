@@ -14,6 +14,7 @@ from courses.models import (
 from rest_framework import serializers
 
 from .students_group import GroupsInCourseSerializer
+from .utils import update_block_cards
 
 s3 = UploadToS3()
 
@@ -91,6 +92,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "photoBackground": photo_url,
             "name": obj.course.name,
             "description": obj.course.description,
+            "contact_link": obj.course.school.contact_link,
         }
 
     def get_stats_block(self, obj):
@@ -121,41 +123,6 @@ class LandingGetSerializer(serializers.ModelSerializer):
         }
 
     def get_training_program_block(self, obj):
-        # sections_dict = {}
-        # for section in obj.course.sections.all():
-        #     lessons = []
-        #     for lesson in section.lessons.all():
-        #         lessons.append(lesson.name)
-        #     sections_dict[section.name] = lessons
-
-
-
-        # sections_list = []
-        # for section in obj.course.sections.all():
-        #     lessons = []
-        #     for lesson in section.lessons.all():
-        #         lessons.append({
-        #             "lesson_id": lesson.id,
-        #             "section": lesson.section,
-        #             "name": lesson.name,
-        #             "order": lesson.order,
-        #             "author_id": lesson.author_id,
-        #             # "description": lesson.description,
-        #             # "video": lesson.video,
-        #             "points": lesson.points,
-        #             "type": lesson.type,
-        #             "all_components": lesson.all_components,
-        #             "active": lesson.active,
-        #             "lessonChecked": lesson.lessonChecked,
-        #         })
-        #
-        #     sections_list.append({
-        #         "section_id": section.section_id,
-        #         "course": section.course,
-        #         "name": section.name,
-        #         "order": section.order,
-        #         "lessons": lessons,
-        #     })
         return {
             "id": obj.training_program.position,
             "content": "trainingProgram",
@@ -296,60 +263,10 @@ class AudienceSerializer(serializers.ModelSerializer):
         chips_data = validated_data.pop('chips', [])
         instance = super().update(instance, validated_data)
 
-        # Обновление вложенных данных BlockCards
-        chips_objs = []
-        for chip_data in chips_data:
-            chip_id = chip_data.get('id')
-            if not (chip_id == -1):
-                chip, _ = BlockCards.objects.update_or_create(
-                            id=chip_id,
-                            audienceblock=instance,
-                            defaults={
-                                'title': chip_data.get('title'),
-                                'description': chip_data.get('description'),
-                                # 'photo': chip_data.get('photo'),
-                                'position': chip_data.get('position'),
-                            }
-                )
-            else:
-                try:
-                    chip = BlockCards.objects.get(position=chip_data.get('position'))
-                    chip.title = chip_data.get('title', chips_data.title)
-                    chip.description = chip_data.get('description', chips_data.description)
-                    # chip.photo = chip_data.get('photo', chips_data.photo)
-                    chip.position = chip_data.get('position', chips_data.position)
-                    chip.save()
-                except:
-                    chip = BlockCards.objects.create(
-                        title=chip_data.get('title'),
-                        description=chip_data.get('description'),
-                        # photo=chip_data.get('photo'),
-                        position=chip_data.get('position'),
-                    )
-            # if chip_id == -1:
-            #     chip = BlockCards.objects.get(position=chip_data.get('position'))
-            #     if not chip:
-            #         chip = BlockCards.objects.create(
-            #             title=chip_data.get('title'),
-            #             description=chip_data.get('description'),
-            #             photo=chip_data.get('photo'),
-            #             position=chip_data.get('position'),
-            #         )
-            # else:
-            #     chip, _ = BlockCards.objects.update_or_create(
-            #         id=chip_id,
-            #         audienceblock=instance,
-            #         defaults={
-            #             'title': chip_data.get('title'),
-            #             'description': chip_data.get('description'),
-            #             'photo': chip_data.get('photo'),
-            #             'position': chip_data.get('position'),
-            #         }
-            #     )
-            chips_objs.append(chip)
-
-        instance.chips.set(chips_objs)
-        instance.save()
+        # Обновление вложенных данных модели BlockCards
+        update_block_cards(instance=instance,
+                           chips_data=chips_data,
+                           s3=s3)
 
         return instance
 
@@ -388,31 +305,9 @@ class TrainingPurposeSerializer(serializers.ModelSerializer):
         chips_data = validated_data.pop('chips', [])
         instance = super().update(instance, validated_data)
 
-        # Обновление вложенных данных BlockCards
-        chips_objs = []
-        for chip_data in chips_data:
-            chip_id = chip_data.get('id')
-            if chip_id == -1:
-                chip = BlockCards.objects.create(
-                    title=chip_data.get('title'),
-                    description=chip_data.get('description'),
-                    photo=chip_data.get('photo'),
-                    position=chip_data.get('position'),
-                )
-            else:
-                chip, _ = BlockCards.objects.update_or_create(
-                    id=chip_data.get('id'),
-                    trainingpurpose=instance,
-                    defaults={
-                        'title': chip_data.get('title'),
-                        'description': chip_data.get('description'),
-                        'photo': chip_data.get('photo'),
-                        'position': chip_data.get('position'),
-                    }
-                )
-            chips_objs.append(chip)
-
-        instance.chips.set(chips_objs)
-        instance.save()
+        # Обновление вложенных данных модели BlockCards
+        update_block_cards(instance=instance,
+                           chips_data=chips_data,
+                           s3=s3)
 
         return instance

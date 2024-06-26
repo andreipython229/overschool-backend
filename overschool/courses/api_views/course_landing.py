@@ -190,6 +190,22 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                     )
                     self.perform_update(block_card_serializer)
 
+            # если есть изображения карточек блока "Целей обучения"
+            photo_trainingPurpose_keys = [key for key in photo_keys if key.startswith('photo_trainingPurpose_')]
+            if photo_trainingPurpose_keys:
+                for key in photo_trainingPurpose_keys:
+                    # Извлекаем число из ключа
+                    position = int(key.split('_')[-1])
+                    chip = instance.training_purpose.chips.get(position=position)
+                    block_card_serializer = BlockCardsPhotoSerializer(chip, data={}, partial=partial)
+                    block_card_serializer.is_valid(raise_exception=True)
+                    if chip.photo:
+                        s3.delete_file(str(chip.photo))
+                    block_card_serializer.validated_data["photo"] = s3.upload_course_landing_images(
+                        request.FILES[key], instance.course
+                    )
+                    self.perform_update(block_card_serializer)
+
         # формируем обновлённую пачку данных по лендингу для возврата
         inst = CourseLanding.objects.get(course__course_id=course_id)
         srlzr = LandingGetSerializer(inst)
