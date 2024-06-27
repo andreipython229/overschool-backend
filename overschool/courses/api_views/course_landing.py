@@ -129,6 +129,9 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
             course_serializer = CourseInfoSerializer(instance.course,
                                                      data=converted_data["course"],
                                                      partial=partial)
+            stats_serializer = StatsGetSerializer(instance.stats,
+                                       data=converted_data["stats"],
+                                       partial=partial)
             audience_serializer = AudienceSerializer(instance.audience,
                                                      data=converted_data["audience"],
                                                      partial=partial)
@@ -140,12 +143,14 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                                                                     partial=partial)
             header_serializer.is_valid(raise_exception=True)
             course_serializer.is_valid(raise_exception=True)
+            stats_serializer.is_valid(raise_exception=True)
             audience_serializer.is_valid(raise_exception=True)
             training_program_serializer.is_valid(raise_exception=True)
             training_purpose_serializer.is_valid(raise_exception=True)
 
             self.perform_update(header_serializer)
             self.perform_update(course_serializer)
+            self.perform_update(stats_serializer)
             self.perform_update(audience_serializer)
             self.perform_update(training_program_serializer)
             self.perform_update(training_purpose_serializer)
