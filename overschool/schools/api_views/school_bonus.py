@@ -86,13 +86,12 @@ class BonusViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        bonus = serializer.save(school=school, active=False)
-
         if request.FILES.get("logo"):
-            logo = s3.upload_school_image(request.FILES["logo"], school)
-            bonus.logo = logo
-            bonus.save()
+            serializer.validated_data["logo"] = s3.upload_school_image(
+                request.FILES["logo"], school.school_id
+            )
 
+        bonus = serializer.save(school=school, active=False)
         serializer = BonusGetSerializer(bonus)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -119,7 +118,7 @@ class BonusViewSet(
             if instance.logo:
                 s3.delete_file(str(instance.logo))
             serializer.validated_data["logo"] = s3.upload_school_image(
-                request.FILES["logo"], instance.school
+                request.FILES["logo"], instance.school.school_id
             )
         else:
             serializer.validated_data["logo"] = instance.logo
