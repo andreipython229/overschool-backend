@@ -21,6 +21,8 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from schools.api_views import SchoolTasksViewSet
 from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
@@ -42,15 +44,17 @@ from users.api_views import (
 from .main_router import (
     appeal_router,
     catalogs_router,
+    notifications_router,
     router,
     school_router,
     user_router,
     videos_router,
-    tg_notifications_router
 )
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path(
         "api/<str:school_name>/all_users/",
         AllUsersViewSet.as_view(actions={"get": "list"}),
@@ -60,6 +64,11 @@ urlpatterns = [
         "api/<str:school_name>/current_tariff/",
         TariffSchoolOwner.as_view(actions={"get": "get"}),
         name="current_tariff",
+    ),
+    path(
+        "api/<str:school_name>/school_tasks/",
+        SchoolTasksViewSet.as_view(actions={"get": "get"}),
+        name="school_tasks",
     ),
     path(
         "api/register_user/",
@@ -169,7 +178,7 @@ urlpatterns = [
     path("video/<str:school_name>/", include(videos_router.urls)),
     path("api/<str:school_name>/", include(router.urls)),
     path("api/<str:school_name>/", include(appeal_router.urls)),
-    path("api/tg_notification/", include(tg_notifications_router.urls)),
+    path("api/tg_notification/", include(notifications_router.urls)),
     re_path(
         r"^account-confirm-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),

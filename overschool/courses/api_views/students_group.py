@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 import pytz
@@ -28,7 +29,17 @@ from courses.serializers import (
 from courses.services import get_student_progress, progress_subquery
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.db.models import Avg, Count, F, Q, Sum, OuterRef, Subquery, DateTimeField, FloatField
+from django.db.models import (
+    Avg,
+    Count,
+    DateTimeField,
+    F,
+    FloatField,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+)
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -268,7 +279,7 @@ class StudentsGroupViewSet(
         sort_by = request.GET.get("sort_by", "date_added")
         sort_order = request.GET.get("sort_order", "desc")
         default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
-        fields = self.request.GET.getlist('fields')
+        fields = self.request.GET.getlist("fields")
         if user.groups.filter(group__name="Teacher", school=school).exists():
             if group.teacher_id == user:
                 students = group.students.all()
@@ -277,11 +288,18 @@ class StudentsGroupViewSet(
 
         search_value = self.request.GET.get("search_value")
         if search_value:
-            students = students.filter(
+            cleaned_phone = re.sub(r"\D", "", search_value)
+
+            query = (
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
             )
+
+            if cleaned_phone:
+                query |= Q(phone_number__icontains=cleaned_phone)
+
+            students = students.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -352,9 +370,11 @@ class StudentsGroupViewSet(
             .values("avg")
         )
 
-        subquery_date_added = StudentsHistory.objects.filter(
-            user_id=OuterRef('pk')
-        ).order_by('date_added').values('date_added')[:1]
+        subquery_date_added = (
+            StudentsHistory.objects.filter(user_id=OuterRef("pk"))
+            .order_by("date_added")
+            .values("date_added")[:1]
+        )
 
         students = students.annotate(
             mark_sum=Subquery(subquery_mark_sum),
@@ -365,6 +385,7 @@ class StudentsGroupViewSet(
             "first_name",
             "last_name",
             "email",
+            "phone_number",
             "date_joined",
             "last_login",
             "mark_sum",
@@ -372,7 +393,7 @@ class StudentsGroupViewSet(
             "date_added",
         )
 
-        if sort_by == 'progress':
+        if sort_by == "progress":
             for student in students:
                 user_id = student["id"]
                 course_id = group.course_id
@@ -382,7 +403,7 @@ class StudentsGroupViewSet(
                 else:
                     progress = None
 
-                student['progress'] = progress
+                student["progress"] = progress
 
         # Сортировка
         if sort_by in [
@@ -462,22 +483,23 @@ class StudentsGroupViewSet(
 
             student_data = []
             for student in paginated_data:
-                profile = Profile.objects.get(user_id=student['id'])
+                profile = Profile.objects.get(user_id=student["id"])
                 serializer = UserProfileGetSerializer(
                     profile, context={"request": self.request}
                 )
 
-                if 'Прогресс' in fields and sort_by != 'progress':
+                if "Прогресс" in fields and sort_by != "progress":
                     student_data.append(
                         {
                             "course_id": group.course_id.course_id,
                             "course_name": group.course_id.name,
                             "group_id": group.group_id,
                             "group_name": group.name,
-                            "student_id": student['id'],
+                            "student_id": student["id"],
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -489,21 +511,24 @@ class StudentsGroupViewSet(
                             ),
                             "date_added": student["date_added"],
                             "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                                chat_creator=user, reciever=student["id"], type="PERSONAL"
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
                             ),
                         }
                     )
-                elif sort_by == 'progress':
+                elif sort_by == "progress":
                     student_data.append(
                         {
                             "course_id": group.course_id.course_id,
                             "course_name": group.course_id.name,
                             "group_id": group.group_id,
                             "group_name": group.name,
-                            "student_id": student['id'],
+                            "student_id": student["id"],
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -513,7 +538,9 @@ class StudentsGroupViewSet(
                             "progress": student["progress"],
                             "date_added": student["date_added"],
                             "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                                chat_creator=user, reciever=student["id"], type="PERSONAL"
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
                             ),
                         }
                     )
@@ -524,10 +551,11 @@ class StudentsGroupViewSet(
                             "course_name": group.course_id.name,
                             "group_id": group.group_id,
                             "group_name": group.name,
-                            "student_id": student['id'],
+                            "student_id": student["id"],
                             "first_name": student["first_name"],
                             "last_name": student["last_name"],
                             "email": student["email"],
+                            "phone_number": student["phone_number"],
                             "school_name": school.name,
                             "avatar": serializer.data["avatar"],
                             "last_active": student["date_joined"],
@@ -536,16 +564,18 @@ class StudentsGroupViewSet(
                             "average_mark": student["average_mark"],
                             "date_added": student["date_added"],
                             "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                                chat_creator=user, reciever=student["id"], type="PERSONAL"
+                                chat_creator=user,
+                                reciever=student["id"],
+                                type="PERSONAL",
                             ),
                         }
                     )
 
             pagination_data = {
-                'count': paginator.page.paginator.count,
-                'next': paginator.get_next_link(),
-                'previous': paginator.get_previous_link(),
-                'results': student_data,
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": student_data,
             }
             return Response(pagination_data)
         else:
@@ -569,11 +599,18 @@ class StudentsGroupViewSet(
 
         search_value = self.request.GET.get("search_value")
         if search_value:
-            students = students.filter(
+            cleaned_phone = re.sub(r"\D", "", search_value)
+
+            query = (
                 Q(first_name__icontains=search_value)
                 | Q(last_name__icontains=search_value)
                 | Q(email__icontains=search_value)
             )
+
+            if cleaned_phone:
+                query |= Q(phone_number__icontains=cleaned_phone)
+
+            students = students.filter(query)
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
@@ -647,6 +684,7 @@ class StudentsGroupViewSet(
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
+                    "phone_number": student.phone_number,
                     "school_name": school.name,
                     "avatar": serializer.data["avatar"],
                     "last_active": student.date_joined,
@@ -657,12 +695,6 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "progress": get_student_progress(
-                        student.id, group.course_id, group
-                    ),
-                    "date_added": students_history.date_added
-                    if students_history
-                    else None,
                     "progress": get_student_progress(
                         student.id, group.course_id, group.group_id
                     ),
