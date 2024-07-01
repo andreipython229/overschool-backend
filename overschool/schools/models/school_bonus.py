@@ -17,6 +17,7 @@ class Bonus(models.Model):
         help_text="Логотип акции",
         validators=[limit_image_size],
         upload_to=TruncateFileName(300),
+        max_length=300,
         blank=True,
         null=True,
     )
