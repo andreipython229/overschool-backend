@@ -1,5 +1,5 @@
 from ..models import TgUsers
-from ..views import BotNotifications
+from ..api_views import BotNotifications
 from .notifications import CheckNotification
 from users.models import User
 from chats.models import Message

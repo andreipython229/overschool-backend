@@ -1,5 +1,8 @@
 from rest_framework import serializers
+
+from courses.models.students.students_group import StudentsGroup
 from .models import TgUsers, Notifications
+from tg_notifications.models import MeetingsRemindersTG
 
 
 class TgUsersSerializer(serializers.ModelSerializer):
@@ -16,10 +19,11 @@ class NotificationsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# class MeetingsRemindersSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = MeetingsRemindersTG
-#         fields = '__all__'
+class MeetingsRemindersSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MeetingsRemindersTG
+        fields = '__all__'
 
 
 class SendMessageSerializer(serializers.Serializer):

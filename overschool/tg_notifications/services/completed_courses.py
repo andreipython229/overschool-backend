@@ -2,7 +2,7 @@ from ..models import TgUsers
 from schools.models import School
 from users.models import User
 from ..models.completed_couses_notifications_log import CompletedCoursesNotificationsLog
-from ..views import BotNotifications
+from ..api_views.bot import BotNotifications
 from .notifications import CheckNotification
 
 
