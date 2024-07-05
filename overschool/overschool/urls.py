@@ -71,7 +71,7 @@ urlpatterns = [
         name="school_tasks",
     ),
     path(
-        "referral/<uuid:referral_code>/",
+        "api/referral/<uuid:referral_code>/",
         ReferralClickRedirectView.as_view(),
         name="referral-click-redirect",
     ),
