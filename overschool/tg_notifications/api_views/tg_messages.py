@@ -1,61 +1,15 @@
-import telebot
-import os
-
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework import viewsets
 
+from schools.models import School
 from courses.models.courses.course import Course
 from courses.models.students.students_group import StudentsGroup
-from .models import Notifications, TgUsers
-from .serializers import NotificationsSerializer, SendMessageSerializer
-from schools.models import School
-from django.utils import timezone
-
-
-bot_token = os.environ.get('TG_BOT_TOKEN')
-bot = telebot.TeleBot(bot_token)
-
-
-class BotNotifications:
-
-    @staticmethod
-    def send_notifications(tg_user_id, notifications):
-        bot.send_message(
-            chat_id=tg_user_id,
-            text=notifications
-        )
-
-
-class NotificationsViewSet(viewsets.ModelViewSet):
-    serializer_class = NotificationsSerializer
-
-    def get_queryset(self, *args, **kwargs):
-        if getattr(self, "swagger_fake_view", False):
-            return (
-                TgUsers.objects.none()
-            )
-        user = self.request.user
-        queryset = Notifications.objects.filter(tg_user_id__user_id=user)
-        return queryset
-
-    class Meta:
-        model = Notifications
-
-
-# class MeetingsRemindersViewSet(viewsets.ModelViewSet):
-#     queryset = MeetingsRemindersTG.objects.all()
-#     serializer_class = MeetingsRemindersSerializer
-#
-#     def perform_create(self, serializer):
-#         from .tasks import schedule_reminders
-#         reminder = serializer.save()
-#         print("Reminder ID:", reminder.id)
-#         schedule_reminders.apply_async((reminder.id,), eta=timezone.now())
-#         print("Task scheduled successfully")
+from ..models import TgUsers
+from ..serializers import SendMessageSerializer
+from .bot import BotNotifications
 
 
 class SendMessageViewSet(viewsets.GenericViewSet):
@@ -92,5 +46,3 @@ class SendMessageViewSet(viewsets.GenericViewSet):
         else:
             return Response({'status': 'error', 'message': 'Укажите сообщение и группу/ы'},
                             status=status.HTTP_400_BAD_REQUEST)
-
-
