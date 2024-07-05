@@ -1,4 +1,4 @@
-from ..views import BotNotifications
+from ..api_views.bot import BotNotifications
 from .notifications import CheckNotification
 from ..models import TgUsers
 

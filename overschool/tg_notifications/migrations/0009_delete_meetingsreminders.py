@@ -6,11 +6,11 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tg_notifications", "0008_meetingsreminders"),
+        ("tg_notifications", "0008_meetingsreminderstg"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name="MeetingsReminders",
+            name="MeetingsRemindersTG",
         ),
     ]
