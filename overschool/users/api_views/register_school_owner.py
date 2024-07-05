@@ -32,6 +32,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         utm_campaign = request.data.get("utm_campaign", None)
         utm_term = request.data.get("utm_term", None)
         utm_content = request.data.get("utm_content", None)
+        referral_code = kwargs.get("referral_code")
 
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
@@ -47,8 +48,9 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         if School.objects.filter(name=school_name).exists():
             return HttpResponse("Название школы уже существует.", status=400)
 
-        serializer = self.get_serializer(data=request.data)
-
+        serializer = self.get_serializer(
+            data=request.data, context={"referral_code": referral_code}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 

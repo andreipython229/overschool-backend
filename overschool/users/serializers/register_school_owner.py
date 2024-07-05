@@ -2,7 +2,14 @@ from django.contrib.auth.models import Group
 from django.utils import timezone
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
-from schools.models import School, SchoolDocuments, SchoolHeader, Tariff, TariffPlan
+from schools.models import (
+    Referral,
+    School,
+    SchoolDocuments,
+    SchoolHeader,
+    Tariff,
+    TariffPlan,
+)
 from transliterate import translit
 from users.models import User
 
@@ -15,6 +22,9 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
     password_confirmation = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
+        referral_code = self.context.get("referral_code")
+        if referral_code:
+            attrs["referral_code"] = referral_code
         if not attrs.get("email"):
             raise serializers.ValidationError("'email' обязателеное поле.")
         if not attrs.get("phone_number"):
@@ -31,6 +41,7 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
     def create(self, validated_data):
         # Извлекаем school_name из validated_data
         school_name = validated_data.pop("school_name")
+        referral_code = validated_data.pop("referral_code", None)
 
         # Создаем пользователя и связываем его с школой
         validated_data.pop("password_confirmation")
@@ -48,6 +59,13 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         )
 
         school.save()
+
+        # Создаем запись реферрала, если указан реферральный код
+        if referral_code:
+            referrer_school = School.objects.get(referral_code=referral_code)
+            Referral.objects.create(
+                referrer_school=referrer_school, referred_school=school
+            )
 
         if school:
             school_header = SchoolHeader(school=school, name=school.name)

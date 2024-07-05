@@ -1,3 +1,5 @@
+import uuid
+
 from common_services.mixins import OrderMixin, TimeStampMixin
 from django.apps import apps
 from django.contrib.auth import get_user_model
@@ -24,6 +26,7 @@ class Tariff(models.Model):
         verbose_name="ID тарифа",
         help_text="Уникальный идентификатор тарифа",
     )
+
     name = models.CharField(
         max_length=10, choices=TariffPlan.choices, default=TariffPlan.JUNIOR
     )
@@ -75,6 +78,13 @@ class School(TimeStampMixin, OrderMixin):
         editable=False,
         verbose_name="ID школы",
         help_text="Уникальный идентификатор школы",
+    )
+    referral_code = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        verbose_name="Реферальный код",
+        help_text="Уникальный реферальный код школы",
     )
     name = models.CharField(
         max_length=256,

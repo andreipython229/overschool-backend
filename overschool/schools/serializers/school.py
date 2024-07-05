@@ -29,6 +29,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "updated_at",
             "offer_url",
             "contact_link",
+            "referral_code",
         ]
         read_only_fields = [
             "order",
@@ -36,6 +37,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
@@ -62,6 +64,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
             "created_at",
             "updated_at",
             "offer_url",
@@ -73,6 +76,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
@@ -102,6 +106,7 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "owner",
             "offer_url",
             "contact_link",
+            "referral_code",
         ]
 
 

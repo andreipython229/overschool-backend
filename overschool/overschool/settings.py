@@ -235,6 +235,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 4294967296
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",

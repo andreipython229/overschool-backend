@@ -25,6 +25,10 @@ class HttpResponseAccessDenied(HttpResponse):
 
 class CheckTrialStatusMiddleware(MiddlewareMixin):
     def process_request(self, request):
+        # Пропускаем запросы к админке
+        if request.path.startswith("/admin/"):
+            return None
+
         auth_header = request.META.get("HTTP_AUTHORIZATION", None)
         if auth_header and auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ")[1]
@@ -56,7 +60,7 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 
 class DomainAccessMiddleware(MiddlewareMixin):
-    EXCLUDED_PATHS = ["/api/login/"]
+    EXCLUDED_PATHS = ["/api/login/", "/admin/"]
     ALLOWED_DOMAINS = [
         "dev.overschool.by",
         "apidev.overschool.by",
@@ -75,7 +79,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_path = request.path
 
         # Исключаем страницы логина и другие страницы
-        if current_path in self.EXCLUDED_PATHS:
+        if any(current_path.startswith(path) for path in self.EXCLUDED_PATHS):
             return None
 
         auth_header = request.META.get("HTTP_AUTHORIZATION", None)
