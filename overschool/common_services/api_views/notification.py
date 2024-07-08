@@ -1,4 +1,5 @@
 import base64
+from math import ceil
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.conf import settings
@@ -10,7 +11,7 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from schools.models import PromoCode, School, Tariff
+from schools.models import PromoCode, Referral, School, Tariff
 from users.models import UserSubscription
 
 User = get_user_model()
@@ -90,6 +91,32 @@ class PaymentNotificationView(LoggingMixin, WithHeadersViewSet, APIView):
                         subscription.subscription_id = notification["id"]
                         subscription.expires_at = expiration_date
                         subscription.save()
+
+                    # Проверяем, является ли школа рефералом другой школы
+                    try:
+                        referral = Referral.objects.get(referred_school=school)
+                        referrer_school = referral.referrer_school
+
+                        # Рассчитываем 5% от оплаченных дней и округляем в большую сторону
+                        bonus_days = ceil(subscription_days * 0.05)
+
+                        # Добавляем бонусные дни к подписке школы-реферера
+                        if referrer_school.purchased_tariff_end_date:
+                            referrer_expiration_date = (
+                                referrer_school.purchased_tariff_end_date
+                                + timezone.timedelta(days=bonus_days)
+                            )
+                        else:
+                            referrer_expiration_date = (
+                                timezone.now() + timezone.timedelta(days=bonus_days)
+                            )
+                        referrer_school.purchased_tariff_end_date = (
+                            referrer_expiration_date
+                        )
+                        referrer_school.save()
+
+                    except Referral.DoesNotExist:
+                        pass
                     return Response(status=status.HTTP_200_OK)
 
                 if notification["state"] == "trial":

@@ -50,12 +50,17 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
 
+        trial_days = 14
+
+        if referral_code:
+            trial_days += 21
+
         school = School(
             name=school_name,
             owner=user,
             tariff=Tariff.objects.get(name=TariffPlan.JUNIOR.value),
             used_trial=True,
-            trial_end_date=timezone.now() + timezone.timedelta(days=14),
+            trial_end_date=timezone.now() + timezone.timedelta(days=trial_days),
         )
 
         school.save()
