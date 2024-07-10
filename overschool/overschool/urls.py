@@ -116,11 +116,6 @@ urlpatterns = [
         name="register_school_owner",
     ),
     path(
-        "api/register-school-owner/<str:referral_code>/",
-        SignupSchoolOwnerView.as_view(actions={"post": "post"}),
-        name="create_school_with_referral",
-    ),
-    path(
         "api/<str:school_name>/access-distribution/",
         AccessDistributionView.as_view(actions={"post": "post", "delete": "delete"}),
         name="access_distribution",

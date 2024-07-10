@@ -17,7 +17,7 @@ User = get_user_model()
 
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт регистрации владельца школы\n
-    <h2>/api/{school_name}/register-school-owner/</h2>\n
+    <h2>/api/register-school-owner/</h2>\n
     Ендпоинт регистрации владельца школы,
     или же дополнение или изменения
     необходимых данных уже зарегистрированного пользователя,
@@ -32,7 +32,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         utm_campaign = request.data.get("utm_campaign", None)
         utm_term = request.data.get("utm_term", None)
         utm_content = request.data.get("utm_content", None)
-        referral_code = kwargs.get("referral_code")
+        referral_code = request.GET.get("ref_code", "").strip("/")
 
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")

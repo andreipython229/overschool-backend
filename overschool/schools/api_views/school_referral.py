@@ -30,6 +30,10 @@ class ReferralViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Referral.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         return Referral.objects.filter(referrer_school=school_id)
@@ -55,6 +59,10 @@ class ReferralClickViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                ReferralClick.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         return ReferralClick.objects.filter(school=school_id)
@@ -64,7 +72,6 @@ class ReferralClickRedirectView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, referral_code):
-        print(referral_code)
         # Поиск школы по реферальному коду
         school = get_object_or_404(School, referral_code=referral_code)
 
