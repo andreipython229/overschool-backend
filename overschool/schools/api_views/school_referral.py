@@ -84,7 +84,7 @@ class ReferralClickRedirectView(APIView):
         )
 
         # URL для редиректа на страницу регистрации школы
-        register_url = f"/create-school?ref_code={referral_code}"
+        register_url = f"/create-school/?ref_code={referral_code}"
 
         return redirect(register_url)
 
