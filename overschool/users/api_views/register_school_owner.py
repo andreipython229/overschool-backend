@@ -32,7 +32,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         utm_campaign = request.data.get("utm_campaign", None)
         utm_term = request.data.get("utm_term", None)
         utm_content = request.data.get("utm_content", None)
-        referral_code = request.GET.get("ref_code", "").strip("/")
+        referral_code = kwargs.get("referral_code")
 
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
