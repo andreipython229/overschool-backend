@@ -81,9 +81,9 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             )
             subject = "Подтверждения электронной почты Overschool"
             message = (
-                f"Ссылка для подтверждения электронной почты:<br>"
-                f"<a href='{reset_password_url_with_params}'>{reset_password_url_with_params}</a><br><br>"
-                "Если это письмо пришло вам по ошибке, просто проигнорируйте его."
+                f"Токен для подтверждения электронной почты:<br>"
+                f"{token}<br>"
+                f"Если это письмо пришло вам по ошибке, просто проигнорируйте его."
             )
             send = self.sender_service.send_code_by_email(
                 email=new_email, subject=subject, message=message
@@ -125,29 +125,27 @@ class EmailValidateSerializer(serializers.Serializer):
 class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """
     API для валидации email
-    <h2>/api/email-confirm/<str:token>/</h2>\n
+    <h2>/api/email-confirm/</h2>\n
     """
 
     parser_classes = (MultiPartParser,)
     serializer_class = EmailValidateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @swagger_auto_schema(tags=["profiles"])
-    @action(detail=False, methods=["GET"])
-    def get(self, request, *args, **kwargs):
+    @swagger_auto_schema(tags=["profiles"], request_body=EmailValidateSerializer)
+    @action(detail=False, methods=["POST"])
+    def post(self, request, *args, **kwargs):
         user = request.user
-        token = kwargs.get("token")
+        token = request.data.get("token")
         expected_token = generate_hash_token(user)
-        try:
-            if token == expected_token:
-                from_email = request.GET.get("from_email")
-                if from_email:
-                    user.email = from_email
-                    user.save()
-                else:
-                    return Response("Токен не действителен", status=400)
+        from_email = request.data.get("email")
+
+        if token == expected_token:
+            if from_email:
+                user.email = from_email
+                user.save()
                 return Response("Токен действителен", status=200)
             else:
                 return Response("Токен не действителен", status=400)
-        except:
+        else:
             return Response("Токен не действителен", status=400)
