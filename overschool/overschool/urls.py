@@ -101,8 +101,8 @@ urlpatterns = [
         name="token-validate",
     ),
     path(
-        "api/email-confirm/<str:token>/",
-        EmailValidateView.as_view(actions={"get": "get"}),
+        "api/email-confirm/",
+        EmailValidateView.as_view(actions={"post": "post"}),
         name="email-confirm",
     ),
     path(
