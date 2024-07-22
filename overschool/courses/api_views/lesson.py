@@ -252,6 +252,11 @@ class LessonViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
 
+        # Если был передан courseId в параметрах, то отдаем уроки для курса (для тестового курса)
+        course_id = self.request.GET.get('courseId')
+        if course_id:
+            return Lesson.objects.filter(section__course_id=course_id)
+
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Lesson.objects.filter(section__course__school__name=school_name)
 

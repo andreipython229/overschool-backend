@@ -139,6 +139,11 @@ class School(TimeStampMixin, OrderMixin):
         blank=True,
         null=True,
     )
+    test_course = models.BooleanField(
+        default=False,
+        verbose_name="Включен ли тестовый курс для админов",
+        help_text="Включен ли тестовый курс для админов",
+    )
 
     objects = SchoolManager()
 

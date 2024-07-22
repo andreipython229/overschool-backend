@@ -26,6 +26,12 @@ class LessonProgressMixin:
 
     def check_lesson_progress(self, instance, user, baselesson):
         school = baselesson.section.course.school
+        course_id = baselesson.section.course.pk
+
+        # Если это тестовый курс, сразу возвращаем None
+        if course_id == 247:
+            return None
+
         if user.groups.filter(
             group__name__in=[
                 "Admin",
