@@ -30,6 +30,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "offer_url",
             "contact_link",
             "referral_code",
+            "test_course",
         ]
         read_only_fields = [
             "order",
@@ -69,6 +70,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "updated_at",
             "offer_url",
             "contact_link",
+            "test_course",
         ]
         read_only_fields = [
             "order",
@@ -107,6 +109,7 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "offer_url",
             "contact_link",
             "referral_code",
+            "test_course",
         ]
 
 

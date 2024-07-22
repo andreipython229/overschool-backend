@@ -148,6 +148,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         serializer = SchoolUpdateSerializer(school, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         name_data = serializer.validated_data.get("name")
+
         if name_data:
             existing_school = (
                 School.objects.filter(name=name_data).exclude(pk=school.pk).first()
@@ -720,6 +721,40 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 ),
                             }
                         )
+                elif sort_by == "progress":
+                    serialized_data.append(
+                        {
+                            "course_id": item["course_id"],
+                            "course_name": item["course_id__name"],
+                            "group_id": item["group_id"],
+                            "last_active": item["students__date_joined"],
+                            "last_login": item["students__last_login"],
+                            "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
+                            "first_name": item["students__first_name"],
+                            "student_id": item["students__id"],
+                            "avatar": serializer.data["avatar"],
+                            "last_name": item["students__last_name"],
+                            "group_name": item["name"],
+                            "school_name": school.name,
+                            "mark_sum": item["mark_sum"],
+                            "average_mark": item["average_mark"],
+                            "date_added": item["date_added_student"],
+                            "date_removed": item["date_removed_student"],
+                            "is_deleted": True
+                            if item["date_removed_student"] is not None
+                            else False,
+                            "progress": item["progress"],
+                            "all_active_students": all_active_students,
+                            "unique_students_count": unique_students_count,
+                            "filtered_active_students": filtered_active_students,
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=item["students__id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
                 else:
                     serialized_data.append(
                         {

@@ -135,9 +135,13 @@ class CourseViewSet(
         school_id = School.objects.get(name=school_name).school_id
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Course.objects.filter(school__name=school_name).annotate(
+            # Основной queryset для админов
+            admin_queryset = Course.objects.filter(school__name=school_name).annotate(
                 baselessons_count=Count("sections__lessons")
             )
+            # Тестовый курс для всех админов, который нужно добавить
+            test_course = Course.objects.filter(course_id=247)
+            return admin_queryset | test_course
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
             sub_history = StudentsHistory.objects.filter(
@@ -411,12 +415,6 @@ class CourseViewSet(
             )
             .order_by("-date_added")
             .values("date_added")[:1]
-        )
-
-        subquery_date_removed = (
-            StudentsHistory.objects.none()
-            .order_by("-date_removed")
-            .values("date_removed")[:1]
         )
 
         data = queryset.values(
