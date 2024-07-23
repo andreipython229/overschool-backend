@@ -17,6 +17,7 @@ from .question import QuestionViewSet
 from .section import SectionUpdateViewSet, SectionViewSet
 from .section_test import TestViewSet
 from .student_progress import StudentProgressViewSet
+from .student_rating import StudentRatingViewSet
 from .students_group import (
     GroupCourseAccessViewSet,
     StudentsGroupViewSet,
