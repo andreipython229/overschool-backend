@@ -26,18 +26,20 @@ class BannerViewSet(
 
         permissions = super().get_permissions()
         user = self.request.user
+        print(user)
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
         if self.action in [
+            "list",
             "retrieve",
             "accept",
         ]:
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists():
+            if user.groups.filter(group__name="Student", school=school_id).exists():
                 return permissions
+            else:
+                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
@@ -55,6 +57,31 @@ class BannerViewSet(
             return Banner.objects.filter(school=school_id, is_active=True)
         return Banner.objects.filter(school=school_id)
 
+    def list(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        queryset = self.get_queryset()
+        user = request.user
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            if user.groups.filter(group__name="Student").exists():
+                user_groups = user.students_group_fk.all()
+                if not user_groups.exists():
+                    return Response(Banner.objects.none())
+
+                # Фильтруем баннеры по группам пользователя и активным
+                queryset = queryset.filter(
+                    is_active=True, groups__in=user_groups
+                ).distinct()
+                if queryset.exists():
+                    # Возвращаем только один активный баннер
+                    banner = queryset.first()
+                    BannerClick.objects.create(banner=banner, user=user)
+                    serializer = self.get_serializer(banner)
+                    return Response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         user = request.user
@@ -68,7 +95,6 @@ class BannerViewSet(
         user_groups = user.students_group_fk.filter(
             group_id__in=instance.groups.values_list("group_id", flat=True)
         )
-        print(user_groups, instance.groups)
         if not user_groups.exists():
             return Response(Banner.objects.none())
 
