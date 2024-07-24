@@ -1,23 +1,22 @@
 from common_services.selectel_client import UploadToS3
-from courses.serializers import SectionSerializer
 from courses.models import (
+    AudienceBlock,
+    BlockCards,
     Course,
-    Folder,
     CourseLanding,
+    Folder,
     HeaderBlock,
     StatsBlock,
-    BlockCards,
-    AudienceBlock,
     TrainingProgram,
     TrainingPurpose,
 )
+from courses.serializers.section import SectionSerializer
 from rest_framework import serializers
 
 from .students_group import GroupsInCourseSerializer
 from .utils import update_block_cards
 
 s3 = UploadToS3()
-
 
 
 class BlockCardsGetSerializer(serializers.ModelSerializer):
@@ -52,10 +51,12 @@ class BlockCardsGetSerializer(serializers.ModelSerializer):
         del representation["photo_url"]
         return representation
 
+
 class LandingGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра лендинга
     """
+
     header_block = serializers.SerializerMethodField()
     stats_block = serializers.SerializerMethodField()
     audience_block = serializers.SerializerMethodField()
@@ -107,7 +108,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "visible": obj.stats.is_visible,
             "canUp": obj.stats.can_up,
             "canDown": obj.stats.can_down,
-            "lessonCount": lessons_count
+            "lessonCount": lessons_count,
         }
 
     def get_audience_block(self, obj):
@@ -119,7 +120,9 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "canUp": obj.audience.can_up,
             "canDown": obj.audience.can_down,
             "description": obj.audience.description,
-            "chips": BlockCardsGetSerializer(obj.audience.chips.all().order_by('position'), many=True).data
+            "chips": BlockCardsGetSerializer(
+                obj.audience.chips.all().order_by("position"), many=True
+            ).data,
         }
 
     def get_training_program_block(self, obj):
@@ -129,8 +132,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "visible": obj.training_program.is_visible,
             "canUp": obj.training_program.can_up,
             "canDown": obj.training_program.can_down,
-            "sections": SectionSerializer(obj.course.sections.all(),
-                                          many=True).data
+            "sections": SectionSerializer(obj.course.sections.all(), many=True).data,
         }
 
     def get_training_purpose_block(self, obj):
@@ -141,7 +143,9 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "canUp": obj.training_purpose.can_up,
             "canDown": obj.training_purpose.can_down,
             "description": obj.training_purpose.description,
-            "chips": BlockCardsGetSerializer(obj.training_purpose.chips.all().order_by('position'), many=True).data
+            "chips": BlockCardsGetSerializer(
+                obj.training_purpose.chips.all().order_by("position"), many=True
+            ).data,
         }
 
     def to_representation(self, instance):
@@ -157,6 +161,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
         del representation["training_program_block"]
         del representation["training_purpose_block"]
         return representation
+
 
 class CourseInfoSerializer(serializers.ModelSerializer):
     """
@@ -181,6 +186,7 @@ class HeaderLandingSerializer(serializers.ModelSerializer):
     """
     Сериализатор для шапки лендинга
     """
+
     class Meta:
         model = HeaderBlock
         fields = [
@@ -190,10 +196,12 @@ class HeaderLandingSerializer(serializers.ModelSerializer):
             "can_down",
         ]
 
+
 class StatsGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор статистики курса
     """
+
     class Meta:
         model = StatsBlock
         fields = [
@@ -203,8 +211,10 @@ class StatsGetSerializer(serializers.ModelSerializer):
             "can_down",
         ]
 
+
 class BlockCardsSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
+
     class Meta:
         model = BlockCards
         fields = [
@@ -221,15 +231,17 @@ class BlockCardsSerializer(serializers.ModelSerializer):
             if value is None:
                 del validated_data[key]
 
-        instance.position = validated_data.get('position', instance.position)
-        instance.title = validated_data.get('title', instance.title)
-        instance.description = validated_data.get('description', instance.description)
+        instance.position = validated_data.get("position", instance.position)
+        instance.title = validated_data.get("title", instance.title)
+        instance.description = validated_data.get("description", instance.description)
 
         instance.save()
         return instance
 
+
 class BlockCardsPhotoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
+
     class Meta:
         model = BlockCards
         fields = [
@@ -238,14 +250,16 @@ class BlockCardsPhotoSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        instance.photo = validated_data.get('photo', instance.photo)
+        instance.photo = validated_data.get("photo", instance.photo)
         instance.save()
         return instance
+
 
 class AudienceSerializer(serializers.ModelSerializer):
     """
     Сериализатор для блока с целевой аудиторией
     """
+
     chips = BlockCardsSerializer(many=True)
 
     class Meta:
@@ -260,15 +274,14 @@ class AudienceSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        chips_data = validated_data.pop('chips', [])
+        chips_data = validated_data.pop("chips", [])
         instance = super().update(instance, validated_data)
 
         # Обновление вложенных данных модели BlockCards
-        update_block_cards(instance=instance,
-                           chips_data=chips_data,
-                           s3=s3)
+        update_block_cards(instance=instance, chips_data=chips_data, s3=s3)
 
         return instance
+
 
 class TrainingProgramSerializer(serializers.ModelSerializer):
     """
@@ -284,10 +297,12 @@ class TrainingProgramSerializer(serializers.ModelSerializer):
             "can_down",
         ]
 
+
 class TrainingPurposeSerializer(serializers.ModelSerializer):
     """
     Сериализатор для блока целей обучения курсу
     """
+
     chips = BlockCardsSerializer(many=True)
 
     class Meta:
@@ -302,12 +317,10 @@ class TrainingPurposeSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        chips_data = validated_data.pop('chips', [])
+        chips_data = validated_data.pop("chips", [])
         instance = super().update(instance, validated_data)
 
         # Обновление вложенных данных модели BlockCards
-        update_block_cards(instance=instance,
-                           chips_data=chips_data,
-                           s3=s3)
+        update_block_cards(instance=instance, chips_data=chips_data, s3=s3)
 
         return instance
