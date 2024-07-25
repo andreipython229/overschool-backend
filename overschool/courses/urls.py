@@ -4,6 +4,7 @@ from courses.api_views import (
     BlockButtonViewSet,
     CommentViewSet,
     CourseCatalogViewSet,
+    CourseLandingViewSet,
     CourseViewSet,
     FolderCourseViewSet,
     GetAppealsViewSet,
@@ -17,6 +18,7 @@ from courses.api_views import (
     QuestionViewSet,
     SectionViewSet,
     StudentProgressViewSet,
+    StudentRatingViewSet,
     StudentsGroupSettingsViewSet,
     StudentsGroupViewSet,
     StudentsGroupWithoutTeacherViewSet,
@@ -26,14 +28,15 @@ from courses.api_views import (
     UserHomeworkViewSet,
     UserTestViewSet,
 )
-from django.urls import path
 from rest_framework import routers
-from schools.api_views import SchoolDocumentViewSet
+from schools.api_views import BonusViewSet, SchoolDocumentViewSet
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
+router.register("course_landing", CourseLandingViewSet, basename="course_landing")
 router.register("folder_course", FolderCourseViewSet, basename="folder_course")
 router.register("school_document", SchoolDocumentViewSet, basename="school_document")
+router.register("school_bonuses", BonusViewSet, basename="school_bonuses"),
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
 router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
@@ -73,6 +76,7 @@ router.register("answers", AnswerViewSet, basename="answers")
 router.register("usertest", UserTestViewSet, basename="test_user")
 router.register("student_progress", StudentProgressViewSet, basename="student_progress")
 router.register("lesson_comments", CommentViewSet, basename="lesson_comments")
+router.register("student_rating", StudentRatingViewSet, basename="student_rating")
 
 urlpatterns = router.urls
 

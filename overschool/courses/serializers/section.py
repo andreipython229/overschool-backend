@@ -6,7 +6,8 @@ from courses.models import (
     StudentsGroup,
     StudentsGroupSettings,
 )
-from courses.serializers import HomeworkSerializer, LessonSerializer
+from courses.serializers.homework import HomeworkSerializer
+from courses.serializers.lesson import LessonSerializer
 from rest_framework import serializers
 
 from .students_group_settings import StudentsGroupSettingsSerializer
@@ -56,7 +57,9 @@ class SectionSerializer(serializers.ModelSerializer):
         lessons_data = instance.lessons.all()
         serialized_lessons = []
 
-        for lesson_data in lessons_data:
+        sorted_lessons = sorted(lessons_data, key=lambda x: x.order)
+
+        for lesson_data in sorted_lessons:
             try:
                 homework_data = Homework.objects.get(baselesson_ptr=lesson_data.id)
                 serializer = HomeworkSerializer(homework_data)

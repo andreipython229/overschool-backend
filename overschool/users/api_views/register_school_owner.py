@@ -7,17 +7,17 @@ from rest_framework.permissions import AllowAny
 from schools.models import School
 from transliterate import translit
 from users.serializers import SignupSchoolOwnerSerializer
-from users.services import JWTHandler, SenderServiceMixin
+from users.services import SenderServiceMixin
+
 from ..models.utm_label import UtmLabel
 
 sender_service = SenderServiceMixin()
 User = get_user_model()
-jwt_handler = JWTHandler()
 
 
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт регистрации владельца школы\n
-    <h2>/api/{school_name}/register-school-owner/</h2>\n
+    <h2>/api/register-school-owner/</h2>\n
     Ендпоинт регистрации владельца школы,
     или же дополнение или изменения
     необходимых данных уже зарегистрированного пользователя,
@@ -27,11 +27,12 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
     serializer_class = SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
-        utm_source = request.data.get('utm_source', None)
-        utm_medium = request.data.get('utm_medium', None)
-        utm_campaign = request.data.get('utm_campaign', None)
-        utm_term = request.data.get('utm_term', None)
-        utm_content = request.data.get('utm_content', None)
+        utm_source = request.data.get("utm_source", None)
+        utm_medium = request.data.get("utm_medium", None)
+        utm_campaign = request.data.get("utm_campaign", None)
+        utm_term = request.data.get("utm_term", None)
+        utm_content = request.data.get("utm_content", None)
+        referral_code = kwargs.get("referral_code")
 
         email = request.data.get("email")
         phone_number = request.data.get("phone_number")
@@ -47,8 +48,9 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         if School.objects.filter(name=school_name).exists():
             return HttpResponse("Название школы уже существует.", status=400)
 
-        serializer = self.get_serializer(data=request.data)
-
+        serializer = self.get_serializer(
+            data=request.data, context={"referral_code": referral_code}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -69,7 +71,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             utm_medium=utm_medium,
             utm_campaign=utm_campaign,
             utm_term=utm_term,
-            utm_content=utm_content
+            utm_content=utm_content,
         )
 
         if send and send["status_code"] == 500:

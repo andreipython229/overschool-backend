@@ -1,10 +1,11 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import BaseLesson, Course, Public
+from courses.models import BaseLesson, Course, Public, CourseLanding
 from courses.paginators import StudentsPagination
 from courses.serializers.course_catalog import (
     CourseCatalogDetailSerializer,
     CourseCatalogSerializer,
 )
+from courses.serializers import LandingGetSerializer
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db.models import Count, Q
 from rest_framework import permissions, viewsets
@@ -75,6 +76,7 @@ class CourseCatalogViewSet(
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = CourseCatalogDetailSerializer(instance)
+        course_id = self.kwargs.get("pk")
+        instance = CourseLanding.objects.get(course__course_id=course_id)
+        serializer = LandingGetSerializer(instance)
         return Response(serializer.data)

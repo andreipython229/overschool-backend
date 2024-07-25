@@ -57,6 +57,7 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
                 "is_owner",
                 "tariff_paid",
                 "contact_link",
+                "test_course",
             )
             return Response(data)
         else:

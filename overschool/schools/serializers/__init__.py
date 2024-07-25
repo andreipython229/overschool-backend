@@ -1,10 +1,22 @@
+from .payment_methods import (
+    ProdamusLinkSerializer,
+    SchoolExpressPayLinkSerializer,
+    SchoolPaymentMethodSerializer,
+)
 from .school import (
     SchoolGetSerializer,
     SchoolSerializer,
+    SchoolStudentsTableSettingsSerializer,
+    SchoolTaskSummarySerializer,
     SchoolUpdateSerializer,
     TariffSerializer,
-    SchoolStudentsTableSettingsSerializer
 )
+from .school_banner import (
+    BannerAcceptSerializer,
+    BannerClickSerializer,
+    BannerSerializer,
+)
+from .school_bonus import BonusGetSerializer, BonusSerializer
 from .school_document import (
     SchoolDocumentsDetailSerializer,
     SchoolDocumentsSerializer,
@@ -15,7 +27,7 @@ from .school_header import (
     SchoolHeaderSerializer,
     SchoolHeaderUpdateSerializer,
 )
-
-from .payment_methods import SchoolPaymentMethodSerializer, SchoolExpressPayLinkSerializer, ProdamusLinkSerializer
+from .school_newsletter import NewsletterTemplateSerializer
+from .school_referral import ReferralClickSerializer, ReferralSerializer
 from .SchoolMeetings import SchoolMeetingsSerializer
 from .userDomain import DomainSerializer

@@ -1,6 +1,12 @@
 import requests
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan, SchoolStudentsTableSettings, SchoolStudentsTableSettings
+from schools.models import (
+    School,
+    SchoolStudentsTableSettings,
+    SchoolTask,
+    Tariff,
+    TariffPlan,
+)
 from transliterate import translit
 
 
@@ -23,6 +29,8 @@ class SchoolSerializer(serializers.ModelSerializer):
             "updated_at",
             "offer_url",
             "contact_link",
+            "referral_code",
+            "test_course",
         ]
         read_only_fields = [
             "order",
@@ -30,6 +38,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
@@ -56,10 +65,12 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
             "created_at",
             "updated_at",
             "offer_url",
             "contact_link",
+            "test_course",
         ]
         read_only_fields = [
             "order",
@@ -67,6 +78,7 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
@@ -80,6 +92,10 @@ class SchoolGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра школы
     """
+
+    referral_count = serializers.SerializerMethodField()
+    referral_click_count = serializers.SerializerMethodField()
+    unique_referral_click_count = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -96,7 +112,21 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "owner",
             "offer_url",
             "contact_link",
+            "referral_code",
+            "test_course",
+            "referral_count",
+            "referral_click_count",
+            "unique_referral_click_count",
         ]
+
+    def get_referral_count(self, obj):
+        return obj.referrals.count()
+
+    def get_referral_click_count(self, obj):
+        return obj.referral_clicks.count()
+
+    def get_unique_referral_click_count(self, obj):
+        return obj.referral_clicks.values("ip_address").distinct().count()
 
 
 class TariffSerializer(serializers.ModelSerializer):
@@ -192,4 +222,19 @@ class TariffSerializer(serializers.ModelSerializer):
 class SchoolStudentsTableSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolStudentsTableSettings
-        fields = '__all__'
+        fields = "__all__"
+
+
+class SchoolTaskSummarySerializer(serializers.Serializer):
+    total_tasks = serializers.IntegerField()
+    total_completed_tasks = serializers.IntegerField()
+    completion_percentage = serializers.FloatField()
+    tasks = serializers.ListField(child=serializers.DictField())
+
+    def to_representation(self, instance):
+        return {
+            "total_tasks": instance["total_tasks"],
+            "total_completed_tasks": instance["total_completed_tasks"],
+            "completion_percentage": instance["completion_percentage"],
+            "tasks": instance["tasks"],
+        }

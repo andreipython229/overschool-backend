@@ -196,14 +196,15 @@ class SendMessageToGPT(APIView):
             )
 
             response_str = ''.join(response.choices[0].message.content)
-            if response_str:
-                detected_language = detect(response_str)
-                if (detected_language == 'en') or (detected_language == 'ru'):
-                    return response_str
-                else:
-                    return "Ошибка получения ответа: попробуйте позже..."
-            else:
-                return "Ошибка: нет подходящего ответа, попробуйте позже..."
+            return response_str
+            # if response_str:
+            #     detected_language = detect(response_str)
+            #     if (detected_language == 'en') or (detected_language == 'ru'):
+            #         return response_str
+            #     else:
+            #         return "Ошибка получения ответа: попробуйте позже..."
+            # else:
+            #     return "Ошибка: нет подходящего ответа, попробуйте позже..."
         except Exception:
             return "Ошибка: нет подходящего ответа, попробуйте позже..."
 

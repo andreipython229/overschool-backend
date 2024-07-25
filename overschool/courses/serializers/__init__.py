@@ -15,6 +15,18 @@ from .course import (
     FolderSerializer,
 )
 from .course_appeals import CourseAppealsSerializer
+from .course_landing import (
+    AudienceSerializer,
+    BlockCardsGetSerializer,
+    BlockCardsPhotoSerializer,
+    BlockCardsSerializer,
+    CourseInfoSerializer,
+    HeaderLandingSerializer,
+    LandingGetSerializer,
+    StatsGetSerializer,
+    TrainingProgramSerializer,
+    TrainingPurposeSerializer,
+)
 from .folder_course import FolderCourseSerializer, FolderViewSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
 from .lesson import (
@@ -35,6 +47,7 @@ from .section import (
     SectionSerializer,
 )
 from .section_test import TestSerializer
+from .student_rating import StudentRatingSerializer
 from .students_group import (
     GroupCourseAccessSerializer,
     GroupsInCourseSerializer,

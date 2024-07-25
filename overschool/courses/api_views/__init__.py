@@ -4,6 +4,7 @@ from .comment import CommentViewSet
 from .course import CourseViewSet
 from .course_appeals import CourseAppealsViewSet, GetAppealsViewSet
 from .course_catalog import CourseCatalogViewSet
+from .course_landing import CourseLandingViewSet
 from .folder_course import FolderCourseViewSet
 from .homework import HomeworkViewSet
 from .lesson import (
@@ -16,6 +17,7 @@ from .question import QuestionViewSet
 from .section import SectionUpdateViewSet, SectionViewSet
 from .section_test import TestViewSet
 from .student_progress import StudentProgressViewSet
+from .student_rating import StudentRatingViewSet
 from .students_group import (
     GroupCourseAccessViewSet,
     StudentsGroupViewSet,
