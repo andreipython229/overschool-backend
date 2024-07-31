@@ -62,12 +62,10 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 class DomainAccessMiddleware(MiddlewareMixin):
     EXCLUDED_PATHS = ["/api/login/", "/admin/"]
     ALLOWED_DOMAINS = [
-        "dev.overschool.by",
-        "apidev.overschool.by",
-        "dev.api.overschool.by",
-        "apidev.overschool.by:8000",
-        "sandbox.overschool.by",
-        "overschool.by",
+        "sandbox.coursehb.ru",
+        "coursehb.ru",
+        "sandbox.coursehb.ru",
+        "platform.coursehb.ru",
         "localhost:8000",
         "localhost:3000",
         "127.0.0.1:8000",

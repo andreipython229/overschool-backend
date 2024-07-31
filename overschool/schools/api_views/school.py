@@ -323,10 +323,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             "total_users_count"
         ]
 
-        unique_students_count = queryset.aggregate(
-            unique_students_count=Count("students", distinct=True)
-        )["unique_students_count"]
-
         deleted_history_queryset = StudentsHistory.objects.none()
 
         hide_deleted = self.request.GET.get("hide_deleted")
@@ -635,6 +631,10 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                         key=lambda x: str(x.get(sort_by, "") or "").lower(),
                         reverse=True,
                     )
+
+            unique_students_count = queryset.aggregate(
+                unique_students_count=Count("students", distinct=True)
+            )["unique_students_count"]
 
             paginator = StudentsPagination()
             paginated_data = paginator.paginate_queryset(sorted_data, request)

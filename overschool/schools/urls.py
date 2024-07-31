@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework import routers
 from schools.api_views import (
     AddPaymentMethodViewSet,
+    BannerViewSet,
     ConfiguredDomainViewSet,
     DomainViewSet,
     NewsletterTemplateViewSet,
@@ -50,6 +51,7 @@ router.register(
     ReferralClickViewSet,
     basename="referral-click",
 )
+router.register(r"(?P<school_name>\w+)/banners", BannerViewSet, basename="banner")
 
 router_meetings = routers.DefaultRouter()
 router_meetings.register(

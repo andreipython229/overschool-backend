@@ -7,6 +7,7 @@ from .school import (
     SchoolViewSet,
     TariffViewSet,
 )
+from .school_banner import BannerViewSet
 from .school_bonus import BonusViewSet
 from .school_document import SchoolDocumentViewSet
 from .school_header import SchoolHeaderViewSet

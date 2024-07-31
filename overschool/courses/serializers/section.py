@@ -6,7 +6,8 @@ from courses.models import (
     StudentsGroup,
     StudentsGroupSettings,
 )
-from courses.serializers import HomeworkSerializer, LessonSerializer
+from courses.serializers.homework import HomeworkSerializer
+from courses.serializers.lesson import LessonSerializer
 from rest_framework import serializers
 
 from .students_group_settings import StudentsGroupSettingsSerializer

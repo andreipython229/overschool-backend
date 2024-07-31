@@ -93,6 +93,10 @@ class SchoolGetSerializer(serializers.ModelSerializer):
     Сериализатор просмотра школы
     """
 
+    referral_count = serializers.SerializerMethodField()
+    referral_click_count = serializers.SerializerMethodField()
+    unique_referral_click_count = serializers.SerializerMethodField()
+
     class Meta:
         model = School
         fields = [
@@ -110,7 +114,27 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "contact_link",
             "referral_code",
             "test_course",
+            "referral_count",
+            "referral_click_count",
+            "unique_referral_click_count",
         ]
+        read_only_fields = [
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+            "referral_code",
+        ]
+
+    def get_referral_count(self, obj):
+        return obj.referrals.count()
+
+    def get_referral_click_count(self, obj):
+        return obj.referral_clicks.count()
+
+    def get_unique_referral_click_count(self, obj):
+        return obj.referral_clicks.values("ip_address").distinct().count()
 
 
 class TariffSerializer(serializers.ModelSerializer):
