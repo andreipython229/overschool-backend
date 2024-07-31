@@ -36,6 +36,7 @@ class StudentRatingViewSet(
                 group__name__in=[
                     "Student",
                     "Admin",
+                    "Teacher",
                 ],
                 school=school,
             ).exists():
