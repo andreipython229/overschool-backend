@@ -118,6 +118,14 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "referral_click_count",
             "unique_referral_click_count",
         ]
+        read_only_fields = [
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+            "referral_code",
+        ]
 
     def get_referral_count(self, obj):
         return obj.referrals.count()

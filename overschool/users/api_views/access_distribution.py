@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from chats.models import Chat, UserChat
@@ -13,9 +14,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from django.template.loader import render_to_string
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
+from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
 from schools.models import School, Tariff, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import UserGroup, UserPseudonym
@@ -318,7 +322,9 @@ class AccessDistributionView(
                 else:
                     user.groups.get(group=group, school=school).delete()
                     try:
-                        user_pseudonym = UserPseudonym.objects.get(user=user, school=school, pseudonym=pseudonym)
+                        user_pseudonym = UserPseudonym.objects.get(
+                            user=user, school=school, pseudonym=pseudonym
+                        )
                         user_pseudonym.delete()
                     except UserPseudonym.DoesNotExist:
                         pass
@@ -407,3 +413,118 @@ class AccessDistributionView(
                         user.groups.get(group=group, school=school).delete()
 
         return HttpResponse("Доступ успешно заблокирован", status=201)
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "user_ids",
+                openapi.IN_FORM,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_INTEGER),
+                required=True,
+            ),
+            openapi.Parameter(
+                "role", openapi.IN_FORM, type=openapi.TYPE_STRING, required=True
+            ),
+            openapi.Parameter(
+                "new_group_id",
+                openapi.IN_FORM,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            ),
+        ],
+        tags=["access_distribution"],
+        operation_description="Update user group",
+        consumes=["multipart/form-data"],
+    )
+    @action(
+        detail=True, methods=["patch"], url_path="update-group", url_name="update-group"
+    )
+    def update_group(self, request, *args, **kwargs):
+        id = kwargs.get("pk")
+        user_ids = request.data.get("user_ids")
+        new_group_id = request.data.get("new_group_id")
+
+        if id is None:
+            return Response(
+                {"detail": "Идентификатор не предоставлен"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user_ids:
+            user_ids = json.loads(user_ids)
+
+        if new_group_id:
+            new_group_id = int(new_group_id)
+
+        data = {
+            "user_ids": user_ids,
+            "role": request.data.get("role"),
+            "student_groups": [new_group_id] if new_group_id else [],
+        }
+        serializer = AccessDistributionSerializer(data=data, partial=True)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user_ids = serializer.validated_data.get("user_ids")
+        new_group_id = (
+            serializer.validated_data.get("student_groups", [])[0]
+            if serializer.validated_data.get("student_groups")
+            else None
+        )
+
+        if not user_ids or new_group_id is None:
+            return Response(
+                {"detail": "user_ids и student_groups должны быть предоставлены"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        school = self.get_school()
+
+        try:
+            new_group = StudentsGroup.objects.get(
+                pk=new_group_id, course_id__school=school
+            )
+        except StudentsGroup.DoesNotExist:
+            return Response(
+                {"detail": "Группа не найдена или не принадлежит вашей школе"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        for user_id in user_ids:
+            try:
+                user = User.objects.get(pk=user_id)
+            except User.DoesNotExist:
+                return Response(
+                    {"detail": f"Пользователь с id={user_id} не найден"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Найти текущую группу пользователя в данном курсе
+            current_group = user.students_group_fk.filter(
+                course_id__school=school
+            ).first()
+
+            if current_group:
+                # Удалить пользователя из текущей группы
+                user.students_group_fk.remove(current_group)
+
+                # Найти чаты пользователя и старого учителя
+                user_chats = UserChat.objects.filter(user=user)
+                teacher_chats = UserChat.objects.filter(user=current_group.teacher_id)
+
+                for user_chat in user_chats:
+                    for teacher_chat in teacher_chats:
+                        if user_chat.chat == teacher_chat.chat:
+                            # Заменить старого учителя на нового в чате
+                            teacher_chat.user = new_group.teacher_id
+                            teacher_chat.save()
+
+            # Добавить пользователя в новую группу
+            if not user.students_group_fk.filter(
+                course_id=new_group.course_id
+            ).exists():
+                user.students_group_fk.add(new_group)
+
+        return Response({"message": "Группа обновлена"}, status=status.HTTP_200_OK)
