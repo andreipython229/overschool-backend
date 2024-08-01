@@ -93,10 +93,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://85.209.148.157",
     "https://85.209.148.157:3000",
     "http://45.135.234.137:8000",
-    "https://dev.overschool.by",
-    "https://apidev.overschool.by",
-    "https://dev.api.overschool.by",
-    "https://apidev.overschool.by:8000",
+    "https://dev.coursehb.ru",
+    "https://apidev.coursehb.ru",
+    "https://apidev.coursehb.ru:8000",
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
