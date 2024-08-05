@@ -87,16 +87,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://localhost:3000",
-    "http://85.209.148.157",
-    "https://85.209.148.157:3000",
-    "http://45.135.234.137:8000",
-    "https://dev.coursehb.ru",
-    "https://apidev.coursehb.ru",
-    "https://apidev.coursehb.ru:8000",
-]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
 
