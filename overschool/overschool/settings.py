@@ -143,7 +143,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # "schools.services.middleware.DomainAccessMiddleware",
+    "schools.services.middleware.DomainAccessMiddleware",
     "schools.services.middleware.CheckTrialStatusMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
