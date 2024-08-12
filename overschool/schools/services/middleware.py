@@ -98,7 +98,9 @@ class DomainAccessMiddleware(MiddlewareMixin):
             request.user = None
 
         current_user = request.user
-        current_domain = request.get_host()  # Получение текущего домена из запроса
+        current_domain = request.META.get(
+            "HTTP_X_FORWARDED_HOST", request.get_host()
+        )  # Получение текущего домена из запроса
         print(current_domain)
 
         # Проверка для общего домена
