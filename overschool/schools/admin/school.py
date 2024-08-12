@@ -8,7 +8,36 @@ from schools.models import School, SchoolStatistics, SchoolTask, Tariff
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "name",
+        "owner_email",
+        "owner_phone",
+        "tariff",
+        "purchased_tariff_end_date",
+        "trial_end_date",
+    )
+    list_filter = (
+        "name",
+        "owner__email",
+        "owner__phone_number",
+        "tariff",
+    )
+    search_fields = (
+        "name",
+        "owner__email",
+        "owner__phone_number",
+    )
+    ordering = ("purchased_tariff_end_date", "trial_end_date")
+
+    def owner_email(self, obj):
+        return obj.owner.email
+
+    owner_email.short_description = "Email владельца"
+
+    def owner_phone(self, obj):
+        return obj.owner.phone_number
+
+    owner_phone.short_description = "Телефон владельца"
 
 
 @admin.register(Tariff)
