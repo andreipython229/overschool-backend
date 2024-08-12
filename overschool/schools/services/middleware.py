@@ -98,10 +98,11 @@ class DomainAccessMiddleware(MiddlewareMixin):
 
         current_user = request.user
         current_domain = request.get_host()  # Получение текущего домена из запроса
+        print(current_domain)
 
         # Проверка для общего домена
-        if current_domain in self.ALLOWED_DOMAINS:
-            return None
+        # if current_domain in self.ALLOWED_DOMAINS:
+        #     return None
 
         if current_user and current_user.is_authenticated:
             # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
@@ -113,6 +114,8 @@ class DomainAccessMiddleware(MiddlewareMixin):
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
+                print(school_domains)
+                print(current_domain)
                 if not any(
                     school_domain.domain_name == current_domain
                     for school_domain in school_domains
