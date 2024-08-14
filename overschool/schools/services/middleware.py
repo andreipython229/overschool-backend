@@ -101,8 +101,8 @@ class DomainAccessMiddleware(MiddlewareMixin):
         print(current_domain)
 
         # Проверка для общего домена
-        # if current_domain in self.ALLOWED_DOMAINS:
-        #     return None
+        if current_domain in self.ALLOWED_DOMAINS:
+            return None
 
         if current_user and current_user.is_authenticated:
             # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
