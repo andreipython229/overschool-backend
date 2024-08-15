@@ -182,6 +182,7 @@ class StudentsGroupViewSet(
         school = self.get_school()
         teacher = serializer.validated_data.get("teacher_id")
         name = serializer.validated_data.get("name")
+        type = serializer.validated_data.get("type")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
@@ -213,20 +214,29 @@ class StudentsGroupViewSet(
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                     )
+
+        if type and type == "WITHOUT_TEACHER":
+            serializer.validated_data["teacher_id"] = None
+
         serializer.save()
 
         # обновляем чат с участниками группы
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
 
-        if current_group.name != name:
+        if name and current_group.name != name:
             chat.name = name
             chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
 
-        if teacher and teacher != previous_teacher:
+        if (
+            teacher
+            and teacher != previous_teacher
+            or type
+            and type == "WITHOUT_TEACHER"
+        ):
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
             ).first()
@@ -240,8 +250,13 @@ class StudentsGroupViewSet(
                 teacher=previous_teacher,
             ).prefetch_related("user_homework_checks")
 
+            if type and type == "WITHOUT_TEACHER":
+                new_teacher = None
+            else:
+                new_teacher = teacher
+
             for user_homework in user_homeworks:
-                user_homework.teacher = teacher
+                user_homework.teacher = new_teacher
             UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
 
             user_homework_checks = []
@@ -252,7 +267,7 @@ class StudentsGroupViewSet(
                     if user_homework_check.author == previous_teacher
                 )
             for user_homework_check in user_homework_checks:
-                user_homework_check.author = teacher
+                user_homework_check.author = new_teacher
             UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
 
         for student in students:

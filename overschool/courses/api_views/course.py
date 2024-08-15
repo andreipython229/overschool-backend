@@ -980,6 +980,9 @@ class CourseViewSet(
         else:
             original_course = course
 
+        # Получаем параметр поиска из запроса
+        search_query = self.request.GET.get("search_query")
+
         group = None
         if user.groups.filter(group__name="Student", school=school).exists():
             try:
@@ -1073,6 +1076,14 @@ class CourseViewSet(
                     a = a.exclude(lessonavailability__student=user)
                     b = b.exclude(lessonavailability__student=user)
                     c = c.exclude(lessonavailability__student=user)
+
+            if search_query:
+                search_filter = Q(name__icontains=search_query) | Q(
+                    blocks__description__icontains=search_query
+                )
+                a = a.filter(search_filter)
+                b = b.filter(search_filter)
+                c = c.filter(search_filter)
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
