@@ -88,6 +88,16 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         help_text="Позволяет получить доступ к курсу по прямой ссылке",
         default=False,
     )
+    is_copy = models.BooleanField(
+        verbose_name="Копия ли данный курс уже существующего",
+        help_text="Копия ли данный курс уже существующего",
+        default=False,
+    )
+    is_access = models.BooleanField(
+        verbose_name="Есть ли доступ к копии курса",
+        help_text="Есть ли доступ к копии курса",
+        default=True,
+    )
     name = models.CharField(
         max_length=256,
         verbose_name="Название курса",

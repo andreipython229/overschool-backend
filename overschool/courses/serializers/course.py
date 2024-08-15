@@ -39,6 +39,8 @@ class CourseSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "is_copy",
+            "is_access",
         ]
         read_only_fields = ["order"]
 
@@ -77,6 +79,8 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "limit",
             "remaining_period",
             "certificate",
+            "is_copy",
+            "is_access",
         ]
 
     def get_photo(self, obj):
@@ -113,6 +117,8 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
             "course_id",
             "public",
             "is_catalog",
+            "is_copy",
+            "is_access",
             "folder",
             "is_direct",
             "name",

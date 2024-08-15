@@ -3,6 +3,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
+from courses.models import Course
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -65,32 +66,36 @@ class HomeworkViewSet(
 
     def get_queryset(self, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
-            return (
-                Homework.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
+            return Homework.objects.none()
+
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
-            students_group = user.students_group_fk.all().values_list(
-                "course_id", flat=True
-            )
-            return Homework.objects.filter(
-                section__course__school__name=school_name,
-                section__course__in=students_group,
-            )
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            teacher_group = user.teacher_group_fk.all().values_list(
-                "course_id", flat=True
-            )
-            return Homework.objects.filter(
-                section__course__school__name=school_name,
-                section__course__in=teacher_group,
-            )
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Homework.objects.filter(section__course__school__name=school_name)
-        return Homework.objects.none()
+            students_group = user.students_group_fk.all().values_list("course_id", flat=True)
+            queryset = Homework.objects.filter(section__course__in=students_group)
+        elif user.groups.filter(group__name="Teacher", school=school_id).exists():
+            teacher_group = user.teacher_group_fk.all().values_list("course_id", flat=True)
+            queryset = Homework.objects.filter(section__course__in=teacher_group)
+        elif user.groups.filter(group__name="Admin", school=school_id).exists():
+            queryset = Homework.objects.all()
+        else:
+            queryset = Homework.objects.none()
+
+        # Проверяем, является ли текущий курс копией, и если да, ищем оригинал
+        course_id = self.request.query_params.get("courseId")
+        try:
+            current_course = Course.objects.get(course_id=course_id)
+            if current_course.is_copy:
+                original_course = Course.objects.get(name=current_course.name, is_copy=False)
+                queryset = queryset.filter(section__course=original_course)
+            else:
+                queryset = queryset.filter(section__course=current_course)
+        except Course.DoesNotExist:
+            queryset = Homework.objects.none()
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")

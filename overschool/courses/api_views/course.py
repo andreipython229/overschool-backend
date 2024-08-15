@@ -55,11 +55,11 @@ from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
-from users.models import Profile
+from users.models import Profile, User
 from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
@@ -87,7 +87,7 @@ class CourseViewSet(
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
-    parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser, JSONParser)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -117,7 +117,7 @@ class CourseViewSet(
         ]:
             # Разрешения для просмотра курсов (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -201,8 +201,8 @@ class CourseViewSet(
             )
 
         if (
-            school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-            and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
+                school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
         ):
             return Response(
                 "Превышено количество курсов для выбранного тарифа",
@@ -325,10 +325,10 @@ class CourseViewSet(
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                Q(students__first_name__icontains=search_value)
-                | Q(students__last_name__icontains=search_value)
-                | Q(students__email__icontains=search_value)
-                | Q(name__icontains=search_value)
+                    Q(students__first_name__icontains=search_value)
+                    | Q(students__last_name__icontains=search_value)
+                    | Q(students__email__icontains=search_value)
+                    | Q(name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -685,10 +685,10 @@ class CourseViewSet(
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                Q(students__first_name__icontains=search_value)
-                | Q(students__last_name__icontains=search_value)
-                | Q(students__email__icontains=search_value)
-                | Q(name__icontains=search_value)
+                    Q(students__first_name__icontains=search_value)
+                    | Q(students__last_name__icontains=search_value)
+                    | Q(students__email__icontains=search_value)
+                    | Q(name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -838,12 +838,124 @@ class CourseViewSet(
         Клонирование курса"""
 
         course = self.get_object()
+        user_email = request.query_params.get('user_email')
+        max_id = Course.objects.all().aggregate(Max("course_id"))["course_id__max"]
         max_order = Course.objects.all().aggregate(Max("order"))["order__max"]
-        course_copy = course.make_clone(
-            attrs={"name": f"{course.name}-копия", "order": max_order + 1}
+        try:
+            user = User.objects.get(email=user_email)
+        except User.DoesNotExist:
+            return Response({'detail': 'Пользователь с таким email не найден.'}, status=404)
+
+        user_schools = School.objects.filter(owner=user)
+        if not user_schools:
+            return Response({'detail': 'Пользователь должен быть владельцем хотя бы одной школы.'}, status=400)
+
+        existing_copies = Course.objects.filter(
+            name=course.name,
+            school__in=user_schools,
+            is_copy=True
         )
-        queryset = Course.objects.filter(pk=course_copy.pk)
-        return Response(queryset.values())
+
+        # Флаг для отслеживания изменений доступа
+        access_restored = False
+
+        if existing_copies.exists():
+            for copy in existing_copies:
+                if not copy.is_access:
+                    copy.is_access = True
+                    copy.save()
+                    access_restored = True
+
+            if access_restored:
+                return Response({'detail': 'Доступ к существующей копии курса восстановлен.'},
+                                status=status.HTTP_200_OK)
+            else:
+                return Response({'detail': 'У пользователя уже есть копия данного курса с доступом.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            for school in user_schools:
+                course.make_clone(
+                    attrs={
+                        "course_id": max_id + 1,
+                        "order": max_order + 1,
+                        "school": school,
+                        "is_copy": True
+                    }
+                )
+
+                # Обновление max_id и max_order для следующего клонирования
+                max_id += 1
+                max_order += 1
+            return Response({'detail': 'Копирование курса успешно завершено.', }, status=200)
+        except Exception:
+            return Response({'detail': 'Произошла ошибка при клонировании курса.'}, status=500)
+
+    @action(detail=True)
+    def get_course_copy_owners(self, request, *args, **kwargs):
+        """Получение владельцев школ, имеющих копии курса\n
+        <h2>/api/${school_name}/courses/${course_id}/get_course_copy_owners/?course_name=название</h2>\n
+        Возвращает владельцев школ, у которых есть копии курса с указанным названием."""
+
+        course_name = request.query_params.get('course_name')
+        if not course_name:
+            return Response({'detail': 'Название курса не указано.'}, status=400)
+
+        copy_courses = Course.objects.filter(name=course_name, is_copy=True, is_access=True)
+        school_ids = copy_courses.values_list('school', flat=True).distinct()
+        schools = School.objects.filter(school_id__in=school_ids)
+        owners = schools.values_list('owner', flat=True).distinct()
+        owners_info = User.objects.filter(id__in=owners).values('email')
+
+        return Response(list(owners_info))
+
+    @action(detail=True, methods=['patch'])
+    def delete_course_access(self, request, *args, **kwargs):
+        """Удаление доступа к копиям курса по email и названию курса\n
+        <h2>/api/{school_name}/courses/{course_id}/delete/</h2>\n
+        Удаление доступа к копиям курса"""
+
+        course_name = request.data.get('course_name')
+        user_emails = request.data.get('user_emails')
+
+        if not user_emails or not course_name:
+            return Response({'detail': 'Не указаны email пользователей или название курса.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        updated_courses = 0
+        not_found_emails = []
+        for user_email in user_emails:
+            try:
+                user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                not_found_emails.append(user_email)
+                continue
+
+            user_schools = School.objects.filter(owner=user)
+            if not user_schools:
+                not_found_emails.append(user_email)
+                continue
+
+            courses_to_update = Course.objects.filter(
+                name=course_name,
+                is_copy=True,
+                school__in=user_schools
+            )
+
+            if courses_to_update.exists():
+                updated_courses += courses_to_update.update(is_access=False)
+
+        if not_found_emails:
+            return Response(
+                {'detail': f'Пользователи с email {", ".join(not_found_emails)} не найдены, либо они не являются владельцами школ.',
+                    'updated_courses': updated_courses},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {'detail': f'Доступ к курсу успешно удален.'},
+            status=status.HTTP_200_OK
+        )
 
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
@@ -851,12 +963,22 @@ class CourseViewSet(
         <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
 
-        course = self.get_object()
-        queryset = Course.objects.filter(course_id=course.pk)
-
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
+        course = self.get_object()
+
+        # Проверка, если курс является копией
+        if course.is_copy:
+            try:
+                original_course = Course.objects.get(name=course.name, is_copy=False)
+            except Course.DoesNotExist:
+                return Response(
+                    {"error": "Оригинальный курс не найден."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            original_course = course
 
         group = None
         if user.groups.filter(group__name="Student", school=school).exists():
@@ -894,16 +1016,20 @@ class CourseViewSet(
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
 
+        queryset = Section.objects.filter(course=original_course)
+        print(queryset.values())
+
         data = queryset.values(
-            course=F("course_id"),
+            courseId=F("course_id"),
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
             section_order=F("sections__order"),
         ).order_by("sections__order")
+        print(data)
         result_data = dict(
             course_name=data[0]["course_name"],
-            course_id=data[0]["course"],
+            course_id=data[0]["courseId"],
         )
 
         if group:
@@ -934,11 +1060,11 @@ class CourseViewSet(
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
             elif user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Teacher",
-                ],
-                school=school,
+                    group__name__in=[
+                        "Student",
+                        "Teacher",
+                    ],
+                    school=school,
             ).exists():
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
@@ -994,7 +1120,7 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         if user.groups.filter(
-            group__name__in=["Admin", "Teacher"], school=school
+                group__name__in=["Admin", "Teacher"], school=school
         ).exists():
             queryset = StudentsGroup.objects.filter(course_id=course.course_id)
 
