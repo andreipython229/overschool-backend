@@ -98,12 +98,9 @@ class DomainAccessMiddleware(MiddlewareMixin):
             request.user = None
 
         current_user = request.user
-        current_domain1 = request.META.get("HTTP_HOST")
-        print(current_domain1, "current_domain1")
-        current_domain2 = request.META.get("HTTP_X_ORIGINAL_HOST")
-        print(current_domain2, "current_domain2")
-        current_domain = request.META.get(
-            "HTTP_X_FORWARDED_HOST"
+
+        current_domain = request.META.get("HTTP_X_ORIGINAL_HOST") or request.META.get(
+            "HTTP_HOST"
         )  # Получение текущего домена из запроса
         print(current_domain)
 
