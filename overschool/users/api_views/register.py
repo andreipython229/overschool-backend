@@ -91,13 +91,11 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         )
 
         # Отправка пароля на почту
-        url = "https://overschool.by/login/"
+        url = "https://platform.coursehb.ru/login/"
         subject = "Новый пароль"
         html_message = render_to_string(
-            'new_user_notification.html', {
-                'password': password,
-                'url': url
-            })
+            "new_user_notification.html", {"password": password, "url": url}
+        )
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=html_message
