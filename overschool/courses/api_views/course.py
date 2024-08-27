@@ -955,9 +955,9 @@ class CourseViewSet(
                 search_filter = Q(name__icontains=search_query) | Q(
                     blocks__description__icontains=search_query
                 )
-                a = a.filter(search_filter)
-                b = b.filter(search_filter)
-                c = c.filter(search_filter)
+                a = a.filter(search_filter).distinct()
+                b = b.filter(search_filter).distinct()
+                c = c.filter(search_filter).distinct()
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
