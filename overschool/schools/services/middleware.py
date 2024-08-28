@@ -104,9 +104,11 @@ class DomainAccessMiddleware(MiddlewareMixin):
         )  # Получение текущего домена из запроса
         current_domain1 = request.META.get("HTTP_HOST")
         origin = request.META.get("HTTP_ORIGIN")
+        forwarded_host = request.META.get("HTTP_X_FORWARDED_HOST")
         print(current_domain)
         print(current_domain1)
         print(origin)
+        print(forwarded_host)
 
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
