@@ -99,10 +99,14 @@ class DomainAccessMiddleware(MiddlewareMixin):
 
         current_user = request.user
 
-        current_domain = request.META.get("HTTP_X_ORIGINAL_HOST") or request.META.get(
-            "HTTP_HOST"
+        current_domain = request.META.get(
+            "HTTP_X_ORIGINAL_HOST"
         )  # Получение текущего домена из запроса
+        current_domain1 = request.META.get("HTTP_HOST")
+        origin = request.META.get("HTTP_ORIGIN")
         print(current_domain)
+        print(current_domain1)
+        print(origin)
 
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
