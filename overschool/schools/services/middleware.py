@@ -1,4 +1,5 @@
 import json
+from pprint import pprint
 
 import jwt
 from django.conf import settings
@@ -109,6 +110,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         print(current_domain1)
         print(origin)
         print(forwarded_host)
+        pprint(request.META)
 
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
