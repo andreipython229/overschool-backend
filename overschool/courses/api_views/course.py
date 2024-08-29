@@ -973,7 +973,8 @@ class CourseViewSet(
         # Проверка, если курс является копией
         if course.is_copy:
             try:
-                original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
+                original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
+                original_course = Course.objects.get(course_id=original_course_id.course_id)
             except Course.DoesNotExist:
                 return Response(
                     {"error": "Оригинальный курс не найден."},
@@ -1016,7 +1017,7 @@ class CourseViewSet(
         elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
-                    teacher_id=user.pk, course_id_id=original_course.pk
+                    teacher_id=user.pk, course_id_id=course.pk
                 )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")

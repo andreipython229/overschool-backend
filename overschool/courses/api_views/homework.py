@@ -3,7 +3,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import BaseLesson, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
-from courses.models import Course
+from courses.models import Course, CourseCopy
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -80,7 +80,8 @@ class HomeworkViewSet(
             for course_id in students_group:
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    original_course = CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
+                    original_course = Course.objects.get(course_id=original_course_id.course_id)
                     if original_course:
                         original_courses.append(original_course.course_id)
 
@@ -97,7 +98,7 @@ class HomeworkViewSet(
 
                 # Проверяем, является ли курс копией
                 if course.is_copy:
-                    original_course = CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
                     if original_course:
                         final_course_ids.append(original_course.course_id)
                     else:
@@ -117,7 +118,8 @@ class HomeworkViewSet(
             if course_id:
                 current_course = Course.objects.get(course_id=course_id)
                 if current_course.is_copy:
-                    original_course = CourseCopy.objects.filter(course_copy_id=current_course.course_id)
+                    original_course_id = CourseCopy.objects.get(course_copy_id=current_course.course_id)
+                    original_course = Course.objects.get(course_id=original_course_id.course_id)
                     queryset = queryset.filter(section__course=original_course)
                 else:
                     queryset = queryset.filter(section__course=current_course)

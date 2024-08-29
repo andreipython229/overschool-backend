@@ -118,11 +118,13 @@ class UserHomeworkViewSet(
         user = request.user
         school_name = self.kwargs.get("school_name")
         course_id = self.request.data.get("course_id")
-
-        # Поиск курса по ID
         course = Course.objects.get(course_id=course_id)
+        data = request.data.copy()
+
         # Если курс является копией
         if course.is_copy:
+            data['copy_course_id'] = data.pop('course_id', None)
+
             # Ищем оригинальный курс с таким же названием и is_copy=False
             original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
 
@@ -173,7 +175,7 @@ class UserHomeworkViewSet(
                 },
             )
 
-        serializer = UserHomeworkSerializer(data=request.data)
+        serializer = UserHomeworkSerializer(data=data)
 
         if serializer.is_valid():
             if group and group.type == 'WITHOUT_TEACHER':

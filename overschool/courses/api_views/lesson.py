@@ -7,7 +7,8 @@ from courses.models import (
     LessonEnrollment,
     Section,
     StudentsGroup,
-    Course
+    Course,
+    CourseCopy
 )
 from courses.serializers import (
     LessonAvailabilitySerializer,
@@ -262,7 +263,8 @@ class LessonViewSet(
             try:
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    original_course = Course.objects.get(name=course.name, is_copy=False)
+                    original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
+                    original_course = Course.objects.get(course_id=original_course_id.course_id)
                     return Lesson.objects.filter(section__course=original_course)
                 else:
                     return Lesson.objects.filter(section__course=course)
