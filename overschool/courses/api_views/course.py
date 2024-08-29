@@ -56,7 +56,7 @@ from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.parsers import MultiPartParser, JSONParser
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
