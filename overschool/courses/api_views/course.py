@@ -88,7 +88,7 @@ class CourseViewSet(
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
 
-    parser_classes = (MultiPartParser, JSONParser)
+    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
@@ -917,8 +917,8 @@ class CourseViewSet(
         <h2>/api/{school_name}/courses/{course_id}/delete/</h2>\n
         Удаление доступа к копиям курса"""
 
-        course_name = request.data.get('course_name')
-        user_emails = request.data.get('user_emails')
+        course_name = request.query_params.get('course_name')
+        user_emails = request.query_params.getlist('user_emails')
 
         if not user_emails or not course_name:
             return Response({'detail': 'Не указаны email пользователей или название курса.'},
