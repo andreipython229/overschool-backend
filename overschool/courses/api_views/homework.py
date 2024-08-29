@@ -73,11 +73,39 @@ class HomeworkViewSet(
         user = self.request.user
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
+            # Получаем все курсы, к которым относится студент
             students_group = user.students_group_fk.all().values_list("course_id", flat=True)
-            queryset = Homework.objects.filter(section__course__in=students_group)
+            # Добавляем оригинальные курсы, если есть копии
+            original_courses = []
+            for course_id in students_group:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    original_course = CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    if original_course:
+                        original_courses.append(original_course.course_id)
+
+            # Объединяем оригинальные курсы с текущими курсами
+            all_course_ids = list(students_group) + original_courses
+            queryset = Homework.objects.filter(section__course__in=all_course_ids)
+
         elif user.groups.filter(group__name="Teacher", school=school_id).exists():
             teacher_group = user.teacher_group_fk.all().values_list("course_id", flat=True)
-            queryset = Homework.objects.filter(section__course__in=teacher_group)
+            final_course_ids = []
+
+            for course_id in teacher_group:
+                course = Course.objects.get(course_id=course_id)
+
+                # Проверяем, является ли курс копией
+                if course.is_copy:
+                    original_course = CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    if original_course:
+                        final_course_ids.append(original_course.course_id)
+                    else:
+                        final_course_ids.append(course_id)
+                else:
+                    final_course_ids.append(course_id)
+
+            queryset = Homework.objects.filter(section__course__in=final_course_ids)
         elif user.groups.filter(group__name="Admin", school=school_id).exists():
             queryset = Homework.objects.all()
         else:
@@ -86,12 +114,15 @@ class HomeworkViewSet(
         # Проверяем, является ли текущий курс копией, и если да, ищем оригинал
         course_id = self.request.query_params.get("courseId")
         try:
-            current_course = Course.objects.get(course_id=course_id)
-            if current_course.is_copy:
-                original_course = Course.objects.get(name=current_course.name, is_copy=False)
-                queryset = queryset.filter(section__course=original_course)
+            if course_id:
+                current_course = Course.objects.get(course_id=course_id)
+                if current_course.is_copy:
+                    original_course = CourseCopy.objects.filter(course_copy_id=current_course.course_id)
+                    queryset = queryset.filter(section__course=original_course)
+                else:
+                    queryset = queryset.filter(section__course=current_course)
             else:
-                queryset = queryset.filter(section__course=current_course)
+                return queryset
         except Course.DoesNotExist:
             queryset = Homework.objects.none()
 

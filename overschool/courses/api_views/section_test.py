@@ -12,7 +12,8 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserTest,
-    Course
+    Course,
+    SectionTest
 )
 from courses.serializers import (
     QuestionListGetSerializer,
@@ -266,9 +267,8 @@ class TestViewSet(
         <h2>/api/{school_name}/tests/{test_id}/usertests/</h2>\n
         Список попыток прохождения пользователем конкретного теста"""
 
-        test = self.get_object()
         user = self.request.user
-        queryset = UserTest.objects.filter(test=test, user=user)
+        queryset = UserTest.objects.filter(test=pk, user=user)
         serializer = UserTestSerializer(queryset, many=True)
         return Response(serializer.data)
 

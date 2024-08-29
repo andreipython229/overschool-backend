@@ -13,6 +13,7 @@ from .course import (
     CourseStudentsSerializer,
     CourseWithGroupsSerializer,
     FolderSerializer,
+    CourseCopySerializer
 )
 from .course_appeals import CourseAppealsSerializer
 from .course_landing import (

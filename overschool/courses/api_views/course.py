@@ -17,6 +17,7 @@ from courses.models import (
     TrainingDuration,
     UserProgressLogs,
     UserTest,
+    CourseCopy
 )
 from courses.models.courses.course import Public
 from courses.models.courses.section import Section
@@ -233,6 +234,7 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         school = self.request.data.get("school")
+        course_removed = self.request.data.get("course_removed")
         if school and int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
@@ -249,10 +251,16 @@ class CourseViewSet(
 
         data = request.data.copy()
         instance = self.get_object()
+
         if folder == "-1":
             instance.folder = None
             instance.save()
             data.pop("folder")
+
+        if course_removed == 'null':
+            instance.course_removed = None
+            instance.save()
+            return Response({'status': 200}, status=status.HTTP_200_OK)
 
         serializer = CourseSerializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -274,27 +282,15 @@ class CourseViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        school_id = instance.school.school_id
 
-        # Получаем список файлов, хранящихся в папке удаляемого курса
-        files_to_delete = s3.get_list_objects(
-            "{}_school/{}_course".format(school_id, instance.pk)
-        )
-        # Удаляем все файлы и сегменты, связанные с удаляемым курсом
-        remove_resp = None
-        if files_to_delete:
-            if s3.delete_files(files_to_delete) == "Error":
-                remove_resp = "Error"
+        # Устанавливаем дату удаления курса
+        instance.course_removed = timezone.now()
+        instance.public = "Н"
+        instance.is_catalog = False
+        instance.is_direct = False
+        instance.save()
 
-        self.perform_destroy(instance)
-
-        if remove_resp == "Error":
-            return Response(
-                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
-                status=status.HTTP_204_NO_CONTENT,
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["GET"])
     def get_students_for_course(self, request, pk=None, *args, **kwargs):
@@ -874,8 +870,9 @@ class CourseViewSet(
                                 status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            new_course = None
             for school in user_schools:
-                course.make_clone(
+                new_course = course.make_clone(
                     attrs={
                         "course_id": max_id + 1,
                         "order": max_order + 1,
@@ -887,9 +884,14 @@ class CourseViewSet(
                 # Обновление max_id и max_order для следующего клонирования
                 max_id += 1
                 max_order += 1
+
+            CourseCopy.objects.create(
+                course_copy_id=new_course,
+                course_id=course.course_id
+            )
             return Response({'detail': 'Копирование курса успешно завершено.', }, status=200)
-        except Exception:
-            return Response({'detail': 'Произошла ошибка при клонировании курса.'}, status=500)
+        except Exception as e:
+            return Response({'detail': f'Произошла ошибка при клонировании курса. ({e})'}, status=500)
 
     @action(detail=True)
     def get_course_copy_owners(self, request, *args, **kwargs):
@@ -971,7 +973,7 @@ class CourseViewSet(
         # Проверка, если курс является копией
         if course.is_copy:
             try:
-                original_course = Course.objects.get(name=course.name, is_copy=False)
+                original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
             except Course.DoesNotExist:
                 return Response(
                     {"error": "Оригинальный курс не найден."},
@@ -1014,25 +1016,23 @@ class CourseViewSet(
         elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
-                    teacher_id=user.pk, course_id_id=course.pk
+                    teacher_id=user.pk, course_id_id=original_course.pk
                 )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
 
-        queryset = Section.objects.filter(course=original_course)
-        print(queryset.values())
+        queryset = Course.objects.filter(course_id=original_course.course_id)
 
         data = queryset.values(
-            courseId=F("course_id"),
+            course=F("course_id"),
             course_name=F("name"),
             section_name=F("sections__name"),
             section=F("sections__section_id"),
             section_order=F("sections__order"),
         ).order_by("sections__order")
-        print(data)
         result_data = dict(
             course_name=data[0]["course_name"],
-            course_id=data[0]["courseId"],
+            course_id=data[0]["course"],
         )
 
         if group:

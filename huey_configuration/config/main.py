@@ -1,6 +1,7 @@
 from backup.db_backup_task import backup_db
 from backup.distribution_of_templates import distribution_of_templates
 from backup.meetings_reminders import meeting_reminders_tg
+from backup.remove_old_courses import remove_old_courses
 from .config import huey
 from .db_utils import engine, meta
 
@@ -13,5 +14,6 @@ if __name__ == "__main__":
     huey.periodic_task(backup_db)
     huey.periodic_task(distribution_of_templates)
     huey.periodic_task(meeting_reminders_tg)
+    huey.periodic_task(remove_old_courses)
 
     huey.run()

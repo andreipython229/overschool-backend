@@ -3,7 +3,7 @@ from common_services.models import TextFile
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import TextFileCheckSerializer, TextFileSerializer
 from common_services.services.request_params import FileParams
-from courses.models import BaseLesson, UserHomework
+from courses.models import BaseLesson, UserHomework, Course
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
@@ -77,24 +77,30 @@ class TextFileViewSet(
         user = request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
+        user_homework_id = request.data.get("user_homework")
+        course_id = request.data.get("courseId")
+        user_homework_check_id = request.data.get("user_homework_check")
+        course = Course.objects.get(course_id=course_id)
 
         # Проверяем, что пользователь студент или учитель
         if user.groups.filter(
             group__name__in=["Student", "Teacher"], school=school_id
         ).exists():
-            user_homework_id = request.data.get("user_homework")
-            user_homework_check_id = request.data.get("user_homework_check")
-
             if user_homework_id:
                 # Проверяем, что пользователь является автором указанной домашней работы
                 user_homework = UserHomework.objects.filter(
                     user_homework_id=user_homework_id, user=user
                 ).first()
-
                 if user_homework:
-                    user_homeworks = UserHomework.objects.filter(
-                        homework__section__course__school__name=school_name
-                    )
+                    if course.is_copy:
+                        user_homeworks = UserHomework.objects.filter(
+                            copy_course_id=course.course_id,
+                        )
+                    else:
+                        # Если курс не копия, ищем как обычно
+                        user_homeworks = UserHomework.objects.filter(
+                            homework__section__course__school__name=school_name
+                        )
                     try:
                         user_homeworks.get(pk=user_homework_id)
                     except user_homeworks.model.DoesNotExist:
@@ -138,9 +144,15 @@ class TextFileViewSet(
                 ).first()
 
                 if user_homework_check:
-                    user_homework_checks = UserHomeworkCheck.objects.filter(
-                        user_homework__homework__section__course__school__name=school_name
-                    )
+                    if course.is_copy:
+                        user_homework_checks = UserHomeworkCheck.objects.filter(
+                            user_homework__copy_course_id=course.course_id,
+                        )
+                    else:
+                        # Если курс не копия, ищем как обычно
+                        user_homework_checks = UserHomeworkCheck.objects.filter(
+                            user_homework__homework__section__course__school__name=school_name
+                        )
                     try:
                         user_homework_checks.get(pk=user_homework_check_id)
                     except user_homework_checks.model.DoesNotExist:

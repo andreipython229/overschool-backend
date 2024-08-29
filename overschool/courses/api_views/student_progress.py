@@ -9,6 +9,7 @@ from courses.models import (
     StudentsGroup,
     StudentsHistory,
     UserProgressLogs,
+    CourseCopy
 )
 from courses.models.homework.homework import Homework
 from django.core.exceptions import PermissionDenied
@@ -243,6 +244,13 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             student_group = StudentsGroup.objects.filter(
                 students__id=student.pk, course_id=course_id
             ).first()
+
+            # Проверяем, является ли курс копией
+            if course_obj.is_copy:
+                original_course_obj = CourseCopy.objects.get(course_copy_id=course_obj.course_id)
+                if original_course_obj:
+                    course_id = original_course_obj.course_id
+
             all_base_lesson = BaseLesson.objects.filter(
                 section_id__course_id=course_id,
                 active=True,

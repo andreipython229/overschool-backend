@@ -143,6 +143,12 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         blank=True,
         null=True,
     )
+    course_removed = models.DateTimeField(
+        verbose_name="Дата и время помещения курса в корзину",
+        help_text="Дата и время помещения курса в корзину",
+        null=True,
+        blank=True,
+    )
     search_vector = SearchVectorField(null=True, editable=False)
     _clone_m2o_or_o2m_fields = ["sections"]
 

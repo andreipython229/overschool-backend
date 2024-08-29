@@ -1,7 +1,8 @@
+import json
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, UserHomework, UserHomeworkCheck
+from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, Course, CourseCopy
 from courses.models.homework.homework import Homework
 from courses.models.homework.user_homework import UserHomeworkStatusChoices
 from courses.paginators import UserHomeworkPagination
@@ -13,8 +14,8 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from django.db.models import OuterRef, Subquery, Q
 from rest_framework import generics, permissions, status, viewsets
-from rest_framework.exceptions import NotFound
-from rest_framework.parsers import MultiPartParser
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -36,7 +37,7 @@ class UserHomeworkViewSet(
 
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "delete", "head"]
-    parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser, JSONParser)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -59,28 +60,53 @@ class UserHomeworkViewSet(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
-    def get_queryset(self, *args, **kwargs):
+    def get_queryset(self, pk=None, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
             return (
                 UserHomework.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
+        course_id = self.kwargs.get("courseId")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
-
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            return UserHomework.objects.filter(
-                user=user, homework__section__course__school__name=school_name
-            ).order_by("-created_at")
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            return UserHomework.objects.filter(
-                teacher=user, homework__section__course__school__name=school_name
-            ).order_by("-created_at")
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return UserHomework.objects.filter(
-                homework__section__course__school__name=school_name
-            ).order_by("-created_at")
-        return UserHomework.objects.none()
+        if course_id:
+            try:
+                course_id = int(course_id)
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    if user.groups.filter(group__name="Student", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            user=user,
+                            copy_course_id=course_id
+                        ).order_by("-created_at")
+                    if user.groups.filter(group__name="Teacher", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            teacher=user,
+                            copy_course_id=course_id
+                        ).order_by("-created_at")
+                    if user.groups.filter(group__name="Admin", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            copy_course_id=course_id
+                        ).order_by("-created_at")
+                else:
+                    if user.groups.filter(group__name="Student", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            user=user, homework__section__course__school__name=school_name
+                        ).order_by("-created_at")
+                    if user.groups.filter(group__name="Teacher", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            teacher=user, homework__section__course__school__name=school_name
+                        ).order_by("-created_at")
+                    if user.groups.filter(group__name="Admin", school=school_id).exists():
+                        return UserHomework.objects.filter(
+                            homework__section__course__school__name=school_name
+                        ).order_by("-created_at")
+                return UserHomework.objects.none()
+            except ValueError as e:
+                return Response(
+                    {"error": e.message},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -91,17 +117,29 @@ class UserHomeworkViewSet(
     def create(self, request, *args, **kwargs):
         user = request.user
         school_name = self.kwargs.get("school_name")
-        homework = self.request.data.get("homework")
-        if homework is not None:
-            homeworks = Homework.objects.filter(
-                section__course__school__name=school_name
-            )
-            try:
-                homeworks.get(pk=homework)
-            except homeworks.model.DoesNotExist:
-                raise NotFound(
-                    "Указанная домашняя работа не относится не к одному курсу этой школы."
-                )
+        course_id = self.request.data.get("course_id")
+
+        # Поиск курса по ID
+        course = Course.objects.get(course_id=course_id)
+        # Если курс является копией
+        if course.is_copy:
+            # Ищем оригинальный курс с таким же названием и is_copy=False
+            original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
+
+            if original_course:
+                # Ищем домашнюю работу в оригинальном курсе
+                baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+                teacher_group = user.students_group_fk.filter(
+                    course_id=course.course_id
+                ).first()
+            else:
+                raise NotFound("Оригинальный курс для копии не найден.")
+        else:
+            # Если курс не является копией, ищем домашнее в текущем курсе
+            baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+            teacher_group = user.students_group_fk.filter(
+                course_id=baselesson.section.course
+            ).first()
         existing_user_homework = UserHomework.objects.filter(
             user=user, homework=request.data.get("homework")
         ).first()
@@ -110,19 +148,20 @@ class UserHomeworkViewSet(
                 {"status": "Error", "message": "Объект UserHomework уже существует"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
-        teacher_group = user.students_group_fk.filter(
-            course_id=baselesson.section.course
-        ).first()
         teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         group = None
 
         if user.groups.filter(group__name="Student").exists():
             try:
-                group = user.students_group_fk.get(
-                    course_id=baselesson.section.course, students=user
-                )
+                if course.is_copy:
+                    group = user.students_group_fk.get(
+                        course_id=course.course_id, students=user
+                    )
+                else:
+                    group = user.students_group_fk.get(
+                        course_id=baselesson.section.course, students=user
+                    )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
 
@@ -247,25 +286,44 @@ class HomeworkStatisticsView(
 
     def get_queryset(self, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
-            return (
-                UserHomework.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
+            return UserHomework.objects.none()  # Возвращаем пустой queryset при генерации схемы
+
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
-        queryset = UserHomework.objects.none()
+        course_data = self.request.query_params.get("course_data")
+
+        # Если course_copy_id передан, фильтруем по нему
+        if course_data:
+            try:
+                course_ids = course_data.split(',')
+                course_ids = [int(id.strip()) for id in course_ids]
+            except (json.JSONDecodeError, TypeError) as e:
+                raise ValidationError("Invalid course_data format")
+
+            # Фильтрация по копиям курсов
+            copied_courses_queryset = UserHomework.objects.filter(
+                copy_course_id__in=course_ids,
+            )
+
+            # Фильтрация по оригинальным курсам
+            original_courses_queryset = UserHomework.objects.filter(
+                homework__section__course__school__name=school_name,
+            )
+
+            queryset = copied_courses_queryset | original_courses_queryset
+        else:
+            queryset = UserHomework.objects.filter(
+                homework__section__course__school__name=school_name,
+            )
+
+        # Дополнительные фильтры по ролям пользователей
         if user.groups.filter(group__name="Student", school=school_id).exists():
-            queryset = UserHomework.objects.filter(
-                user=user, homework__section__course__school__name=school_name
-            ).order_by("-created_at")
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            queryset = UserHomework.objects.filter(
-                teacher=user, homework__section__course__school__name=school_name
-            ).order_by("-created_at")
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            queryset = UserHomework.objects.filter(
-                homework__section__course__school__name=school_name
-            ).order_by("-created_at")
+            queryset = queryset.filter(user=user)
+        elif user.groups.filter(group__name="Teacher", school=school_id).exists():
+            queryset = queryset.filter(teacher=user)
+        elif user.groups.filter(group__name="Admin", school=school_id).exists():
+            pass
 
         if self.request.GET.get("status"):
             queryset = queryset.filter(status=self.request.GET.get("status"))
