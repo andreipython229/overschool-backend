@@ -102,7 +102,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_domain = request.META.get(
             "HTTP_X_ORIGIN"
         )  # Получение текущего домена из запроса
-
+        print(current_domain)
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
             return None
