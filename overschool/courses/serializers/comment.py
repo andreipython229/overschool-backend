@@ -14,7 +14,17 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'lesson', 'author', 'author_first_name', 'author_last_name', 'content', 'created_at', 'public')
+        fields = (
+            'id',
+            'lesson',
+            'author',
+            'author_first_name',
+            'author_last_name',
+            'content',
+            'created_at',
+            'public',
+            'copy_course_id'
+        )
 
     def get_author_name(self, obj):
         user = self.context.get('user')

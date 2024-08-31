@@ -5,6 +5,7 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    Course
 )
 from courses.models.students.user_progress import UserProgressLogs
 from rest_framework import status
@@ -27,10 +28,24 @@ class LessonProgressMixin:
     def check_lesson_progress(self, instance, user, baselesson):
         school = baselesson.section.course.school
         course_id = baselesson.section.course.pk
+        course_name = baselesson.section.course.name
 
         # Если это тестовый курс, сразу возвращаем None
         if course_id == 247:
             return None
+
+        try:
+            course = Course.objects.get(course_id=course_id)
+            if course.is_copy:
+                # Проверяем, если у оригинального курса есть другие клоны
+                if Course.objects.filter(name=course_name, is_copy=True).exclude(course_id=course_id).exists():
+                    return None
+            else:
+                # Проверяем, если у текущего курса есть клоны
+                if Course.objects.filter(name=course_name, is_copy=True).exists():
+                    return None
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
 
         if user.groups.filter(
             group__name__in=[

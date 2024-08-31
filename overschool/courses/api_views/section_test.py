@@ -12,6 +12,8 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserTest,
+    Course,
+    SectionTest
 )
 from courses.serializers import (
     QuestionListGetSerializer,
@@ -78,12 +80,28 @@ class TestViewSet(
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return (
-                SectionTest.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
+            return SectionTest.objects.none()  # Возвращаем пустой queryset при генерации схемы
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
+
+        try:
+            school_id = School.objects.get(name=school_name).school_id
+        except School.DoesNotExist:
+            return Response({"error": "School not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        course_id = self.request.GET.get('courseId')
+
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    original_course = Course.objects.get(name=course.name, is_copy=False)
+                    return SectionTest.objects.filter(section__course=original_course)
+                else:
+                    return SectionTest.objects.filter(section__course=course)
+            except Course.DoesNotExist:
+                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return SectionTest.objects.filter(section__course__school__name=school_name)
@@ -96,7 +114,7 @@ class TestViewSet(
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
+                course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
             return SectionTest.objects.filter(section__course_id__in=course_ids)
 
@@ -167,7 +185,6 @@ class TestViewSet(
 
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk, *args, **kwargs):
-
         queryset = self.get_queryset()
         try:
             instance = queryset.get(test_id=pk)
@@ -250,9 +267,8 @@ class TestViewSet(
         <h2>/api/{school_name}/tests/{test_id}/usertests/</h2>\n
         Список попыток прохождения пользователем конкретного теста"""
 
-        test = self.get_object()
         user = self.request.user
-        queryset = UserTest.objects.filter(test=test, user=user)
+        queryset = UserTest.objects.filter(test=pk, user=user)
         serializer = UserTestSerializer(queryset, many=True)
         return Response(serializer.data)
 

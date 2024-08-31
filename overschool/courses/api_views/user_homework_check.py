@@ -4,6 +4,7 @@ from courses.models.homework.user_homework import (
     UserHomework,
     UserHomeworkStatusChoices,
 )
+from courses.models import Course
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -81,10 +82,19 @@ class HomeworkCheckViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user_homework = self.request.data.get("user_homework")
+        course_id = self.request.data.get("courseId")
+        course = Course.objects.get(course_id=course_id)
         if user_homework is not None:
-            user_homeworks = UserHomework.objects.filter(
-                homework__section__course__school__name=school_name
-            )
+            if course.is_copy:
+                # Если курс копия, искать д/з с соответствующим copy_course_id
+                user_homeworks = UserHomework.objects.filter(
+                    copy_course_id_id=int(course_id)
+                )
+            else:
+                # Стандартный поиск для не копий
+                user_homeworks = UserHomework.objects.filter(
+                    homework__section__course__school__name=school_name
+                )
             try:
                 user_homeworks.get(pk=user_homework)
             except user_homeworks.model.DoesNotExist:

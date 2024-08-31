@@ -13,13 +13,14 @@ from courses.models import (
     UserHomework,
     UserProgressLogs,
     UserTest,
+    CourseCopy
 )
 from courses.serializers import (
     SectionOrderSerializer,
     SectionRetrieveSerializer,
     SectionSerializer,
 )
-from django.db.models import F
+from django.db.models import F, Q
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
@@ -84,6 +85,17 @@ class SectionViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
 
+        def get_original_course_ids(course_ids):
+            original_course_ids = CourseCopy.objects.filter(
+                course_copy_id__in=course_ids
+            ).values_list('course_id', flat=True)
+
+            original_courses = Course.objects.filter(
+                Q(course_id__in=original_course_ids) | Q(course_id__in=course_ids, is_copy=False)
+            ).values_list('course_id', flat=True)
+
+            return original_courses
+
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Section.objects.filter(course__school__name=school_name)
 
@@ -91,7 +103,8 @@ class SectionViewSet(
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
             ).values_list("course_id", flat=True)
-            return Section.objects.filter(course_id__in=course_ids)
+            original_course_ids = get_original_course_ids(course_ids)
+            return Section.objects.filter(course_id__in=original_course_ids)
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
@@ -173,18 +186,20 @@ class SectionViewSet(
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True)
+    @action(detail=True, url_path='lessons/(?P<courseId>[^/.]+)')
     def lessons(self, request, pk, *args, **kwargs):
         """Эндпоинт получения, всех уроков, домашек и тестов секций.\n
         <h2>/api/{school_name}/sections/{section_id}/lessons/</h2>\n
         """
         queryset = self.get_queryset()
+        course_id = kwargs['courseId']
         section = queryset.filter(pk=pk)
         section_obj = section.first()
 
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
+        course = Course.objects.get(course_id=int(course_id))
 
         data = section.values(
             section_name=F("name"),
@@ -199,9 +214,16 @@ class SectionViewSet(
         if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
-                    students=user, course_id_id__sections=pk
+                    students=user, course_id_id=course_id
                 )
-                if section_obj.course.public != "О":
+                if course.is_copy and course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                elif not course.is_copy and section_obj.course.public != "О":
                     return Response(
                         {
                             "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"

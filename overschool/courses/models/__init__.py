@@ -7,6 +7,7 @@ from .common.base_lesson import (
     LessonEnrollment,
 )
 from .courses.course import Course, CourseAppeals, Folder, Public
+from .courses.course_copy import CourseCopy
 from .courses.section import Section
 from .courses.course_landing import (
     HeaderBlock,

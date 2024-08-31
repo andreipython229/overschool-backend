@@ -7,6 +7,8 @@ from courses.models import (
     LessonEnrollment,
     Section,
     StudentsGroup,
+    Course,
+    CourseCopy
 )
 from courses.serializers import (
     LessonAvailabilitySerializer,
@@ -245,17 +247,29 @@ class LessonViewSet(
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return (
-                Lesson.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
+            return Lesson.objects.none()  # Возвращаем пустой queryset при генерации схемы
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
 
-        # Если был передан courseId в параметрах, то отдаем уроки для курса (для тестового курса)
+        try:
+            school_id = School.objects.get(name=school_name).school_id
+        except School.DoesNotExist:
+            return Response({"error": "School not found"}, status=status.HTTP_404_NOT_FOUND)
+
         course_id = self.request.GET.get('courseId')
+
         if course_id:
-            return Lesson.objects.filter(section__course_id=course_id)
+            try:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
+                    original_course = Course.objects.get(course_id=original_course_id.course_id)
+                    return Lesson.objects.filter(section__course=original_course)
+                else:
+                    return Lesson.objects.filter(section__course=course)
+            except Course.DoesNotExist:
+                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Lesson.objects.filter(section__course__school__name=school_name)
@@ -268,7 +282,7 @@ class LessonViewSet(
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
+                course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
             return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
 
