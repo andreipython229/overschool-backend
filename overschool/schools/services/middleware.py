@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlparse
 
 import jwt
 from django.conf import settings
@@ -99,9 +100,12 @@ class DomainAccessMiddleware(MiddlewareMixin):
 
         current_user = request.user
 
-        current_domain = request.META.get(
-            "HTTP_X_ORIGIN"
-        )  # Получение текущего домена из запроса
+        domain = request.META.get("HTTP_X_ORIGIN")
+        if domain:
+            parsed_url = urlparse(domain)
+            current_domain = parsed_url.netloc
+        else:
+            current_domain = None
         print(current_domain)
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
