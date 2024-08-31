@@ -1,5 +1,4 @@
 import json
-from pprint import pprint
 
 import jwt
 from django.conf import settings
@@ -61,7 +60,7 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 
 class DomainAccessMiddleware(MiddlewareMixin):
-    EXCLUDED_PATHS = ["/api/login/", "/admin/"]
+    EXCLUDED_PATHS = ["/api/login/", "/api/course_catalog/", "/admin/"]
     ALLOWED_DOMAINS = [
         "dev.coursehb.ru",
         "apidev.coursehb.ru",
@@ -101,16 +100,8 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_user = request.user
 
         current_domain = request.META.get(
-            "HTTP_X_ORIGINAL_HOST"
+            "HTTP_X_ORIGIN"
         )  # Получение текущего домена из запроса
-        current_domain1 = request.META.get("HTTP_HOST")
-        origin = request.META.get("HTTP_ORIGIN")
-        forwarded_host = request.META.get("HTTP_X_FORWARDED_HOST")
-        print(current_domain)
-        print(current_domain1)
-        print(origin)
-        print(forwarded_host)
-        pprint(request.META)
 
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
@@ -126,8 +117,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
-                print(school_domains)
-                print(current_domain)
+
                 if not any(
                     school_domain.domain_name == current_domain
                     for school_domain in school_domains
