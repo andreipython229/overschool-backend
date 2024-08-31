@@ -106,7 +106,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
             current_domain = parsed_url.netloc
         else:
             current_domain = None
-        print(current_domain)
+
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
             return None
