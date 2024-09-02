@@ -61,7 +61,13 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 
 class DomainAccessMiddleware(MiddlewareMixin):
-    EXCLUDED_PATHS = ["/api/login/", "/api/course_catalog/", "/admin/"]
+    EXCLUDED_PATHS = [
+        "/api/login/",
+        "/api/course_catalog/",
+        "/admin/",
+        "/api/token/refresh/",
+        "/api/token/verify/",
+    ]
     ALLOWED_DOMAINS = [
         "sandbox.coursehb.ru",
         "coursehb.ru",
