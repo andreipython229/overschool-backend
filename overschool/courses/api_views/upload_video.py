@@ -17,8 +17,8 @@ executor = ThreadPoolExecutor()
 
 
 async def upload_video(video, base_lesson, instance):
-    video_url = await sync_to_async(s3.upload_large_file, thread_sensitive=True)(
-        video, base_lesson
+    video_url = await sync_to_async(
+        s3.upload_large_file(video, base_lesson), thread_sensitive=True
     )
     instance.video = video_url
     await sync_to_async(instance.save, thread_sensitive=True)()
