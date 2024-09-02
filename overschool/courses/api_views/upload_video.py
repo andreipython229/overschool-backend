@@ -1,6 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-
-from asgiref.sync import async_to_sync, sync_to_async
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -12,16 +9,6 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 s3 = UploadToS3()
-
-executor = ThreadPoolExecutor()
-
-
-async def upload_video(video, base_lesson, instance):
-    video_url = await sync_to_async(
-        s3.upload_large_file(video, base_lesson), thread_sensitive=True
-    )
-    instance.video = video_url
-    await sync_to_async(instance.save, thread_sensitive=True)()
 
 
 class UploadVideoViewSet(
@@ -75,7 +62,9 @@ class UploadVideoViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            async_to_sync(upload_video)(video, base_lesson, instance)
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
+            )
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
