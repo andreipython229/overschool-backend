@@ -1,6 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+from asgiref.sync import sync_to_async
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -16,14 +17,12 @@ s3 = UploadToS3()
 executor = ThreadPoolExecutor()
 
 
-async def async_upload_video(video, base_lesson, instance):
-    loop = asyncio.get_event_loop()
-    # Запускаем синхронную функцию upload_large_file в пуле потоков
-    video_url = await loop.run_in_executor(
-        executor, s3.upload_large_file, video, base_lesson
+async def upload_video(video, base_lesson, instance):
+    video_url = await sync_to_async(s3.upload_large_file, thread_sensitive=True)(
+        video, base_lesson
     )
     instance.video = video_url
-    instance.save()
+    await sync_to_async(instance.save, thread_sensitive=True)()
 
 
 class UploadVideoViewSet(
@@ -77,7 +76,7 @@ class UploadVideoViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            asyncio.run(async_upload_video(video, base_lesson, instance))
+            asyncio.run(sync_to_async(upload_video)(video, base_lesson, instance))
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
