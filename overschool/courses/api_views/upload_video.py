@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
@@ -110,7 +111,13 @@ class UploadVideoViewSet(
 
         if not picture and file_use:
             executor.submit(delete_picture_in_background, instance)
-
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), video
+        ).replace(" ", "_")
+        serializer.validated_data["video"] = file_path
         # Сохраняем изменения в объекте
         self.perform_update(serializer)
 
