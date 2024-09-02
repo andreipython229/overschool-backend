@@ -1,7 +1,6 @@
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -76,7 +75,7 @@ class UploadVideoViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            asyncio.run(sync_to_async(upload_video)(video, base_lesson, instance))
+            async_to_sync(upload_video)(video, base_lesson, instance)
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
