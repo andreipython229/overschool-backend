@@ -8,5 +8,5 @@ s3 = UploadToS3()
 
 @task()
 def upload_video_task(video, file_path):
-    video_stream = BytesIO(video.read())
+    video_stream = BytesIO(video)
     s3.upload_large_file(video_stream, file_path)
