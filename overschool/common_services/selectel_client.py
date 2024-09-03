@@ -2,9 +2,11 @@ import io
 import os
 import zipfile
 from datetime import datetime
+from io import BytesIO
 
 import boto3
 from botocore.exceptions import ClientError
+from django.core.files.uploadedfile import TemporaryUploadedFile
 
 from overschool.settings import (
     ENDPOINT_URL,
@@ -140,7 +142,10 @@ class UploadToS3:
 
         # Определите размер файла
         segment_size = 50 * 1024 * 1024
-        file_size = filename.size
+        if isinstance(filename, BytesIO):
+            file_size = filename.tell()
+        elif isinstance(filename, TemporaryUploadedFile):
+            file_size = filename.size
         if file_size <= segment_size:
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
             return file_path
