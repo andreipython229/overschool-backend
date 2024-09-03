@@ -25,6 +25,7 @@ DOCKER_LOAD_DATA = docker-compose exec back python  overschool/manage.py loaddat
 	${MANAGE} makemigrations
 	${MANAGE} migrate
 	daphne -b 0.0.0.0 -p 8000 overschool.asgi:application
+	${MANAGE} run_huey
 
 	docker-compose exec back python overschool/manage.py test
 
