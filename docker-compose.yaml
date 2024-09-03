@@ -13,7 +13,7 @@ services:
     build: overschool
     image: back
     restart: always
-    command: bash -c "cd overschool && make back"
+    command: /start.sh
     container_name: backendDjango
     ports:
       - "8000:8000"
