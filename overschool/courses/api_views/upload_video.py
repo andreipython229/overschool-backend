@@ -1,5 +1,3 @@
-from io import BytesIO
-
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -68,8 +66,8 @@ class UploadVideoViewSet(
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
             # Отправляем задачу в Huey
             file_path = s3.file_path(video, base_lesson)
-            video_stream = BytesIO(video.read())
-            upload_video_task(video_stream, file_path)
+            video_content = video.read()
+            upload_video_task(video_content, file_path)
             serializer.validated_data["video"] = file_path
         if picture:
             if instance.picture:
@@ -94,6 +92,10 @@ class UploadVideoViewSet(
         instance.save()
         self.perform_update(serializer)
 
-        serializer = BlockDetailSerializer(instance)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "message": "Обновление начато. Файлы будут обработаны в фоновом режиме.",
+                "data": BlockDetailSerializer(instance).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
