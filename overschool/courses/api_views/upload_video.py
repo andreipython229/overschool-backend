@@ -66,8 +66,7 @@ class UploadVideoViewSet(
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
             # Отправляем задачу в Huey
             file_path = s3.file_path(video, base_lesson)
-            video_content = video.read()
-            upload_video_task(video_content, file_path)
+            upload_video_task(video, file_path)
             serializer.validated_data["video"] = file_path
         if picture:
             if instance.picture:
