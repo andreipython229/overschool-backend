@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "huey.contrib.djhuey",
     "rangefilter",
     "phonenumber_field",
     "drf_yasg",
@@ -68,8 +69,8 @@ ADMINS = [
 
 MANAGERS = ADMINS
 
-REDIS_HOST = "redis"
-REDIS_PORT = "6379"
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT")
 
 EMAIL_BACKEND = "overschool.mailing.MyEmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
@@ -188,19 +189,23 @@ DATABASES = {
 
 # HUEY
 HUEY = {
-    "name": "huey",
+    "huey_class": "huey.RedisHuey",
+    "name": "huey_video",
     "results": True,
     "store_none": False,
     "immediate": False,
+    "utc": True,
+    "connection": {
+        "host": REDIS_HOST,
+        "port": REDIS_PORT,
+        "db": 3,
+    },
     "consumer": {
         "workers": 4,
+        "worker_type": "thread",
         "scheduler_interval": 5,
         "periodic": True,
         "check_worker_health": True,
-    },
-    "connection": {
-        "host": "redis",
-        "port": 6379,
     },
 }
 
