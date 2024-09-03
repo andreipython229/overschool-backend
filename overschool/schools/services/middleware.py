@@ -1,4 +1,5 @@
 import json
+import re
 from urllib.parse import urlparse
 
 import jwt
@@ -62,11 +63,12 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 class DomainAccessMiddleware(MiddlewareMixin):
     EXCLUDED_PATHS = [
-        "/api/login/",
-        "/api/course_catalog/",
-        "/admin/",
-        "/api/token/refresh/",
-        "/api/token/verify/",
+        r"/api/login/",
+        r"/api/course_catalog/",
+        r"/admin/",
+        r"/api/token/refresh/",
+        r"/api/token/verify/",
+        r"/video/.+/block_video/\d+/",
     ]
     ALLOWED_DOMAINS = [
         "sandbox.coursehb.ru",
@@ -84,7 +86,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_path = request.path
 
         # Исключаем страницы логина и другие страницы
-        if any(current_path.startswith(path) for path in self.EXCLUDED_PATHS):
+        if any(re.fullmatch(pattern, current_path) for pattern in self.EXCLUDED_PATHS):
             return None
 
         auth_header = request.META.get("HTTP_AUTHORIZATION", None)

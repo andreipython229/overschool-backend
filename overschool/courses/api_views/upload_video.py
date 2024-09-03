@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 
+from overschool.tasks import upload_video_task
+
 s3 = UploadToS3()
 
 
@@ -62,15 +64,17 @@ class UploadVideoViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            serializer.validated_data["video"] = s3.upload_large_file(
-                request.FILES["video"], base_lesson
-            )
+            # Отправляем задачу в Huey
+            file_path = s3.file_path(video, base_lesson)
+            upload_video_task(video, file_path)
+            serializer.validated_data["video"] = file_path
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            file_path = s3.file_path(picture, base_lesson)
             serializer.validated_data["picture"] = s3.upload_large_file(
-                request.FILES["picture"], base_lesson
+                picture, file_path
             )
         elif not video and file_use:
             if instance.video:
