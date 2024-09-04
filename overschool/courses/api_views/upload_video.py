@@ -1,4 +1,5 @@
 import tempfile
+import time
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
@@ -68,13 +69,15 @@ class UploadVideoViewSet(
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
             # Отправляем задачу в Huey
             file_path = s3.file_path(video, base_lesson)
-
+            start_time = time.time()
             # Сохранение файла во временном каталоге
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 for chunk in video.chunks():
                     temp_file.write(chunk)
                 temp_file_path = temp_file.name
-
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"Временный файл был сохранен за {elapsed_time:.2f} секунд.")
             # Отправка задачи в Huey с путем к временному файлу
             upload_video_task(temp_file_path, file_path)
             serializer.validated_data["video"] = file_path
