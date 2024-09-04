@@ -1,3 +1,5 @@
+import tempfile
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -66,8 +68,15 @@ class UploadVideoViewSet(
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
             # Отправляем задачу в Huey
             file_path = s3.file_path(video, base_lesson)
-            video_content = video.read()
-            upload_video_task(video_content, file_path)
+
+            # Сохранение файла во временном каталоге
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                for chunk in video.chunks():
+                    temp_file.write(chunk)
+                temp_file_path = temp_file.name
+
+            # Отправка задачи в Huey с путем к временному файлу
+            upload_video_task(temp_file_path, file_path)
             serializer.validated_data["video"] = file_path
         if picture:
             if instance.picture:
