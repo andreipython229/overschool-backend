@@ -82,12 +82,18 @@ class BaseLessonBlockViewSet(
 
         if request.FILES.get("video"):
             base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
-            video = s3.upload_large_file(request.FILES["video"], base_lesson_obj)
+            file_path = s3.file_path(request.FILES["video"], base_lesson_obj)
+            video = s3.upload_large_file(
+                request.FILES["video"], file_path, request.FILES["video"].size
+            )
             block.video = video
             block.save()
         if request.FILES.get("picture"):
             base_lesson_obj = BaseLesson.objects.get(pk=base_lesson)
-            picture = s3.upload_large_file(request.FILES["picture"], base_lesson_obj)
+            file_path = s3.file_path(request.FILES.get("picture"), base_lesson_obj)
+            picture = s3.upload_large_file(
+                request.FILES["picture"], file_path, request.FILES["picture"].size
+            )
             block.picture = picture
             block.save()
 
@@ -108,15 +114,17 @@ class BaseLessonBlockViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            file_path = s3.file_path(video, base_lesson)
             serializer.validated_data["video"] = s3.upload_large_file(
-                request.FILES["video"], base_lesson
+                video, file_path, video.size
             )
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            file_path = s3.file_path(picture, base_lesson)
             serializer.validated_data["picture"] = s3.upload_large_file(
-                request.FILES["picture"], base_lesson
+                picture, file_path, picture.size
             )
         elif not video and file_use:
             if instance.video:

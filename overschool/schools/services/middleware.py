@@ -1,4 +1,6 @@
 import json
+import re
+from urllib.parse import urlparse
 
 import jwt
 from django.conf import settings
@@ -60,7 +62,14 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 
 class DomainAccessMiddleware(MiddlewareMixin):
-    EXCLUDED_PATHS = ["/api/login/", "/admin/"]
+    EXCLUDED_PATHS = [
+        r"/api/login/",
+        r"/api/course_catalog/",
+        r"/admin/",
+        r"/api/token/refresh/",
+        r"/api/token/verify/",
+        r"/video/.+/block_video/\d+/",
+    ]
     ALLOWED_DOMAINS = [
         "sandbox.coursehb.ru",
         "coursehb.ru",
@@ -77,7 +86,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_path = request.path
 
         # Исключаем страницы логина и другие страницы
-        if any(current_path.startswith(path) for path in self.EXCLUDED_PATHS):
+        if any(re.fullmatch(pattern, current_path) for pattern in self.EXCLUDED_PATHS):
             return None
 
         auth_header = request.META.get("HTTP_AUTHORIZATION", None)
@@ -97,8 +106,12 @@ class DomainAccessMiddleware(MiddlewareMixin):
             request.user = None
 
         current_user = request.user
-        current_domain = request.get_host()  # Получение текущего домена из запроса
-        print(current_domain)
+        domain = request.META.get("HTTP_X_ORIGIN")
+        if domain:
+            parsed_url = urlparse(domain)
+            current_domain = parsed_url.netloc
+        else:
+            current_domain = None
 
         # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
@@ -114,8 +127,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
-                print(school_domains)
-                print(current_domain)
+
                 if not any(
                     school_domain.domain_name == current_domain
                     for school_domain in school_domains

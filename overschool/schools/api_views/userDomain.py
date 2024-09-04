@@ -5,7 +5,7 @@ from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from schools.models import Domain, School
+from schools.models import Domain, School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from schools.serializers import DomainSerializer
 
@@ -30,12 +30,13 @@ class DomainViewSet(
             ]:
                 user = self.request.user
                 if user.is_anonymous:
-                    raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                    raise PermissionDenied(
+                        "У вас нет прав для выполнения этого действия."
+                    )
                 else:
                     return super().get_permissions()
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -49,6 +50,13 @@ class DomainViewSet(
     def perform_create(self, serializer):
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
+
+        # Проверка наличия тарифа и его соответствие 'SENIOR'
+        if not school.tariff or school.tariff.name != TariffPlan.SENIOR.value:
+            raise PermissionDenied(
+                "Подключение своего домена доступно только для тарифа Senior."
+            )
+
         serializer.save(school=school)
 
 
@@ -106,7 +114,7 @@ class UnconfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewS
 class ConfiguredDomainSerializer(serializers.ModelSerializer):
     class Meta:
         model = Domain
-        fields = ['id', 'school', 'domain_name']
+        fields = ["id", "school", "domain_name"]
 
 
 class ConfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
