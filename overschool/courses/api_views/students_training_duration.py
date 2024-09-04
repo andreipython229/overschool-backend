@@ -85,15 +85,17 @@ class TrainingDurationViewSet(
         training_duration = TrainingDuration.objects.filter(
             user=student, students_group=students_group
         ).first()
-        limit = serializer.validated_data.get("limit")
-        if training_duration:
-            if limit == 0:
-                training_duration.delete()
-            else:
-                training_duration.limit = limit
-                training_duration.save()
-        else:
-            if limit != 0:
-                serializer.save()
 
-        return HttpResponse("Продолжительность обучения установлена", status=201)
+        if training_duration:
+            limit = serializer.validated_data.get("limit")
+            if limit is not None:
+                training_duration.limit = limit
+            if request.data.get("download") is not None:
+                training_duration.download = serializer.validated_data.get("download")
+            training_duration.save()
+        else:
+            serializer.save()
+
+        return HttpResponse(
+            "Продолжительность обучения и иные особенности установлены", status=201
+        )

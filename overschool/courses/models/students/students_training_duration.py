@@ -30,9 +30,15 @@ class TrainingDuration(models.Model):
         default=0,
     )
 
+    download = models.BooleanField(
+        default=False,
+        verbose_name="Возможность скачивания видео",
+        help_text="При 'True' - ученик может скачивать видео-уроки в процессе обучения в данной группе",
+    )
+
     def __str__(self):
         return f"{self.user} {self.students_group}"
 
     class Meta:
-        verbose_name = "Продолжительность обучения"
-        verbose_name_plural = "Продолжительность обучения"
+        verbose_name = "Продолжительность и иные особенности обучения"
+        verbose_name_plural = "Продолжительность и иные особенности обучения"

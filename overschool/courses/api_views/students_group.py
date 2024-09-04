@@ -53,16 +53,30 @@ from users.models import Profile, User, UserGroup
 from users.serializers import UserProfileGetSerializer
 
 
-# Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную
+# Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную,
+# а также возможность скачивания видео-уроков
 def get_student_training_duration(group, student_id):
     try:
         training_duration = TrainingDuration.objects.get(
             user_id=student_id, students_group=group
         )
-        return (training_duration.limit, training_duration.limit)
+        if training_duration.limit > 0:
+            return (
+                training_duration.limit,
+                training_duration.limit,
+                training_duration.download,
+            )
+        else:
+            return (
+                (group.training_duration, None, training_duration.download)
+                if group.training_duration
+                else (None, None, training_duration.download)
+            )
     except TrainingDuration.DoesNotExist:
         return (
-            (group.training_duration, None) if group.training_duration else (None, None)
+            (group.training_duration, None, group.group_settings.download)
+            if group.training_duration
+            else (None, None, group.group_settings.download)
         )
 
 
@@ -831,10 +845,14 @@ class StudentsGroupViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        limit = get_student_training_duration(group, student_id)
+        result = get_student_training_duration(group, student_id)
 
         return Response(
-            {"final_limit": limit[0], "individual_limit": limit[1]},
+            {
+                "final_limit": result[0],
+                "individual_limit": result[1],
+                "download": result[2],
+            },
             status=status.HTTP_200_OK,
         )
 
