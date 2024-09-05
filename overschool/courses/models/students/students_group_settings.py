@@ -34,6 +34,11 @@ class StudentsGroupSettings(models.Model):
         verbose_name="Блокировка доступа к OVER AI",
         help_text="При 'True' - OVER AI включен для учеников данной группы",
     )
+    download = models.BooleanField(
+        default=False,
+        verbose_name="Возможность скачивания видео",
+        help_text="При 'True' - ученики данной группы могут скачивать видео-уроки",
+    )
 
     def __str__(self):
         return str(self.pk) + " Настройки группы студентов"
