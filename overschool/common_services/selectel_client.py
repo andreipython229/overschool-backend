@@ -49,7 +49,9 @@ class UploadToS3:
         return url
 
     def delete_file(self, filename):
-        self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+        print(filename)
+        a = self.s3.delete_object(Bucket=S3_BUCKET, Key=filename)
+        print(a)
 
     def delete_files(self, objects_to_delete):
         self.s3.delete_objects(Bucket=S3_BUCKET, Delete={"Objects": objects_to_delete})
