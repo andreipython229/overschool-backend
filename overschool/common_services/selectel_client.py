@@ -5,7 +5,6 @@ from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-from django.core.files.uploadedfile import TemporaryUploadedFile
 
 from overschool.settings import (
     ENDPOINT_URL,
@@ -139,10 +138,17 @@ class UploadToS3:
         ).replace(" ", "_")
         return file_path
 
-    def upload_large_file(self, filename, file_path, file_size):
+    def upload_large_file(self, filename, base_lesson):
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), filename
+        ).replace(" ", "_")
 
         # Определите размер файла
         segment_size = 50 * 1024 * 1024
+        file_size = filename.size
 
         if file_size <= segment_size:
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
