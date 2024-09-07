@@ -6,6 +6,7 @@ from courses.models import (
     SectionTest,
     StudentsGroup,
     UserProgressLogs,
+    CourseCopy,
 )
 from courses.models.common.base_lesson import LessonAvailability, LessonEnrollment
 from django.db.models import Prefetch, OuterRef, Subquery, FloatField, ExpressionWrapper, Value
@@ -14,6 +15,14 @@ from django.db.models import Prefetch, OuterRef, Subquery, FloatField, Expressio
 
 
 def get_student_progress(student, course_id, group_id):
+    try:
+        course = Course.objects.get(course_id=course_id)
+        if course.is_copy:
+            course_copy = CourseCopy.objects.get(course_copy_id=course_id)
+            course_id = course_copy.course_id
+    except Course.DoesNotExist:
+        return 0
+
     all_base_lesson = BaseLesson.objects.filter(
         section_id__course_id=course_id,
         active=True,
@@ -61,11 +70,23 @@ def get_student_progress(student, course_id, group_id):
 
 
 def progress_subquery(student_id, course_id):
+
+    try:
+        course = Course.objects.get(course_id=course_id)
+        if course.is_copy:
+            course_copy = CourseCopy.objects.get(course_copy_id=course_id)
+            course_id = course_copy.course_id
+    except Course.DoesNotExist:
+        return 0
+
     all_base_lesson = BaseLesson.objects.filter(
         section_id__course_id=course_id, active=True,
     ).exclude(
         lessonavailability__student=student_id,
     )
+
+    if all_base_lesson.count() == 0:
+        return 0
 
     lesson_viewed_ids = UserProgressLogs.objects.filter(
         lesson_id__in=all_base_lesson.values('id'),
@@ -112,7 +133,6 @@ def progress_subquery(student_id, course_id):
     ).count()
 
     completed_all = completed_lessons + completed_homeworks + completed_tests
-
     return round((completed_all / all_base_lesson.count()) * 100, 2)
 
 
