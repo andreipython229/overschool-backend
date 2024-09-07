@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "huey.contrib.djhuey",
     "rangefilter",
     "phonenumber_field",
     "drf_yasg",
