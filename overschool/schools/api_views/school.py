@@ -21,6 +21,7 @@ from courses.services import get_student_progress, progress_subquery
 from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
@@ -136,6 +137,38 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
+
+        User = get_user_model()
+
+        # Добавление admin@coursehub.ru как администратора школы
+        try:
+            admin_user = User.objects.get(email="admin@coursehub.ru")
+            UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
+        except User.DoesNotExist:
+            return HttpResponse("Пользователь с email admin@coursehub.ru не найден.", status=400)
+
+        # Добавление teacher@coursehub.ru как учителя школы
+        try:
+            teacher_user = User.objects.get(email="teacher@coursehub.ru")
+            group_teacher = UserRole.objects.get(name="Teacher")
+            UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
+        except User.DoesNotExist:
+            return HttpResponse("Пользователь с email teacher@coursehub.ru не найден.", status=400)
+
+        # Добавление пользователей во все школы
+        schools = School.objects.all()
+        for school in schools:
+            try:
+                if not UserGroup.objects.filter(user=admin_user, group=group_admin, school=school).exists():
+                    UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
+            except User.DoesNotExist:
+                return HttpResponse("Пользователь с email admin@coursehub.ru не найден.", status=400)
+
+            try:
+                if not UserGroup.objects.filter(user=teacher_user, group=group_teacher, school=school).exists():
+                    UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
+            except User.DoesNotExist:
+                return HttpResponse("Пользователь с email teacher@coursehub.ru не найден.", status=400)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
