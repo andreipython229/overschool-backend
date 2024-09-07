@@ -68,11 +68,12 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     Разрешения для создания и изменения школы (только пользователи зарегистрированные указавшие email и phone_number')"""
 
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return SchoolGetSerializer
+        if self.action in ["update", "partial_update"]:
+            return SchoolUpdateSerializer
         else:
             return SchoolSerializer
 
@@ -190,6 +191,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                 return Response(
                     "Название школы уже существует.", status=status.HTTP_400_BAD_REQUEST
                 )
+        platform_logo = request.FILES.get("branding.platform_logo")
+        if platform_logo:
+            if school.branding.platform_logo:
+                s3.delete_file(str(school.branding.platform_logo))
+            logo_url = s3.upload_school_image(platform_logo, school.school_id)
+            school.branding.platform_logo = logo_url
+            school.branding.save()
 
         self.perform_update(serializer)
         serializer = SchoolGetSerializer(school)

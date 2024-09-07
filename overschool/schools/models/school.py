@@ -3,6 +3,7 @@ import uuid
 from common_services.mixins import OrderMixin, TimeStampMixin
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -144,8 +145,37 @@ class School(TimeStampMixin, OrderMixin):
         verbose_name="Включен ли тестовый курс для админов",
         help_text="Включен ли тестовый курс для админов",
     )
+    rebranding_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Ребрендинг активирован",
+        help_text="Активировать ребрендинг школы",
+    )
 
     objects = SchoolManager()
+
+    def save(self, *args, **kwargs):
+        # Проверка, что тариф не может быть None, пока есть оплаченный или пробный период
+        if self.tariff is None and (
+            self.purchased_tariff_end_date or self.trial_end_date
+        ):
+            raise ValidationError(
+                "Нельзя убрать тариф, пока действует оплаченный или пробный период."
+            )
+
+        # Отключение ребрендинга, если тариф меняется на другой, не Senior
+        if self.tariff and self.tariff.name != TariffPlan.SENIOR:
+            self.rebranding_enabled = False
+
+        # Проверка, можно ли включить ребрендинг (доступен только для тарифа Senior и при наличии домена)
+        if self.rebranding_enabled:
+            if not self.tariff or self.tariff.name != TariffPlan.SENIOR:
+                raise ValidationError("Ребрендинг доступен только для тарифа Senior.")
+            if not hasattr(self, "domain") or not self.domain:
+                raise ValidationError(
+                    "Ребрендинг доступен только при наличии собственного домена."
+                )
+
+        super().save(*args, **kwargs)
 
     def check_trial_status(self):
         # Проверка статуса пробного периода

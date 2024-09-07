@@ -9,6 +9,7 @@ from .school import (
 )
 from .school_banner import BannerViewSet
 from .school_bonus import BonusViewSet
+from .school_branding import SchoolByDomainView
 from .school_document import SchoolDocumentViewSet
 from .school_header import SchoolHeaderViewSet
 from .school_newsletter import NewsletterTemplateViewSet

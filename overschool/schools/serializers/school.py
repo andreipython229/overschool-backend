@@ -1,13 +1,44 @@
 import requests
+from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
 from schools.models import (
     School,
+    SchoolBranding,
     SchoolStudentsTableSettings,
     SchoolTask,
     Tariff,
     TariffPlan,
 )
 from transliterate import translit
+
+s3 = UploadToS3()
+
+
+class SchoolBrandingUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления модели ребрендинга.
+    """
+
+    platform_logo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SchoolBranding
+        fields = [
+            "platform_logo",
+            "email",
+            "phone",
+            "unp",
+            "full_organization_name",
+            "address",
+        ]
+
+    def get_platform_logo(self, obj):
+        if obj.platform_logo:
+            return s3.get_link(obj.platform_logo.name)
+        else:
+            # Если нет загруженной картинки, вернуть ссылку на дефолтное изображение
+            default_image_path = "base_school.jpg"
+            return s3.get_link(default_image_path)
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -31,6 +62,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "contact_link",
             "referral_code",
             "test_course",
+            "rebranding_enabled",
         ]
         read_only_fields = [
             "order",
@@ -55,6 +87,8 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
     Сериализатор обновления модели школы
     """
 
+    branding = SchoolBrandingUpdateSerializer()
+
     class Meta:
         model = School
         fields = [
@@ -71,6 +105,8 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "offer_url",
             "contact_link",
             "test_course",
+            "rebranding_enabled",
+            "branding",
         ]
         read_only_fields = [
             "order",
@@ -87,12 +123,35 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             attrs["name"] = attrs["name"].replace(" ", "_")
         return attrs
 
+    def update(self, instance, validated_data):
+        # Обработка данных ребрендинга
+        rebranding_data = validated_data.pop("branding", None)
+        # Проверяем, включен ли ребрендинг
+        if instance.rebranding_enabled:
+            if rebranding_data:
+                rebranding_instance = getattr(instance, "branding", None)
+                if not rebranding_instance:
+                    rebranding_instance = SchoolBranding.objects.create(school=instance)
+
+                for attr, value in rebranding_data.items():
+                    setattr(rebranding_instance, attr, value)
+                rebranding_instance.save()
+        else:
+            # Если `rebranding_enabled` выключен, не обновляем и не создаем данные ребрендинга
+            if rebranding_data:
+                raise serializers.ValidationError(
+                    "Нельзя обновить ребрендинг, так как он отключён."
+                )
+        # Обновляем остальные поля школы
+        return super().update(instance, validated_data)
+
 
 class SchoolGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра школы
     """
 
+    branding = SchoolBrandingUpdateSerializer()
     referral_count = serializers.SerializerMethodField()
     referral_click_count = serializers.SerializerMethodField()
     unique_referral_click_count = serializers.SerializerMethodField()
@@ -117,6 +176,8 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "referral_count",
             "referral_click_count",
             "unique_referral_click_count",
+            "rebranding_enabled",
+            "branding",
         ]
         read_only_fields = [
             "order",
@@ -135,6 +196,18 @@ class SchoolGetSerializer(serializers.ModelSerializer):
 
     def get_unique_referral_click_count(self, obj):
         return obj.referral_clicks.values("ip_address").distinct().count()
+
+    def to_representation(self, instance):
+        """
+        Кастомизация представления данных: если ребрендинг отключен, поле rebranding не будет отображаться
+        """
+        representation = super().to_representation(instance)
+
+        # Убираем поле rebranding, если ребрендинг отключен
+        if not instance.rebranding_enabled:
+            representation.pop("branding", None)
+
+        return representation
 
 
 class TariffSerializer(serializers.ModelSerializer):
