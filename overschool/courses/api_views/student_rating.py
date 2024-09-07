@@ -165,7 +165,7 @@ class StudentRatingViewSet(
         school = self.get_school()
         student_of_cur_school_role = UserGroup.objects.filter(
             group__name="Student", school=school, user=OuterRef("id")
-        ).values("id")
+        ).values("id")[:1]
 
         if lessons_flag:
             students_by_lessons = (

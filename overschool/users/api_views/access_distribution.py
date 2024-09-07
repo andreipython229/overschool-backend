@@ -9,6 +9,7 @@ from courses.models import (
     LessonEnrollment,
     StudentsGroup,
     StudentsHistory,
+    TrainingDuration,
 )
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -147,6 +148,12 @@ class AccessDistributionView(
                 LessonAvailability.objects.update_or_create(
                     student=user, lesson_id=lesson, defaults={"available": False}
                 )
+
+            TrainingDuration.objects.update_or_create(
+                user=user,
+                students_group=student_group,
+                defaults={"download": student_group.group_settings.download},
+            )
 
             try:
                 chat = student_group.chat
