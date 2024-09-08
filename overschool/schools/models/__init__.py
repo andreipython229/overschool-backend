@@ -13,6 +13,7 @@ from .school import (
 )
 from .school_banner import Banner, BannerAccept, BannerClick
 from .school_bonus import Bonus
+from .school_branding import SchoolBranding
 from .school_document import SchoolDocuments
 from .school_header import SchoolHeader
 from .school_newsletter import NewsletterTemplate, SentNewsletter

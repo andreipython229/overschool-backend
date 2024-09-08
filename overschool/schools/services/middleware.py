@@ -6,7 +6,7 @@ import jwt
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden
 from django.utils.deprecation import MiddlewareMixin
-from schools.models import Domain, School
+from schools.models import Domain, School, TariffPlan
 from users.models import User
 
 
@@ -64,6 +64,7 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 class DomainAccessMiddleware(MiddlewareMixin):
     EXCLUDED_PATHS = [
         r"/api/login/",
+        r"/api/school-by-domain/",
         r"/api/course_catalog/",
         r"/admin/",
         r"/api/token/refresh/",
@@ -124,17 +125,23 @@ class DomainAccessMiddleware(MiddlewareMixin):
             user_schools.update(School.objects.filter(groups__user=current_user))
 
             # Если есть школы у пользователя
+            # Если есть школы у пользователя
             if user_schools:
                 # Проверяем домены всех школ пользователя
                 school_domains = Domain.objects.filter(school__in=user_schools)
 
-                if not any(
-                    school_domain.domain_name == current_domain
-                    for school_domain in school_domains
-                ):
-                    return HttpResponseForbidden(
-                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
-                    )
+                for school_domain in school_domains:
+                    if school_domain.domain_name == current_domain:
+                        # Проверяем, что у школы тариф Senior
+                        if school_domain.school.tariff.name != TariffPlan.SENIOR.value:
+                            return HttpResponseForbidden(
+                                "Доступ запрещен. Тариф школы не позволяет доступ через собственный домен."
+                            )
+                        return None
+
+                return HttpResponseForbidden(
+                    "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
+                )
             else:
                 # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
                 if not Domain.objects.filter(domain_name=current_domain).exists():

@@ -17,6 +17,7 @@ from .school_banner import (
     BannerSerializer,
 )
 from .school_bonus import BonusGetSerializer, BonusSerializer
+from .school_branding import SchoolBrandingSerializer
 from .school_document import (
     SchoolDocumentsDetailSerializer,
     SchoolDocumentsSerializer,

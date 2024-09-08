@@ -1,5 +1,3 @@
-import tempfile
-
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -9,8 +7,6 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
-
-from overschool.tasks import upload_video_task
 
 s3 = UploadToS3()
 
@@ -66,25 +62,15 @@ class UploadVideoViewSet(
             if instance.video:
                 s3.delete_file(str(instance.video))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            # Отправляем задачу в Huey
-            file_path = s3.file_path(video, base_lesson)
-
-            # Сохранение файла во временном каталоге
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                for chunk in video.chunks():
-                    temp_file.write(chunk)
-                temp_file_path = temp_file.name
-
-            # Отправка задачи в Huey с путем к временному файлу
-            upload_video_task(temp_file_path, file_path)
-            serializer.validated_data["video"] = file_path
+            serializer.validated_data["video"] = s3.upload_large_file(
+                request.FILES["video"], base_lesson
+            )
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            file_path = s3.file_path(picture, base_lesson)
             serializer.validated_data["picture"] = s3.upload_large_file(
-                picture, file_path
+                request.FILES["picture"], base_lesson
             )
         elif not video and file_use:
             if instance.video:
@@ -101,10 +87,6 @@ class UploadVideoViewSet(
         instance.save()
         self.perform_update(serializer)
 
-        return Response(
-            {
-                "message": "Обновление начато. Файлы будут обработаны в фоновом режиме.",
-                "data": BlockDetailSerializer(instance).data,
-            },
-            status=status.HTTP_202_ACCEPTED,
-        )
+        serializer = BlockDetailSerializer(instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

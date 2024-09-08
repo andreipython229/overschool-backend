@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "huey.contrib.djhuey",
     "rangefilter",
     "phonenumber_field",
     "drf_yasg",
@@ -187,27 +186,6 @@ DATABASES = {
     }
 }
 
-# HUEY
-HUEY = {
-    "huey_class": "huey.RedisHuey",
-    "name": "huey_video",
-    "results": True,
-    "store_none": False,
-    "immediate": False,
-    "utc": True,
-    "connection": {
-        "host": REDIS_HOST,
-        "port": REDIS_PORT,
-        "db": 3,
-    },
-    "consumer": {
-        "workers": 4,
-        "worker_type": "thread",
-        "scheduler_interval": 5,
-        "periodic": True,
-        "check_worker_health": True,
-    },
-}
 
 AUTH_USER_MODEL = "users.User"
 

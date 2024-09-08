@@ -22,7 +22,11 @@ from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-from schools.api_views import ReferralClickRedirectView, SchoolTasksViewSet
+from schools.api_views import (
+    ReferralClickRedirectView,
+    SchoolByDomainView,
+    SchoolTasksViewSet,
+)
 from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
@@ -74,6 +78,11 @@ urlpatterns = [
         "api/referral/<uuid:referral_code>/",
         ReferralClickRedirectView.as_view(),
         name="referral-click-redirect",
+    ),
+    path(
+        "api/school-by-domain/",
+        SchoolByDomainView.as_view({"get": "get"}),
+        name="school_by_domain",
     ),
     path(
         "api/register_user/",

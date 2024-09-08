@@ -14,5 +14,8 @@ def core_exception_handler(exc, context):
 
 
 def _handle_generic_error(exc, context, response):
+    if response is None:
+        response = JsonResponse({"errors": [str(exc)]}, status=400)
+        return response
     response.data = {"errors": response.data}
     return JsonResponse(response.data, status=response.status_code)
