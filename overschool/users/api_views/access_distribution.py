@@ -72,7 +72,8 @@ class AccessDistributionView(
         return user_group
 
     def send_email_notification(self, email, course_name, school_name):
-        url = "https://overschool.by/login/"
+        domain = self.request.META.get("HTTP_X_ORIGIN")
+        url = f"{domain}/login/"
         subject = "Добавление в группу"
         html_message = render_to_string(
             "added_to_course_template.html",
