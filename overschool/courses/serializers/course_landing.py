@@ -9,6 +9,8 @@ from courses.models import (
     StatsBlock,
     TrainingProgram,
     TrainingPurpose,
+    LinkButton
+
 )
 from courses.serializers.section import SectionSerializer
 from rest_framework import serializers
@@ -62,6 +64,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
     audience_block = serializers.SerializerMethodField()
     training_program_block = serializers.SerializerMethodField()
     training_purpose_block = serializers.SerializerMethodField()
+    link_button_block = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseLanding
@@ -71,6 +74,7 @@ class LandingGetSerializer(serializers.ModelSerializer):
             "audience_block",
             "training_program_block",
             "training_purpose_block",
+            "link_button_block",
         ]
 
     def get_header_block(self, obj):
@@ -148,6 +152,18 @@ class LandingGetSerializer(serializers.ModelSerializer):
             ).data,
         }
 
+    def get_link_button_block(self, obj):
+        return {
+            "id": obj.link_button.position,
+            "content": "linkButton",
+            "visible": obj.link_button.is_visible,
+            "canUp": obj.link_button.can_up,
+            "canDown": obj.link_button.can_down,
+            "name": obj.link_button.name,
+            "link": obj.link_button.link,
+            "color": obj.link_button.color,
+        }
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["header"] = representation["header_block"]
@@ -155,11 +171,13 @@ class LandingGetSerializer(serializers.ModelSerializer):
         representation["audience"] = representation["audience_block"]
         representation["trainingProgram"] = representation["training_program_block"]
         representation["trainingPurpose"] = representation["training_purpose_block"]
+        representation["linkButton"] = representation["link_button_block"]
         del representation["header_block"]
         del representation["stats_block"]
         del representation["audience_block"]
         del representation["training_program_block"]
         del representation["training_purpose_block"]
+        del representation["link_button_block"]
         return representation
 
 
@@ -324,3 +342,16 @@ class TrainingPurposeSerializer(serializers.ModelSerializer):
         update_block_cards(instance=instance, chips_data=chips_data, s3=s3)
 
         return instance
+
+class LinkButtonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LinkButton
+        fields = [
+            "is_visible",
+            "position",
+            "can_up",
+            "can_down",
+            "name",
+            "color",
+            "link",
+        ]

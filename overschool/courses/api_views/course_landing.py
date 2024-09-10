@@ -9,6 +9,7 @@ from courses.models import (
     AudienceBlock,
     TrainingProgram,
     TrainingPurpose,
+    LinkButton,
     CourseLanding,
     Folder,
     Homework,
@@ -30,6 +31,7 @@ from courses.serializers import (
     AudienceSerializer,
     TrainingProgramSerializer,
     TrainingPurposeSerializer,
+    LinkButtonSerializer
 )
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets
@@ -113,12 +115,16 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
             training_purpose_serializer = TrainingPurposeSerializer(instance.training_purpose,
                                                                     data=converted_data["training_purpose"],
                                                                     partial=partial)
+            link_button_serializer = LinkButtonSerializer(instance.link_button,
+                                                          data=converted_data["link_button"],
+                                                          partial=partial)
             header_serializer.is_valid(raise_exception=True)
             course_serializer.is_valid(raise_exception=True)
             stats_serializer.is_valid(raise_exception=True)
             audience_serializer.is_valid(raise_exception=True)
             training_program_serializer.is_valid(raise_exception=True)
             training_purpose_serializer.is_valid(raise_exception=True)
+            link_button_serializer.is_valid(raise_exception=True)
 
             self.perform_update(header_serializer)
             self.perform_update(course_serializer)
@@ -126,6 +132,7 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
             self.perform_update(audience_serializer)
             self.perform_update(training_program_serializer)
             self.perform_update(training_purpose_serializer)
+            self.perform_update(link_button_serializer)
 
         # случай, когда данные летаят с файлами через formdata
         if "formdata" in request.data:
@@ -249,10 +256,19 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                 is_visible=True,
                 position=4,
                 can_up=True,
-                can_down=False,
+                can_down=True,
                 description="",
             )
             training_purpose.chips.set([purp_chip_1, purp_chip_2])
+            link_button = LinkButton.objects.create(
+                is_visible=True,
+                position=5,
+                can_up=True,
+                can_down=False,
+                name='Кнопка 1',
+                link='https://',
+                color='#3498db'
+            )
             landing = CourseLanding.objects.create(
                 course=course,
                 header=header,
