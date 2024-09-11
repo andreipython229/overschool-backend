@@ -27,6 +27,7 @@ from .course_landing import (
     StatsGetSerializer,
     TrainingProgramSerializer,
     TrainingPurposeSerializer,
+    LinkButtonSerializer
 )
 from .folder_course import FolderCourseSerializer, FolderViewSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer
