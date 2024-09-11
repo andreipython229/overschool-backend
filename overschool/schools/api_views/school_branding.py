@@ -1,15 +1,20 @@
 from urllib.parse import urlparse
 
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import Domain, School
 from schools.serializers import SchoolBrandingSerializer
 
 
+class SchoolByDomainSerializer(serializers.Serializer):
+    pass
+
+
 class SchoolByDomainView(LoggingMixin, WithHeadersViewSet, APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = SchoolByDomainSerializer
 
     def get(self, request):
         domain_name = request.GET.get("domain", None)
