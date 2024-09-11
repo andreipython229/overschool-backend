@@ -24,6 +24,7 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "status",
             "mark",
             "teacher",
+            "copy_course_id"
         ]
         read_only_fields = (
             "user",
@@ -65,6 +66,7 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "teacher_last_name",
             "teacher_avatar",
             "user_homework_checks",
+            "copy_course_id"
         ]
         read_only_fields = (
             "user",
@@ -117,6 +119,9 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(
         source="homework.section.course.name", read_only=True
     )
+    course_id = serializers.IntegerField(
+        source="homework.section.course.course_id", read_only=True
+    )
     group_id = serializers.SerializerMethodField()
     group_name = serializers.SerializerMethodField()
     teacher_name = serializers.SerializerMethodField()
@@ -134,6 +139,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
             "homework",
             "homework_name",
             "course_name",
+            "course_id",
+            "copy_course_id",
             "group_id",
             "group_name",
             "teacher_name",

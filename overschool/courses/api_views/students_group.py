@@ -53,16 +53,30 @@ from users.models import Profile, User, UserGroup
 from users.serializers import UserProfileGetSerializer
 
 
-# Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную
+# Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную,
+# а также возможность скачивания видео-уроков
 def get_student_training_duration(group, student_id):
     try:
         training_duration = TrainingDuration.objects.get(
             user_id=student_id, students_group=group
         )
-        return (training_duration.limit, training_duration.limit)
+        if training_duration.limit > 0:
+            return (
+                training_duration.limit,
+                training_duration.limit,
+                training_duration.download,
+            )
+        else:
+            return (
+                (group.training_duration, None, training_duration.download)
+                if group.training_duration
+                else (None, None, training_duration.download)
+            )
     except TrainingDuration.DoesNotExist:
         return (
-            (group.training_duration, None) if group.training_duration else (None, None)
+            (group.training_duration, None, group.group_settings.download)
+            if group.training_duration
+            else (None, None, group.group_settings.download)
         )
 
 
@@ -182,6 +196,7 @@ class StudentsGroupViewSet(
         school = self.get_school()
         teacher = serializer.validated_data.get("teacher_id")
         name = serializer.validated_data.get("name")
+        type = serializer.validated_data.get("type")
 
         if course.school != school:
             raise serializers.ValidationError("Курс не относится к вашей школе.")
@@ -213,20 +228,29 @@ class StudentsGroupViewSet(
                     raise serializers.ValidationError(
                         "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                     )
+
+        if type and type == "WITHOUT_TEACHER":
+            serializer.validated_data["teacher_id"] = None
+
         serializer.save()
 
         # обновляем чат с участниками группы
         chat = current_group.chat
         previous_teacher = current_group.teacher_id
 
-        if current_group.name != name:
+        if name and current_group.name != name:
             chat.name = name
             chat.save()
 
         if teacher and not UserChat.objects.filter(user=teacher, chat=chat).exists():
             UserChat.objects.create(user=teacher, chat=chat, user_role="Teacher")
 
-        if teacher and teacher != previous_teacher:
+        if (
+            teacher
+            and teacher != previous_teacher
+            or type
+            and type == "WITHOUT_TEACHER"
+        ):
             previous_chat = UserChat.objects.filter(
                 user=previous_teacher, chat=chat
             ).first()
@@ -240,8 +264,13 @@ class StudentsGroupViewSet(
                 teacher=previous_teacher,
             ).prefetch_related("user_homework_checks")
 
+            if type and type == "WITHOUT_TEACHER":
+                new_teacher = None
+            else:
+                new_teacher = teacher
+
             for user_homework in user_homeworks:
-                user_homework.teacher = teacher
+                user_homework.teacher = new_teacher
             UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
 
             user_homework_checks = []
@@ -252,7 +281,7 @@ class StudentsGroupViewSet(
                     if user_homework_check.author == previous_teacher
                 )
             for user_homework_check in user_homework_checks:
-                user_homework_check.author = teacher
+                user_homework_check.author = new_teacher
             UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
 
         for student in students:
@@ -816,10 +845,14 @@ class StudentsGroupViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        limit = get_student_training_duration(group, student_id)
+        result = get_student_training_duration(group, student_id)
 
         return Response(
-            {"final_limit": limit[0], "individual_limit": limit[1]},
+            {
+                "final_limit": result[0],
+                "individual_limit": result[1],
+                "download": result[2],
+            },
             status=status.HTTP_200_OK,
         )
 

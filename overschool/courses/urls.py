@@ -28,6 +28,7 @@ from courses.api_views import (
     UserHomeworkViewSet,
     UserTestViewSet,
 )
+from django.urls import re_path
 from rest_framework import routers
 from schools.api_views import BonusViewSet, SchoolDocumentViewSet
 
@@ -78,8 +79,6 @@ router.register("student_progress", StudentProgressViewSet, basename="student_pr
 router.register("lesson_comments", CommentViewSet, basename="lesson_comments")
 router.register("student_rating", StudentRatingViewSet, basename="student_rating")
 
-urlpatterns = router.urls
-
 router_video = routers.DefaultRouter()
 
 router_video.register("block_video", UploadVideoViewSet, basename="block_video")
@@ -93,3 +92,18 @@ router_catalog.register(
 router_appeals = routers.DefaultRouter()
 
 router_appeals.register("course-appeals", GetAppealsViewSet, basename="course-appeals")
+
+urlpatterns = [
+    re_path(
+        r'^(?P<school_name>[\w-]+)/user_homeworks/(?P<pk>\d+)/(?P<courseId>\d+)/$',
+        UserHomeworkViewSet.as_view({'get': 'retrieve'}),
+        name='user_homeworks-detail-with-courseId'
+    ),
+    re_path(
+        r'^(?P<school_name>[\w-]+)/user_homeworks/(?P<pk>\d+)/(?P<courseId>\d+)/$',
+        UserHomeworkViewSet.as_view({'get': 'list'}),
+        name='user_homeworks-detail-with-courseId'
+    ),
+]
+
+urlpatterns += router.urls

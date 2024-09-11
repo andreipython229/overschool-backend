@@ -91,7 +91,8 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         )
 
         # Отправка пароля на почту
-        url = "https://platform.coursehb.ru/login/"
+        domain = self.request.META.get("HTTP_X_ORIGIN")
+        url = f"{domain}/login/"
         subject = "Новый пароль"
         html_message = render_to_string(
             "new_user_notification.html", {"password": password, "url": url}

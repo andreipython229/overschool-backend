@@ -1,6 +1,7 @@
 from django.db import models
 from users.models import User
 from courses.models.common.base_lesson import BaseLesson
+from courses.models.courses.course import Course
 
 
 class Comment(models.Model):
@@ -35,6 +36,15 @@ class Comment(models.Model):
         default=False,
         verbose_name="Опубликован ли комментарий",
         help_text="Опубликован ли комментарий",
+    )
+    copy_course_id = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        verbose_name="ID копии курса",
+        help_text="ID копии курса, если коммент относится к копии курса",
+        blank=True,
+        null=True,
+        default=None
     )
 
     class Meta:

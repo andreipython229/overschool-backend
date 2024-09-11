@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from ..models.comments.comment import Comment
 from ..serializers.comment import CommentSerializer
 from courses.models.common.base_lesson import BaseLesson
+from courses.models.courses.course import Course
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from schools.school_mixin import SchoolMixin
 from users.models.user import User
@@ -47,6 +48,7 @@ class CommentViewSet(
         author = request.user
         lesson_id = request.data.get('lesson')
         content = request.data.get('content')
+        course_id = request.data.get('course_id')
 
         if lesson_id is None or content is None:
             return Response({'error': 'Необходимо указать урок и содержание комментария'},
@@ -57,12 +59,34 @@ class CommentViewSet(
         except BaseLesson.DoesNotExist:
             return Response({'error': 'Урок с указанным ID не найден'}, status=status.HTTP_404_NOT_FOUND)
 
-        Comment.objects.create(
-            author=author,
-            lesson=lesson,
-            content=content,
-            public=False
-        )
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    Comment.objects.create(
+                        author=author,
+                        lesson=lesson,
+                        content=content,
+                        copy_course_id=course,
+                        public=False
+                    )
+                else:
+                    Comment.objects.create(
+                        author=author,
+                        lesson=lesson,
+                        content=content,
+                        public=False
+                    )
+            except Course.DoesNotExist:
+                return Response({'error': 'Курс с указанным ID не найден'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Если course_id не указан, просто создаем комментарий без привязки к курсу
+            Comment.objects.create(
+                author=author,
+                lesson=lesson,
+                content=content,
+                public=False
+            )
 
         return Response(status=status.HTTP_201_CREATED)
 
@@ -74,20 +98,32 @@ class CommentViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         lesson_id = self.request.data.get('lesson_id')
+        course_id = self.request.data.get('course_id', '')
         comments_data = self.request.data.get('comments', {})
         user = request.user
+
+        course = Course.objects.get(course_id=course_id)
 
         if not lesson_id:
             return Response({"message": "Не указан lesson_id"}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
-            existing_comments = Comment.objects.filter(lesson_id=lesson_id)
-            for comment_id, is_public in comments_data.items():
-                comment = existing_comments.filter(id=comment_id).first()
-                if comment:
-                    comment.public = is_public
-                    comment.save()
-            return Response(status=status.HTTP_200_OK)
+            if course.is_copy:
+                existing_comments = Comment.objects.filter(lesson_id=lesson_id, copy_course_id=course)
+                for comment_id, is_public in comments_data.items():
+                    comment = existing_comments.filter(id=comment_id).first()
+                    if comment:
+                        comment.public = is_public
+                        comment.save()
+                return Response(status=status.HTTP_200_OK)
+            else:
+                existing_comments = Comment.objects.filter(lesson_id=lesson_id)
+                for comment_id, is_public in comments_data.items():
+                    comment = existing_comments.filter(id=comment_id).first()
+                    if comment:
+                        comment.public = is_public
+                        comment.save()
+                return Response(status=status.HTTP_200_OK)
         else:
             try:
                 existing_comments = Comment.objects.filter(lesson_id=lesson_id, author=user)
@@ -106,12 +142,26 @@ class CommentViewSet(
         """
 
         lesson_id = self.request.GET.get('lesson_id', '')
-        try:
-            comment = Comment.objects.filter(lesson=lesson_id)
-            author_ids = comment.values_list('author_id', flat=True)
-            user = User.objects.filter(pk__in=author_ids)
-            serializer = CommentSerializer(comment, many=True, context={'user': user})
-            comments_data = {'comments': serializer.data}
-            return Response(comments_data, status=status.HTTP_200_OK)
-        except BaseLesson.DoesNotExist:
-            return Response({"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND)
+        course_id = self.request.GET.get('course_id', '')
+        course = Course.objects.get(course_id=course_id)
+
+        if course.is_copy:
+            try:
+                comment = Comment.objects.filter(lesson=lesson_id, copy_course_id=course)
+                author_ids = comment.values_list('author_id', flat=True)
+                user = User.objects.filter(pk__in=author_ids)
+                serializer = CommentSerializer(comment, many=True, context={'user': user})
+                comments_data = {'comments': serializer.data}
+                return Response(comments_data, status=status.HTTP_200_OK)
+            except BaseLesson.DoesNotExist:
+                return Response({"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            try:
+                comment = Comment.objects.filter(lesson=lesson_id)
+                author_ids = comment.values_list('author_id', flat=True)
+                user = User.objects.filter(pk__in=author_ids)
+                serializer = CommentSerializer(comment, many=True, context={'user': user})
+                comments_data = {'comments': serializer.data}
+                return Response(comments_data, status=status.HTTP_200_OK)
+            except BaseLesson.DoesNotExist:
+                return Response({"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND)

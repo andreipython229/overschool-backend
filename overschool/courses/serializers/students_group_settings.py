@@ -13,6 +13,7 @@ class StudentsGroupSettingsSerializer(serializers.ModelSerializer):
             "submit_test_to_go_on",
             "success_test_to_go_on",
             "overai_lock",
+            "download",
         ]
 
     def validate(self, attrs):

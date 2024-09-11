@@ -88,6 +88,16 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         help_text="Позволяет получить доступ к курсу по прямой ссылке",
         default=False,
     )
+    is_copy = models.BooleanField(
+        verbose_name="Копия ли данный курс уже существующего",
+        help_text="Копия ли данный курс уже существующего",
+        default=False,
+    )
+    is_access = models.BooleanField(
+        verbose_name="Есть ли доступ к копии курса",
+        help_text="Есть ли доступ к копии курса",
+        default=True,
+    )
     name = models.CharField(
         max_length=256,
         verbose_name="Название курса",
@@ -132,6 +142,12 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         upload_to=TruncateFileName(300),
         blank=True,
         null=True,
+    )
+    course_removed = models.DateTimeField(
+        verbose_name="Дата и время помещения курса в корзину",
+        help_text="Дата и время помещения курса в корзину",
+        null=True,
+        blank=True,
     )
     search_vector = SearchVectorField(null=True, editable=False)
     _clone_m2o_or_o2m_fields = ["sections"]

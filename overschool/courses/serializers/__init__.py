@@ -13,6 +13,7 @@ from .course import (
     CourseStudentsSerializer,
     CourseWithGroupsSerializer,
     FolderSerializer,
+    CourseCopySerializer
 )
 from .course_appeals import CourseAppealsSerializer
 from .course_landing import (
@@ -26,6 +27,7 @@ from .course_landing import (
     StatsGetSerializer,
     TrainingProgramSerializer,
     TrainingPurposeSerializer,
+    LinkButtonSerializer
 )
 from .folder_course import FolderCourseSerializer, FolderViewSerializer
 from .homework import HomeworkDetailSerializer, HomeworkSerializer

@@ -39,6 +39,9 @@ class CourseSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "is_copy",
+            "is_access",
+            "course_removed",
         ]
         read_only_fields = ["order"]
 
@@ -77,6 +80,9 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "limit",
             "remaining_period",
             "certificate",
+            "is_copy",
+            "is_access",
+            "course_removed",
         ]
 
     def get_photo(self, obj):
@@ -113,6 +119,8 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
             "course_id",
             "public",
             "is_catalog",
+            "is_copy",
+            "is_access",
             "folder",
             "is_direct",
             "name",
@@ -125,6 +133,7 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
             "photo_url",
             "school",
             "group_course_fk",
+            "course_removed",
         ]
         read_only_fields = ["order"]
 
@@ -133,3 +142,12 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
         representation["student_groups"] = representation["group_course_fk"]
         del representation["group_course_fk"]
         return representation
+
+
+class CourseCopySerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели хранения копий для оригинального курса
+    """
+
+    class Meta:
+        fields = "__all__"

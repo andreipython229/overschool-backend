@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth.tokens import default_token_generator
 from drf_yasg.utils import swagger_auto_schema
@@ -8,8 +10,6 @@ from rest_framework.response import Response
 from users.models import User
 from users.serializers import ForgotPasswordSerializer, PasswordResetSerializer
 from users.services import SenderServiceMixin
-
-from overschool import settings
 
 
 class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
@@ -42,8 +42,14 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
         token = default_token_generator.make_token(user)
 
         # Отправляем ссылку для сбора пароля
-        reset_password_url = f"{settings.SITE_URL}/token-validate/{user.id}/{token}/"
-        subject = "Восстановление доступа к Overschool"
+        domain = self.request.META.get("HTTP_X_ORIGIN")
+        if domain:
+            parsed_url = urlparse(domain)
+            current_domain = parsed_url.netloc
+        else:
+            current_domain = None
+        reset_password_url = f"{domain}/token-validate/{user.id}/{token}/"
+        subject = f"Восстановление доступа к {current_domain}"
         message = (
             f"Ссылка для сброса пароля:<br>"
             f"<a href='{reset_password_url}'>{reset_password_url}</a><br><br>"

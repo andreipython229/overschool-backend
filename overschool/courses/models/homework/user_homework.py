@@ -1,6 +1,7 @@
 from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models import User
+from courses.models import Course
 
 from .homework import Homework
 
@@ -42,6 +43,15 @@ class UserHomework(TimeStampMixin, models.Model):
         related_name="teacher_homeworks",
         verbose_name="ID учителя",
         help_text="Учитель, который проверял домашнюю работы",
+    )
+    copy_course_id = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        verbose_name="ID копии курса",
+        help_text="ID копии курса, если домашка относится к копии курса",
+        blank=True,
+        null=True,
+        default=None
     )
     text = models.TextField(
         verbose_name="Ответ ученика",
