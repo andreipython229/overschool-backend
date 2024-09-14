@@ -55,7 +55,8 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         serializer.save()
 
         # Отправка уведомления о успешной регистрации и создании школы
-        url = "https://overschool.by/login/"
+        domain = self.request.META.get("HTTP_X_ORIGIN")
+        url = f"{domain}/login/"
         subject = "Успешная регистрация"
         message = f"Вы успешно зарегистрированы, ваша школа '{school_name}'создана.Перейдите по ссылке для ознакомления {url}"
 

@@ -1,5 +1,5 @@
 import hashlib
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
@@ -74,12 +74,18 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                     status=400,
                 )
             token = generate_hash_token(user)
-            reset_password_url = f"{settings.SITE_URL}/email-confirm/{token}/"
+            domain = self.request.META.get("HTTP_X_ORIGIN")
+            reset_password_url = f"{domain}/email-confirm/{token}/"
             email_params = {"from_email": new_email}
             reset_password_url_with_params = (
                 f"{reset_password_url}?{urlencode(email_params)}"
             )
-            subject = "Подтверждения электронной почты Overschool"
+            if domain:
+                parsed_url = urlparse(domain)
+                current_domain = parsed_url.netloc
+            else:
+                current_domain = None
+            subject = f"Подтверждения электронной почты {current_domain}"
             message = (
                 f"Токен для подтверждения электронной почты:<br>"
                 f"{token}<br>"

@@ -16,7 +16,8 @@ from .courses.course_landing import (
     AudienceBlock,
     TrainingProgram,
     TrainingPurpose,
-    CourseLanding
+    CourseLanding,
+    LinkButton
 )
 from .homework.homework import Homework
 from .homework.user_homework import UserHomework, UserHomeworkStatusChoices

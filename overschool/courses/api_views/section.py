@@ -4,6 +4,7 @@ from common_services.selectel_client import UploadToS3
 from courses.models import (
     BaseLesson,
     Course,
+    CourseCopy,
     Homework,
     Lesson,
     Section,
@@ -13,7 +14,6 @@ from courses.models import (
     UserHomework,
     UserProgressLogs,
     UserTest,
-    CourseCopy
 )
 from courses.serializers import (
     SectionOrderSerializer,
@@ -88,11 +88,12 @@ class SectionViewSet(
         def get_original_course_ids(course_ids):
             original_course_ids = CourseCopy.objects.filter(
                 course_copy_id__in=course_ids
-            ).values_list('course_id', flat=True)
+            ).values_list("course_id", flat=True)
 
             original_courses = Course.objects.filter(
-                Q(course_id__in=original_course_ids) | Q(course_id__in=course_ids, is_copy=False)
-            ).values_list('course_id', flat=True)
+                Q(course_id__in=original_course_ids)
+                | Q(course_id__in=course_ids, is_copy=False)
+            ).values_list("course_id", flat=True)
 
             return original_courses
 
@@ -186,13 +187,13 @@ class SectionViewSet(
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, url_path='lessons/(?P<courseId>[^/.]+)')
+    @action(detail=True, url_path="lessons/(?P<courseId>[^/.]+)")
     def lessons(self, request, pk, *args, **kwargs):
         """Эндпоинт получения, всех уроков, домашек и тестов секций.\n
         <h2>/api/{school_name}/sections/{section_id}/lessons/</h2>\n
         """
         queryset = self.get_queryset()
-        course_id = kwargs['courseId']
+        course_id = kwargs["courseId"]
         section = queryset.filter(pk=pk)
         section_obj = section.first()
 
@@ -213,9 +214,7 @@ class SectionViewSet(
         group = None
         if user.groups.filter(group__name="Student", school=school).exists():
             try:
-                group = StudentsGroup.objects.get(
-                    students=user, course_id_id=course_id
-                )
+                group = StudentsGroup.objects.get(students=user, course_id_id=course_id)
                 if course.is_copy and course.public != "О":
                     return Response(
                         {
@@ -247,6 +246,7 @@ class SectionViewSet(
                 "submit_test_to_go_on": group.group_settings.submit_test_to_go_on,
                 "success_test_to_go_on": group.group_settings.success_test_to_go_on,
             }
+            result_data["group_id"] = group.group_id
 
         result_data["lessons"] = []
 

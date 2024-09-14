@@ -6,6 +6,7 @@ from common_services.services import TruncateFileName, limit_image_size
 from django.db import models
 from courses.models import Course
 
+
 class HeaderBlock(PositionMixin, VisibilityMixin, models.Model):
     """Модель шапки лендинга"""
 
@@ -23,6 +24,7 @@ class HeaderBlock(PositionMixin, VisibilityMixin, models.Model):
         verbose_name = "Блок с шапкой"
         verbose_name_plural = "Блоки с шапкой"
 
+
 class StatsBlock(PositionMixin, VisibilityMixin, models.Model):
     """Модель блока статистики курса"""
 
@@ -39,6 +41,7 @@ class StatsBlock(PositionMixin, VisibilityMixin, models.Model):
     class Meta:
         verbose_name = "Блок со статистикой"
         verbose_name_plural = "Блоки со статистикой"
+
 
 class BlockCards(models.Model):
     """Модель карточек блока"""
@@ -90,6 +93,7 @@ class BlockCards(models.Model):
         verbose_name = "Карточка блока"
         verbose_name_plural = "Карточки блока"
 
+
 class AudienceBlock(PositionMixin, VisibilityMixin, models.Model):
     """Модель блока целевой аудитории курса"""
 
@@ -118,6 +122,7 @@ class AudienceBlock(PositionMixin, VisibilityMixin, models.Model):
         verbose_name = "Блок с целевой аудиторией"
         verbose_name_plural = "Блоки с целевой аудиторией"
 
+
 class TrainingProgram(PositionMixin, VisibilityMixin, models.Model):
     """Модель блока программы обучения"""
 
@@ -134,6 +139,7 @@ class TrainingProgram(PositionMixin, VisibilityMixin, models.Model):
     class Meta:
         verbose_name = "Блок с программой обучения"
         verbose_name_plural = "Блоки с программой обучения"
+
 
 class TrainingPurpose(PositionMixin, VisibilityMixin, models.Model):
     """Модель блока цель обучения"""
@@ -162,6 +168,39 @@ class TrainingPurpose(PositionMixin, VisibilityMixin, models.Model):
     class Meta:
         verbose_name = "Блок с целью обучения обучения"
         verbose_name_plural = "Блоки с целью обучения обучения"
+
+
+class LinkButton(PositionMixin, VisibilityMixin, models.Model):
+    """Кнопки со ссылками для редактора лендинга"""
+    id = models.AutoField(primary_key=True,
+                          editable=False,
+                          verbose_name='ID',
+                          help_text='Уникальный идентификатор блока цели обучения')
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Текст кнопки",
+        help_text="Текст кнопки",
+    )
+    link = models.URLField(
+        max_length=500,
+        verbose_name="Ссылка",
+        help_text="Ссылка для перехода по кнопке",
+        blank=True,
+        null=True,
+    )
+    color = models.CharField(
+        max_length=50,
+        verbose_name="Цвет кнопки",
+        help_text="Цвет кнопки",
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = "Кнопка со ссылками для редактора лендинга"
+        verbose_name_plural = "Кнопки со ссылками для редактора лендинга"
+
 
 class CourseLanding(models.Model):
     """Модель лендинга курса"""
@@ -214,6 +253,8 @@ class CourseLanding(models.Model):
         verbose_name="Цель обучения",
         help_text="Блок с целью обучения курсу",
     )
+    link_button = models.ForeignKey(LinkButton, on_delete=models.CASCADE, related_name="link_button",
+                                    verbose_name="Кнопка с ссылкой", help_text="Блок с ссылками", null=True)
 
     def __str__(self):
         return f"[{self.id}] {self.course.name}"

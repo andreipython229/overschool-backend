@@ -6,6 +6,7 @@ def change_keys(dicts):
             del dictionary[key]
     return dicts
 
+
 def convert_landing_data(data):
     return {
         "header": {
@@ -46,4 +47,13 @@ def convert_landing_data(data):
             "description": data["trainingPurpose"]["description"],
             "chips": change_keys(data["trainingPurpose"]["chips"]),
         },
+        "link_button": {
+            "position": data["linkButton"]["id"],
+            "is_visible": data["linkButton"]["visible"],
+            "can_up": data["linkButton"]["canUp"],
+            "can_down": data["linkButton"]["canDown"],
+            "name": data["linkButton"]["name"],
+            "link": data["linkButton"]["link"],
+            "color": data["linkButton"]["color"],
+        }
     }
