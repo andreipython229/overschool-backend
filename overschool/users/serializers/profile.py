@@ -1,6 +1,7 @@
 from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
-from users.models import Profile, User
+from users.models import Profile, User, UserGroup
+from schools.models import SchoolNewRole
 
 s3 = UploadToS3()
 
@@ -64,6 +65,7 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
 
     user = ProfileSerializer()
     avatar = serializers.SerializerMethodField()
+    additional_roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -75,6 +77,7 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             "sex",
             "description",
             "user",
+            "additional_roles",
         ]
 
     def get_avatar(self, obj):
@@ -84,6 +87,36 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "users/avatars/base_avatar.jpg"
             return s3.get_link(base_avatar_path)
+
+    def get_additional_roles(self, obj):
+        """Получаем словарь с ID школ и списком ролей для каждой школы"""
+        user = obj.user
+        school_ids = self.get_school_ids_from_user(user)
+
+        if not school_ids:
+            return []
+
+        # Для каждой школы находим роли пользователя
+        additional_roles_data = []
+        for school_id in school_ids:
+            additional_roles = SchoolNewRole.objects.filter(
+                user=user, school_id=school_id
+            ).values_list('role_name', flat=True)
+
+            additional_roles_data.append({
+                "school_id": school_id,
+                "roles": list(additional_roles)
+            })
+
+        return additional_roles_data
+
+    def get_school_ids_from_user(self, user):
+        """
+        Получаем список ID школ через модель UserGroup
+        """
+        user_groups = UserGroup.objects.filter(user=user).values_list('school_id', flat=True).distinct()
+
+        return list(user_groups)
 
 
 class EmailValidateSerializer(serializers.Serializer):

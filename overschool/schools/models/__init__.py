@@ -20,3 +20,4 @@ from .school_newsletter import NewsletterTemplate, SentNewsletter
 from .school_referral import Referral, ReferralClick
 from .schoolMeetings import SchoolMeetings
 from .userDomain import Domain
+from .school_roles import SchoolNewRole

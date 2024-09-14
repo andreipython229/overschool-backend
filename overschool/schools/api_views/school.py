@@ -19,6 +19,7 @@ from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress, progress_subquery
 from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum
+from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -111,6 +112,13 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
+        User = get_user_model()
+        admin_user = User.objects.get(email="admin@coursehub.ru")
+        teacher_user = User.objects.get(email="teacher@coursehub.ru")
+        group_admin = UserRole.objects.get(name="Admin")
+        group_teacher = UserRole.objects.get(name="Teacher")
+
+        print(request.user.email, request.user.phone_number)
         if not request.user.email or not request.user.phone_number:
             raise PermissionDenied("Email и phone number пользователя обязательны.")
         # Проверка количества школ, которыми владеет пользователь
@@ -118,6 +126,21 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Пользователь может быть владельцем только двух школ."
             )
+
+        # Добавление пользователей во все школы
+        try:
+            with transaction.atomic():
+                schools = School.objects.all()
+                for school in schools:
+                    if not UserGroup.objects.filter(user=admin_user, group=group_admin, school=school).exists():
+                        UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
+
+                    if not UserGroup.objects.filter(user=teacher_user, group=group_teacher, school=school).exists():
+                        UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
+        except User.DoesNotExist:
+            return HttpResponse("Пользователь не найден.", status=400)
+        except Exception as e:
+            return HttpResponse(f"Произошла ошибка: {str(e)}", status=500)
 
         serializer = SchoolSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -135,11 +158,8 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             SchoolDocuments.objects.create(school=school, user=request.user)
 
         # Создание записи в модели UserGroup для добавления пользователя в качестве администратора
-        group_admin = UserRole.objects.get(name="Admin")
         user_group = UserGroup(user=request.user, group=group_admin, school=school)
         user_group.save()
-
-        User = get_user_model()
 
         # Добавление admin@coursehub.ru как администратора школы
         try:
@@ -155,21 +175,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
         except User.DoesNotExist:
             return HttpResponse("Пользователь с email teacher@coursehub.ru не найден.", status=400)
-
-        # Добавление пользователей во все школы
-        schools = School.objects.all()
-        for school in schools:
-            try:
-                if not UserGroup.objects.filter(user=admin_user, group=group_admin, school=school).exists():
-                    UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
-            except User.DoesNotExist:
-                return HttpResponse("Пользователь с email admin@coursehub.ru не найден.", status=400)
-
-            try:
-                if not UserGroup.objects.filter(user=teacher_user, group=group_teacher, school=school).exists():
-                    UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
-            except User.DoesNotExist:
-                return HttpResponse("Пользователь с email teacher@coursehub.ru не найден.", status=400)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
