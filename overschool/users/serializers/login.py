@@ -10,9 +10,9 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        login = attrs.get("login")
+        login = attrs.get("login").lower()
         password = attrs.get("password")
-        user = User.objects.filter(Q(email=login) | Q(phone_number=login)).first()
+        user = User.objects.filter(Q(email__iexact=login) | Q(phone_number=login)).first()
 
         if not user:
             raise serializers.ValidationError("Invalid login credentials")
