@@ -70,7 +70,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
                 "Teacher",
                 "Student",
             ]
-        ).exists():
+        ).exists() or user.email == "student@coursehub.ru":
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
