@@ -1,15 +1,8 @@
 import json
 import g4f
-from langdetect import detect
 from g4f.client import Client
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-
 from django.http import JsonResponse
-from django.db.models import Max, Window, F, Count, Q
-from django.db.models.functions import RowNumber
-from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -17,8 +10,8 @@ from rest_framework.views import APIView, View
 from rest_framework.parsers import JSONParser
 
 from users.models.user import User
-from .models import UserMessage, BotResponse, OverAiChat, AIProvider
-from .serializers import UserMessageSerializer, BotResponseSerializer, OverAiChatSerializer
+from .models import UserMessage, BotResponse, OverAiChat
+from .serializers import UserMessageSerializer, BotResponseSerializer
 from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSchema, LastTenChatsSchema
 
 
