@@ -339,6 +339,8 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             students_progress = []
 
             for student_id in all_students:
+                if student_id is None:
+                    continue
                 student_obj = User.objects.get(pk=student_id)
                 lesson_viewed_ids = UserProgressLogs.objects.filter(
                     lesson_id__in=all_base_lessons.values("id"), user_id=student_obj
