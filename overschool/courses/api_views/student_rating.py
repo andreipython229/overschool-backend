@@ -32,25 +32,31 @@ class StudentRatingViewSet(
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["all_rating"]:
-            if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Admin",
-                    "Teacher",
-                ],
-                school=school,
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                        "Admin",
+                        "Teacher",
+                    ],
+                    school=school,
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["individual_rating"]:
             # Разрешения для просмотра личного рейтинга студента (Только Student)
-            if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                ],
-                school=school,
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                    ],
+                    school=school,
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -73,8 +79,6 @@ class StudentRatingViewSet(
 
         students_by_lessons, students_by_courses = self.generate_rating(True, True)
 
-        print(students_by_lessons)
-
         student_in_selection_by_lessons = students_by_lessons.filter(id=user.id).first()
 
         if student_in_selection_by_lessons:
@@ -83,8 +87,6 @@ class StudentRatingViewSet(
                 top_by_lessons_num = students_by_lessons.exclude(
                     completed_lessons__lt=completed_lessons
                 ).count()
-
-        print(students_by_courses.values("available_courses", "email"))
 
         student_in_selection_by_courses = students_by_courses.filter(id=user.id).first()
 

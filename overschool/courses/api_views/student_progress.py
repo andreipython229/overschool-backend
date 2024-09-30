@@ -1,18 +1,21 @@
 from datetime import datetime
 
+from common_services.selectel_client import UploadToS3
 from courses.api_views.schemas import StudentProgressSchemas
 from courses.models import (
     BaseLesson,
     Course,
+    CourseCopy,
     Lesson,
     SectionTest,
     StudentsGroup,
     StudentsHistory,
+    UserHomework,
     UserProgressLogs,
-    CourseCopy
 )
 from courses.models.homework.homework import Homework
 from django.core.exceptions import PermissionDenied
+from django.db.models import Avg
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -21,6 +24,8 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 from tg_notifications.services import CompletedCourseNotifications
 from users.models import User
+
+s3 = UploadToS3()
 
 
 @method_decorator(
@@ -51,24 +56,30 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["all_courses_progress"]:
-            if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Admin",
-                ],
-                school=school_id,
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                        "Admin",
+                    ],
+                    school=school_id,
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["homework_progress"]:
-            if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Admin",
-                ],
-                school=school_id,
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                        "Admin",
+                    ],
+                    school=school_id,
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -76,12 +87,15 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             "get_student_progress_for_student",
         ]:
             # Разрешения для просмотра статистики (Только Student)
-            if user.groups.filter(
-                group__name__in=[
-                    "Student",
-                ],
-                school=school_id,
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=[
+                        "Student",
+                    ],
+                    school=school_id,
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -237,33 +251,36 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
 
         school_id = School.objects.get(name=school_name).school_id
         courses = []
-        return_dict = {}
+        return_dict = {
+            "student": student.email,
+            "school_id": school_id,
+            "school_name": school_name,
+            "courses": courses,
+        }
         for course_id in courses_ids:
-            course = {}
             course_obj = Course.objects.get(pk=course_id)
             student_group = StudentsGroup.objects.filter(
                 students__id=student.pk, course_id=course_id
             ).first()
 
-            # Проверяем, является ли курс копией
             if course_obj.is_copy:
-                original_course_obj = CourseCopy.objects.get(course_copy_id=course_obj.course_id)
-                if original_course_obj:
-                    course_id = original_course_obj.course_id
+                original_course_obj = CourseCopy.objects.get(
+                    course_copy_id=course_obj.course_id
+                )
+                course_id = (
+                    original_course_obj.course_id if original_course_obj else course_id
+                )
 
-            all_base_lesson = BaseLesson.objects.filter(
-                section_id__course_id=course_id,
-                active=True,
-            ).exclude(
-                lessonavailability__student=student,
-            )
+            all_base_lessons = BaseLesson.objects.filter(
+                section_id__course_id=course_id, active=True
+            ).exclude(lessonavailability__student=student)
 
             lesson_viewed_ids = UserProgressLogs.objects.filter(
-                lesson_id__in=all_base_lesson.values("id"), user_id=student
+                lesson_id__in=all_base_lessons.values("id"), user_id=student
             ).values_list("lesson_id", flat=True)
 
             lesson_completed_ids = UserProgressLogs.objects.filter(
-                lesson_id__in=all_base_lesson.values("id"),
+                lesson_id__in=all_base_lessons.values("id"),
                 completed=True,
                 user_id=student,
             ).values_list("lesson_id", flat=True)
@@ -304,52 +321,124 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 + completed_tests.count()
             )
 
-            progress_percent = (
-                round(completed_all / all_base_lesson.count() * 100, 2)
-                if all_base_lesson.count() != 0
-                else 0
+            progress_percent = self.calculate_progress(
+                completed_all, all_base_lessons.count()
             )
 
-            course["lessons"] = dict(
-                completed_perсent=round(
-                    completed_lessons.count() / all_lessons.count() * 100, 2
-                )
-                if all_lessons.count() != 0
-                else 0,
-                all_lessons=all_lessons.count(),
-                completed_lessons=completed_lessons.count(),
+            average_mark = (
+                UserHomework.objects.filter(
+                    user=student, homework__section__course_id=course_id
+                ).aggregate(average_mark=Avg("mark"))["average_mark"]
+                or 0
             )
 
-            course["homeworks"] = dict(
-                completed_perсent=round(
-                    completed_homeworks.count() / all_homeworks.count() * 100, 2
+            # Получаем всех студентов курса и вычисляем их прогресс
+            all_students = StudentsGroup.objects.filter(
+                course_id=course_id
+            ).values_list("students", flat=True)
+            students_progress = []
+
+            for student_id in all_students:
+                student_obj = User.objects.get(pk=student_id)
+                lesson_viewed_ids = UserProgressLogs.objects.filter(
+                    lesson_id__in=all_base_lessons.values("id"), user_id=student_obj
+                ).values_list("lesson_id", flat=True)
+
+                lesson_completed_ids = UserProgressLogs.objects.filter(
+                    lesson_id__in=all_base_lessons.values("id"),
+                    completed=True,
+                    user_id=student_obj,
+                ).values_list("lesson_id", flat=True)
+
+                completed_all_for_student = (
+                    all_lessons.filter(baselesson_ptr_id__in=lesson_viewed_ids).count()
+                    + all_homeworks.filter(
+                        baselesson_ptr_id__in=lesson_completed_ids
+                    ).count()
+                    + all_tests.filter(
+                        baselesson_ptr_id__in=lesson_completed_ids
+                    ).count()
                 )
-                if all_homeworks.count() != 0
-                else 0,
-                all_homeworks=all_homeworks.count(),
-                completed_homeworks=completed_homeworks.count(),
+
+                progress_for_student = self.calculate_progress(
+                    completed_all_for_student, all_base_lessons.count()
+                )
+
+                students_progress.append(
+                    {
+                        "student": student_obj,
+                        "progress_percent": progress_for_student,
+                    }
+                )
+
+                # Сортируем студентов по прогрессу
+            students_progress.sort(key=lambda x: x["progress_percent"], reverse=True)
+
+            # Определяем место текущего студента
+            student_rank = next(
+                (
+                    index
+                    for index, entry in enumerate(students_progress, start=1)
+                    if entry["student"].pk == student.pk
+                ),
+                None,
             )
 
-            course["tests"] = dict(
-                completed_perсent=round(
-                    completed_tests.count() / all_tests.count() * 100, 2
-                )
-                if all_tests.count() != 0
-                else 0,
-                all_tests=all_tests.count(),
-                completed_tests=completed_tests.count(),
-            )
+            # Получаем первых трех лидеров
+            top_leaders = students_progress[:3]
+            base_avatar_path = "users/avatars/base_avatar.jpg"
+            leaders = [
+                {
+                    "student_name": leader["student"].first_name,
+                    "student_avatar": s3.get_link(leader["student"].profile.avatar.name)
+                    if leader["student"].profile.avatar
+                    else s3.get_link(base_avatar_path),
+                    "progress_percent": leader["progress_percent"],
+                }
+                for leader in top_leaders
+            ]
+
+            # Добавляем прогресс и место в курсе в ответ
+            course = {
+                "course_id": course_obj.pk,
+                "course_name": course_obj.name,
+                "all_baselessons": all_base_lessons.count(),
+                "completed_count": completed_all,
+                "completed_percent": progress_percent,
+                "average_mark": average_mark,
+                "rank_in_course": student_rank,
+                "top_leaders": leaders,
+                "lessons": {
+                    "completed_percent": self.calculate_progress(
+                        completed_lessons.count(), all_lessons.count()
+                    ),
+                    "all_lessons": all_lessons.count(),
+                    "completed_lessons": completed_lessons.count(),
+                },
+                "homeworks": {
+                    "completed_percent": self.calculate_progress(
+                        completed_homeworks.count(), all_homeworks.count()
+                    ),
+                    "all_homeworks": all_homeworks.count(),
+                    "completed_homeworks": completed_homeworks.count(),
+                },
+                "tests": {
+                    "completed_percent": self.calculate_progress(
+                        completed_tests.count(), all_tests.count()
+                    ),
+                    "all_tests": all_tests.count(),
+                    "completed_tests": completed_tests.count(),
+                },
+            }
             courses.append(course)
 
-            course["course_id"] = course_obj.pk
-            course["course_name"] = course_obj.name
-            course["all_baselessons"] = all_base_lesson.count()
-            course["completed_count"] = completed_all
-            course["completed_percent"] = progress_percent
-            return_dict["student"] = student.email
-            return_dict["school_id"] = school_id
-            return_dict["school_name"] = school_name
-            return_dict["courses"] = courses
+            if progress_percent == 100:
+                student_history = StudentsHistory.objects.get(
+                    user=student, students_group=student_group
+                )
+                if not student_history.finish_date:
+                    student_history.finish_date = datetime.now()
+                    student_history.save()
 
             CompletedCourseNotifications.send_completed_course_notification(
                 progress_percent,
@@ -359,21 +448,10 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 school_id,
             )
 
-            if progress_percent == 100:
-                student_group = StudentsGroup.objects.filter(
-                    students=student,
-                    course_id=course_obj,
-                    course_id__school__school_id=school_id,
-                ).first()
-                student_history = StudentsHistory.objects.get(
-                    user=student, students_group=student_group
-                )
-
-                if not student_history.finish_date:
-                    student_history.finish_date = datetime.now()
-                    student_history.save()
-
         return Response(return_dict)
+
+    def calculate_progress(self, completed_count, total_count):
+        return round(completed_count / total_count * 100, 2) if total_count != 0 else 0
 
     def generate_progress(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
