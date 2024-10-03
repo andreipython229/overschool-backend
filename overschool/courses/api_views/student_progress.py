@@ -15,7 +15,7 @@ from courses.models import (
 )
 from courses.models.homework.homework import Homework
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -198,12 +198,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
 
         user = request.user
         school_name = kwargs.get("school_name")
-        course_id = request.query_params.get("course_id")
+        course_id = request.query_params.get("course_id", None)
         school_id = School.objects.get(name=school_name).school_id
 
         is_student = StudentsGroup.objects.filter(
             students=user,
-            course_id=course_id,
             course_id__school__school_id=school_id,
         ).exists()
 
@@ -212,11 +211,22 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             and not user.groups.filter(group__name="Admin", school=school_id).exists()
         ):
             return Response(
-                f"Студент в курсе course_id = {course_id} не найден.",
+                f"Студент не найден в школе {school_name}.",
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        if not course_id:
+            courses_ids = StudentsGroup.objects.filter(
+                students=user, course_id__school__school_id=school_id
+            ).values_list("course_id", flat=True)
+            return self.generate_all_response(
+                student=user, school_name=school_name, courses_ids=courses_ids
+            )
+        else:
+            courses_ids = [int(course_id)]
+
         return self.generate_response(
-            student=user, school_name=school_name, courses_ids=[int(course_id)]
+            student=user, school_name=school_name, courses_ids=courses_ids
         )
 
     @action(detail=False, methods=["get"])
@@ -246,84 +256,71 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             student=user, school_name=school_name, courses_ids=courses_ids
         )
 
-    def generate_response(self, school_name, student, courses_ids):
+    def generate_all_response(self, school_name, student, courses_ids):
         """Генерирует статистику по студенту по всем курсам в школе"""
+        school = School.objects.get(name=school_name)
+        courses_data = []
 
-        school_id = School.objects.get(name=school_name).school_id
-        courses = []
-        return_dict = {
-            "student": student.email,
-            "school_id": school_id,
-            "school_name": school_name,
-            "courses": courses,
-        }
+        base_query = Q(active=True) & ~Q(lessonavailability__student=student)
+
         for course_id in courses_ids:
-            course_obj = Course.objects.get(pk=course_id)
+            course = Course.objects.get(pk=course_id)
             student_group = StudentsGroup.objects.filter(
-                students__id=student.pk, course_id=course_id
+                students=student, course_id=course
             ).first()
 
-            if course_obj.is_copy:
-                original_course_obj = CourseCopy.objects.get(
-                    course_copy_id=course_obj.course_id
-                )
+            if course.is_copy:
                 course_id = (
-                    original_course_obj.course_id if original_course_obj else course_id
+                    CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    .values_list("course_id", flat=True)
+                    .first()
+                    or course_id
                 )
 
-            all_base_lessons = BaseLesson.objects.filter(
-                section_id__course_id=course_id, active=True
-            ).exclude(lessonavailability__student=student)
+            base_lessons = BaseLesson.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
 
-            lesson_viewed_ids = UserProgressLogs.objects.filter(
-                lesson_id__in=all_base_lessons.values("id"), user_id=student
-            ).values_list("lesson_id", flat=True)
-
-            lesson_completed_ids = UserProgressLogs.objects.filter(
-                lesson_id__in=all_base_lessons.values("id"),
-                completed=True,
-                user_id=student,
-            ).values_list("lesson_id", flat=True)
-
-            all_lessons = (
-                Lesson.objects.filter(section_id__course_id=course_id, active=True)
-                .exclude(lessonavailability__student=student)
-                .exclude(lessonenrollment__student_group=student_group.pk)
+            progress_logs = UserProgressLogs.objects.filter(
+                lesson__in=base_lessons, user=student
+            )
+            viewed_lessons = progress_logs.values_list("lesson_id", flat=True)
+            completed_lessons = progress_logs.filter(completed=True).values_list(
+                "lesson_id", flat=True
             )
 
-            all_homeworks = (
-                Homework.objects.filter(section_id__course_id=course_id, active=True)
-                .exclude(lessonavailability__student=student)
-                .exclude(lessonenrollment__student_group=student_group.pk)
+            all_lessons = Lesson.objects.filter(section__course_id=course_id).filter(
+                base_query
+            )
+            all_homeworks = Homework.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
+            all_tests = SectionTest.objects.filter(section__course_id=course_id).filter(
+                base_query
             )
 
-            all_tests = (
-                SectionTest.objects.filter(section_id__course_id=course_id, active=True)
-                .exclude(lessonavailability__student=student)
-                .exclude(lessonenrollment__student_group=student_group.pk)
-            )
+            if student_group:
+                exclude_query = Q(lessonenrollment__student_group=student_group)
+                all_lessons = all_lessons.exclude(exclude_query)
+                all_homeworks = all_homeworks.exclude(exclude_query)
+                all_tests = all_tests.exclude(exclude_query)
 
-            completed_lessons = all_lessons.filter(
-                baselesson_ptr_id__in=lesson_viewed_ids
-            )
+            completed_counts = {
+                "lessons": all_lessons.filter(
+                    baselesson_ptr_id__in=viewed_lessons
+                ).count(),
+                "homeworks": all_homeworks.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+                "tests": all_tests.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+            }
 
-            completed_homeworks = all_homeworks.filter(
-                baselesson_ptr_id__in=lesson_completed_ids
-            )
+            total_completed = sum(completed_counts.values())
+            total_lessons = base_lessons.count()
 
-            completed_tests = all_tests.filter(
-                baselesson_ptr_id__in=lesson_completed_ids
-            )
-
-            completed_all = (
-                completed_lessons.count()
-                + completed_homeworks.count()
-                + completed_tests.count()
-            )
-
-            progress_percent = self.calculate_progress(
-                completed_all, all_base_lessons.count()
-            )
+            progress_percent = self.calculate_progress(total_completed, total_lessons)
 
             average_mark = (
                 UserHomework.objects.filter(
@@ -332,24 +329,182 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 or 0
             )
 
-            # Получаем всех студентов курса и вычисляем их прогресс
-            all_students = StudentsGroup.objects.filter(
-                course_id=course_id
-            ).values_list("students", flat=True)
-            students_progress = []
+            course_data = {
+                "course_id": course.pk,
+                "course_name": course.name,
+                "all_baselessons": total_lessons,
+                "completed_count": total_completed,
+                "completed_percent": progress_percent,
+                "average_mark": average_mark,
+                "lessons": self.get_lesson_stats(
+                    all_lessons, completed_counts["lessons"]
+                ),
+                "homeworks": self.get_lesson_stats(
+                    all_homeworks, completed_counts["homeworks"]
+                ),
+                "tests": self.get_lesson_stats(all_tests, completed_counts["tests"]),
+            }
 
-            for student_id in all_students:
-                if student_id is None:
-                    continue
-                student_obj = User.objects.get(pk=student_id)
+            courses_data.append(course_data)
+
+            if progress_percent == 100:
+                self.update_student_history(student, student_group)
+
+            CompletedCourseNotifications.send_completed_course_notification(
+                progress_percent, student.id, course.pk, course.name, school.school_id
+            )
+
+        return Response(
+            {
+                "student": student.email,
+                "school_id": school.school_id,
+                "school_name": school_name,
+                "courses": courses_data,
+            }
+        )
+
+    def generate_response(self, school_name, student, courses_ids):
+        """Генерирует статистику по студенту по всем курсам в школе"""
+        school = School.objects.get(name=school_name)
+        courses_data = []
+
+        base_query = Q(active=True) & ~Q(lessonavailability__student=student)
+
+        for course_id in courses_ids:
+            course = Course.objects.get(pk=course_id)
+            student_group = StudentsGroup.objects.filter(
+                students=student, course_id=course
+            ).first()
+
+            if course.is_copy:
+                course_id = (
+                    CourseCopy.objects.filter(course_copy_id=course.course_id)
+                    .values_list("course_id", flat=True)
+                    .first()
+                    or course_id
+                )
+
+            base_lessons = BaseLesson.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
+
+            progress_logs = UserProgressLogs.objects.filter(
+                lesson__in=base_lessons, user=student
+            )
+            viewed_lessons = progress_logs.values_list("lesson_id", flat=True)
+            completed_lessons = progress_logs.filter(completed=True).values_list(
+                "lesson_id", flat=True
+            )
+
+            all_lessons = Lesson.objects.filter(section__course_id=course_id).filter(
+                base_query
+            )
+            all_homeworks = Homework.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
+            all_tests = SectionTest.objects.filter(section__course_id=course_id).filter(
+                base_query
+            )
+
+            if student_group:
+                exclude_query = Q(lessonenrollment__student_group=student_group)
+                all_lessons = all_lessons.exclude(exclude_query)
+                all_homeworks = all_homeworks.exclude(exclude_query)
+                all_tests = all_tests.exclude(exclude_query)
+
+            completed_counts = {
+                "lessons": all_lessons.filter(
+                    baselesson_ptr_id__in=viewed_lessons
+                ).count(),
+                "homeworks": all_homeworks.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+                "tests": all_tests.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+            }
+
+            total_completed = sum(completed_counts.values())
+            total_lessons = base_lessons.count()
+
+            progress_percent = self.calculate_progress(total_completed, total_lessons)
+
+            average_mark = (
+                UserHomework.objects.filter(
+                    user=student, homework__section__course_id=course_id
+                ).aggregate(average_mark=Avg("mark"))["average_mark"]
+                or 0
+            )
+
+            students_progress = self.get_students_progress(
+                course_id, base_lessons, student
+            )
+
+            course_data = {
+                "course_id": course.pk,
+                "course_name": course.name,
+                "all_baselessons": total_lessons,
+                "completed_count": total_completed,
+                "completed_percent": progress_percent,
+                "average_mark": average_mark,
+                "rank_in_course": next(
+                    (
+                        i
+                        for i, s in enumerate(students_progress, 1)
+                        if s["student"].pk == student.pk
+                    ),
+                    None,
+                ),
+                "top_leaders": self.get_top_leaders(students_progress[:3]),
+                "lessons": self.get_lesson_stats(
+                    all_lessons, completed_counts["lessons"]
+                ),
+                "homeworks": self.get_lesson_stats(
+                    all_homeworks, completed_counts["homeworks"]
+                ),
+                "tests": self.get_lesson_stats(all_tests, completed_counts["tests"]),
+            }
+
+            courses_data.append(course_data)
+
+            if progress_percent == 100:
+                self.update_student_history(student, student_group)
+
+            CompletedCourseNotifications.send_completed_course_notification(
+                progress_percent, student.id, course.pk, course.name, school.school_id
+            )
+
+        return Response(
+            {
+                "student": student.email,
+                "school_id": school.school_id,
+                "school_name": school_name,
+                "courses": courses_data,
+            }
+        )
+
+    def get_students_progress(self, course_id, base_lessons, current_student):
+        student_groups = StudentsGroup.objects.filter(
+            course_id=course_id
+        ).prefetch_related("students")
+        students_progress = []
+
+        all_lessons = Lesson.objects.filter(section__course_id=course_id, active=True)
+        all_homeworks = Homework.objects.filter(
+            section__course_id=course_id, active=True
+        )
+        all_tests = SectionTest.objects.filter(
+            section__course_id=course_id, active=True
+        )
+
+        for group in student_groups:
+            for student in group.students.all():
                 lesson_viewed_ids = UserProgressLogs.objects.filter(
-                    lesson_id__in=all_base_lessons.values("id"), user_id=student_obj
+                    lesson__in=base_lessons, user=student
                 ).values_list("lesson_id", flat=True)
 
                 lesson_completed_ids = UserProgressLogs.objects.filter(
-                    lesson_id__in=all_base_lessons.values("id"),
-                    completed=True,
-                    user_id=student_obj,
+                    lesson__in=base_lessons, completed=True, user=student
                 ).values_list("lesson_id", flat=True)
 
                 completed_all_for_student = (
@@ -363,94 +518,48 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 )
 
                 progress_for_student = self.calculate_progress(
-                    completed_all_for_student, all_base_lessons.count()
+                    completed_all_for_student, base_lessons.count()
                 )
 
                 students_progress.append(
-                    {
-                        "student": student_obj,
-                        "progress_percent": progress_for_student,
-                    }
+                    {"student": student, "progress_percent": progress_for_student}
                 )
 
-                # Сортируем студентов по прогрессу
-            students_progress.sort(key=lambda x: x["progress_percent"], reverse=True)
+        return sorted(
+            students_progress, key=lambda x: x["progress_percent"], reverse=True
+        )
 
-            # Определяем место текущего студента
-            student_rank = next(
-                (
-                    index
-                    for index, entry in enumerate(students_progress, start=1)
-                    if entry["student"].pk == student.pk
-                ),
-                None,
-            )
-
-            # Получаем первых трех лидеров
-            top_leaders = students_progress[:3]
-            base_avatar_path = "users/avatars/base_avatar.jpg"
-            leaders = [
-                {
-                    "student_name": leader["student"].first_name,
-                    "student_avatar": s3.get_link(leader["student"].profile.avatar.name)
-                    if leader["student"].profile.avatar
-                    else s3.get_link(base_avatar_path),
-                    "progress_percent": leader["progress_percent"],
-                }
-                for leader in top_leaders
-            ]
-
-            # Добавляем прогресс и место в курсе в ответ
-            course = {
-                "course_id": course_obj.pk,
-                "course_name": course_obj.name,
-                "all_baselessons": all_base_lessons.count(),
-                "completed_count": completed_all,
-                "completed_percent": progress_percent,
-                "average_mark": average_mark,
-                "rank_in_course": student_rank,
-                "top_leaders": leaders,
-                "lessons": {
-                    "completed_percent": self.calculate_progress(
-                        completed_lessons.count(), all_lessons.count()
-                    ),
-                    "all_lessons": all_lessons.count(),
-                    "completed_lessons": completed_lessons.count(),
-                },
-                "homeworks": {
-                    "completed_percent": self.calculate_progress(
-                        completed_homeworks.count(), all_homeworks.count()
-                    ),
-                    "all_homeworks": all_homeworks.count(),
-                    "completed_homeworks": completed_homeworks.count(),
-                },
-                "tests": {
-                    "completed_percent": self.calculate_progress(
-                        completed_tests.count(), all_tests.count()
-                    ),
-                    "all_tests": all_tests.count(),
-                    "completed_tests": completed_tests.count(),
-                },
+    def get_top_leaders(self, top_students):
+        base_avatar_path = "users/avatars/base_avatar.jpg"
+        return [
+            {
+                "student_name": leader["student"].first_name,
+                "student_avatar": s3.get_link(leader["student"].profile.avatar.name)
+                if leader["student"].profile.avatar
+                else s3.get_link(base_avatar_path),
+                "progress_percent": leader["progress_percent"],
             }
-            courses.append(course)
+            for leader in top_students
+        ]
 
-            if progress_percent == 100:
-                student_history = StudentsHistory.objects.get(
-                    user=student, students_group=student_group
-                )
-                if not student_history.finish_date:
-                    student_history.finish_date = datetime.now()
-                    student_history.save()
+    def get_lesson_stats(self, all_items, completed_items):
+        return {
+            "completed_percent": self.calculate_progress(
+                completed_items, all_items.count()
+            ),
+            "all_lessons": all_items.count(),
+            "completed_lessons": completed_items,
+        }
 
-            CompletedCourseNotifications.send_completed_course_notification(
-                progress_percent,
-                student.id,
-                course["course_id"],
-                course["course_name"],
-                school_id,
-            )
-
-        return Response(return_dict)
+    def update_student_history(self, student, student_group):
+        student_history, created = StudentsHistory.objects.get_or_create(
+            user=student,
+            students_group=student_group,
+            defaults={"finish_date": datetime.now()},
+        )
+        if not created and not student_history.finish_date:
+            student_history.finish_date = datetime.now()
+            student_history.save()
 
     def calculate_progress(self, completed_count, total_count):
         return round(completed_count / total_count * 100, 2) if total_count != 0 else 0

@@ -88,7 +88,7 @@ class StudentProgressSchemas:
                     in_=openapi.IN_QUERY,
                     description="id курса",
                     type=openapi.TYPE_INTEGER,
-                    required=True,
+                    required=False,
                 )
             ],
         )
