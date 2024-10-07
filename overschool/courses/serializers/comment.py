@@ -48,8 +48,8 @@ class CommentSerializer(serializers.ModelSerializer):
             return None
 
     def get_avatar(self, obj):
-        if obj.author.avatar:
-            return s3.get_link(obj.author.avatar.name)
+        if obj.author.profile.avatar:
+            return s3.get_link(obj.author.profile.avatar.name)
         else:
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "users/avatars/base_avatar.jpg"
