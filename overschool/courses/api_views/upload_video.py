@@ -76,7 +76,7 @@ class UploadVideoViewSet(
             (
                 ffmpeg.input(video.temporary_file_path(), ss=1)
                 .output(temp_file_path, vframes=1)
-                .run(cmd="/usr/bin/ffmpeg", capture_stdout=True)
+                .run()
             )
 
             # Открытие изображения и кодирование в base64
