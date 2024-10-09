@@ -59,8 +59,8 @@ oauthlib==3.2.0
 packaging==21.3
 pathspec==0.9.0
 phonenumbers==8.12.56
+Pillow==10.4.0
 python-ffmpeg==2.0.12
-Pillow==9.2.0
 platformdirs==2.5.2
 pluggy==1.0.0
 pre-commit==3.3.1
