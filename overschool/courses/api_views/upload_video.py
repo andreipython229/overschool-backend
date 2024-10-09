@@ -74,31 +74,23 @@ class UploadVideoViewSet(
             # Извлечение первого кадра
             temp_file_path = "/tmp/temp_screenshot.jpg"
             ffmpeg = FFmpeg()
+            ffmpeg.input(video.temporary_file_path(), ss=1).output(
+                temp_file_path, vframes=1
+            ).execute()
 
-            try:
-                ffmpeg.input(video.temporary_file_path(), ss=1).output(
-                    temp_file_path, vframes=1
-                ).execute()
+            # Открытие изображения и кодирование в base64
+            with open(temp_file_path, "rb") as f:
+                screenshot_image = Image.open(f)
+                buffered = BytesIO()
+                screenshot_image.save(buffered, format="JPEG")
+                encoded_screenshot = base64.b64encode(buffered.getvalue()).decode(
+                    "utf-8"
+                )
 
-                # Открытие изображения и кодирование в base64
-                with open(temp_file_path, "rb") as f:
-                    screenshot_image = Image.open(f)
-                    buffered = BytesIO()
-                    screenshot_image.save(buffered, format="JPEG")
-                    encoded_screenshot = base64.b64encode(buffered.getvalue()).decode(
-                        "utf-8"
-                    )
-
-                # Сохранение скриншота в поле
-                serializer.validated_data["video_screenshot"] = encoded_screenshot
-
-            except Exception as e:
-                # Обработка ошибок
-                print(f"Ошибка при извлечении скриншота: {e}")
-            finally:
-                # Удаление временного файла, если он существует
-                if os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
+            # Сохранение скриншота в поле
+            serializer.validated_data["video_screenshot"] = encoded_screenshot
+            # Удаление временного файла
+            os.remove(temp_file_path)
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
