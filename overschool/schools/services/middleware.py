@@ -70,6 +70,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         r"/api/token/refresh/",
         r"/api/token/verify/",
         r"/video/.+/block_video/\d+/",
+        r"/api/.+/answers/\d+/",
     ]
     ALLOWED_DOMAINS = [
         "sandbox.coursehb.ru",

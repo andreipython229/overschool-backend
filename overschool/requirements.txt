@@ -62,7 +62,6 @@ phonenumbers==8.12.56
 Pillow==10.4.0
 psycopg2==2.9.9
 psycopg2-binary==2.9.9
-python-ffmpeg==2.0.12
 ffmpeg-python==0.2.0
 platformdirs==2.5.2
 pluggy==1.0.0
