@@ -152,6 +152,9 @@ class BaseLessonBlock(OrderMixin, models.Model):
         blank=True,
         null=True,
     )
+    video_screenshot = models.TextField(
+        verbose_name="Превью видео", help_text="Превью видео", blank=True, null=True
+    )
     url = models.URLField(
         verbose_name="URL видео",
         help_text="Ссылка на видео из YouTube",
