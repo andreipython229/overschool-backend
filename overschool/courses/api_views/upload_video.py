@@ -73,7 +73,7 @@ class UploadVideoViewSet(
             )
             # Извлечение первого кадра
             temp_file_path = "/tmp/temp_screenshot.jpg"
-            ffmpeg = FFmpeg()
+            ffmpeg = FFmpeg(executable="/usr/bin/ffmpeg")
             ffmpeg.input(video.temporary_file_path(), ss=1).output(
                 temp_file_path, vframes=1
             ).execute()
