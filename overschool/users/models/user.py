@@ -78,3 +78,13 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
+        indexes = [
+            models.Index(fields=["username"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["phone_number"]),
+            models.Index(fields=["last_login"]),
+            models.Index(fields=["date_joined"]),
+            models.Index(fields=["first_name"]),
+            models.Index(fields=["last_name"]),
+            models.Index(fields=["patronymic"]),
+        ]
