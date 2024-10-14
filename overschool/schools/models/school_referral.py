@@ -26,6 +26,11 @@ class Referral(models.Model):
     class Meta:
         verbose_name = "Реферал"
         verbose_name_plural = "Рефералы"
+        indexes = [
+            models.Index(fields=["referrer_school"]),
+            models.Index(fields=["referred_school"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.referrer_school.name} привлекла {self.referred_school.name}"
@@ -57,6 +62,10 @@ class ReferralClick(models.Model):
     class Meta:
         verbose_name = "Переход по реферальной ссылке"
         verbose_name_plural = "Переходы по реферальным ссылкам"
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["timestamp"]),
+        ]
 
     def __str__(self):
         return f"Переход по коду {self.school.name} с IP {self.ip_address}"
