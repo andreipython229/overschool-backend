@@ -1,5 +1,6 @@
 amqp==5.1.1
 asgiref==3.5.2
+ffmpeg-python
 async-timeout==4.0.2
 atomicwrites==1.4.1
 channels-redis==4.1.0
@@ -44,7 +45,7 @@ environ==1.0
 flake8==4.0.1
 form==0.0.1
 future==0.18.2
-g4f==0.3.3.0
+g4f==0.3.1.9
 inflection==0.5.1
 iniconfig==1.1.1
 isort==5.10.1
@@ -59,13 +60,13 @@ oauthlib==3.2.0
 packaging==21.3
 pathspec==0.9.0
 phonenumbers==8.12.56
-Pillow==9.2.0
+Pillow==10.4.0
+psycopg2==2.9.9
+psycopg2-binary==2.9.9
 platformdirs==2.5.2
 pluggy==1.0.0
 pre-commit==3.3.1
 prompt-toolkit==3.0.30
-psycopg2==2.9.7
-psycopg2-binary==2.9.7
 py==1.11.0
 pycodestyle==2.8.0
 pycparser==2.21
