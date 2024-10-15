@@ -42,3 +42,7 @@ class TrainingDuration(models.Model):
     class Meta:
         verbose_name = "Продолжительность и иные особенности обучения"
         verbose_name_plural = "Продолжительность и иные особенности обучения"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["students_group"]),
+        ]

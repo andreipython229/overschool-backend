@@ -1,5 +1,5 @@
-from django.db import models
 from courses.models import Course
+from django.db import models
 
 
 class CourseCopy(models.Model):
@@ -17,3 +17,6 @@ class CourseCopy(models.Model):
         null=True,
         blank=True,
     )
+
+    def __str__(self):
+        return f"Копия: {self.course_copy_id} Оригинал: {self.course_id}"
