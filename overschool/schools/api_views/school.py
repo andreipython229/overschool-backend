@@ -18,17 +18,16 @@ from courses.models import (
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress, progress_subquery
-from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum
+from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from schools.models import (
@@ -57,7 +56,6 @@ from schools.serializers import (
 )
 from schools.services import Hmac
 from users.models import Profile, UserGroup, UserRole
-from users.serializers import UserProfileGetSerializer
 
 s3 = UploadToS3()
 
@@ -95,7 +93,10 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
-            if user.groups.filter(group__name__in=["Teacher", "Student"]).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -118,7 +119,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         group_admin = UserRole.objects.get(name="Admin")
         group_teacher = UserRole.objects.get(name="Teacher")
 
-        print(request.user.email, request.user.phone_number)
         if not request.user.email or not request.user.phone_number:
             raise PermissionDenied("Email и phone number пользователя обязательны.")
         # Проверка количества школ, которыми владеет пользователь
@@ -132,11 +132,19 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             with transaction.atomic():
                 schools = School.objects.all()
                 for school in schools:
-                    if not UserGroup.objects.filter(user=admin_user, group=group_admin, school=school).exists():
-                        UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
+                    if not UserGroup.objects.filter(
+                        user=admin_user, group=group_admin, school=school
+                    ).exists():
+                        UserGroup.objects.create(
+                            user=admin_user, group=group_admin, school=school
+                        )
 
-                    if not UserGroup.objects.filter(user=teacher_user, group=group_teacher, school=school).exists():
-                        UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
+                    if not UserGroup.objects.filter(
+                        user=teacher_user, group=group_teacher, school=school
+                    ).exists():
+                        UserGroup.objects.create(
+                            user=teacher_user, group=group_teacher, school=school
+                        )
         except User.DoesNotExist:
             return HttpResponse("Пользователь не найден.", status=400)
         except Exception as e:
@@ -166,15 +174,21 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             admin_user = User.objects.get(email="admin@coursehub.ru")
             UserGroup.objects.create(user=admin_user, group=group_admin, school=school)
         except User.DoesNotExist:
-            return HttpResponse("Пользователь с email admin@coursehub.ru не найден.", status=400)
+            return HttpResponse(
+                "Пользователь с email admin@coursehub.ru не найден.", status=400
+            )
 
         # Добавление teacher@coursehub.ru как учителя школы
         try:
             teacher_user = User.objects.get(email="teacher@coursehub.ru")
             group_teacher = UserRole.objects.get(name="Teacher")
-            UserGroup.objects.create(user=teacher_user, group=group_teacher, school=school)
+            UserGroup.objects.create(
+                user=teacher_user, group=group_teacher, school=school
+            )
         except User.DoesNotExist:
-            return HttpResponse("Пользователь с email teacher@coursehub.ru не найден.", status=400)
+            return HttpResponse(
+                "Пользователь с email teacher@coursehub.ru не найден.", status=400
+            )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -688,11 +702,6 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
             for item in paginated_data:
                 if not item["students__id"]:
                     continue
-                profile = Profile.objects.filter(user_id=item["students__id"]).first()
-                if profile is not None:
-                    serializer = UserProfileGetSerializer(
-                        profile, context={"request": self.request}
-                    )
                 if "Прогресс" in fields and sort_by != "progress":
                     student_group = StudentsGroup.objects.filter(
                         students__id=item["students__id"], course_id=item["course_id"]
@@ -709,7 +718,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -745,7 +756,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -779,7 +792,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,
@@ -813,7 +828,9 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,

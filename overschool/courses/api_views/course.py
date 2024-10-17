@@ -61,7 +61,6 @@ from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, User
-from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
 
@@ -117,9 +116,12 @@ class CourseViewSet(
             "student_groups",
         ]:
             # Разрешения для просмотра курсов (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -523,11 +525,6 @@ class CourseViewSet(
             for item in paginated_data:
                 if not item["students__id"]:
                     continue
-                profile = Profile.objects.filter(user_id=item["students__id"]).first()
-                if profile is not None:
-                    serializer = UserProfileGetSerializer(
-                        profile, context={"request": self.request}
-                    )
                 if "Прогресс" in fields and sort_by != "progress":
                     student_group = StudentsGroup.objects.filter(
                         students__id=item["students__id"], course_id=item["course_id"]
@@ -544,7 +541,9 @@ class CourseViewSet(
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -575,7 +574,9 @@ class CourseViewSet(
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -604,7 +605,9 @@ class CourseViewSet(
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,
@@ -633,7 +636,9 @@ class CourseViewSet(
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,

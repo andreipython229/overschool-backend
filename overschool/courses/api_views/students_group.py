@@ -5,6 +5,7 @@ import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from common_services.selectel_client import UploadToS3
 from courses.models import (
     Course,
     GroupCourseAccess,
@@ -50,9 +51,8 @@ from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, User, UserGroup
-from users.serializers import UserProfileGetSerializer
 
-
+s3 = UploadToS3()
 # Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную,
 # а также возможность скачивания видео-уроков
 def get_student_training_duration(group, student_id):
@@ -126,7 +126,10 @@ class StudentsGroupViewSet(
         school = self.get_school()
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Admin", school=school).exists() or user.email == "admin@coursehub.ru":
+        if (
+            user.groups.filter(group__name="Admin", school=school).exists()
+            or user.email == "admin@coursehub.ru"
+        ):
             return permissions
         if self.action in [
             "list",
@@ -135,9 +138,12 @@ class StudentsGroupViewSet(
             "user_count_by_month",
             "student_training_duration",
         ]:
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -513,9 +519,6 @@ class StudentsGroupViewSet(
             student_data = []
             for student in paginated_data:
                 profile = Profile.objects.get(user_id=student["id"])
-                serializer = UserProfileGetSerializer(
-                    profile, context={"request": self.request}
-                )
 
                 if "Прогресс" in fields and sort_by != "progress":
                     student_data.append(
@@ -530,7 +533,9 @@ class StudentsGroupViewSet(
                             "email": student["email"],
                             "phone_number": student["phone_number"],
                             "school_name": school.name,
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(profile.avatar.name)
+                            if profile.avatar
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_active": student["date_joined"],
                             "last_login": student["last_login"],
                             "mark_sum": student["mark_sum"],
@@ -559,7 +564,9 @@ class StudentsGroupViewSet(
                             "email": student["email"],
                             "phone_number": student["phone_number"],
                             "school_name": school.name,
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(profile.avatar.name)
+                            if profile.avatar
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_active": student["date_joined"],
                             "last_login": student["last_login"],
                             "mark_sum": student["mark_sum"],
@@ -586,7 +593,9 @@ class StudentsGroupViewSet(
                             "email": student["email"],
                             "phone_number": student["phone_number"],
                             "school_name": school.name,
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(profile.avatar.name)
+                            if profile.avatar
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_active": student["date_joined"],
                             "last_login": student["last_login"],
                             "mark_sum": student["mark_sum"],
@@ -695,9 +704,6 @@ class StudentsGroupViewSet(
         student_data = []
         for student in students:
             profile = Profile.objects.get(user_id=student)
-            serializer = UserProfileGetSerializer(
-                profile, context={"request": self.request}
-            )
             students_history = StudentsHistory.objects.filter(
                 user_id=student.id, students_group=group.group_id, is_deleted=False
             ).first()
@@ -715,7 +721,9 @@ class StudentsGroupViewSet(
                     "email": student.email,
                     "phone_number": student.phone_number,
                     "school_name": school.name,
-                    "avatar": serializer.data["avatar"],
+                    "avatar": s3.get_link(profile.avatar.name)
+                    if profile.avatar
+                    else s3.get_link("users/avatars/base_avatar.jpg"),
                     "last_active": student.date_joined,
                     "last_login": student.last_login,
                     "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
