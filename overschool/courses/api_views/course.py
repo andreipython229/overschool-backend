@@ -1146,6 +1146,50 @@ class CourseViewSet(
                             ).exists(),
                         }
                     )
+
+            if user.groups.filter(group__name="Student", school=school).exists():
+                all_section_lessons = result_data["sections"][index]["lessons"]
+
+                homeworks = list(
+                    filter(lambda el: el["type"] == "homework", all_section_lessons)
+                )
+                homework_count = len(homeworks)
+                completed_hw_count = len(
+                    list(filter(lambda el: el["completed"], homeworks))
+                )
+                result_data["sections"][index]["homework_count"] = homework_count
+                result_data["sections"][index][
+                    "completed_hw_count"
+                ] = completed_hw_count
+
+                lessons = list(
+                    filter(lambda el: el["type"] == "lesson", all_section_lessons)
+                )
+                lesson_count = len(lessons)
+                completed_les_count = len(
+                    list(filter(lambda el: el["viewed"], lessons))
+                )
+                result_data["sections"][index]["lesson_count"] = lesson_count
+                result_data["sections"][index][
+                    "completed_les_count"
+                ] = completed_les_count
+
+                tests = list(
+                    filter(lambda el: el["type"] == "test", all_section_lessons)
+                )
+                test_count = len(tests)
+                completed_test_count = len(
+                    list(filter(lambda el: el["completed"], tests))
+                )
+                result_data["sections"][index]["test_count"] = test_count
+                result_data["sections"][index][
+                    "completed_test_count"
+                ] = completed_test_count
+
+                result_data["sections"][index]["completed_count"] = (
+                    completed_hw_count + completed_les_count + completed_test_count
+                )
+
             result_data["sections"][index]["lessons"].sort(
                 key=lambda x: x["order"] if x["order"] is not None else 0
             )
