@@ -514,10 +514,9 @@ class StudentsGroupViewSet(
                         reverse=True,
                     )
             paginator = StudentsPagination()
-            paginated_data = paginator.paginate_queryset(sorted_data, request)
 
             student_data = []
-            for student in paginated_data:
+            for student in sorted_data:
                 profile = Profile.objects.get(user_id=student["id"])
 
                 if "Прогресс" in fields and sort_by != "progress":
@@ -608,12 +607,12 @@ class StudentsGroupViewSet(
                             ),
                         }
                     )
-
+            paginated_data = paginator.paginate_queryset(student_data, request)
             pagination_data = {
                 "count": paginator.page.paginator.count,
                 "next": paginator.get_next_link(),
                 "previous": paginator.get_previous_link(),
-                "results": student_data,
+                "results": paginated_data,
             }
             return Response(pagination_data)
         else:
