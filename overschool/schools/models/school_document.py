@@ -34,4 +34,8 @@ class SchoolDocuments(models.Model):
     class Meta:
         verbose_name = "Документы школы"
         verbose_name_plural = "Документы школ"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["school"]),
+        ]
         unique_together = (("user", "school"),)

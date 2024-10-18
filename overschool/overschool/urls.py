@@ -191,7 +191,6 @@ urlpatterns = [
     path("api/certificate/", GetCertificateView.as_view(), name="get_certificate"),
     path("api/chats/", include("chats.urls")),
     path("api/chatgpt/", include("chatgpt.urls")),
-    path("api/", include("courses.urls")),
     path("api/", include(catalogs_router.urls)),
     path("api/", include(user_router.urls)),
     path("api/", include(school_router.urls)),

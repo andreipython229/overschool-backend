@@ -20,3 +20,8 @@ class UserSubscription(models.Model):
 
     class Meta:
         unique_together = ("user", "school")
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["school"]),
+            models.Index(fields=["expires_at"]),
+        ]

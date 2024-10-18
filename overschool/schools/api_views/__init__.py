@@ -24,3 +24,4 @@ from .userDomain import (
     DomainViewSet,
     UnconfiguredDomainViewSet,
 )
+from .school_roles import SchoolNewRoleViewSet

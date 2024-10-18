@@ -15,6 +15,15 @@ class UserGroup(models.Model):
     def __str__(self):
         return f"{self.user} - {self.group} - {self.school}"
 
+    class Meta:
+        verbose_name = "Группа пользователя"
+        verbose_name_plural = "Группы пользователей"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["group"]),
+            models.Index(fields=["school"]),
+        ]
+
 
 @receiver(post_save, sender=School)
 def assign_admin_role(sender, instance, created, **kwargs):

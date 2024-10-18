@@ -74,3 +74,8 @@ class Profile(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Профиль"
         verbose_name_plural = "Профили"
+        indexes = [
+            models.Index(fields=["city"]),
+            models.Index(fields=["sex"]),
+            models.Index(fields=["user"]),
+        ]

@@ -37,6 +37,14 @@ class Chat(models.Model):
     def get_absolute_url(self):
         return reverse("chat_detail", args=[str(self.id)])
 
+    class Meta:
+        verbose_name = "Чат"
+        verbose_name_plural = "Чаты"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["type"]),
+        ]
+
 
 class ChatLink(models.Model):
     parent = models.ForeignKey(Chat, related_name="links_to", on_delete=models.CASCADE)
@@ -52,6 +60,14 @@ class Message(models.Model):
     def __str__(self):
         return self.content
 
+    class Meta:
+        verbose_name = "Сообщение чата"
+        verbose_name_plural = "Сообщения чата"
+        indexes = [
+            models.Index(fields=["chat"]),
+            models.Index(fields=["sender"]),
+        ]
+
 
 # many-to-many
 class UserChat(models.Model):
@@ -63,31 +79,34 @@ class UserChat(models.Model):
     def __str__(self):
         return f"{self.user.__str__()} - {self.chat.__str__()}"
 
+    class Meta:
+        verbose_name = "Пользователь чата"
+        verbose_name_plural = "Пользователи чата"
+        indexes = [
+            models.Index(fields=["chat"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["user_role"]),
+        ]
+
     @classmethod
     def get_existed_chat_id(cls, chat_creator, reciever):
-        chats = cls.objects.filter(Q(user=chat_creator) | Q(user=reciever))
-        chats_list = [str(chat.chat) for chat in chats]
-        seen_chats = set()
-        existed_chat = [
-            chat for chat in chats_list if chat in seen_chats or seen_chats.add(chat)
-        ]
-        if existed_chat:
-            return existed_chat[0]
-        else:
-            return False
+        chat_id = (
+            cls.objects.filter(user__in=[chat_creator, reciever])
+            .values_list("chat__id", flat=True)
+            .distinct()
+            .first()
+        )
+
+        return str(chat_id) if chat_id is not None else False
 
     @classmethod
     def get_existed_chat_id_by_type(cls, chat_creator, reciever, type):
-        chat_ids = (
+        chat_id = (
             cls.objects.filter(
-                Q(user=chat_creator, chat__type=type)
-                & Q(chat__userchat__user=reciever, chat__type=type)
+                user=chat_creator, chat__type=type, chat__userchat__user=reciever
             )
             .values_list("chat__id", flat=True)
-            .distinct()
+            .first()
         )
 
-        if chat_ids:
-            return str(chat_ids[0])
-        else:
-            return False
+        return str(chat_id) if chat_id is not None else False

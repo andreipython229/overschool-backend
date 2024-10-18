@@ -69,6 +69,9 @@ class Tariff(models.Model):
     class Meta:
         verbose_name = "Тариф"
         verbose_name_plural = "Тарифы"
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
 
 
 class School(TimeStampMixin, OrderMixin):
@@ -184,16 +187,16 @@ class School(TimeStampMixin, OrderMixin):
             and self.trial_end_date
             and self.trial_end_date <= timezone.now()
         ):
-            self.tariff = None
             self.trial_end_date = None
+            self.tariff = None
             self.used_trial = True
         # Проверка оплаты тарифа
         if (
             self.purchased_tariff_end_date
             and self.purchased_tariff_end_date <= timezone.now()
         ):
-            self.tariff = None
             self.purchased_tariff_end_date = None
+            self.tariff = None
 
         self.save()
 
@@ -203,8 +206,23 @@ class School(TimeStampMixin, OrderMixin):
     class Meta:
         verbose_name = "Школа"
         verbose_name_plural = "Школы"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["tariff"]),
+            models.Index(fields=["owner"]),
+        ]
         constraints = [
             models.UniqueConstraint(fields=["order"], name="unique_school_order"),
+            models.CheckConstraint(
+                check=(
+                    models.Q(tariff__isnull=False)
+                    | (
+                        models.Q(purchased_tariff_end_date__isnull=True)
+                        & models.Q(trial_end_date__isnull=True)
+                    )
+                ),
+                name="check_tariff_not_null_if_period_active",
+            ),
         ]
 
 
@@ -271,6 +289,9 @@ class SchoolStatistics(models.Model):
     class Meta:
         verbose_name = "Статистика школы"
         verbose_name_plural = "Статистика школ"
+        indexes = [
+            models.Index(fields=["school"]),
+        ]
 
 
 class SchoolPaymentMethod(models.Model):

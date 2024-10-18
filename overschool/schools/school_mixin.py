@@ -14,6 +14,7 @@ class SchoolMixin:
         user = request.user
 
         if not user or not user.is_authenticated:
+            print(user)
             raise Http404("Пользователь не аутентифицирован")
 
         if school.tariff is None:

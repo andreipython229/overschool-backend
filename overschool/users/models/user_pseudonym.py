@@ -1,8 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from schools.models.school import School
 
 from .user import User
-from schools.models.school import School
 
 
 class UserPseudonym(models.Model):
@@ -11,14 +11,10 @@ class UserPseudonym(models.Model):
     """
 
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='pseudonyms_as_user'
+        User, on_delete=models.CASCADE, related_name="pseudonyms_as_user"
     )
     school = models.ForeignKey(
-        School,
-        on_delete=models.CASCADE,
-        related_name='pseudonyms_as_school'
+        School, on_delete=models.CASCADE, related_name="pseudonyms_as_school"
     )
     pseudonym = models.CharField(
         verbose_name="Псевдоним сотрудника",
@@ -33,3 +29,8 @@ class UserPseudonym(models.Model):
     class Meta:
         verbose_name = "Псевдоним сотрудника школы"
         verbose_name_plural = "Псевдоним сотрудника школы"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["school"]),
+            models.Index(fields=["pseudonym"]),
+        ]

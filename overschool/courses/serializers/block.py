@@ -39,6 +39,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "id",
             "base_lesson",
             "video",
+            "video_screenshot",
             "url",
             "description",
             "code",
@@ -49,7 +50,7 @@ class LessonBlockSerializer(serializers.ModelSerializer):
             "buttons",
             "order",
         ]
-        read_only_fields = ["order"]
+        read_only_fields = ["order", "video_screenshot"]
 
     def validate(self, data):
         instance = getattr(self, "instance", None)
@@ -89,6 +90,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "video",
+            "video_screenshot",
             "url",
             "description",
             "code",
@@ -100,7 +102,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             "order",
             "type",
         ]
-        read_only_fields = ["order"]
+        read_only_fields = ["order", "video_screenshot"]
 
     def get_video(self, obj):
         return s3.get_link(obj.video.name) if obj.video else None
@@ -122,6 +124,7 @@ class BlockDetailSerializer(serializers.ModelSerializer):
             del data["picture_url"]
         if data.get("video") is None and instance.type != "video":
             del data["video"]
+            del data["video_screenshot"]
         if data.get("formula") is None and instance.type != "formula":
             del data["formula"]
         if not len(data.get("buttons")) and instance.type != "buttons":

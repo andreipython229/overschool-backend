@@ -57,3 +57,9 @@ class StudentsHistory(models.Model):
     class Meta:
         verbose_name = "История студента"
         verbose_name_plural = "История студентов"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["students_group"]),
+            models.Index(fields=["date_added"]),
+            models.Index(fields=["date_removed"]),
+        ]

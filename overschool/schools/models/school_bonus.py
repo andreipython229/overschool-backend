@@ -52,6 +52,11 @@ class Bonus(models.Model):
     class Meta:
         verbose_name = "Бонус"
         verbose_name_plural = "Бонусы"
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["expire_date"]),
+            models.Index(fields=["active"]),
+        ]
 
 
 # class GroupBonus(models.Model):

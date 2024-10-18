@@ -1,26 +1,18 @@
 from django.db import models
 from users.models.user import User
+
 from . import School
 
 
 class NewsletterTemplate(models.Model):
-    template_name = models.CharField(
-        max_length=255,
-        verbose_name="Имя шаблона"
-    )
-    text = models.TextField(
-        verbose_name="Текст шаблона"
-    )
+    template_name = models.CharField(max_length=255, verbose_name="Имя шаблона")
+    text = models.TextField(verbose_name="Текст шаблона")
     delay_days = models.PositiveIntegerField(
         verbose_name="Количество дней после регистрации для рассылки"
     )
-    is_public = models.BooleanField(
-        default=False,
-        verbose_name="Рассылать ли шаблон"
-    )
+    is_public = models.BooleanField(default=False, verbose_name="Рассылать ли шаблон")
     template_created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата и время создания шаблона"
+        auto_now_add=True, verbose_name="Дата и время создания шаблона"
     )
 
     def __str__(self):
@@ -29,24 +21,24 @@ class NewsletterTemplate(models.Model):
     class Meta:
         verbose_name = "Шаблон для рассылки"
         verbose_name_plural = "Шаблоны для рассылки"
+        indexes = [models.Index(fields=["template_name"])]
 
 
 class SentNewsletter(models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
-        related_name='sent_newsletters',
-        verbose_name="Школа"
+        related_name="sent_newsletters",
+        verbose_name="Школа",
     )
     template = models.ForeignKey(
         NewsletterTemplate,
         on_delete=models.CASCADE,
-        related_name='sent_newsletters',
-        verbose_name="Шаблон рассылки"
+        related_name="sent_newsletters",
+        verbose_name="Шаблон рассылки",
     )
     sent_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата и время отправки"
+        auto_now_add=True, verbose_name="Дата и время отправки"
     )
 
     def __str__(self):
@@ -55,4 +47,7 @@ class SentNewsletter(models.Model):
     class Meta:
         verbose_name = "Отправленный шаблон"
         verbose_name_plural = "Отправленные шаблоны"
-
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["template"]),
+        ]

@@ -26,6 +26,7 @@ def complete_task_and_extend_trial(school, task_name):
             school.trial_end_date += timedelta(days=1)
         else:
             school.trial_end_date = timezone.now() + timedelta(days=1)
+
         school.save()
 
 

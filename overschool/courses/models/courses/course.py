@@ -29,6 +29,10 @@ class Folder(models.Model):
     class Meta:
         verbose_name = "Папка"
         verbose_name_plural = "Папки"
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["name"]),
+        ]
 
 
 class Public(models.TextChoices):
@@ -162,7 +166,14 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         return str(self.course_id) + " " + str(self.name)
 
     class Meta:
-        indexes = [models.Index(fields=["search_vector"])]
+        indexes = [
+            models.Index(fields=["search_vector"]),
+            models.Index(fields=["school"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["is_catalog"]),
+            models.Index(fields=["public"]),
+            models.Index(fields=["folder"]),
+        ]
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
         constraints = [
@@ -227,3 +238,8 @@ class CourseAppeals(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Заявка на курс"
         verbose_name_plural = "Заявки на курс"
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["is_read"]),
+        ]

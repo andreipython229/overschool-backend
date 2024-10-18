@@ -32,3 +32,4 @@ from .school_newsletter import NewsletterTemplateSerializer
 from .school_referral import ReferralClickSerializer, ReferralSerializer
 from .SchoolMeetings import SchoolMeetingsSerializer
 from .userDomain import DomainSerializer
+from .school_roles import SchoolNewRoleSerializer

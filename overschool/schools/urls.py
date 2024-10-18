@@ -16,6 +16,7 @@ from schools.api_views import (
     SchoolViewSet,
     TariffViewSet,
     UnconfiguredDomainViewSet,
+    SchoolNewRoleViewSet
 )
 
 router = routers.DefaultRouter()
@@ -52,6 +53,7 @@ router.register(
     basename="referral-click",
 )
 router.register(r"(?P<school_name>\w+)/banners", BannerViewSet, basename="banner")
+router.register(r'school-new-roles', SchoolNewRoleViewSet, basename='school-new-roles')
 
 router_meetings = routers.DefaultRouter()
 router_meetings.register(

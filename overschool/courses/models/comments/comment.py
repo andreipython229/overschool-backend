@@ -1,7 +1,7 @@
-from django.db import models
-from users.models import User
 from courses.models.common.base_lesson import BaseLesson
 from courses.models.courses.course import Course
+from django.db import models
+from users.models import User
 
 
 class Comment(models.Model):
@@ -44,12 +44,17 @@ class Comment(models.Model):
         help_text="ID копии курса, если коммент относится к копии курса",
         blank=True,
         null=True,
-        default=None
+        default=None,
     )
 
     class Meta:
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
+        indexes = [
+            models.Index(fields=["lesson"]),
+            models.Index(fields=["author"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.author}: {self.content[:50]}..."
