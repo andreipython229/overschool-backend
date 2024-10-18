@@ -45,7 +45,7 @@ environ==1.0
 flake8==4.0.1
 form==0.0.1
 future==0.18.2
-g4f==0.3.3.0
+g4f
 inflection==0.5.1
 iniconfig==1.1.1
 isort==5.10.1
