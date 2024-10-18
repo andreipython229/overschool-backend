@@ -1,10 +1,18 @@
 import json
+from datetime import datetime, timedelta
+
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, UserHomework, UserHomeworkCheck, Course, CourseCopy
-from courses.models.homework.homework import Homework
+from courses.models import (
+    BaseLesson,
+    Course,
+    CourseCopy,
+    UserHomework,
+    UserHomeworkCheck,
+)
 from courses.models.homework.user_homework import UserHomeworkStatusChoices
+from courses.models.students.students_group import StudentsGroup
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
     UserHomeworkDetailSerializer,
@@ -12,15 +20,16 @@ from courses.serializers import (
     UserHomeworkStatisticsSerializer,
 )
 from django.core.exceptions import PermissionDenied
-from django.db.models import OuterRef, Subquery, Q
+from django.db.models import OuterRef, Q, Subquery
+from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.parsers import MultiPartParser, JSONParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models import User
-from courses.models.students.students_group import StudentsGroup
+
 from .utils import get_group_course_pairs
 
 s3 = UploadToS3()
@@ -47,12 +56,15 @@ class UserHomeworkViewSet(
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Student", school=school_id).exists() or user.email == "student@coursehub.ru":
+        if (
+            user.groups.filter(group__name="Student", school=school_id).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Teacher", "Admin"], school=school_id
+                group__name__in=["Teacher", "Admin"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -74,30 +86,42 @@ class UserHomeworkViewSet(
                 course_id = int(course_id)
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    if user.groups.filter(group__name="Student", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Student", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
-                            user=user,
-                            copy_course_id=course_id
+                            user=user, copy_course_id=course_id
                         ).order_by("-created_at")
-                    if user.groups.filter(group__name="Teacher", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Teacher", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
-                            teacher=user,
-                            copy_course_id=course_id
+                            teacher=user, copy_course_id=course_id
                         ).order_by("-created_at")
-                    if user.groups.filter(group__name="Admin", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Admin", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
                             copy_course_id=course_id
                         ).order_by("-created_at")
                 else:
-                    if user.groups.filter(group__name="Student", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Student", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
-                            user=user, homework__section__course__school__name=school_name
+                            user=user,
+                            homework__section__course__school__name=school_name,
                         ).order_by("-created_at")
-                    if user.groups.filter(group__name="Teacher", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Teacher", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
-                            teacher=user, homework__section__course__school__name=school_name
+                            teacher=user,
+                            homework__section__course__school__name=school_name,
                         ).order_by("-created_at")
-                    if user.groups.filter(group__name="Admin", school=school_id).exists():
+                    if user.groups.filter(
+                        group__name="Admin", school=school_id
+                    ).exists():
                         return UserHomework.objects.filter(
                             homework__section__course__school__name=school_name
                         ).order_by("-created_at")
@@ -116,21 +140,23 @@ class UserHomeworkViewSet(
 
     def create(self, request, *args, **kwargs):
         user = request.user
-        school_name = self.kwargs.get("school_name")
+        self.kwargs.get("school_name")
         course_id = self.request.data.get("course_id")
         course = Course.objects.get(course_id=course_id)
         data = request.data.copy()
 
         # Если курс является копией
         if course.is_copy:
-            data['copy_course_id'] = data.pop('course_id', None)
+            data["copy_course_id"] = data.pop("course_id", None)
 
             # Ищем оригинальный курс с таким же названием и is_copy=False
             original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
 
             if original_course:
                 # Ищем домашнюю работу в оригинальном курсе
-                baselesson = BaseLesson.objects.get(homeworks=request.data.get("homework"))
+                baselesson = BaseLesson.objects.get(
+                    homeworks=request.data.get("homework")
+                )
                 teacher_group = user.students_group_fk.filter(
                     course_id=course.course_id
                 ).first()
@@ -178,7 +204,7 @@ class UserHomeworkViewSet(
         serializer = UserHomeworkSerializer(data=data)
 
         if serializer.is_valid():
-            if group and group.type == 'WITHOUT_TEACHER':
+            if group and group.type == "WITHOUT_TEACHER":
                 # Если группа без учителя, считаем домашку сразу успешной
                 serializer.save(user=user, status=UserHomeworkStatusChoices.SUCCESS)
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -280,7 +306,7 @@ class HomeworkStatisticsView(
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(
-                group__name__in=["Student", "Teacher", "Admin"], school=school_id
+            group__name__in=["Student", "Teacher", "Admin"], school=school_id
         ).exists():
             return permissions
         else:
@@ -288,7 +314,9 @@ class HomeworkStatisticsView(
 
     def get_queryset(self, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
-            return UserHomework.objects.none()  # Возвращаем пустой queryset при генерации схемы
+            return (
+                UserHomework.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
 
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
@@ -298,7 +326,7 @@ class HomeworkStatisticsView(
         # Если course_copy_id передан, фильтруем по нему
         if course_data:
             try:
-                course_ids = course_data.split(',')
+                course_ids = course_data.split(",")
                 course_ids = [int(id.strip()) for id in course_ids]
             except (json.JSONDecodeError, TypeError) as e:
                 raise ValidationError("Invalid course_data format")
@@ -378,13 +406,17 @@ class HomeworkStatisticsView(
                 # Если в паре group course есть course
                 if course:
                     query = Q(
-                        teacher_id__in=StudentsGroup.objects.filter(name=group).values_list('teacher_id', flat=True),
-                        homework__section__course__name=course
+                        teacher_id__in=StudentsGroup.objects.filter(
+                            name=group
+                        ).values_list("teacher_id", flat=True),
+                        homework__section__course__name=course,
                     )
                 # Если в паре group course нет course
                 else:
                     query = Q(
-                        teacher_id__in=StudentsGroup.objects.filter(name=group).values_list('teacher_id', flat=True)
+                        teacher_id__in=StudentsGroup.objects.filter(
+                            name=group
+                        ).values_list("teacher_id", flat=True)
                     )
                 queries.append(query)
 
@@ -399,26 +431,30 @@ class HomeworkStatisticsView(
             queryset = queryset.filter(combined_query)
 
         if self.request.GET.get("start_date"):
+            start_datetime = timezone.make_aware(
+                datetime.strptime(self.request.GET.get("start_date"), "%Y-%m-%d")
+            )
             subquery = UserHomeworkCheck.objects.filter(
                 user_homework=OuterRef("pk")
             ).order_by("-updated_at")[:1]
             queryset = queryset.annotate(
                 last_check_updated_at=Subquery(subquery.values("updated_at"))
             )
-            queryset = queryset.filter(
-                last_check_updated_at__gte=self.request.GET.get("start_date")
-            )
+            queryset = queryset.filter(last_check_updated_at__gte=start_datetime)
 
         if self.request.GET.get("end_date"):
+            end_datetime = timezone.make_aware(
+                datetime.strptime(self.request.GET.get("end_date"), "%Y-%m-%d")
+                + timedelta(days=1)
+                - timedelta(seconds=1)
+            )
             subquery = UserHomeworkCheck.objects.filter(
                 user_homework=OuterRef("pk")
             ).order_by("-updated_at")[:1]
             queryset = queryset.annotate(
                 last_check_updated_at=Subquery(subquery.values("updated_at"))
             )
-            queryset = queryset.filter(
-                last_check_updated_at__lte=self.request.GET.get("end_date")
-            )
+            queryset = queryset.filter(last_check_updated_at__lte=end_datetime)
         return queryset
 
 

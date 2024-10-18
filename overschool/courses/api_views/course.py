@@ -824,10 +824,8 @@ class CourseViewSet(
                     "average_mark": item["average_mark"],
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
-                    "progress": get_student_progress(
-                        item["students__id"],
-                        item["course_id"],
-                        item["group_id"],
+                    "progress": progress_subquery(
+                        item["students__id"], item["course_id"]
                     ),
                 }
             )
