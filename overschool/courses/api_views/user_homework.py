@@ -78,7 +78,7 @@ class UserHomeworkViewSet(
                 UserHomework.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         school_name = self.kwargs.get("school_name")
-        course_id = self.kwargs.get("courseId")
+        course_id = self.kwargs.get("course_id")
         school_id = School.objects.get(name=school_name).school_id
         user = self.request.user
         if course_id:
@@ -131,6 +131,20 @@ class UserHomeworkViewSet(
                     {"error": e.message},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+        else:
+            if user.groups.filter(group__name="Student", school=school_id).exists():
+                return UserHomework.objects.filter(
+                    user=user, homework__section__course__school__name=school_name
+                ).order_by("-created_at")
+            if user.groups.filter(group__name="Teacher", school=school_id).exists():
+                return UserHomework.objects.filter(
+                    teacher=user, homework__section__course__school__name=school_name
+                ).order_by("-created_at")
+            if user.groups.filter(group__name="Admin", school=school_id).exists():
+                return UserHomework.objects.filter(
+                    homework__section__course__school__name=school_name
+                ).order_by("-created_at")
+            return UserHomework.objects.none()
 
     def get_serializer_class(self):
         if self.action == "retrieve":
