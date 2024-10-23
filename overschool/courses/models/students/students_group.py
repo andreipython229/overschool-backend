@@ -85,6 +85,12 @@ class StudentsGroup(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Группа студентов"
         verbose_name_plural = "Группы студентов"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["course_id"]),
+            models.Index(fields=["teacher_id"]),
+            models.Index(fields=["group_id"]),
+        ]
 
 
 class GroupCourseAccess(models.Model):
@@ -115,3 +121,8 @@ class GroupCourseAccess(models.Model):
     class Meta:
         verbose_name = "Доступ к курсу для группы"
         verbose_name_plural = "Доступы к курсам для групп"
+        indexes = [
+            models.Index(fields=["current_group"]),
+            models.Index(fields=["course"]),
+            models.Index(fields=["group"]),
+        ]

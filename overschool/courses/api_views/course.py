@@ -61,7 +61,6 @@ from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
 from users.models import Profile, User
-from users.serializers import UserProfileGetSerializer
 
 from .schemas.course import CoursesSchemas
 
@@ -520,17 +519,11 @@ class CourseViewSet(
                     )
 
             paginator = StudentsPagination()
-            paginated_data = paginator.paginate_queryset(sorted_data, request)
 
             serialized_data = []
-            for item in paginated_data:
+            for item in sorted_data:
                 if not item["students__id"]:
                     continue
-                profile = Profile.objects.filter(user_id=item["students__id"]).first()
-                if profile is not None:
-                    serializer = UserProfileGetSerializer(
-                        profile, context={"request": self.request}
-                    )
                 if "Прогресс" in fields and sort_by != "progress":
                     student_group = StudentsGroup.objects.filter(
                         students__id=item["students__id"], course_id=item["course_id"]
@@ -547,7 +540,9 @@ class CourseViewSet(
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -578,7 +573,9 @@ class CourseViewSet(
                                 "phone_number": item["students__phone_number"],
                                 "first_name": item["students__first_name"],
                                 "student_id": item["students__id"],
-                                "avatar": serializer.data["avatar"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
                                 "last_name": item["students__last_name"],
                                 "group_name": item["name"],
                                 "school_name": school.name,
@@ -607,7 +604,9 @@ class CourseViewSet(
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,
@@ -636,7 +635,9 @@ class CourseViewSet(
                             "phone_number": item["students__phone_number"],
                             "first_name": item["students__first_name"],
                             "student_id": item["students__id"],
-                            "avatar": serializer.data["avatar"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
                             "last_name": item["students__last_name"],
                             "group_name": item["name"],
                             "school_name": school.name,
@@ -652,12 +653,12 @@ class CourseViewSet(
                             ),
                         }
                     )
-
+            paginated_data = paginator.paginate_queryset(serialized_data, request)
             pagination_data = {
                 "count": paginator.page.paginator.count,
                 "next": paginator.get_next_link(),
                 "previous": paginator.get_previous_link(),
-                "results": serialized_data,
+                "results": paginated_data,
             }
             return Response(pagination_data)
         else:
@@ -809,7 +810,6 @@ class CourseViewSet(
         for item in data:
             if not item["students__id"]:
                 continue
-            courses = Course.objects.filter(course_id=item["course_id"])
             serialized_data.append(
                 {
                     "student_id": item["students__id"],
@@ -824,10 +824,8 @@ class CourseViewSet(
                     "average_mark": item["average_mark"],
                     "date_added": item["date_added"],
                     "date_removed": item["date_removed"],
-                    "progress": get_student_progress(
-                        item["students__id"],
-                        item["course_id"],
-                        item["group_id"],
+                    "progress": progress_subquery(
+                        item["students__id"], item["course_id"]
                     ),
                 }
             )

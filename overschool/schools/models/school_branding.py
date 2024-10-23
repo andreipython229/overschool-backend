@@ -34,3 +34,8 @@ class SchoolBranding(models.Model):
     class Meta:
         verbose_name = "Ребрендинг школы"
         verbose_name_plural = "Ребрендинги школ"
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["phone"]),
+        ]

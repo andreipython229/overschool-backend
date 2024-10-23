@@ -13,3 +13,6 @@ class PromoCode(models.Model):
     class Meta:
         verbose_name = "Промокод"
         verbose_name_plural = "Промокоды"
+        indexes = [
+            models.Index(fields=["name"]),
+        ]

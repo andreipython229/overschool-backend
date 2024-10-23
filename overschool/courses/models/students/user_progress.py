@@ -1,8 +1,8 @@
-from django.db import models
-
 from common_services.mixins import TimeStampMixin
-from ..common.base_lesson import BaseLesson
+from django.db import models
 from users.models import User
+
+from ..common.base_lesson import BaseLesson
 
 
 class UserProgressLogs(TimeStampMixin, models.Model):
@@ -33,12 +33,12 @@ class UserProgressLogs(TimeStampMixin, models.Model):
     viewed = models.BooleanField(
         default=False,
         verbose_name="Статус открытия и просмотра lesson, homework, test",
-        help_text="Статус открытия и просмотра lesson, homework, test"
+        help_text="Статус открытия и просмотра lesson, homework, test",
     )
     completed = models.BooleanField(
         default=False,
         verbose_name="Статус выполнения ДЗ или Теста",
-        help_text="Статус выполнения ДЗ или Теста"
+        help_text="Статус выполнения ДЗ или Теста",
     )
 
     def __str__(self) -> str:
@@ -47,3 +47,9 @@ class UserProgressLogs(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Прогресс юзера"
         verbose_name_plural = "Прогрессы юзеров"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["lesson"]),
+            models.Index(fields=["viewed"]),
+            models.Index(fields=["completed"]),
+        ]

@@ -75,3 +75,7 @@ class SchoolHeader(TimeStampMixin, models.Model):
     class Meta:
         verbose_name = "Шапка школы"
         verbose_name_plural = "Шапки школы"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["school"]),
+        ]

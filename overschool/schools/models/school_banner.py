@@ -31,6 +31,10 @@ class Banner(models.Model):
     class Meta:
         verbose_name = "Баннер"
         verbose_name_plural = "Баннеры"
+        indexes = [
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["school"]),
+        ]
 
     def __str__(self):
         return f"{self.title} - {self.school}"
@@ -60,6 +64,9 @@ class BannerClick(models.Model):
     class Meta:
         verbose_name = "Переход по баннеру"
         verbose_name_plural = "Переходы по баннерам"
+        indexes = [
+            models.Index(fields=["timestamp"]),
+        ]
 
     def __str__(self):
         return f"Переход по баннеру {self.banner} с IP {self.ip_address}"
@@ -89,6 +96,9 @@ class BannerAccept(models.Model):
     class Meta:
         verbose_name = "Принятый баннер"
         verbose_name_plural = "Принятыe баннеры"
+        indexes = [
+            models.Index(fields=["banner", "user"]),
+        ]
 
     def __str__(self):
         return f"Принятый баннер {self.banner} пользователем {self.user}"

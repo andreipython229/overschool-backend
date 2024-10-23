@@ -34,3 +34,7 @@ class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model)
     class Meta:
         verbose_name = "Раздел"
         verbose_name_plural = "Разделы"
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["name"]),
+        ]

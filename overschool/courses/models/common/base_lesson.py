@@ -122,6 +122,10 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
             return False
 
     class Meta:
+        indexes = [
+            models.Index(fields=["section"]),
+            models.Index(fields=["name"]),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["section", "order"], name="unique_section_lesson_order"
@@ -205,6 +209,11 @@ class BaseLessonBlock(OrderMixin, models.Model):
     class Meta:
         verbose_name = "Блок урока"
         verbose_name_plural = "Блоки уроков"
+        indexes = [
+            models.Index(fields=["base_lesson"]),
+            models.Index(fields=["description"]),
+            models.Index(fields=["code"]),
+        ]
 
 
 class BlockButton(models.Model):
@@ -253,6 +262,11 @@ class LessonAvailability(models.Model):
     class Meta:
         verbose_name = "Доступность урока для студента"
         verbose_name_plural = "Доступность уроков для студентов"
+        indexes = [
+            models.Index(fields=["student"]),
+            models.Index(fields=["lesson"]),
+            models.Index(fields=["available"]),
+        ]
 
 
 class LessonEnrollment(models.Model):
@@ -269,3 +283,7 @@ class LessonEnrollment(models.Model):
     class Meta:
         verbose_name = "Доступность урока для группы"
         verbose_name_plural = "Доступность урока для группы"
+        indexes = [
+            models.Index(fields=["student_group"]),
+            models.Index(fields=["lesson"]),
+        ]
