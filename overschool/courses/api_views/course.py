@@ -1188,6 +1188,14 @@ class CourseViewSet(
                     completed_hw_count + completed_les_count + completed_test_count
                 )
 
+                marks = UserHomework.objects.filter(
+                    homework__section=value["section"], user=user
+                ).values_list("mark", flat=True)
+
+                result_data["sections"][index]["sum_marks"] = sum(
+                    list(map(lambda el: 0 if el is None else el, marks))
+                )
+
             result_data["sections"][index]["lessons"].sort(
                 key=lambda x: x["order"] if x["order"] is not None else 0
             )
