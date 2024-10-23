@@ -190,7 +190,6 @@ class UserHomeworkViewSet(
                 {"status": "Error", "message": "Объект UserHomework уже существует"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        teacher = User.objects.get(id=teacher_group.teacher_id_id)
 
         group = None
 
@@ -224,6 +223,7 @@ class UserHomeworkViewSet(
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
                 # В противном случае, сохраняем согласно стандартной логике
+                teacher = User.objects.get(id=teacher_group.teacher_id_id)
                 serializer.save(user=user, teacher=teacher)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:

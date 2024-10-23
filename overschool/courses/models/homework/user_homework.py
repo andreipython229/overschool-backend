@@ -43,6 +43,8 @@ class UserHomework(TimeStampMixin, models.Model):
         related_name="teacher_homeworks",
         verbose_name="ID учителя",
         help_text="Учитель, который проверял домашнюю работы",
+        blank=True,
+        null=True,
     )
     copy_course_id = models.ForeignKey(
         Course,
