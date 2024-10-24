@@ -703,7 +703,6 @@ class StudentsGroupViewSet(
 
         student_data = []
         for student in students:
-            profile = Profile.objects.get(user_id=student)
             students_history = StudentsHistory.objects.filter(
                 user_id=student.id, students_group=group.group_id, is_deleted=False
             ).first()
@@ -719,11 +718,8 @@ class StudentsGroupViewSet(
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
-                    "phone_number": student.phone_number,
+                    "phone_number": str(student.phone_number),
                     "school_name": school.name,
-                    "avatar": s3.get_link(profile.avatar.name)
-                    if profile.avatar
-                    else s3.get_link("users/avatars/base_avatar.jpg"),
                     "last_active": student.date_joined,
                     "last_login": student.last_login,
                     "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
@@ -738,9 +734,6 @@ class StudentsGroupViewSet(
                     "date_added": students_history.date_added
                     if students_history
                     else None,
-                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user, reciever=student.id, type="PERSONAL"
-                    ),
                 }
             )
 
