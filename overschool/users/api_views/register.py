@@ -30,7 +30,7 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
 
     def post(self, request):
         email = request.data.get("email")
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email__iexact=email).exists():
             return HttpResponse("User already exists")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -52,6 +52,12 @@ class SendPasswordSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     patronymic = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        email = attrs.get("email")
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("Email already exists.")
+        return attrs
 
 
 class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
