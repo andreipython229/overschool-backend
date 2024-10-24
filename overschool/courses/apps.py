@@ -18,9 +18,10 @@ class CoursesConfig(AppConfig):
             create_students_table_info,
             create_user_homework_check,
             update_group_course_access,
+            update_progress,
             update_user_homework_status,
         )
-        from django.db.models.signals import post_save
+        from django.db.models.signals import post_delete, post_save
         from users.models import UserGroup
 
         post_save.connect(complete_homework, sender=UserHomework)
@@ -29,3 +30,5 @@ class CoursesConfig(AppConfig):
         post_save.connect(create_user_homework_check, sender=UserHomework)
         post_save.connect(update_user_homework_status, sender=UserHomeworkCheck)
         post_save.connect(create_students_table_info, sender=UserGroup)
+        post_save.connect(update_progress, sender=UserProgressLogs)
+        post_delete.connect(update_progress, sender=UserProgressLogs)

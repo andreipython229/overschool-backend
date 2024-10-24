@@ -431,7 +431,7 @@ class StudentsGroupViewSet(
         if sort_by == "progress":
             for student in students:
                 user_id = student["id"]
-                course_id = group.course_id
+                course_id = group.course_id.course_id
 
                 if user_id and course_id:
                     progress = progress_subquery(user_id, course_id)
@@ -731,7 +731,9 @@ class StudentsGroupViewSet(
                     "average_mark": student.user_homeworks.aggregate(
                         average_mark=Avg("mark")
                     )["average_mark"],
-                    "progress": progress_subquery(student.id, group.course_id),
+                    "progress": progress_subquery(
+                        student.id, group.course_id.course_id
+                    ),
                     "date_added": students_history.date_added
                     if students_history
                     else None,
