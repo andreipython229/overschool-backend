@@ -27,13 +27,13 @@ def update_progress(sender, instance, **kwargs):
     now = timezone.now()
 
     if (
-        not last_update or (now - last_update).seconds > 300
-    ):  # Обновляем, если прошло больше 5 минут
+        not last_update or (now - last_update).seconds > 180
+    ):  # Обновляем, если прошло больше 3 минут
         progress = calculate_progress(student_id, course_id)
         StudentCourseProgress.objects.update_or_create(
             student_id=student_id, course_id=course_id, defaults={"progress": progress}
         )
-        cache.set(cache_key, now, timeout=300)  # Устанавливаем таймаут на 5 минут
+        cache.set(cache_key, now, timeout=180)  # Устанавливаем таймаут на 3 минут
 
 
 def calculate_progress(student_id, course_id):
