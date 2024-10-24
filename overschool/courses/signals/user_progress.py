@@ -19,7 +19,7 @@ from django.utils import timezone
 @receiver([post_save, post_delete], sender=UserProgressLogs)
 def update_progress(sender, instance, **kwargs):
     student_id = instance.user_id
-    course_id = instance.lesson.section.course.id
+    course_id = instance.lesson.section.course.course_id
     cache_key = f"progress_update_{student_id}_{course_id}"
 
     # Проверим, когда последний раз обновлялся прогресс
