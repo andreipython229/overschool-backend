@@ -85,6 +85,8 @@ class TestViewSet(
         # Получаем тест
         test = self.get_object()
         user = request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
 
         # Проверяем, существует ли уже запись UserTest для данного пользователя и теста
         if UserTest.objects.filter(user=user, test=test, status=True).exists():
@@ -94,12 +96,18 @@ class TestViewSet(
                     "message": "Этот тест уже пройден пользователем",
                 },
             )
-        user_test, created = UserTest.objects.get_or_create(user=user, test=test)
+            # Проверяем, что пользователь является студентом, если нет - просто возвращаем информацию о тесте
+        if user.groups.filter(group__name="Student", school=school_id).exists():
+            # Создаем или получаем UserTest, если студент еще не проходил тест
+            user_test, created = UserTest.objects.get_or_create(
+                user=user, test=test, success_percent=0
+            )
 
-        # Если тест с таймером и начало еще не зафиксировано, фиксируем его
-        if test.has_timer and not user_test.start_time:
-            user_test.start_test()  # Запуск таймера, сохраняет start_time
+            # Если тест с таймером и начало еще не зафиксировано, фиксируем его
+            if test.has_timer and not user_test.start_time:
+                user_test.start_test()  # Запуск таймера, сохраняет start_time
 
+            # Сериализуем и возвращаем информацию о тесте
         serializer = self.get_serializer(test)
         return Response(serializer.data)
 
