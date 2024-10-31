@@ -6,14 +6,13 @@ from common_services.selectel_client import UploadToS3
 from courses.models import (
     Answer,
     BaseLesson,
+    Course,
     Question,
     RandomTestTests,
     Section,
     SectionTest,
     StudentsGroup,
     UserTest,
-    Course,
-    SectionTest
 )
 from courses.serializers import (
     QuestionListGetSerializer,
@@ -22,6 +21,7 @@ from courses.serializers import (
 )
 from courses.services import LessonProgressMixin
 from django.db.models import Prefetch
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -63,9 +63,12 @@ class TestViewSet(
             "get_questions",
         ]:
             # Разрешения для просмотра тестов (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -78,9 +81,33 @@ class TestViewSet(
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
+    def retrieve(self, request, *args, **kwargs):
+        # Получаем тест
+        test = self.get_object()
+        user = request.user
+
+        # Проверяем, существует ли уже запись UserTest для данного пользователя и теста
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
+            return Response(
+                {
+                    "status": "Error",
+                    "message": "Этот тест уже пройден пользователем",
+                },
+            )
+        user_test, created = UserTest.objects.get_or_create(user=user, test=test)
+
+        # Если тест с таймером и начало еще не зафиксировано, фиксируем его
+        if test.has_timer and not user_test.start_time:
+            user_test.start_test()  # Запуск таймера, сохраняет start_time
+
+        serializer = self.get_serializer(test)
+        return Response(serializer.data)
+
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return SectionTest.objects.none()  # Возвращаем пустой queryset при генерации схемы
+            return (
+                SectionTest.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
 
         user = self.request.user
         school_name = self.kwargs.get("school_name")
@@ -88,20 +115,26 @@ class TestViewSet(
         try:
             school_id = School.objects.get(name=school_name).school_id
         except School.DoesNotExist:
-            return Response({"error": "School not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "School not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        course_id = self.request.GET.get('courseId')
+        course_id = self.request.GET.get("courseId")
 
         if course_id:
             try:
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    original_course = Course.objects.get(name=course.name, is_copy=False)
+                    original_course = Course.objects.get(
+                        name=course.name, is_copy=False
+                    )
                     return SectionTest.objects.filter(section__course=original_course)
                 else:
                     return SectionTest.objects.filter(section__course=course)
             except Course.DoesNotExist:
-                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                )
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return SectionTest.objects.filter(section__course__school__name=school_name)
@@ -183,6 +216,72 @@ class TestViewSet(
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=["get"], url_path="check-timer")
+    def check_timer(self, request, *args, **kwargs):
+        """
+        Проверяет, не истекло ли время прохождения теста.
+        """
+        user = request.user
+        test_id = kwargs.get("pk")
+
+        try:
+            # Получаем тест и последний `UserTest` для данного пользователя
+            test = SectionTest.objects.get(pk=test_id)
+            user_test = (
+                UserTest.objects.filter(user=user, test=test)
+                .order_by("-created_at")
+                .first()
+            )
+
+            # Проверяем, задан ли лимит времени для теста
+            if not test.time_limit:
+                return Response(
+                    {"status": "No Timer", "message": "Этот тест без таймера"},
+                    status=status.HTTP_200_OK,
+                )
+
+            # Проверяем, был ли таймер запущен
+            if not user_test or not user_test.start_time:
+                return Response(
+                    {
+                        "status": "Error",
+                        "message": "Таймер не был запущен или тест не начат",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Проверяем оставшееся время
+            elapsed_time = timezone.now() - user_test.start_time
+            if elapsed_time >= test.time_limit:
+                return Response(
+                    {
+                        "status": "Time Expired",
+                        "message": "Время прохождения теста истекло",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Вычисляем и возвращаем оставшееся время
+            remaining_time = test.time_limit - elapsed_time
+            return Response(
+                {
+                    "status": "Time Remaining",
+                    "remaining_time": remaining_time.total_seconds(),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except SectionTest.DoesNotExist:
+            return Response(
+                {"status": "Error", "message": "Тест не найден"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except UserTest.DoesNotExist:
+            return Response(
+                {"status": "Error", "message": "Не найдено начало теста"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk, *args, **kwargs):
         queryset = self.get_queryset()
@@ -243,6 +342,8 @@ class TestViewSet(
             "random_questions": test_obj["random_questions"],
             "random_answers": test_obj["random_answers"],
             "points": test_obj["points"],
+            "has_timer": test_obj["has_timer"],
+            "time_limit": test_obj["time_limit"],
             "show_right_answers": test_obj["show_right_answers"],
             "attempt_limit": test_obj["attempt_limit"],
             "attempt_count": test_obj["attempt_count"],

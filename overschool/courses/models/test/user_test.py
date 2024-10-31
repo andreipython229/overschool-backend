@@ -1,6 +1,7 @@
 from common_services.mixins import TimeStampMixin
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from .section_test import SectionTest
 
@@ -40,7 +41,26 @@ class UserTest(TimeStampMixin, models.Model):
         verbose_name="Статус",
         help_text="Статус, отображающий пройден ли тест учеником",
     )
+    start_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Время начала теста",
+        help_text="Время, когда пользователь начал проходить тест",
+    )
 
     class Meta:
         verbose_name = "Сданный тест"
         verbose_name_plural = "Сданные тесты"
+
+    def start_test(self):
+        """Метод для установки времени начала теста"""
+        if not self.start_time:
+            self.start_time = timezone.now()
+            self.save()
+
+    def has_time_left(self):
+        """Проверяет, осталось ли у пользователя время на тест"""
+        if self.test.has_timer and self.start_time:
+            time_elapsed = timezone.now() - self.start_time
+            return time_elapsed <= self.test.time_limit
+        return True  # Если таймера нет, всегда возвращает True

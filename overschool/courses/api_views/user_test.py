@@ -29,9 +29,12 @@ class UserTestViewSet(
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(
-            group__name__in=["Student", "Admin"], school=school_id
-        ).exists() or user.email == "student@coursehub.ru":
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Admin"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -73,20 +76,44 @@ class UserTestViewSet(
                 },
             )
 
-        serializer = self.serializer_class(data=request.data)
+        # Находим самый последний (по created_at) объект UserTest для данного пользователя и теста
+        user_test = (
+            UserTest.objects.filter(user=user, test=test)
+            .order_by("-created_at")
+            .first()
+        )
 
-        if serializer.is_valid():
+        # Если объект UserTest найден, обновляем его статус
+        if user_test:
             test_status = (
                 True
                 if int(request.data.get("success_percent")) >= test.success_percent
                 else False
             )
-            serializer.save(user=user, status=test_status)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            user_test.status = test_status
+            user_test.success_percent = request.data.get("success_percent")
+            user_test.save()
 
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+            # Возвращаем обновленный объект UserTest
+            serializer = self.serializer_class(user_test)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            # Если объект UserTest не найден, возвращаем ошибку
+        else:
+            serializer = self.serializer_class(data=request.data)
+
+            if serializer.is_valid():
+                test_status = (
+                    True
+                    if int(request.data.get("success_percent")) >= test.success_percent
+                    else False
+                )
+                serializer.save(user=user, status=test_status)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def update(self, request, *args, **kwargs):
         user = self.request.user

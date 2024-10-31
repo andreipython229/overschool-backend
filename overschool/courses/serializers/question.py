@@ -42,7 +42,14 @@ class QuestionListGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ("question_id", "question_type", "body", "picture", "answers")
+        fields = (
+            "question_id",
+            "question_type",
+            "multiple_answer",
+            "body",
+            "picture",
+            "answers",
+        )
 
     def get_picture(self, obj):
         return s3.get_link(obj.picture.name) if obj.picture else None

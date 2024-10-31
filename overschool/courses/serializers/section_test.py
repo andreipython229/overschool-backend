@@ -40,6 +40,8 @@ class TestSerializer(serializers.ModelSerializer):
             "attempt_count",
             "points_per_answer",
             "points",
+            "has_timer",
+            "time_limit",
             "order",
             "author_id",
             "type",
