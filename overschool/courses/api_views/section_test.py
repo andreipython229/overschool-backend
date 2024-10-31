@@ -61,6 +61,7 @@ class TestViewSet(
             "list",
             "retrieve",
             "get_questions",
+            "check_timer",
         ]:
             # Разрешения для просмотра тестов (любой пользователь школы)
             if (
