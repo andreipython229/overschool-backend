@@ -53,12 +53,6 @@ class SendPasswordSerializer(serializers.Serializer):
     last_name = serializers.CharField(required=False)
     patronymic = serializers.CharField(required=False)
 
-    def validate(self, attrs):
-        email = attrs.get("email")
-        if email and User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError("Email already exists.")
-        return attrs
-
 
 class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
     serializer_class = SendPasswordSerializer
