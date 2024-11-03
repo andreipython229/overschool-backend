@@ -8,6 +8,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
+    BaseLessonBlock,
     Course,
     CourseCopy,
     Folder,
@@ -1123,6 +1124,15 @@ class CourseViewSet(
                         ).exists()
                     if obj in c:
                         sended = UserTest.objects.filter(test=obj, user=user).exists()
+                    # Получаем все блоки урока, чтобы найти блоки с видео
+                    video_blocks = BaseLessonBlock.objects.filter(
+                        base_lesson=obj.baselesson_ptr_id, type="video"
+                    )
+                    video_screenshot = None
+                    if video_blocks.exists():
+                        # Берем скриншот из первого блока видео
+                        video_screenshot = video_blocks.first().video_screenshot
+
                     dict_obj = model_to_dict(obj)
                     result_data["sections"][index]["lessons"].append(
                         {
@@ -1140,6 +1150,7 @@ class CourseViewSet(
                             "completed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, completed=True
                             ).exists(),
+                            "video_screenshot": video_screenshot,
                         }
                     )
 
