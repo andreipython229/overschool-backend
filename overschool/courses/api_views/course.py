@@ -201,8 +201,9 @@ class CourseViewSet(
         school_obj = School.objects.get(name=school_name)
         school_id = school_obj.school_id
         school = self.request.data.get("school")
+        school_body_id = School.objects.get(name=school).school_id
 
-        if int(school) != school_id:
+        if school_body_id != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
@@ -219,7 +220,7 @@ class CourseViewSet(
 
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save(photo=None)
+        course = serializer.save(school=school_obj, photo=None)
 
         if request.FILES.get("photo"):
             photo = s3.upload_course_image(request.FILES["photo"], course)

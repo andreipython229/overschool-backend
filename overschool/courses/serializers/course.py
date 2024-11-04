@@ -43,7 +43,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "is_access",
             "course_removed",
         ]
-        read_only_fields = ["order"]
+        read_only_fields = ["order", "school"]
 
 
 class CourseGetSerializer(serializers.ModelSerializer):
