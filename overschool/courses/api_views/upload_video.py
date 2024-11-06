@@ -66,12 +66,18 @@ class UploadVideoViewSet(
         video = request.FILES.get("video")
         picture = request.FILES.get("picture")
         if video:
+            # Читаем содержимое файла один раз
+            video_content = request.FILES["video"].read()
+            # Возвращаем указатель в начало файла
+            request.FILES["video"].seek(0)
+
+            # Удаляем старое видео если есть
             if instance.video:
                 s3.delete_file(str(instance.video))
 
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
-            video_content = request.FILES["video"].read()
 
+            # Загружаем оригинальный файл в S3
             serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
@@ -84,9 +90,7 @@ class UploadVideoViewSet(
                 video_capture = cv2.VideoCapture(temp_file_path)
                 if video_capture.isOpened():
                     fps = video_capture.get(cv2.CAP_PROP_FPS)
-                    video_capture.set(
-                        cv2.CAP_PROP_POS_FRAMES, fps * 1
-                    )  # берем кадр с 1-й секунды
+                    video_capture.set(cv2.CAP_PROP_POS_FRAMES, fps * 1)
                     ret, frame = video_capture.read()
 
                     if ret:
