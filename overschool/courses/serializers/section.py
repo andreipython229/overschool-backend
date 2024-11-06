@@ -37,6 +37,8 @@ class TestSectionSerializer(serializers.ModelSerializer):
             "attempt_count",
             "points_per_answer",
             "points",
+            "points",
+            "has_timer",
             "order",
             "author_id",
             "type",

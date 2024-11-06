@@ -48,6 +48,11 @@ class Question(TimeStampMixin, CloneMixin, models.Model):
         validators=[limit_image_size],
         upload_to=TruncateFileName(300),
     )
+    multiple_answer = models.BooleanField(
+        default=False,
+        verbose_name="Множественный ответ",
+        help_text="Характерно для вопросов с множественным выбором ответов (TEXTPIC, TEXTPICS)",
+    )
     is_any_answer_correct = models.BooleanField(
         default=False,
         verbose_name="Любой ответ - правильный",

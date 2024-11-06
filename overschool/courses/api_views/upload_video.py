@@ -1,8 +1,9 @@
 import base64
+import io
 import os
-from io import BytesIO
+from tempfile import NamedTemporaryFile
 
-import ffmpeg
+import cv2
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
@@ -67,31 +68,45 @@ class UploadVideoViewSet(
         if video:
             if instance.video:
                 s3.delete_file(str(instance.video))
+
             base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            video_content = request.FILES["video"].read()
+
             serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
-            # Извлечение первого кадра
-            temp_file_path = "/tmp/temp_screenshot.jpg"
-            (
-                ffmpeg.input(video.temporary_file_path(), ss=1)
-                .output(temp_file_path, vframes=1)
-                .run()
-            )
 
-            # Открытие изображения и кодирование в base64
-            with open(temp_file_path, "rb") as f:
-                screenshot_image = Image.open(f)
-                buffered = BytesIO()
-                screenshot_image.save(buffered, format="JPEG")
-                encoded_screenshot = base64.b64encode(buffered.getvalue()).decode(
-                    "utf-8"
-                )
+            try:
+                with NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
+                    temp_file.write(video_content)
+                    temp_file_path = temp_file.name
 
-            # Сохранение скриншота в поле
-            serializer.validated_data["video_screenshot"] = encoded_screenshot
-            # Удаление временного файла
-            os.remove(temp_file_path)
+                video_capture = cv2.VideoCapture(temp_file_path)
+                if video_capture.isOpened():
+                    fps = video_capture.get(cv2.CAP_PROP_FPS)
+                    video_capture.set(
+                        cv2.CAP_PROP_POS_FRAMES, fps * 1
+                    )  # берем кадр с 1-й секунды
+                    ret, frame = video_capture.read()
+
+                    if ret:
+                        screenshot_image = Image.fromarray(
+                            cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        )
+                        buffered = io.BytesIO()
+                        screenshot_image.save(buffered, format="JPEG", quality=85)
+                        encoded_screenshot = base64.b64encode(
+                            buffered.getvalue()
+                        ).decode("utf-8")
+                        serializer.validated_data[
+                            "video_screenshot"
+                        ] = encoded_screenshot
+
+            finally:
+                if "video_capture" in locals() and video_capture.isOpened():
+                    video_capture.release()
+                if temp_file_path and os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
         if picture:
             if instance.picture:
                 s3.delete_file(str(instance.picture))
