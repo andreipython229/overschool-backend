@@ -2,13 +2,13 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import (
     BaseLesson,
+    Course,
+    CourseCopy,
     Lesson,
     LessonAvailability,
     LessonEnrollment,
     Section,
     StudentsGroup,
-    Course,
-    CourseCopy
 )
 from courses.serializers import (
     LessonAvailabilitySerializer,
@@ -247,7 +247,9 @@ class LessonViewSet(
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return Lesson.objects.none()  # Возвращаем пустой queryset при генерации схемы
+            return (
+                Lesson.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
 
         user = self.request.user
         school_name = self.kwargs.get("school_name")
@@ -255,21 +257,29 @@ class LessonViewSet(
         try:
             school_id = School.objects.get(name=school_name).school_id
         except School.DoesNotExist:
-            return Response({"error": "School not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "School not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        course_id = self.request.GET.get('courseId')
+        course_id = self.request.GET.get("courseId")
 
         if course_id:
             try:
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
-                    original_course = Course.objects.get(course_id=original_course_id.course_id)
+                    original_course_id = CourseCopy.objects.get(
+                        course_copy_id=course.course_id
+                    )
+                    original_course = Course.objects.get(
+                        course_id=original_course_id.course_id
+                    )
                     return Lesson.objects.filter(section__course=original_course)
                 else:
                     return Lesson.objects.filter(section__course=course)
             except Course.DoesNotExist:
-                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                )
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Lesson.objects.filter(section__course__school__name=school_name)
@@ -396,7 +406,6 @@ class LessonUpdateViewSet(
         serializer = LessonUpdateSerializer(data=data, many=True)
 
         if serializer.is_valid():
-            BaseLesson.disable_constraint("unique_section_lesson_order")
             for lesson_data in serializer.validated_data:
                 baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
                 new_order = lesson_data["order"]
@@ -407,10 +416,7 @@ class LessonUpdateViewSet(
                     lesson.order = new_order
                     lesson.save()
                 except Exception as e:
-                    BaseLesson.enable_constraint()
                     return Response(str(e), status=500)
-
-            BaseLesson.enable_constraint()
             return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
 
         else:
