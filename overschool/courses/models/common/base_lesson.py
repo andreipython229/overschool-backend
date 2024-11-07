@@ -68,68 +68,10 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
                 self.section_id = baselesson.section.pk
         super().save(*args, **kwargs)
 
-    @classmethod
-    def disable_constraint(cls, constraint_name):
-        """
-        Метод для отключения ограничения базы данных.
-
-        Args:
-            constraint_name (str): Название ограничения для отключения.
-
-        Returns:
-            bool: True, если ограничение успешно отключено, иначе False.
-        """
-        try:
-            with connection.cursor() as cursor:
-                # Проверяем наличие ограничения
-                cursor.execute(
-                    f"SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = %s AND constraint_name = %s;",
-                    (cls._meta.db_table, constraint_name),
-                )
-                if cursor.fetchone():
-                    # Ограничение существует, отключаем его
-                    cursor.execute(
-                        f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
-                    )
-                    return True
-                else:
-                    # Ограничение не существует
-                    return False
-        except Exception as e:
-            # Обработка ошибок
-            print(f"Error: {e}")
-            return False
-
-    @classmethod
-    def enable_constraint(cls):
-        """
-        Метод для включения ограничения базы данных.
-
-        Args:
-            constraint_name (str): Название ограничения для включения.
-
-        Returns:
-            bool: True, если ограничение успешно включено, иначе False.
-        """
-
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    'ALTER TABLE courses_baselesson ADD CONSTRAINT unique_section_lesson_order UNIQUE (section_id, "order");'
-                )
-            return True
-        except Exception as e:
-            return False
-
     class Meta:
         indexes = [
             models.Index(fields=["section"]),
             models.Index(fields=["name"]),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["section", "order"], name="unique_section_lesson_order"
-            ),
         ]
 
 

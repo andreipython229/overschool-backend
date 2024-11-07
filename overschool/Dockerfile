@@ -10,13 +10,12 @@ WORKDIR /code
 # Копируем все файлы в контейнер
 COPY . .
 
-# Обновляем apt и устанавливаем ffmpeg
-RUN set -x \
-    && apt-get -y update \
-    && apt-get -y upgrade \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Обновляем apt и устанавливаем необходимые зависимости
+RUN apt-get -y update && \
+    apt-get -y upgrade && \
+    apt-get install -y --no-install-recommends libgl1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Обновляем pip и устанавливаем зависимости из requirements.txt
 RUN python -m pip install --upgrade pip
