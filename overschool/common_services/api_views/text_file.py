@@ -3,7 +3,7 @@ from common_services.models import TextFile
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import TextFileCheckSerializer, TextFileSerializer
 from common_services.services.request_params import FileParams
-from courses.models import BaseLesson, UserHomework, Course
+from courses.models import BaseLesson, Course, UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
@@ -41,7 +41,11 @@ class TextFileViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(
             group__name__in=["Student", "Teacher", "Admin"], school=school_id
-        ).exists() or user.email in ["admin@coursehub.ru", "teacher@coursehub.ru", "student@coursehub.ru"]:
+        ).exists() or user.email in [
+            "admin@coursehub.ru",
+            "teacher@coursehub.ru",
+            "student@coursehub.ru",
+        ]:
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -80,7 +84,7 @@ class TextFileViewSet(
         user_homework_id = request.data.get("user_homework")
         course_id = request.data.get("courseId")
         user_homework_check_id = request.data.get("user_homework_check")
-        course = Course.objects.get(course_id=course_id)
+        course = Course.objects.filter(course_id=course_id).first()
 
         # Проверяем, что пользователь студент или учитель
         if user.groups.filter(
@@ -92,7 +96,7 @@ class TextFileViewSet(
                     user_homework_id=user_homework_id, user=user
                 ).first()
                 if user_homework:
-                    if course.is_copy:
+                    if course and course.is_copy:
                         user_homeworks = UserHomework.objects.filter(
                             copy_course_id=course.course_id,
                         )
@@ -144,7 +148,7 @@ class TextFileViewSet(
                 ).first()
 
                 if user_homework_check:
-                    if course.is_copy:
+                    if course and course.is_copy:
                         user_homework_checks = UserHomeworkCheck.objects.filter(
                             user_homework__copy_course_id=course.course_id,
                         )
