@@ -170,7 +170,13 @@ class CourseViewSet(
                     default=None,
                     output_field=IntegerField(),
                 ),
-                past_period=ExtractDay(Now() - Subquery(sub_history)),
+                past_period=Case(
+                    When(
+                        Exists(Subquery(sub_history)),
+                        then=ExtractDay(Now() - Subquery(sub_history)),
+                    ),
+                    default=0,
+                ),
                 remaining_period=Case(
                     When(
                         GreaterThan(F("limit"), 0)
@@ -1031,11 +1037,20 @@ class CourseViewSet(
 
                 limit = get_student_training_duration(group, user.id)[0]
                 if limit:
-                    history = StudentsHistory.objects.get(
-                        user=user,
-                        students_group=group,
-                        is_deleted=False,
+                    history = (
+                        StudentsHistory.objects.filter(
+                            user=user, students_group=group, is_deleted=False
+                        )
+                        .order_by("-date_added")
+                        .first()
                     )
+                    if not history:
+                        history = StudentsHistory.objects.create(
+                            user=user,
+                            students_group=group,
+                            is_deleted=False,
+                            date_added=timezone.now(),
+                        )
                     if history.date_added + timedelta(days=limit) < timezone.now():
                         return Response(
                             {"error": "Срок доступа к курсу истек."},
