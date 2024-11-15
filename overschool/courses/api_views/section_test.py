@@ -220,11 +220,12 @@ class TestViewSet(
                 status=400,
             )
 
-        # Создаем или получаем запись для UserTest
-        user_test, created = UserTest.objects.filter(
+        user_test = UserTest.objects.filter(
             user=user, test=test, success_percent=0
-        ).get_or_create(user=user, test=test, defaults={"success_percent": 0})
-
+        ).first()
+        if not user_test:
+            # Если записи нет, создаем новую
+            user_test = UserTest.objects.create(user=user, test=test, success_percent=0)
         # Если тест с таймером, запускаем таймер
         if test.has_timer:
             user_test.start_test()
