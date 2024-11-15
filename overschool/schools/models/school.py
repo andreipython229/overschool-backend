@@ -212,17 +212,7 @@ class School(TimeStampMixin, OrderMixin):
             models.Index(fields=["owner"]),
         ]
         constraints = [
-            models.UniqueConstraint(fields=["order"], name="unique_school_order"),
-            models.CheckConstraint(
-                check=(
-                    models.Q(tariff__isnull=False)
-                    | (
-                        models.Q(purchased_tariff_end_date__isnull=True)
-                        & models.Q(trial_end_date__isnull=True)
-                    )
-                ),
-                name="check_tariff_not_null_if_period_active",
-            ),
+            models.UniqueConstraint(fields=["order"], name="unique_school_order")
         ]
 
 
