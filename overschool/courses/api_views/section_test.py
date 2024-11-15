@@ -61,6 +61,7 @@ class TestViewSet(
             "list",
             "retrieve",
             "get_questions",
+            "start_test",
             "check_timer",
         ]:
             # Разрешения для просмотра тестов (любой пользователь школы)
@@ -81,36 +82,6 @@ class TestViewSet(
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-
-    def retrieve(self, request, *args, **kwargs):
-        # Получаем тест
-        test = self.get_object()
-        user = request.user
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
-
-        # Проверяем, существует ли уже запись UserTest для данного пользователя и теста
-        if UserTest.objects.filter(user=user, test=test, status=True).exists():
-            return Response(
-                {
-                    "status": "Error",
-                    "message": "Этот тест уже пройден пользователем",
-                },
-            )
-            # Проверяем, что пользователь является студентом, если нет - просто возвращаем информацию о тесте
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            # Создаем или получаем UserTest, если студент еще не проходил тест
-            user_test, created = UserTest.objects.get_or_create(
-                user=user, test=test, success_percent=0
-            )
-
-            # Если тест с таймером и начало еще не зафиксировано, фиксируем его
-            if test.has_timer and not user_test.start_time:
-                user_test.start_test()  # Запуск таймера, сохраняет start_time
-
-            # Сериализуем и возвращаем информацию о тесте
-        serializer = self.get_serializer(test)
-        return Response(serializer.data)
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -224,6 +195,48 @@ class TestViewSet(
             )
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], url_path="start-test")
+    def start_test(self, request, *args, **kwargs):
+        """
+        Запускает тест для студента.
+        """
+        test = self.get_object()
+        user = request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        # Проверяем, что пользователь является студентом
+        if not user.groups.filter(group__name="Student", school=school_id).exists():
+            return Response(
+                {"status": "Error", "message": "Только студенты могут начинать тест"},
+                status=403,
+            )
+
+        # Проверяем, если тест уже пройден
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
+            return Response(
+                {"status": "Error", "message": "Этот тест уже пройден пользователем"},
+                status=400,
+            )
+
+        # Создаем или получаем запись для UserTest
+        user_test, created = UserTest.objects.filter(
+            user=user, test=test, success_percent=0
+        ).get_or_create(user=user, test=test, defaults={"success_percent": 0})
+
+        # Если тест с таймером, запускаем таймер
+        if test.has_timer:
+            user_test.start_test()
+
+        return Response(
+            {
+                "status": "Success",
+                "message": "Тест успешно начат",
+                "user_test_id": user_test.user_test_id,
+                "start_time": user_test.start_time,
+            }
+        )
 
     @action(detail=True, methods=["get"], url_path="check-timer")
     def check_timer(self, request, *args, **kwargs):
