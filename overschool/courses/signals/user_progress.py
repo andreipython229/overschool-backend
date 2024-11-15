@@ -49,7 +49,7 @@ def update_progress(sender, instance, **kwargs):
                 course_id=course_id,
                 defaults={"progress": progress},
             )
-            cache.set(cache_key, timeout=180)  # Устанавливаем таймаут на 3 минут
+            cache.set(cache_key, now, timeout=180)  # Устанавливаем таймаут на 3 минут
     else:
         pass
 
