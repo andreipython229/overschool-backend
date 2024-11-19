@@ -148,9 +148,9 @@ class CourseViewSet(
             return admin_queryset | test_course
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
-            sub_history = StudentsHistory.objects.filter(
-                students_group=OuterRef("group_id"), user=user, is_deleted=False
-            ).values("date_added")[:1]
+            sub_history = TrainingDuration.objects.filter(
+                students_group=OuterRef("group_id"), user=user
+            ).values("created_at")[:1]
             sub_duration = TrainingDuration.objects.filter(
                 students_group=OuterRef("group_id"), user=user
             ).values("limit")[:1]
@@ -1051,7 +1051,13 @@ class CourseViewSet(
                             is_deleted=False,
                             date_added=timezone.now(),
                         )
-                    if history.date_added + timedelta(days=limit) < timezone.now():
+                    training_duration = TrainingDuration.objects.filter(
+                        user=user, students_group=group
+                    ).first()
+                    if (
+                        training_duration.created_at + timedelta(days=limit)
+                        < timezone.now()
+                    ):
                         return Response(
                             {"error": "Срок доступа к курсу истек."},
                             status=status.HTTP_403_FORBIDDEN,

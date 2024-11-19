@@ -133,6 +133,21 @@ class TestViewSet(
 
         return SectionTest.objects.none()
 
+    def retrieve(self, request, *args, **kwargs):
+        # Получаем тест
+        test = self.get_object()
+        user = request.user
+        # Проверяем, существует ли уже запись UserTest для данного пользователя и теста
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
+            return Response(
+                {
+                    "status": "Error",
+                    "message": "Этот тест уже пройден пользователем",
+                },
+            )
+        serializer = self.get_serializer(test)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         section = self.request.data.get("section")

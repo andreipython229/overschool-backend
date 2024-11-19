@@ -1,10 +1,11 @@
+from common_services.mixins import TimeStampMixin
 from django.db import models
 from users.models.user import User
 
 from .students_group import StudentsGroup
 
 
-class TrainingDuration(models.Model):
+class TrainingDuration(TimeStampMixin, models.Model):
     """
     Модель продолжительности обучения студентов в группах
     """
