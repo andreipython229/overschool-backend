@@ -10,6 +10,8 @@ from courses.models import (
     StudentsGroup,
     StudentsHistory,
     TrainingDuration,
+    UserHomework,
+    UserHomeworkCheck,
 )
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -136,6 +138,34 @@ class AccessDistributionView(
         for student_group in student_groups:
             user.students_group_fk.add(student_group)
             StudentsHistory.objects.create(user=user, students_group=student_group)
+
+            # Обработка существующих домашних работ
+            if student_group.teacher_id:  # Проверяем, есть ли учитель в группе
+                existing_homeworks = UserHomework.objects.filter(
+                    user=user, homework__section__course=student_group.course_id
+                ).prefetch_related("user_homework_checks")
+
+                if existing_homeworks.exists():
+                    # Обновляем учителя в домашних работах
+                    for homework in existing_homeworks:
+                        homework.teacher = student_group.teacher_id
+                    UserHomework.objects.bulk_update(existing_homeworks, ["teacher"])
+
+                    # Собираем все проверки домашних работ
+                    homework_checks = []
+                    for homework in existing_homeworks:
+                        homework_checks.extend(
+                            homework_check
+                            for homework_check in homework.user_homework_checks.all()
+                        )
+
+                    # Обновляем автора в проверках домашних работ
+                    if homework_checks:
+                        for check in homework_checks:
+                            check.author = student_group.teacher_id
+                        UserHomeworkCheck.objects.bulk_update(
+                            homework_checks, ["author"]
+                        )
 
             unavailable_lessons = list(
                 LessonEnrollment.objects.filter(student_group=student_group).values(

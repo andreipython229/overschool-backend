@@ -217,6 +217,15 @@ class StudentsGroupViewSet(
         # Получите текущую группу перед сохранением изменений
         current_group = self.get_object()
 
+        # Проверяем существование чата
+        if not hasattr(current_group, "chat") or not current_group.chat:
+            chat_name = name if name else current_group.name
+            chat = Chat.objects.create(name=chat_name, type="GROUP")
+            current_group.chat = chat
+            current_group.save()
+        else:
+            chat = current_group.chat
+
         certificate = self.request.data.get("certificate")
         if certificate is not None:
             current_group.certificate = certificate
@@ -241,7 +250,6 @@ class StudentsGroupViewSet(
         serializer.save()
 
         # обновляем чат с участниками группы
-        chat = current_group.chat
         previous_teacher = current_group.teacher_id
 
         if name and current_group.name != name:
@@ -257,11 +265,12 @@ class StudentsGroupViewSet(
             or type
             and type == "WITHOUT_TEACHER"
         ):
-            previous_chat = UserChat.objects.filter(
-                user=previous_teacher, chat=chat
-            ).first()
-            if previous_chat:
-                previous_chat.delete()
+            if previous_teacher:
+                previous_chat = UserChat.objects.filter(
+                    user=previous_teacher, chat=chat
+                ).first()
+                if previous_chat:
+                    previous_chat.delete()
 
             # Обновляем teacher в UserHomework и UserHomeworkCheck только для текущей группы
             user_homeworks = UserHomework.objects.filter(
@@ -274,21 +283,21 @@ class StudentsGroupViewSet(
                 new_teacher = None
             else:
                 new_teacher = teacher
+            if user_homeworks.exists():
+                for user_homework in user_homeworks:
+                    user_homework.teacher = new_teacher
+                UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
 
-            for user_homework in user_homeworks:
-                user_homework.teacher = new_teacher
-            UserHomework.objects.bulk_update(user_homeworks, ["teacher"])
-
-            user_homework_checks = []
-            for user_homework in user_homeworks:
-                user_homework_checks.extend(
-                    user_homework_check
-                    for user_homework_check in user_homework.user_homework_checks.all()
-                    if user_homework_check.author == previous_teacher
-                )
-            for user_homework_check in user_homework_checks:
-                user_homework_check.author = new_teacher
-            UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
+                user_homework_checks = []
+                for user_homework in user_homeworks:
+                    user_homework_checks.extend(
+                        user_homework_check
+                        for user_homework_check in user_homework.user_homework_checks.all()
+                        if user_homework_check.author == previous_teacher
+                    )
+                for user_homework_check in user_homework_checks:
+                    user_homework_check.author = new_teacher
+                UserHomeworkCheck.objects.bulk_update(user_homework_checks, ["author"])
 
         for student in students:
             if not UserChat.objects.filter(user=student, chat=chat).exists():
