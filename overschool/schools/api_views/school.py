@@ -12,6 +12,7 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    TrainingDuration,
     UserHomework,
     UserProgressLogs,
 )
@@ -250,7 +251,44 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         student_data = []
 
         for group in student_groups:
-            group_data = {"group_id": group.group_id, "sections": []}
+            # Получаем информацию о длительности обучения
+            sub_history = (
+                TrainingDuration.objects.filter(
+                    students_group=group.group_id, user=student_id
+                )
+                .values("created_at")
+                .first()
+            )
+
+            sub_duration = (
+                TrainingDuration.objects.filter(
+                    students_group=group.group_id, user=student_id
+                )
+                .values("limit")
+                .first()
+            )
+
+            # Рассчитываем оставшееся время
+            remaining_period = None
+            if sub_duration and sub_duration["limit"]:
+                limit = sub_duration["limit"]
+                past_period = 0
+                if sub_history:
+                    past_period = (timezone.now() - sub_history["created_at"]).days
+
+                if limit > past_period:
+                    remaining_period = limit - past_period
+                elif limit > 0:
+                    remaining_period = 0
+            elif group.training_duration > 0:
+                remaining_period = group.training_duration
+
+            # Создаем словарь с данными группы, включая оставшееся время
+            group_data = {
+                "group_id": group.group_id,
+                "remaining_period": remaining_period,
+                "sections": [],
+            }
 
             course = group.course_id
             sections = Section.objects.filter(course=course)

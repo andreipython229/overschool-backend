@@ -29,9 +29,12 @@ class TrainingDurationViewSet(
         if user.groups.filter(group__name="Admin", school=school).exists():
             return permissions
         if self.action in ["list", "retrieve"]:
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -86,7 +89,7 @@ class TrainingDurationViewSet(
         if training_duration:
             limit = serializer.validated_data.get("limit")
             if limit is not None:
-                training_duration.limit = limit
+                training_duration.limit += limit
             if request.data.get("download") is not None:
                 training_duration.download = serializer.validated_data.get("download")
             training_duration.save()

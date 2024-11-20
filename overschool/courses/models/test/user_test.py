@@ -53,10 +53,9 @@ class UserTest(TimeStampMixin, models.Model):
         verbose_name_plural = "Сданные тесты"
 
     def start_test(self):
-        """Метод для установки времени начала теста"""
-        if not self.start_time:
-            self.start_time = timezone.now()
-            self.save()
+        """Метод для установки или сброса времени начала теста"""
+        self.start_time = timezone.now()
+        self.save()
 
     def has_time_left(self):
         """Проверяет, осталось ли у пользователя время на тест"""
