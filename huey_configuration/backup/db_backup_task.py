@@ -24,7 +24,7 @@ def backup_db():
     run_pg_dump(db, backup_path)
 
     # Perform compression and upload of the backup file
-    compress_and_upload_backup(backup_path, db, 30)
+    compress_and_upload_backup(backup_path, db, 10)
 
 
 @huey.periodic_task(
@@ -44,4 +44,4 @@ def weekly_backup():
     run_pg_dump(db, backup_path)
 
     # Выполняем сжатие и загрузку файла резервной копии
-    compress_and_upload_backup(backup_path, f"weekly_{db}", 52)
+    compress_and_upload_backup(backup_path, f"weekly_{db}", 8)
