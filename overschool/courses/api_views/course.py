@@ -9,6 +9,7 @@ from common_services.selectel_client import UploadToS3
 from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
     BaseLessonBlock,
+    BlockType,
     Course,
     CourseCopy,
     Folder,
@@ -141,7 +142,13 @@ class CourseViewSet(
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             # Основной queryset для админов
             admin_queryset = Course.objects.filter(school__name=school_name).annotate(
-                baselessons_count=Count("sections__lessons")
+                baselessons_count=Count("sections__lessons"),
+                homework_count=Count("sections__lessons__homeworks"),
+                test_count=Count("sections__lessons__tests"),
+                video_count=Count(
+                    "sections__lessons__blocks",
+                    filter=Q(sections__lessons__blocks__type=BlockType.VIDEO),
+                ),
             )
             # Тестовый курс для всех админов, который нужно добавить
             test_course = Course.objects.filter(course_id=247)
