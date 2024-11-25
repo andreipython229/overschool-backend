@@ -142,13 +142,15 @@ class CourseViewSet(
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             # Основной queryset для админов
             admin_queryset = Course.objects.filter(school__name=school_name).annotate(
-                baselessons_count=Count("sections__lessons"),
-                homework_count=Count("sections__lessons__homeworks"),
-                test_count=Count("sections__lessons__tests"),
+                baselessons_count=Count("sections__lessons", distinct=True),
+                homework_count=Count("sections__lessons__homeworks", distinct=True),
+                test_count=Count("sections__lessons__tests", distinct=True),
                 video_count=Count(
                     "sections__lessons__blocks",
                     filter=Q(sections__lessons__blocks__type=BlockType.VIDEO),
+                    distinct=True,
                 ),
+                students_count=Count("group_course_fk__students", distinct=True),
             )
             # Тестовый курс для всех админов, который нужно добавить
             test_course = Course.objects.filter(course_id=247)

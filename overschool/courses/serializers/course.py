@@ -57,6 +57,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
     homework_count = serializers.IntegerField(required=False)
     test_count = serializers.IntegerField(required=False)
     video_count = serializers.IntegerField(required=False)
+    students_count = serializers.IntegerField(required=False)
     # Поля для информации ученикам о продолжительности их обучения
     limit = serializers.IntegerField(required=False)
     remaining_period = serializers.IntegerField(required=False)
@@ -83,6 +84,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "homework_count",
             "test_count",
             "video_count",
+            "students_count",
             "limit",
             "remaining_period",
             "certificate",
