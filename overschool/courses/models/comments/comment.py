@@ -37,6 +37,15 @@ class Comment(models.Model):
         verbose_name="Опубликован ли комментарий",
         help_text="Опубликован ли комментарий",
     )
+    parent_comment = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="replies",
+        null=True,
+        blank=True,
+        verbose_name="Родительский комментарий",
+        help_text="Комментарий, на который дается ответ",
+    )
     copy_course_id = models.ForeignKey(
         Course,
         on_delete=models.CASCADE,

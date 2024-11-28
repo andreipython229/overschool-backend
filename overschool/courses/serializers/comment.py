@@ -17,6 +17,7 @@ class CommentSerializer(serializers.ModelSerializer):
         source="author.last_name", read_only=True
     )  # Добавляем поле для фамилии автора
     avatar = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -31,6 +32,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_at",
             "public",
             "copy_course_id",
+            "replies",
         )
         read_only_fields = (
             "lesson",
@@ -39,6 +41,10 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_at",
             "copy_course_id",
         )
+
+    def get_replies(self, obj):
+        replies = obj.replies.all()
+        return self.__class__(replies, many=True).data
 
     def get_author_name(self, obj):
         user = self.context.get("user")
