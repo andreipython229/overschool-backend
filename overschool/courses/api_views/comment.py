@@ -2,6 +2,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from courses.models.common.base_lesson import BaseLesson
 from courses.models.courses.course import Course
 from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from schools.models import School
@@ -190,3 +191,61 @@ class CommentViewSet(
                 return Response(
                     {"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND
                 )
+
+    @action(detail=False, methods=["POST"])
+    def admin_reply_to_comment(self, request, *args, **kwargs):
+        """
+        Метод для ответа администратора на комментарий.
+        Администратор может ответить только один раз на каждый комментарий.
+        """
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+        user = request.user
+
+        # Проверяем, что пользователь - администратор
+        if not user.groups.filter(group__name="Admin", school=school_id).exists():
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+        comment_id = request.data.get("comment_id")
+        content = request.data.get("content")
+
+        if not comment_id or not content:
+            return Response(
+                {
+                    "error": "Необходимо указать идентификатор комментария и текст ответа"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            original_comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response(
+                {"error": "Комментарий не найден"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Проверяем, что администратор еще не отвечал на этот комментарий
+        existing_admin_reply = Comment.objects.filter(
+            parent_comment=original_comment,
+        ).exists()
+
+        if existing_admin_reply:
+            return Response(
+                {"error": "Вы уже отвечали на этот комментарий"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Создаем ответ администратора
+        admin_reply = Comment.objects.create(
+            lesson=original_comment.lesson,
+            author=user,
+            content=content,
+            parent_comment=original_comment,
+            public=True,  # Ответы администратора всегда публичны
+            copy_course_id=original_comment.copy_course_id,
+        )
+
+        return Response(
+            {"message": "Ответ администратора успешно добавлен"},
+            status=status.HTTP_201_CREATED,
+        )
