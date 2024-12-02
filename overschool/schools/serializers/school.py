@@ -63,6 +63,12 @@ class SchoolSerializer(serializers.ModelSerializer):
             "referral_code",
             "test_course",
             "rebranding_enabled",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
         read_only_fields = [
             "order",
@@ -107,6 +113,12 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "test_course",
             "rebranding_enabled",
             "branding",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
         read_only_fields = [
             "order",
@@ -178,6 +190,12 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "unique_referral_click_count",
             "rebranding_enabled",
             "branding",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
         read_only_fields = [
             "order",
