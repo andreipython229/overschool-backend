@@ -1365,7 +1365,9 @@ class SchoolPaymentLinkViewSet(viewsets.ModelViewSet):
             invoice_no = request.data.get("invoice_no")
             instance = self.queryset.get(invoice_no=invoice_no)
             instance.delete()
-            return Response(response, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "Payment link deleted"}, status=status.HTTP_200_OK
+            )
         except SchoolExpressPayLink.DoesNotExist:
             return Response(
                 {"message": "Payment link not found"}, status=status.HTTP_404_NOT_FOUND
