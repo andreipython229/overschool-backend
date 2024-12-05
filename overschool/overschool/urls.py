@@ -31,6 +31,7 @@ from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
     EmailValidateView,
+    FeedbackViewSet,
     ForgotPasswordView,
     GetCertificateView,
     LoginView,
@@ -59,6 +60,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/feedbacks/", FeedbackViewSet.as_view(), name="feedback-list"),
     path(
         "api/<str:school_name>/all_users/",
         AllUsersViewSet.as_view(actions={"get": "list"}),

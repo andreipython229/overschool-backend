@@ -1,4 +1,5 @@
 from .access_distribution import AccessDistributionSerializer
+from .feedback import FeedbackSerializer
 from .forgot_password_serializer import (
     ForgotPasswordSerializer,
     PasswordResetSerializer,

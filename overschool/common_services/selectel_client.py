@@ -107,6 +107,13 @@ class UploadToS3:
         self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
         return file_path
 
+    def upload_avatar_feedback(self, avatar, feedback_id):
+        file_path = "users/avatars/feedback/{}@{}".format(
+            feedback_id, avatar.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
+        return file_path
+
     def upload_file(self, filename, base_lesson):
         course = base_lesson.section.course
         course_id = course.course_id
