@@ -88,8 +88,10 @@ class TrainingDurationViewSet(
 
         if training_duration:
             limit = serializer.validated_data.get("limit")
-            if limit is not None:
+            if limit is not None and limit != 0:
                 training_duration.limit += limit
+            if limit is not None and limit == 0:
+                training_duration.limit = 0
             if request.data.get("download") is not None:
                 training_duration.download = serializer.validated_data.get("download")
             training_duration.save()
