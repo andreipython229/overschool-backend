@@ -3,7 +3,7 @@ from common_services.models import TextFile
 from common_services.selectel_client import UploadToS3
 from common_services.serializers import TextFileCheckSerializer, TextFileSerializer
 from common_services.services.request_params import FileParams
-from courses.models import BaseLesson, UserHomework, Course
+from courses.models import BaseLesson, Course, UserHomework
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
@@ -17,9 +17,7 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class TextFileViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class TextFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """
     Модель добавления текстовых к занятиям\n
     <h2>/api/{school_name}/text_files/</h2>\n
@@ -41,7 +39,11 @@ class TextFileViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(
             group__name__in=["Student", "Teacher", "Admin"], school=school_id
-        ).exists() or user.email in ["admin@coursehub.ru", "teacher@coursehub.ru", "student@coursehub.ru"]:
+        ).exists() or user.email in [
+            "admin@coursehub.ru",
+            "teacher@coursehub.ru",
+            "student@coursehub.ru",
+        ]:
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")

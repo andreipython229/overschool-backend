@@ -28,7 +28,7 @@ def generate_hash_token(user):
     return token
 
 
-class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт просмотра и изменения Profile\n
     <h2>/api/profile/</h2>\n
     возвращаем только объекты пользователя, сделавшего запрос"""

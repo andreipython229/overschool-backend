@@ -22,7 +22,7 @@ s3 = UploadToS3()
     name="partial_update",
     decorator=SchoolHeaderSchemas.partial_update_schema(),
 )
-class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class SchoolHeaderViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления хедера школы.\n
     <h2>/api/{school_name}/school_header/</h2>\n
     Эндпоинт на получение, создания, изменения и удаления хедера школы
@@ -40,7 +40,10 @@ class SchoolHeaderViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSe
         if user.groups.filter(group__name="Admin").exists():
             return permissions
         if self.action in ["list", "retrieve"]:
-            if user.groups.filter(group__name__in=["Teacher", "Student"]).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

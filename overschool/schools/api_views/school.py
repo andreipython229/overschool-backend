@@ -61,7 +61,7 @@ from users.models import Profile, UserGroup, UserRole
 s3 = UploadToS3()
 
 
-class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления школ \n
     <h2>/api/{school_name}/schools/</h2>\n
     Разрешения для просмотра школ (любой пользователь)\n
@@ -1198,7 +1198,7 @@ class SchoolViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         return Response("ok")
 
 
-class TariffViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class TariffViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """
     API endpoint для тарифов.
     """
@@ -1435,7 +1435,7 @@ class SchoolStudentsTableSettingsViewSet(viewsets.ViewSet):
         return obj
 
 
-class SchoolTasksViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+class SchoolTasksViewSet(WithHeadersViewSet, SchoolMixin, APIView):
     """
     API endpoint для работы с заданиями для школы
     """

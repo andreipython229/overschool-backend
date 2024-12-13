@@ -9,7 +9,7 @@ class EmptySerializer(serializers.Serializer):
     pass
 
 
-class LogoutView(LoggingMixin, WithHeadersViewSet, View):
+class LogoutView(WithHeadersViewSet, View):
     """<h2>/api/logout/</h2>\n"""
 
     permission_classes = [permissions.AllowAny]

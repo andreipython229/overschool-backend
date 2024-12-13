@@ -1,20 +1,18 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from courses.models import BaseLesson, Course, Public, CourseLanding
+from courses.models import BaseLesson, Course, CourseLanding, Public
 from courses.paginators import StudentsPagination
+from courses.serializers import LandingGetSerializer
 from courses.serializers.course_catalog import (
     CourseCatalogDetailSerializer,
     CourseCatalogSerializer,
 )
-from courses.serializers import LandingGetSerializer
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db.models import Count, Q
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 
 
-class CourseCatalogViewSet(
-    LoggingMixin, WithHeadersViewSet, viewsets.ReadOnlyModelViewSet
-):
+class CourseCatalogViewSet(WithHeadersViewSet, viewsets.ReadOnlyModelViewSet):
     """
     API каталога курсов платформы
     <h2>/api/course_catalog/</h2>

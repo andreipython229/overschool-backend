@@ -17,9 +17,7 @@ s3 = UploadToS3()
 @method_decorator(
     name="partial_update", decorator=swagger_auto_schema(tags=["school_bonuses"])
 )
-class BonusViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class BonusViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт получения, создания, изменения, удаления бонусов школы\n
     <h2>/api/{school_name}/school_bonuses/</h2>\n
     """
@@ -56,12 +54,9 @@ class BonusViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(group__name="Admin", school=school).exists():
             return permissions
-        elif (
-            self.action in ["list", "retrieve"]
-            and (
-                user.groups.filter(group__name="Student", school=school).exists()
-                or user.email == "student@coursehub.ru"
-            )
+        elif self.action in ["list", "retrieve"] and (
+            user.groups.filter(group__name="Student", school=school).exists()
+            or user.email == "student@coursehub.ru"
         ):
             return permissions
         else:

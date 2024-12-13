@@ -10,7 +10,7 @@ from schools.school_mixin import SchoolMixin
 
 
 class StudentsGroupSettingsViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+    WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     """Эндпоинт для получения и изменения настроек группы\n
     <h2>/api/{school_name}/students_group_settings/</h2>\n

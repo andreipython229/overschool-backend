@@ -77,9 +77,7 @@ s3 = UploadToS3()
     name="partial_update",
     decorator=CoursesSchemas.courses_update_schema(),
 )
-class CourseViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
     <h2>/api/{school_name}/courses/</h2>\n
     Получать курсы может любой пользователь. \n

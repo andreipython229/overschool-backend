@@ -1,3 +1,4 @@
+from .box import BoxViewSet, PrizeViewSet
 from .school import (
     AddPaymentMethodViewSet,
     ProdamusPaymentLinkViewSet,
@@ -18,10 +19,10 @@ from .school_referral import (
     ReferralClickViewSet,
     ReferralViewSet,
 )
+from .school_roles import SchoolNewRoleViewSet
 from .schoolMeetings import SchoolMeetingsViewSet
 from .userDomain import (
     ConfiguredDomainViewSet,
     DomainViewSet,
     UnconfiguredDomainViewSet,
 )
-from .school_roles import SchoolNewRoleViewSet

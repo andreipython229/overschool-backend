@@ -20,9 +20,7 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class BaseLessonBlockViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class BaseLessonBlockViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     queryset = BaseLessonBlock.objects.all()
     http_method_names = ["post", "delete", "patch"]
     permission_classes = [permissions.IsAuthenticated]
@@ -150,9 +148,7 @@ class BaseLessonBlockViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class BlockButtonViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class BlockButtonViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     http_method_names = ["post", "delete", "patch"]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = BlockButtonSerializer
@@ -224,9 +220,7 @@ class BlockButtonViewSet(
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class BlockUpdateViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
-):
+class BlockUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
     @swagger_auto_schema(method="post", request_body=LessonOrderSerializer)

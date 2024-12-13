@@ -13,9 +13,7 @@ from ..models.comments.comment import Comment
 from ..serializers.comment import CommentSerializer
 
 
-class CommentViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class CommentViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """
     API endpoint для работы с комментариями к уроку
     """

@@ -1,26 +1,28 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.decorators import action
-from ..models import NewsletterTemplate
-from ..serializers import NewsletterTemplateSerializer
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+from schools.models import School
 from schools.school_mixin import SchoolMixin
 from users.models.user import User
-from schools.models import School
+
+from ..models import NewsletterTemplate
+from ..serializers import NewsletterTemplateSerializer
 
 
-class NewsletterTemplateViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
+class NewsletterTemplateViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """
     API endpoint для работы с шаблонами рассылки
     """
+
     queryset = NewsletterTemplate.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = NewsletterTemplateSerializer
 
     def get_permissions(self, *args, **kwargs):
         user = self.request.user
-        school_name = self.request.GET.get('school_name')
+        school_name = self.request.GET.get("school_name")
 
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -67,13 +69,17 @@ class NewsletterTemplateViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, v
         """
         Удаление шаблона рассылки.
         """
-        template_id = request.data.get('id')
+        template_id = request.data.get("id")
         if not template_id:
-            return Response({"error": "ID не предоставлен"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "ID не предоставлен"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             instance = NewsletterTemplate.objects.get(id=template_id)
             instance.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except NewsletterTemplate.DoesNotExist:
-            return Response({"error": "Шаблон не найден"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Шаблон не найден"}, status=status.HTTP_404_NOT_FOUND
+            )

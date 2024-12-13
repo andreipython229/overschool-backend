@@ -16,7 +16,7 @@ from schools.serializers import SchoolSerializer
 from users.models import UserGroup
 
 
-class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
+class UserSchoolsView(WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт получения доступных школ\n
     <h2>/api/user-school/</h2>\n
     Ендпоинт получения названий школ, доступных

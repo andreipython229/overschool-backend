@@ -13,9 +13,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class StudentsTableInfoViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class StudentsTableInfoViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт табличной информации о студентах\n
     <h2>/api/{school_name}/students_table_info/</h2>\n
     Табличная информация о студентах
@@ -23,6 +21,7 @@ class StudentsTableInfoViewSet(
 
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "put", "patch", "head"]
+
     # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):

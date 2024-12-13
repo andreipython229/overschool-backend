@@ -14,9 +14,7 @@ from schools.serializers import (
 s3 = UploadToS3()
 
 
-class SchoolDocumentViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class SchoolDocumentViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "patch", "delete"]
     permission_classes = [permissions.IsAuthenticated]
 

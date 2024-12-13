@@ -9,9 +9,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class TrainingDurationViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class TrainingDurationViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TrainingDurationSerializer
     http_method_names = ["post", "get"]
