@@ -1,15 +1,20 @@
+from datetime import timedelta
+
+import requests
 from common_services.mixins import WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
+from django.utils.timezone import now
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
-from schools.models import Box, BoxPrize, Prize, School
+from rest_framework.views import APIView
+from schools.models import Box, BoxPrize, Payment, Prize, School, SchoolPaymentMethod
 from schools.school_mixin import SchoolMixin
 from schools.serializers import (
     BoxDetailSerializer,
     BoxPrizeSerializer,
     BoxSerializer,
+    PaymentSerializer,
     PrizeDetailSerializer,
     PrizeSerializer,
 )
@@ -221,3 +226,164 @@ class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
             s3.delete_file(str(prize.icon))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CreatePaymentLinkView(WithHeadersViewSet, SchoolMixin, APIView):
+    """
+    Эндпоинт для создания ссылки на оплату коробки.
+    """
+
+    def post(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        data = request.data
+        user = self.request.user
+        try:
+            # Проверяем наличие всех обязательных данных
+            required_fields = ["box_id"]
+            for field in required_fields:
+                if field not in data:
+                    return Response(
+                        {"error": f'Поле "{field}" обязательно'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            # Проверяем существование коробки
+            box = Box.objects.get(id=data["box_id"])
+
+            # Создаем объект Payment
+            payment = Payment.objects.create(
+                user=user,
+                box=box,
+                school=school,
+                amount=box.price,
+                invoice_no=0,  # Номер счета будет обновлен после генерации
+                payment_status="pending",
+            )
+
+            # Генерация ссылки через API ExpressPay
+            payment_method = SchoolPaymentMethod.objects.get(school=school)
+            token = payment_method.api_key
+            api_url = f"https://api.express-pay.by/v1/invoices?token={token}"
+            payload = {
+                "Token": token,
+                "AccountNo": payment.id,
+                "Amount": payment.amount,
+                "Currency": 933,
+                "Info": f"Оплата {box.name}",
+                "ReturnInvoiceUrl": 1,
+                # "ReturnUrl": "https://platform.coursehb.ru",
+                # "FailUrl": "https://platform.coursehb.ru",
+            }
+
+            response = requests.post(api_url, data=payload)
+            if response.status_code != 200:
+                return Response(
+                    {"error": "Не удалось создать ссылку на оплату"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            result = response.json()
+            payment.invoice_no = result.get("InvoiceNo")
+            payment.save()
+
+            return Response(
+                {"payment_link": result.get("InvoiceUrl")},
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Box.DoesNotExist:
+            return Response(
+                {"error": "Коробка не найдена"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class CheckPaymentStatusView(WithHeadersViewSet, SchoolMixin, APIView):
+    """
+    Эндпоинт для проверки статусов платежей, ожидающих оплаты.
+    """
+
+    def get(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        user = request.user
+
+        # Извлечение параметров фильтрации
+        payment_status = request.query_params.get("payment_status")
+        user_id = request.query_params.get("user_id")
+
+        try:
+            # Фильтруем платежи для проверки статуса
+            if user.groups.filter(
+                group__name="Admin", school=school.school_id
+            ).exists():
+                payments_to_check = Payment.objects.filter(
+                    school=school, payment_status="pending"
+                )
+            else:
+                payments_to_check = Payment.objects.filter(
+                    user=user, school=school, payment_status="pending"
+                )
+            updated_payments = []
+
+            for payment in payments_to_check:
+                # Формируем URL для проверки статуса
+                url = f"https://api.express-pay.by/v1/invoices/{payment.invoice_no}/status"
+                payment_method = SchoolPaymentMethod.objects.get(school=school)
+                token = payment_method.api_key
+
+                if now() - payment.created_at >= timedelta(minutes=30):
+                    # Удаляем счет через API ExpressPay
+                    delete_url = f"https://api.express-pay.by/v1/invoices/{payment.invoice_no}?token={token}"
+                    delete_response = requests.delete(delete_url)
+                    if delete_response.status_code == 200:
+                        # Если удаление прошло успешно, помечаем платеж как "failed"
+                        payment.payment_status = "failed"
+                        payment.save()
+
+                # Отправляем GET-запрос в ExpressPay API
+                response = requests.get(f"{url}?token={token}")
+                print(response.json())
+                print(response.status_code)
+
+                if response.status_code == 200:
+                    status_code = response.json().get("Status")
+
+                    # Обновляем статус платежа на основании кода статуса
+                    if status_code == 3 or status_code == 6:  # Успешно оплачено
+                        payment.payment_status = "completed"
+                    elif (
+                        status_code == 2 or status_code == 5
+                    ):  # Просрочено или отменено
+                        payment.payment_status = "failed"
+                    # Сохраняем только измененные платежи
+                    payment.save()
+                    updated_payments.append(payment)
+
+            # Фильтруем платежи для проверки статусов
+            if user.groups.filter(
+                group__name="Admin", school=school.school_id
+            ).exists():
+                # Фильтрация для администратора
+                all_payments = Payment.objects.filter(school=school)
+                if user_id:
+                    all_payments = all_payments.filter(user=user_id)
+                if payment_status:
+                    all_payments = all_payments.filter(payment_status=payment_status)
+            else:
+                # Фильтрация для обычного пользователя
+                all_payments = Payment.objects.filter(user=user, school=school)
+                if payment_status:
+                    all_payments = all_payments.filter(payment_status=payment_status)
+
+            serializer = PaymentSerializer(all_payments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -2,6 +2,7 @@ from .box import (
     BoxDetailSerializer,
     BoxPrizeSerializer,
     BoxSerializer,
+    PaymentSerializer,
     PrizeDetailSerializer,
     PrizeSerializer,
 )

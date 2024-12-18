@@ -173,6 +173,16 @@ class Payment(TimeStampMixin, models.Model):
         help_text="Сумма платежа",
         verbose_name="Сумма",
     )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        verbose_name="ID школы",
+        help_text="ID школы",
+    )
+    invoice_no = models.IntegerField(
+        verbose_name="Номер счета", help_text="Номер счета", default=0, null=True
+    )
     payment_status = models.CharField(
         max_length=50,
         choices=[
@@ -185,4 +195,4 @@ class Payment(TimeStampMixin, models.Model):
     )
 
     def __str__(self):
-        return f"Платеж {self.id} - {self.user.username} - {self.box.name}"
+        return f"Платеж {self.id} - {self.user.username} - {self.box.name} - {self.box.invoice_no}"

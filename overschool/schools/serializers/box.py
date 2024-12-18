@@ -1,6 +1,6 @@
 from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
-from schools.models import Box, BoxPrize, Prize
+from schools.models import Box, BoxPrize, Payment, Prize
 
 s3 = UploadToS3()
 
@@ -109,3 +109,20 @@ class BoxDetailSerializer(serializers.ModelSerializer):
             return s3.get_link(obj.icon.name)
         else:
             return None
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    email = serializers.ReadOnlyField(source="user.email")
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "user",
+            "email",
+            "box",
+            "amount",
+            "school",
+            "invoice_no",
+            "payment_status",
+        ]

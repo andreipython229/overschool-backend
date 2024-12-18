@@ -1,4 +1,4 @@
-from .box import BoxViewSet, PrizeViewSet
+from .box import BoxViewSet, CheckPaymentStatusView, CreatePaymentLinkView, PrizeViewSet
 from .school import (
     AddPaymentMethodViewSet,
     ProdamusPaymentLinkViewSet,

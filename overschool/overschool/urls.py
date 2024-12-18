@@ -23,6 +23,8 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from schools.api_views import (
+    CheckPaymentStatusView,
+    CreatePaymentLinkView,
     ReferralClickRedirectView,
     SchoolByDomainView,
     SchoolTasksViewSet,
@@ -70,6 +72,16 @@ urlpatterns = [
         "api/<str:school_name>/current_tariff/",
         TariffSchoolOwner.as_view(actions={"get": "get"}),
         name="current_tariff",
+    ),
+    path(
+        "api/<str:school_name>/box_payments/",
+        CheckPaymentStatusView.as_view(actions={"get": "get"}),
+        name="box_payments",
+    ),
+    path(
+        "api/<str:school_name>/box_payment_link/",
+        CreatePaymentLinkView.as_view(actions={"post": "post"}),
+        name="box_payment_link",
     ),
     path(
         "api/<str:school_name>/school_tasks/",
