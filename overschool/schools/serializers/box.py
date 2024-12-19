@@ -132,10 +132,22 @@ class UserBoxSerializer(serializers.ModelSerializer):
     box_id = serializers.CharField(source="box.id", read_only=True)
     box_name = serializers.CharField(source="box.name", read_only=True)
     box_icon = serializers.ImageField(source="box.icon", read_only=True)
+    remaining_to_guarantee = serializers.SerializerMethodField()
 
     class Meta:
         model = UserBox
-        fields = ["box_id", "box_name", "box_icon", "unopened_count", "opened_count"]
+        fields = [
+            "box_id",
+            "box_name",
+            "box_icon",
+            "unopened_count",
+            "opened_count",
+            "remaining_to_guarantee",
+        ]
+
+    def get_remaining_to_guarantee(self, obj):
+        # Получаем значение из контекста
+        return getattr(obj, "remaining_to_guarantee", None)
 
 
 class UserPrizeSerializer(serializers.ModelSerializer):

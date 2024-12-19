@@ -4,6 +4,7 @@ from datetime import timedelta
 import requests
 from common_services.mixins import WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
+from django.db.models import F, Sum
 from django.utils.timezone import now
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -419,13 +420,22 @@ def open_box(user, box):
     user_box.opened_count += 1
     user_box.save()
 
+    # Считаем общее количество открытых коробок пользователя по всем коробкам
+    total_opened_count = (
+        UserBox.objects.filter(user=user, box__school=box.school).aggregate(
+            total_opened=models.Sum("opened_count")
+        )["total_opened"]
+        or 0
+    )
+
     # Проверяем гарантированный приз
     guaranteed_prize = None
     for box_prize in BoxPrize.objects.filter(
         box=box, prize__guaranteed_box_count__isnull=False
     ):
         guaranteed_count = box_prize.prize.guaranteed_box_count
-        if user_box.opened_count % guaranteed_count == 0:
+
+        if total_opened_count % guaranteed_count == 0:
             guaranteed_prize = box_prize.prize
             break
 
@@ -449,13 +459,46 @@ def open_box(user, box):
 class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
     def get(self, request, *args, **kwargs):
         """
-        Возвращает все купленные пользователем коробки с их состоянием.
+        Возвращает все купленные пользователем коробки с их состоянием,
+        где еще остались неоткрытые коробки.
         """
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
         user = request.user
-        user_boxes = UserBox.objects.filter(user=user, box__school=school)
-        serializer = UserBoxSerializer(user_boxes, many=True)
+
+        # Фильтруем коробки, где есть неоткрытые
+        user_boxes = UserBox.objects.filter(
+            user=user, box__school=school, unopened_count__gt=0
+        )
+
+        # Добавляем поле "до гарантированного приза"
+        total_opened_count = (
+            UserBox.objects.filter(user=user, box__school=school).aggregate(
+                total_opened=Sum("opened_count")
+            )["total_opened"]
+            or 0
+        )
+
+        for user_box in user_boxes:
+            guaranteed_count = (
+                BoxPrize.objects.filter(
+                    box=user_box.box, prize__guaranteed_box_count__isnull=False
+                )
+                .values_list("prize__guaranteed_box_count", flat=True)
+                .first()
+            )
+            if guaranteed_count:
+                user_box.remaining_to_guarantee = guaranteed_count - (
+                    total_opened_count % guaranteed_count
+                )
+            else:
+                user_box.remaining_to_guarantee = None
+
+        serializer = UserBoxSerializer(
+            user_boxes,
+            many=True,
+            context={"remaining_to_guarantee": total_opened_count},
+        )
         return Response(serializer.data, status=200)
 
     def post(self, request, box_id, *args, **kwargs):
