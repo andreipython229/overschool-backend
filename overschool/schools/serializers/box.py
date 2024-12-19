@@ -140,7 +140,8 @@ class UserBoxSerializer(serializers.ModelSerializer):
 
 class UserPrizeSerializer(serializers.ModelSerializer):
     prize = PrizeDetailSerializer(read_only=True)
+    user_email = serializers.ReadOnlyField(source="user.email")
 
     class Meta:
         model = UserPrize
-        fields = ["prize", "received_at", "is_used"]
+        fields = ["prize", "received_at", "is_used", "user_email"]
