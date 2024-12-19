@@ -1,3 +1,4 @@
+from .box import Box, BoxPrize, Payment, Prize, UserBox, UserPrize
 from .promocode import PromoCode
 from .school import (
     ProdamusPaymentLink,
@@ -21,4 +22,3 @@ from .school_referral import Referral, ReferralClick
 from .school_roles import SchoolNewRole
 from .schoolMeetings import SchoolMeetings
 from .userDomain import Domain
-from .box import Box, BoxPrize, Payment, Prize, UserPrize

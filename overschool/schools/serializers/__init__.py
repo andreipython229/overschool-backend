@@ -5,6 +5,8 @@ from .box import (
     PaymentSerializer,
     PrizeDetailSerializer,
     PrizeSerializer,
+    UserBoxSerializer,
+    UserPrizeSerializer,
 )
 from .payment_methods import (
     ProdamusLinkSerializer,

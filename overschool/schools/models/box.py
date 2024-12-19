@@ -141,6 +141,11 @@ class UserPrize(models.Model):
         help_text="Приз",
         verbose_name="Приз",
     )
+    is_used = models.BooleanField(
+        default=False,
+        help_text="Приз использован",
+        verbose_name="Использован",
+    )
     received_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Дата и время получения приза",
@@ -148,7 +153,7 @@ class UserPrize(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user.email} - {self.prize.name}"
+        return f"{self.user.email} - {self.prize.name} - {self.is_used}"
 
 
 class Payment(TimeStampMixin, models.Model):
@@ -196,3 +201,27 @@ class Payment(TimeStampMixin, models.Model):
 
     def __str__(self):
         return f"Платеж {self.id} - {self.user.username} - {self.box.name} - {self.box.invoice_no}"
+
+
+class UserBox(TimeStampMixin, models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="user_boxes",
+        verbose_name="Пользователь",
+    )
+    box = models.ForeignKey(
+        Box,
+        on_delete=models.CASCADE,
+        related_name="user_boxes",
+        verbose_name="Коробка",
+    )
+    unopened_count = models.PositiveIntegerField(
+        default=0, verbose_name="Неоткрытые коробки"
+    )
+    opened_count = models.PositiveIntegerField(
+        default=0, verbose_name="Открытые коробки"
+    )
+
+    def __str__(self):
+        return f"{self.user.username} - {self.box.name}"

@@ -1,4 +1,11 @@
-from .box import BoxAdmin, BoxPrizeAdmin, PaymentAdmin, PrizeAdmin, UserPrizeAdmin
+from .box import (
+    BoxAdmin,
+    BoxPrizeAdmin,
+    PaymentAdmin,
+    PrizeAdmin,
+    UserBoxAdmin,
+    UserPrizeAdmin,
+)
 from .promocode import PromoCodeAdmin
 from .school import SchoolAdmin
 from .school_document import DocumentsAdmin

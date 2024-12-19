@@ -1,6 +1,6 @@
 from common_services.selectel_client import UploadToS3
 from django.contrib import admin
-from schools.models import Box, BoxPrize, Payment, Prize, UserPrize
+from schools.models import Box, BoxPrize, Payment, Prize, UserBox, UserPrize
 
 s3 = UploadToS3()
 
@@ -34,8 +34,8 @@ class BoxPrizeAdmin(admin.ModelAdmin):
 
 @admin.register(UserPrize)
 class UserPrizeAdmin(admin.ModelAdmin):
-    list_display = ("user", "prize")
-    search_fields = ("user__email", "prize__name")
+    list_display = ("user", "prize", "is_used")
+    search_fields = ("user__email", "prize__name", "is_used")
 
 
 @admin.register(Payment)
@@ -43,3 +43,9 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ("user", "box", "amount", "payment_status", "created_at")
     list_filter = ("payment_status", "created_at")
     search_fields = ("user__username", "box__name")
+
+
+@admin.register(UserBox)
+class UserBoxAdmin(admin.ModelAdmin):
+    list_display = ("user", "box")
+    search_fields = ("user__email", "box__name")

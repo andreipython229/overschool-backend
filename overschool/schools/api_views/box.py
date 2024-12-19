@@ -1,3 +1,4 @@
+import random
 from datetime import timedelta
 
 import requests
@@ -8,7 +9,16 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from schools.models import Box, BoxPrize, Payment, Prize, School, SchoolPaymentMethod
+from schools.models import (
+    Box,
+    BoxPrize,
+    Payment,
+    Prize,
+    School,
+    SchoolPaymentMethod,
+    UserBox,
+    UserPrize,
+)
 from schools.school_mixin import SchoolMixin
 from schools.serializers import (
     BoxDetailSerializer,
@@ -17,6 +27,8 @@ from schools.serializers import (
     PaymentSerializer,
     PrizeDetailSerializer,
     PrizeSerializer,
+    UserBoxSerializer,
+    UserPrizeSerializer,
 )
 
 s3 = UploadToS3()
@@ -272,12 +284,11 @@ class CreatePaymentLinkView(WithHeadersViewSet, SchoolMixin, APIView):
                 "Currency": 933,
                 "Info": f"Оплата {box.name}",
                 "ReturnInvoiceUrl": 1,
-                # "ReturnUrl": "https://platform.coursehb.ru",
-                # "FailUrl": "https://platform.coursehb.ru",
             }
 
             response = requests.post(api_url, data=payload)
             if response.status_code != 200:
+                payment.delete()
                 return Response(
                     {"error": "Не удалось создать ссылку на оплату"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -347,8 +358,6 @@ class CheckPaymentStatusView(WithHeadersViewSet, SchoolMixin, APIView):
 
                 # Отправляем GET-запрос в ExpressPay API
                 response = requests.get(f"{url}?token={token}")
-                print(response.json())
-                print(response.status_code)
 
                 if response.status_code == 200:
                     status_code = response.json().get("Status")
@@ -356,6 +365,12 @@ class CheckPaymentStatusView(WithHeadersViewSet, SchoolMixin, APIView):
                     # Обновляем статус платежа на основании кода статуса
                     if status_code == 3 or status_code == 6:  # Успешно оплачено
                         payment.payment_status = "completed"
+                        total_boxes = payment.box.quantity + payment.box.bonus_quantity
+                        user_box, created = UserBox.objects.get_or_create(
+                            user=payment.user, box=payment.box
+                        )
+                        user_box.unopened_count += total_boxes
+                        user_box.save()
                     elif (
                         status_code == 2 or status_code == 5
                     ):  # Просрочено или отменено
@@ -387,3 +402,163 @@ class CheckPaymentStatusView(WithHeadersViewSet, SchoolMixin, APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+def open_box(user, box):
+    """
+    Логика открытия одной коробки пользователем.
+    """
+    # Получаем связь UserBox
+    user_box = UserBox.objects.get(user=user, box=box)
+
+    if user_box.unopened_count <= 0:
+        raise ValueError("У вас нет неоткрытых коробок.")
+
+    # Уменьшаем количество неоткрытых коробок
+    user_box.unopened_count -= 1
+    user_box.opened_count += 1
+    user_box.save()
+
+    # Проверяем гарантированный приз
+    guaranteed_prize = None
+    for box_prize in BoxPrize.objects.filter(
+        box=box, prize__guaranteed_box_count__isnull=False
+    ):
+        guaranteed_count = box_prize.prize.guaranteed_box_count
+        if user_box.opened_count % guaranteed_count == 0:
+            guaranteed_prize = box_prize.prize
+            break
+
+    # Если гарантированный приз найден, выдается он
+    if guaranteed_prize:
+        return UserPrize.objects.create(user=user, prize=guaranteed_prize)
+
+    # Если гарантированный приз не найден, рассчитываем случайный
+    total_chance = sum(bp.prize.drop_chance for bp in BoxPrize.objects.filter(box=box))
+    roll = random.uniform(0, total_chance)
+    current = 0
+
+    for box_prize in BoxPrize.objects.filter(box=box):
+        current += box_prize.prize.drop_chance
+        if roll <= current:
+            return UserPrize.objects.create(user=user, prize=box_prize.prize)
+
+    raise ValueError("Не удалось выдать приз.")
+
+
+class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
+    def get(self, request, *args, **kwargs):
+        """
+        Возвращает все купленные пользователем коробки с их состоянием.
+        """
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        user = request.user
+        user_boxes = UserBox.objects.filter(user=user, box__school=school)
+        serializer = UserBoxSerializer(user_boxes, many=True)
+        return Response(serializer.data, status=200)
+
+    def post(self, request, box_id, *args, **kwargs):
+        """
+        Открытие коробки пользователем.
+        """
+        user = request.user
+        try:
+            box = Box.objects.get(id=box_id)
+            user_prize = open_box(user, box)
+
+            # Сериализация выпавшего приза
+            prize_serializer = PrizeSerializer(user_prize.prize)
+
+            return Response(
+                {
+                    "message": f"Вы открыли коробку и получили приз: {user_prize.prize.name}",
+                    "prize": prize_serializer.data,
+                },
+                status=200,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+    def get_prizes(self, request, *args, **kwargs):
+        """
+        Возвращает все призы, полученные пользователем.
+        Администратор школы видит призы всех пользователей школы с фильтром по пользователю и статусу.
+        Пользователь видит свои призы с фильтром по статусу.
+        """
+        user = request.user
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+
+        try:
+            # Получаем параметры фильтрации
+            user_id = request.query_params.get("user_id")
+            is_used = request.query_params.get("is_used")
+
+            # Преобразуем `is_used` в boolean, если передан
+            if is_used is not None:
+                is_used = is_used.lower() == "true"
+
+            # Проверяем роль пользователя
+            if user.groups.filter(
+                group__name="Admin", school=school.school_id
+            ).exists():
+                # Администратор школы: видит все призы школы
+                user_prizes = UserPrize.objects.filter(prize__school=school)
+                if user_id:
+                    user_prizes = user_prizes.filter(user=user_id)
+                if is_used is not None:
+                    user_prizes = user_prizes.filter(is_used=is_used)
+            else:
+                # Пользователь: видит только свои призы
+                user_prizes = UserPrize.objects.filter(user=user, prize__school=school)
+                if is_used is not None:
+                    user_prizes = user_prizes.filter(is_used=is_used)
+
+            serializer = UserPrizeSerializer(user_prizes, many=True)
+            return Response(serializer.data, status=200)
+
+        except School.DoesNotExist:
+            return Response({"error": "Школа не найдена"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+    def update_prize_status(self, request, prize_id, *args, **kwargs):
+        """
+        Обновляет статус использования приза (is_used).
+        """
+        user = request.user
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+
+        try:
+            # Проверяем, является ли пользователь администратором школы
+            if not user.groups.filter(
+                group__name="Admin", school=school.school_id
+            ).exists():
+                raise PermissionDenied("Вы не имеете права обновлять статус приза.")
+
+            # Получаем приз пользователя
+            user_prize = UserPrize.objects.filter(
+                prize__school=school, id=prize_id
+            ).first()
+            if not user_prize:
+                raise NotFound("Приз не найден.")
+
+            # Обновляем статус is_used
+            user_prize.is_used = True
+            user_prize.save()
+
+            return Response(
+                {
+                    "message": f"Статус использования приза '{user_prize.prize.name}' обновлен на 'использован'."
+                },
+                status=200,
+            )
+
+        except School.DoesNotExist:
+            return Response({"error": "Школа не найдена"}, status=404)
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=403)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
