@@ -423,7 +423,7 @@ def open_box(user, box):
     # Считаем общее количество открытых коробок пользователя по всем коробкам
     total_opened_count = (
         UserBox.objects.filter(user=user, box__school=box.school).aggregate(
-            total_opened=models.Sum("opened_count")
+            total_opened=Sum("opened_count")
         )["total_opened"]
         or 0
     )
@@ -435,25 +435,50 @@ def open_box(user, box):
     ):
         guaranteed_count = box_prize.prize.guaranteed_box_count
 
-        if total_opened_count % guaranteed_count == 0:
-            guaranteed_prize = box_prize.prize
-            break
+        # Проверяем, что гарантированное количество больше 0
+        if guaranteed_count and guaranteed_count > 0:
+            if total_opened_count % guaranteed_count == 0:
+                guaranteed_prize = box_prize.prize
+                break
 
     # Если гарантированный приз найден, выдается он
     if guaranteed_prize:
         return UserPrize.objects.create(user=user, prize=guaranteed_prize)
 
     # Если гарантированный приз не найден, рассчитываем случайный
-    total_chance = sum(bp.prize.drop_chance for bp in BoxPrize.objects.filter(box=box))
-    roll = random.uniform(0, total_chance)
+    box_prizes = BoxPrize.objects.filter(box=box)
+    total_prize_chance = sum(bp.prize.drop_chance for bp in box_prizes)
+
+    # Нормализация шансов
+    normalized_prizes = []
+    for box_prize in box_prizes:
+        normalized_prizes.append(
+            {
+                "prize": box_prize.prize,
+                "chance": box_prize.prize.drop_chance,  # Используем оригинальные шансы
+            }
+        )
+
+    # Добавляем шанс "ничего не выиграть", если общая сумма шансов < 100
+    empty_chance = 100 - total_prize_chance
+    if empty_chance > 0:
+        normalized_prizes.append({"prize": None, "chance": empty_chance})
+
+    # Генерируем случайное число
+    roll = random.uniform(0, 100)
     current = 0
 
-    for box_prize in BoxPrize.objects.filter(box=box):
-        current += box_prize.prize.drop_chance
+    # Проверяем выпадение призов
+    for prize_data in normalized_prizes:
+        current += prize_data["chance"]
         if roll <= current:
-            return UserPrize.objects.create(user=user, prize=box_prize.prize)
+            if prize_data["prize"] is None:
+                # Ничего не выиграл
+                return None
+            return UserPrize.objects.create(user=user, prize=prize_data["prize"])
 
-    raise ValueError("Не удалось выдать приз.")
+    # Безопасный возврат на случай ошибок
+    return None
 
 
 class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
@@ -509,6 +534,9 @@ class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
         try:
             box = Box.objects.get(id=box_id)
             user_prize = open_box(user, box)
+
+            if not user_prize:
+                return Response({"message": "Вы ничего не выиграли"}, status=200)
 
             # Сериализация выпавшего приза
             prize_serializer = PrizeSerializer(user_prize.prize)
