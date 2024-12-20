@@ -1,4 +1,5 @@
 import random
+import uuid
 from datetime import timedelta
 
 import requests
@@ -278,9 +279,11 @@ class CreatePaymentLinkView(WithHeadersViewSet, SchoolMixin, APIView):
             payment_method = SchoolPaymentMethod.objects.get(school=school)
             token = payment_method.api_key
             api_url = f"https://api.express-pay.by/v1/invoices?token={token}"
+            account_no = f"{payment.id}-{payment.user.id}-{int(payment.created_at.timestamp())}-{uuid.uuid4().hex[:6]}"
+
             payload = {
                 "Token": token,
-                "AccountNo": payment.id,
+                "AccountNo": account_no,
                 "Amount": payment.amount,
                 "Currency": 933,
                 "Info": f"Оплата {box.name}",
