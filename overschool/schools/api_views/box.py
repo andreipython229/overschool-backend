@@ -542,7 +542,7 @@ class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
                 return Response({"message": "Вы ничего не выиграли"}, status=200)
 
             # Сериализация выпавшего приза
-            prize_serializer = PrizeSerializer(user_prize.prize)
+            prize_serializer = PrizeDetailSerializer(user_prize.prize)
 
             return Response(
                 {
