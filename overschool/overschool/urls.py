@@ -23,6 +23,9 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from schools.api_views import (
+    CheckPaymentStatusView,
+    CreatePaymentLinkView,
+    OpenBoxView,
     ReferralClickRedirectView,
     SchoolByDomainView,
     SchoolTasksViewSet,
@@ -31,6 +34,7 @@ from users.api_views import (
     AccessDistributionView,
     AllUsersViewSet,
     EmailValidateView,
+    FeedbackViewSet,
     ForgotPasswordView,
     GetCertificateView,
     LoginView,
@@ -59,6 +63,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/feedbacks/", FeedbackViewSet.as_view(), name="feedback-list"),
     path(
         "api/<str:school_name>/all_users/",
         AllUsersViewSet.as_view(actions={"get": "list"}),
@@ -68,6 +73,36 @@ urlpatterns = [
         "api/<str:school_name>/current_tariff/",
         TariffSchoolOwner.as_view(actions={"get": "get"}),
         name="current_tariff",
+    ),
+    path(
+        "api/<str:school_name>/box_payments/",
+        CheckPaymentStatusView.as_view(actions={"get": "get"}),
+        name="box_payments",
+    ),
+    path(
+        "api/<str:school_name>/box_payment_link/",
+        CreatePaymentLinkView.as_view(actions={"post": "post"}),
+        name="box_payment_link",
+    ),
+    path(
+        "api/<str:school_name>/user_boxes/",
+        OpenBoxView.as_view(actions={"get": "get"}),
+        name="user_boxes",
+    ),
+    path(
+        "api/<str:school_name>/open_box/<int:box_id>/",
+        OpenBoxView.as_view(actions={"post": "post"}),
+        name="open_box",
+    ),
+    path(
+        "api/<str:school_name>/user_prizes/",
+        OpenBoxView.as_view(actions={"get": "get_prizes"}),
+        name="user_prizes",
+    ),
+    path(
+        "api/<str:school_name>/user_prizes/<int:prize_id>/update_status/",
+        OpenBoxView.as_view(actions={"patch": "update_prize_status"}),
+        name="update_prize_status",
     ),
     path(
         "api/<str:school_name>/school_tasks/",

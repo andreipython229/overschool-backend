@@ -19,9 +19,7 @@ s3 = UploadToS3()
 from common_services.services.request_params import FileParams
 
 
-class AudioFileViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class AudioFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """
     Модель добавления аудиофайлов к урокам и занятиям\n
     <h2>/api/{school_name}/audio_files/</h2>\n
@@ -41,9 +39,12 @@ class AudioFileViewSet(
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(
-            group__name__in=["Student", "Teacher", "Admin"], school=school_id
-        ).exists() or user.email == "student@coursehub.ru":
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Teacher", "Admin"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")

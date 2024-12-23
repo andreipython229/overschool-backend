@@ -53,6 +53,8 @@ from schools.school_mixin import SchoolMixin
 from users.models import Profile, User, UserGroup
 
 s3 = UploadToS3()
+
+
 # Функция возвращает фактическую максимальную продолжительность обучения студента в группе и индивидуально установленную,
 # а также возможность скачивания видео-уроков
 def get_student_training_duration(group, student_id):
@@ -80,9 +82,7 @@ def get_student_training_duration(group, student_id):
         )
 
 
-class StudentsGroupViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт получения, создания, изменения групп студентов\n
     <h2>/api/{school_name}/students_group/</h2>\n
     Разрешения для просмотра групп (любой пользователь)
@@ -875,7 +875,7 @@ StudentsGroupViewSet = apply_swagger_auto_schema(
 
 
 class StudentsGroupWithoutTeacherViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+    WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
 ):
     serializer_class = StudentsGroupWTSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -1025,9 +1025,7 @@ class StudentsGroupWithoutTeacherViewSet(
         serializer.save()
 
 
-class GroupCourseAccessViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class GroupCourseAccessViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт получения, создания, удаления разрешений к курсам\n
     <h2>/api/{school_name}/group_course_access/</h2>\n
     Разрешения (только пользователи с группой 'Admin')

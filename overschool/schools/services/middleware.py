@@ -63,7 +63,7 @@ class CheckTrialStatusMiddleware(MiddlewareMixin):
 
 class DomainAccessMiddleware(MiddlewareMixin):
     EXCLUDED_PATHS = [
-        r"/api/login/",
+        r"/admin/.*" r"/api/login/",
         r"/api/school-by-domain/",
         r"/api/course_catalog/",
         r"/admin/",
@@ -86,6 +86,8 @@ class DomainAccessMiddleware(MiddlewareMixin):
     ]
 
     def process_request(self, request):
+        if request.path.startswith("/admin/"):
+            return None
         current_path = request.path
 
         # Исключаем страницы логина и другие страницы

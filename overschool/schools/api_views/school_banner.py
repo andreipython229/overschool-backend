@@ -13,10 +13,7 @@ from schools.serializers import (
 )
 
 
-class BannerViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
-
+class BannerViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = BannerSerializer
 
@@ -35,7 +32,10 @@ class BannerViewSet(
             "retrieve",
             "accept",
         ]:
-            if user.groups.filter(group__name="Student", school=school_id).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(group__name="Student", school=school_id).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")

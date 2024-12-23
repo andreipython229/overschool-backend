@@ -18,6 +18,7 @@ from .school_document import SchoolDocuments
 from .school_header import SchoolHeader
 from .school_newsletter import NewsletterTemplate, SentNewsletter
 from .school_referral import Referral, ReferralClick
+from .school_roles import SchoolNewRole
 from .schoolMeetings import SchoolMeetings
 from .userDomain import Domain
-from .school_roles import SchoolNewRole
+from .box import Box, BoxPrize, Payment, Prize, UserBox, UserPrize

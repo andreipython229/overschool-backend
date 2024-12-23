@@ -10,9 +10,7 @@ from schools.school_mixin import SchoolMixin
 from schools.serializers import DomainSerializer
 
 
-class DomainViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class DomainViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -64,7 +62,7 @@ class UnconfiguredDomainSerializer(serializers.Serializer):
     pass
 
 
-class UnconfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
+class UnconfiguredDomainViewSet(WithHeadersViewSet, viewsets.ViewSet):
     serializer_class = UnconfiguredDomainSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -117,7 +115,7 @@ class ConfiguredDomainSerializer(serializers.ModelSerializer):
         fields = ["id", "school", "domain_name"]
 
 
-class ConfiguredDomainViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ViewSet):
+class ConfiguredDomainViewSet(WithHeadersViewSet, viewsets.ViewSet):
     serializer_class = ConfiguredDomainSerializer
     permission_classes = [permissions.AllowAny]
 

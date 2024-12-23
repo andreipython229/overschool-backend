@@ -13,9 +13,7 @@ from schools.school_mixin import SchoolMixin
 User = get_user_model()
 
 
-class GetAppealsViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.GenericViewSet
-):
+class GetAppealsViewSet(WithHeadersViewSet, SchoolMixin, viewsets.GenericViewSet):
     """
     Эндпоинт просмотра обращений
     """
@@ -59,7 +57,7 @@ class GetAppealsViewSet(
         return self.get_paginated_response(serializer.data)
 
 
-class CourseAppealsViewSet(LoggingMixin, WithHeadersViewSet, viewsets.GenericViewSet):
+class CourseAppealsViewSet(WithHeadersViewSet, viewsets.GenericViewSet):
     permission_classes = [permissions.AllowAny]
     serializer_class = CourseAppealsSerializer
     parser_classes = (MultiPartParser,)

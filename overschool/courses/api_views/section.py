@@ -41,9 +41,7 @@ s3 = UploadToS3()
     name="partial_update",
     decorator=SectionsSchemas.partial_update_schema(),
 )
-class SectionViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class SectionViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт получения, создания, редактирования и удаления секций.\n
     <h2>/api/{school_name}/sections/</h2>\n
     Разрешения для просмотра секций (любой пользователь)
@@ -67,9 +65,12 @@ class SectionViewSet(
             return permissions
         if self.action in ["list", "retrieve", "lessons"]:
             # Разрешения для просмотра секций (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -311,9 +312,7 @@ SectionViewSet = apply_swagger_auto_schema(
 )(SectionViewSet)
 
 
-class SectionUpdateViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
-):
+class SectionUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
     @swagger_auto_schema(method="post", request_body=SectionOrderSerializer)

@@ -14,9 +14,7 @@ from schools.school_mixin import SchoolMixin
 from users.models import User, UserGroup
 
 
-class StudentRatingViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ViewSet
-):
+class StudentRatingViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = StudentRatingSerializer
     pagination_class = RatingPagination

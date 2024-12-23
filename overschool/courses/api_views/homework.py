@@ -1,9 +1,8 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Homework, UserHomeworkCheck
+from courses.models import BaseLesson, Course, CourseCopy, Homework, UserHomeworkCheck
 from courses.models.courses.section import Section
-from courses.models import Course, CourseCopy
 from courses.serializers import HomeworkDetailSerializer, HomeworkSerializer
 from courses.services import LessonProgressMixin
 from django.core.exceptions import PermissionDenied
@@ -17,7 +16,6 @@ s3 = UploadToS3()
 
 
 class HomeworkViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     LessonProgressMixin,
     SchoolMixin,
@@ -44,9 +42,12 @@ class HomeworkViewSet(
             return permissions
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists() or user.email == "student@coursehub.ru":
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -74,14 +75,20 @@ class HomeworkViewSet(
 
         if user.groups.filter(group__name="Student", school=school_id).exists():
             # Получаем все курсы, к которым относится студент
-            students_group = user.students_group_fk.all().values_list("course_id", flat=True)
+            students_group = user.students_group_fk.all().values_list(
+                "course_id", flat=True
+            )
             # Добавляем оригинальные курсы, если есть копии
             original_courses = []
             for course_id in students_group:
                 course = Course.objects.get(course_id=course_id)
                 if course.is_copy:
-                    original_course_id = CourseCopy.objects.get(course_copy_id=course.course_id)
-                    original_course = Course.objects.get(course_id=original_course_id.course_id)
+                    original_course_id = CourseCopy.objects.get(
+                        course_copy_id=course.course_id
+                    )
+                    original_course = Course.objects.get(
+                        course_id=original_course_id.course_id
+                    )
                     if original_course:
                         original_courses.append(original_course.course_id)
 
@@ -90,7 +97,9 @@ class HomeworkViewSet(
             queryset = Homework.objects.filter(section__course__in=all_course_ids)
 
         elif user.groups.filter(group__name="Teacher", school=school_id).exists():
-            teacher_group = user.teacher_group_fk.all().values_list("course_id", flat=True)
+            teacher_group = user.teacher_group_fk.all().values_list(
+                "course_id", flat=True
+            )
             final_course_ids = []
 
             for course_id in teacher_group:
@@ -98,7 +107,9 @@ class HomeworkViewSet(
 
                 # Проверяем, является ли курс копией
                 if course.is_copy:
-                    original_course = CourseCopy.objects.get(course_copy_id=course.course_id)
+                    original_course = CourseCopy.objects.get(
+                        course_copy_id=course.course_id
+                    )
                     if original_course:
                         final_course_ids.append(original_course.course_id)
                     else:
@@ -118,8 +129,12 @@ class HomeworkViewSet(
             if course_id:
                 current_course = Course.objects.get(course_id=course_id)
                 if current_course.is_copy:
-                    original_course_id = CourseCopy.objects.get(course_copy_id=current_course.course_id)
-                    original_course = Course.objects.get(course_id=original_course_id.course_id)
+                    original_course_id = CourseCopy.objects.get(
+                        course_copy_id=current_course.course_id
+                    )
+                    original_course = Course.objects.get(
+                        course_id=original_course_id.course_id
+                    )
                     queryset = queryset.filter(section__course=original_course)
                 else:
                     queryset = queryset.filter(section__course=current_course)

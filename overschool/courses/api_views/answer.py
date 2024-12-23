@@ -12,9 +12,7 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class AnswerViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class AnswerViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
     <h2>/api/{school_name}/answers/</h2>\n
     Разрешения для просмотра ответов к тестам (любой пользователь).\n

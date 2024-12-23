@@ -9,9 +9,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class UserTestViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class UserTestViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт тестирования учеников\n
     <h2>/api/{school_name}/usertest/</h2>\n
     Тесты проходить могут только ученики\n

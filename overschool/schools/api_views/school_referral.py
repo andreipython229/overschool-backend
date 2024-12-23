@@ -10,9 +10,7 @@ from schools.school_mixin import SchoolMixin
 from schools.serializers import ReferralClickSerializer, ReferralSerializer
 
 
-class ReferralViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ReadOnlyModelViewSet
-):
+class ReferralViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ReferralSerializer
 
@@ -40,7 +38,7 @@ class ReferralViewSet(
 
 
 class ReferralClickViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ReadOnlyModelViewSet
+    WithHeadersViewSet, SchoolMixin, viewsets.ReadOnlyModelViewSet
 ):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ReferralClickSerializer

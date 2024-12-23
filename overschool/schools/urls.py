@@ -3,20 +3,22 @@ from rest_framework import routers
 from schools.api_views import (
     AddPaymentMethodViewSet,
     BannerViewSet,
+    BoxViewSet,
     ConfiguredDomainViewSet,
     DomainViewSet,
     NewsletterTemplateViewSet,
+    PrizeViewSet,
     ProdamusPaymentLinkViewSet,
     ReferralClickViewSet,
     ReferralViewSet,
     SchoolHeaderViewSet,
     SchoolMeetingsViewSet,
+    SchoolNewRoleViewSet,
     SchoolPaymentLinkViewSet,
     SchoolStudentsTableSettingsViewSet,
     SchoolViewSet,
     TariffViewSet,
     UnconfiguredDomainViewSet,
-    SchoolNewRoleViewSet
 )
 
 router = routers.DefaultRouter()
@@ -53,7 +55,7 @@ router.register(
     basename="referral-click",
 )
 router.register(r"(?P<school_name>\w+)/banners", BannerViewSet, basename="banner")
-router.register(r'school-new-roles', SchoolNewRoleViewSet, basename='school-new-roles')
+router.register(r"school-new-roles", SchoolNewRoleViewSet, basename="school-new-roles")
 
 router_meetings = routers.DefaultRouter()
 router_meetings.register(
@@ -62,5 +64,9 @@ router_meetings.register(
 
 router_domain = routers.DefaultRouter()
 router_domain.register("school_domain", DomainViewSet, basename="school_domain")
+
+router_box = routers.DefaultRouter()
+router_box.register("school_box", BoxViewSet, basename="school_box")
+router_box.register("school_prize", PrizeViewSet, basename="school_prize")
 
 urlpatterns = router.urls

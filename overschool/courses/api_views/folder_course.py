@@ -8,9 +8,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class FolderCourseViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class FolderCourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self, *args, **kwargs):
@@ -23,9 +21,12 @@ class FolderCourseViewSet(
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return permissions
-        if (user.groups.filter(
-            group__name__in=["Student", "Teacher"], school=school_id
-        ).exists() or user.email == "student@coursehub.ru") and self.action in ["list", "retrieve"]:
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ) and self.action in ["list", "retrieve"]:
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
