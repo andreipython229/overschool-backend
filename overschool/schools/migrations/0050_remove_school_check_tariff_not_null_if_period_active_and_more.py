@@ -10,10 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="school",
-            name="check_tariff_not_null_if_period_active",
-        ),
         migrations.AddField(
             model_name="school",
             name="extra_link",
