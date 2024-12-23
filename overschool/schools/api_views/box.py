@@ -75,9 +75,16 @@ class BoxViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Box.objects.none()  # Возвращаем пустой queryset при генерации схемы
-        self.request.user
+        user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Teacher"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
+            return Box.objects.filter(school=school_id, is_active=True)
         return Box.objects.filter(school=school_id)
 
     def create(self, request, *args, **kwargs):
@@ -165,8 +172,13 @@ class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
             return (
                 Prize.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
+        if user.groups.filter(
+            group__name__in=["Student", "Teacher"], school=school_id
+        ).exists():
+            return Prize.objects.filter(school=school_id, is_active=True)
         return Prize.objects.filter(school=school_id)
 
     def perform_active_check(self, prize):
