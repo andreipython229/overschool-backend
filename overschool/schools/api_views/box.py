@@ -324,6 +324,70 @@ class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["put"])
+    def bulk_update(self, request, *args, **kwargs):
+        """
+        Массовое обновление призов.
+        """
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        if not isinstance(request.data, list):
+            return Response(
+                {"error": "Ожидался массив с данными для обновления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_prizes = []
+        for prize_data in request.data:
+            prize_id = prize_data.pop("id", None)
+            if not prize_id:
+                return Response(
+                    {"error": "ID приза обязателен для обновления."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                prize = Prize.objects.get(id=prize_id, school_id=school_id)
+                serializer = self.get_serializer(prize, data=prize_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+
+                if "icon" in request.FILES:
+                    if prize.icon:
+                        s3.delete_file(str(prize.icon))
+                    serializer.validated_data["icon"] = s3.upload_school_image(
+                        request.FILES["icon"], school_id
+                    )
+
+                self.perform_update(serializer)
+                self.perform_active_check(prize)  # Обновляем коробки
+                updated_prizes.append(PrizeDetailSerializer(prize).data)
+            except Prize.DoesNotExist:
+                continue
+
+        return Response(updated_prizes, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["delete"])
+    def bulk_delete(self, request, *args, **kwargs):
+        """
+        Массовое удаление призов.
+        """
+        prize_ids = request.data.get("ids", None)
+        if not prize_ids or not isinstance(prize_ids, list):
+            return Response(
+                {"error": "Ожидался массив ID призов для удаления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        prizes = Prize.objects.filter(id__in=prize_ids)
+        for prize in prizes:
+            if prize.icon:
+                s3.delete_file(str(prize.icon))
+            prize.delete()
+
+        return Response(
+            {"message": "Призы успешно удалены."}, status=status.HTTP_204_NO_CONTENT
+        )
+
 
 class PaymentLinkSerializer(serializers.Serializer):
     pass
