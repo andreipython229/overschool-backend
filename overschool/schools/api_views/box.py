@@ -324,7 +324,7 @@ class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=["put"])
+    @action(detail=False, methods=["patch"])
     def bulk_update(self, request, *args, **kwargs):
         """
         Массовое обновление призов.
