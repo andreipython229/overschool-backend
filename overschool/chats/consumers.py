@@ -1,11 +1,15 @@
+import base64
 import json
 import uuid
+from datetime import datetime
 from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.layers import get_channel_layer
+from common_services.selectel_client import UploadToS3
+from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import F
@@ -14,6 +18,7 @@ from users.models import User
 from .constants import CustomResponses
 from .models import Chat, Message, UserChat
 
+s3 = UploadToS3()
 channel_layer = get_channel_layer()
 
 
@@ -35,14 +40,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return user_chats.exists()
 
     @database_sync_to_async
-    def save_message(self, chat, user, message):
+    def save_message(self, chat, user, message=None, file_url=None):
         with transaction.atomic():
             UserChat.objects.filter(chat=chat,).exclude(
                 user__in=self.connected_users_by_group.get(self.room_group_name, [])
             ).update(unread_messages_count=F("unread_messages_count") + 1)
-            message = Message.objects.create(chat=chat, sender=user, content=message)
+            message = Message.objects.create(
+                chat=chat, sender=user, content=message, file=file_url
+            )
 
         return message.id
+
+    @database_sync_to_async
+    def decode_and_upload_file(self, file_data, chat):
+        """
+        Декодирует файл из Base64, сохраняет его в S3 и возвращает URL.
+        """
+        # Извлекаем имя файла, тип и содержимое
+        file_info = file_data.get("content").split(",")[-1]
+
+        file_content = base64.b64decode(file_info)  # Декодируем содержимое
+        file_name = file_data.get("filename", f"file_{uuid.uuid4().hex[:10]}")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_file_name = f"{timestamp}_{file_name}"
+        file_type = file_data.get("type")
+
+        # Проверяем поддерживаемые типы файлов
+        allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/gif"]
+        if file_type not in allowed_types:
+            raise ValueError("Неподдерживаемый тип файла")
+
+        # Создаем временный файл
+        file = ContentFile(file_content, name=unique_file_name)
+
+        # Загружаем файл в S3
+        return s3.upload_file_chat(file, f"chats/{chat.id}/")
 
     @database_sync_to_async
     def get_chat_messages(self, chat):
@@ -109,36 +141,67 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json.get("message")
-        new_message = await self.save_message(
-            chat=self.chat,
-            user=self.user,
-            message=message,
-        )
+    async def receive(self, text_data=None, bytes_data=None):
+        try:
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "chat_message",
-                "content": message,
-                "message_id": new_message,
-                "sender": self.user.id,
-                "id": str(uuid.uuid4()),
-            },
-        )
+            if text_data:
+                # Парсим входные данные
+                data = json.loads(text_data)
+                message = data.get("message")
+                file_data = data.get("file")
+                file_url = None
+
+                # Если есть файл, декодируем и загружаем его в S3
+                if file_data:
+                    try:
+                        file_url = await self.decode_and_upload_file(
+                            file_data, self.chat
+                        )
+                    except Exception as e:
+                        await self.send(
+                            text_data=json.dumps(
+                                {"error": f"Ошибка загрузки файла: {str(e)}"}
+                            )
+                        )
+                        return
+
+                # Сохраняем сообщение
+                new_message = await self.save_message(
+                    chat=self.chat,
+                    user=self.user,
+                    message=message,
+                    file_url=file_url,
+                )
+
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message",
+                        "content": message,
+                        "file": file_url,
+                        "message_id": new_message,
+                        "sender": self.user.id,
+                        "id": str(uuid.uuid4()),
+                    },
+                )
+        except ValueError as e:
+            # Логируем и возвращаем нормальный текст ошибки
+            error_message = str(e)
+            await self.send(
+                text_data=json.dumps({"error": error_message}, ensure_ascii=False)
+            )
 
     async def chat_message(self, event):
         message = event["content"]
+        file = event.get("file")
         user = event["sender"]
         id_key = event["id"]
-        event["message_id"]
 
         await self.send(
             text_data=json.dumps(
                 {
                     "content": message,
+                    "file": file,
                     "sender": user,
                     "id": id_key,
                 }

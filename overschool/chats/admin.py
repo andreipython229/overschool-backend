@@ -4,5 +4,5 @@ from .models import Chat, Message, UserChat
 
 
 @admin.register(Chat, Message, UserChat)
-class UserHomeworkAdmin(admin.ModelAdmin):
+class ChatAdmin(admin.ModelAdmin):
     pass

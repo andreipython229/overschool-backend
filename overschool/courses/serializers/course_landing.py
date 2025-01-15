@@ -6,11 +6,10 @@ from courses.models import (
     CourseLanding,
     Folder,
     HeaderBlock,
+    LinkButton,
     StatsBlock,
     TrainingProgram,
     TrainingPurpose,
-    LinkButton
-
 )
 from courses.serializers.section import SectionSerializer
 from rest_framework import serializers
@@ -153,6 +152,18 @@ class LandingGetSerializer(serializers.ModelSerializer):
         }
 
     def get_link_button_block(self, obj):
+        if not obj.link_button:
+            return {
+                "id": None,
+                "content": "linkButton",
+                "visible": False,
+                "canUp": False,
+                "canDown": False,
+                "name": "",
+                "link": "",
+                "color": "",
+            }
+
         return {
             "id": obj.link_button.position,
             "content": "linkButton",
@@ -342,6 +353,7 @@ class TrainingPurposeSerializer(serializers.ModelSerializer):
         update_block_cards(instance=instance, chips_data=chips_data, s3=s3)
 
         return instance
+
 
 class LinkButtonSerializer(serializers.ModelSerializer):
     class Meta:

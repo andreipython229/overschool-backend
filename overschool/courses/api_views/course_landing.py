@@ -299,6 +299,7 @@ class CourseLandingViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                 audience=audience,
                 training_program=training_program,
                 training_purpose=training_purpose,
+                link_button=link_button,
             )
             serializer = LandingGetSerializer(landing)
             return Response(serializer.data)

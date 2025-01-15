@@ -14,7 +14,7 @@ from .constants import CustomResponses
 from .models import Chat, ChatLink, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
-from .serializers import ChatSerializer, MessageSerializer
+from .serializers import ChatSerializer, MessageGetSerializer, MessageSerializer
 
 User = get_user_model()
 
@@ -403,7 +403,7 @@ class MessageList(WithHeadersViewSet, APIView):
             )
 
         messages = Message.objects.filter(chat=chat)
-        serializer = MessageSerializer(
+        serializer = MessageGetSerializer(
             messages, many=True, context={"request": self.request}
         )
 

@@ -1,9 +1,13 @@
 import uuid
 
+from common_services.selectel_client import UploadToS3
+from common_services.services import TruncateFileName, limit_size
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 from users.models.user import User
+
+s3 = UploadToS3()
 
 
 class Chat(models.Model):
@@ -56,6 +60,21 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
     sent_at = models.DateTimeField(auto_now_add=True)
     content = models.TextField()
+    file = models.FileField(
+        max_length=300,
+        validators=[limit_size],
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+        help_text="Прикрепленный файл",
+        verbose_name="Прикрепленный файл",
+    )
+
+    def delete(self, *args, **kwargs):
+        # Удаляем файл из S3 перед удалением записи
+        if self.file:
+            s3.delete_file(str(self.file))
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.content
