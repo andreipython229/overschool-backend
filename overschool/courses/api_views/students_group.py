@@ -57,9 +57,9 @@ s3 = UploadToS3()
 # а также возможность скачивания видео-уроков
 def get_student_training_duration(group, student_id):
     try:
-        training_duration = TrainingDuration.objects.get(
+        training_duration = TrainingDuration.objects.filter(
             user_id=student_id, students_group=group
-        )
+        ).first()
         if training_duration.limit > 0:
             return (
                 training_duration.limit,

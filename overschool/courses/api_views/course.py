@@ -1071,8 +1071,8 @@ class CourseViewSet(
                             {"error": "Срок доступа к курсу истек."},
                             status=status.HTTP_403_FORBIDDEN,
                         )
-            except Exception:
-                raise NotFound("Ошибка поиска группы пользователя 1.")
+            except Exception as e:
+                raise NotFound(str(e))
 
         elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:

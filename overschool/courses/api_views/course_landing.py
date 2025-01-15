@@ -1,37 +1,38 @@
 import json
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from courses.models import (
-    Course,
-    HeaderBlock,
-    StatsBlock,
-    BlockCards,
     AudienceBlock,
-    TrainingProgram,
-    TrainingPurpose,
-    LinkButton,
+    BlockCards,
+    Course,
     CourseLanding,
     Folder,
+    HeaderBlock,
     Homework,
     Lesson,
+    LinkButton,
     SectionTest,
+    StatsBlock,
     StudentsGroup,
     TrainingDuration,
+    TrainingProgram,
+    TrainingPurpose,
     UserProgressLogs,
     UserTest,
 )
 from courses.serializers import (
-    LandingGetSerializer,
+    AudienceSerializer,
+    BlockCardsGetSerializer,
+    BlockCardsPhotoSerializer,
+    BlockCardsSerializer,
     CourseInfoSerializer,
     HeaderLandingSerializer,
+    LandingGetSerializer,
+    LinkButtonSerializer,
     StatsGetSerializer,
-    BlockCardsSerializer,
-    BlockCardsPhotoSerializer,
-    BlockCardsGetSerializer,
-    AudienceSerializer,
     TrainingProgramSerializer,
     TrainingPurposeSerializer,
-    LinkButtonSerializer
 )
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets
@@ -40,11 +41,15 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
+
 from .utils import convert_landing_data
 
 s3 = UploadToS3()
 
-class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
+
+class CourseLandingViewSet(
+    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
+):
     """Эндпоинт для просмотра, создания, изменения и удаления лендингов курсов \n
     <h2>/api/{school_name}/courses_landing/</h2>\n
     Получать лендинг курса может любой пользователь. \n
@@ -88,7 +93,7 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
             return CourseLanding.objects.none()
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', True)
+        partial = kwargs.pop("partial", True)
         course_id = self.kwargs.get("pk")
         # получаем только список курсов, которыми владеет этот пользак
         queryset = self.filter_queryset(self.get_queryset())
@@ -97,27 +102,33 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
         # обработка и разброс данных по моделям
         def initUpdate(data_dict):
             converted_data = convert_landing_data(data_dict)
-            header_serializer = HeaderLandingSerializer(instance.header,
-                                                        data=converted_data["header"],
-                                                        partial=partial)
-            course_serializer = CourseInfoSerializer(instance.course,
-                                                     data=converted_data["course"],
-                                                     partial=partial)
-            stats_serializer = StatsGetSerializer(instance.stats,
-                                       data=converted_data["stats"],
-                                       partial=partial)
-            audience_serializer = AudienceSerializer(instance.audience,
-                                                     data=converted_data["audience"],
-                                                     partial=partial)
-            training_program_serializer = TrainingProgramSerializer(instance.training_program,
-                                                                    data=converted_data["training_program"],
-                                                                    partial=partial)
-            training_purpose_serializer = TrainingPurposeSerializer(instance.training_purpose,
-                                                                    data=converted_data["training_purpose"],
-                                                                    partial=partial)
-            link_button_serializer = LinkButtonSerializer(instance.link_button,
-                                                          data=converted_data["link_button"],
-                                                          partial=partial)
+            header_serializer = HeaderLandingSerializer(
+                instance.header, data=converted_data["header"], partial=partial
+            )
+            course_serializer = CourseInfoSerializer(
+                instance.course, data=converted_data["course"], partial=partial
+            )
+            stats_serializer = StatsGetSerializer(
+                instance.stats, data=converted_data["stats"], partial=partial
+            )
+            audience_serializer = AudienceSerializer(
+                instance.audience, data=converted_data["audience"], partial=partial
+            )
+            training_program_serializer = TrainingProgramSerializer(
+                instance.training_program,
+                data=converted_data["training_program"],
+                partial=partial,
+            )
+            training_purpose_serializer = TrainingPurposeSerializer(
+                instance.training_purpose,
+                data=converted_data["training_purpose"],
+                partial=partial,
+            )
+            link_button_serializer = LinkButtonSerializer(
+                instance.link_button,
+                data=converted_data["link_button"],
+                partial=partial,
+            )
             header_serializer.is_valid(raise_exception=True)
             course_serializer.is_valid(raise_exception=True)
             stats_serializer.is_valid(raise_exception=True)
@@ -139,17 +150,18 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
             data_dict = json.loads(request.data["formdata"])
             initUpdate(data_dict)
 
-
         # случай, когда данны летят словарём
         if "header" in request.data:
             initUpdate(request.data)
 
         # если есть какие-либо фото-файлы
-        photo_keys = [key for key in request.FILES.keys() if key.startswith('photo')]
+        photo_keys = [key for key in request.FILES.keys() if key.startswith("photo")]
         if photo_keys:
             # если есть изображение бэкраунда курса
             if "photo_background" in request.FILES:
-                course_serializer = CourseInfoSerializer(instance.course, data={}, partial=partial)
+                course_serializer = CourseInfoSerializer(
+                    instance.course, data={}, partial=partial
+                )
                 course_serializer.is_valid(raise_exception=True)
                 if instance.course.photo:
                     s3.delete_file(str(instance.course.photo))
@@ -159,33 +171,45 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                 self.perform_update(course_serializer)
 
             # если есть изображения карточек блока "Целевая аудитория"
-            photo_audience_keys = [key for key in photo_keys if key.startswith('photo_audience_')]
+            photo_audience_keys = [
+                key for key in photo_keys if key.startswith("photo_audience_")
+            ]
             if photo_audience_keys:
                 for key in photo_audience_keys:
                     # Извлекаем число из ключа
-                    position = int(key.split('_')[-1])
+                    position = int(key.split("_")[-1])
                     chip = instance.audience.chips.get(position=position)
-                    block_card_serializer = BlockCardsPhotoSerializer(chip, data={}, partial=partial)
+                    block_card_serializer = BlockCardsPhotoSerializer(
+                        chip, data={}, partial=partial
+                    )
                     block_card_serializer.is_valid(raise_exception=True)
                     if chip.photo:
                         s3.delete_file(str(chip.photo))
-                    block_card_serializer.validated_data["photo"] = s3.upload_course_landing_images(
+                    block_card_serializer.validated_data[
+                        "photo"
+                    ] = s3.upload_course_landing_images(
                         request.FILES[key], instance.course
                     )
                     self.perform_update(block_card_serializer)
 
             # если есть изображения карточек блока "Целей обучения"
-            photo_trainingPurpose_keys = [key for key in photo_keys if key.startswith('photo_trainingPurpose_')]
+            photo_trainingPurpose_keys = [
+                key for key in photo_keys if key.startswith("photo_trainingPurpose_")
+            ]
             if photo_trainingPurpose_keys:
                 for key in photo_trainingPurpose_keys:
                     # Извлекаем число из ключа
-                    position = int(key.split('_')[-1])
+                    position = int(key.split("_")[-1])
                     chip = instance.training_purpose.chips.get(position=position)
-                    block_card_serializer = BlockCardsPhotoSerializer(chip, data={}, partial=partial)
+                    block_card_serializer = BlockCardsPhotoSerializer(
+                        chip, data={}, partial=partial
+                    )
                     block_card_serializer.is_valid(raise_exception=True)
                     if chip.photo:
                         s3.delete_file(str(chip.photo))
-                    block_card_serializer.validated_data["photo"] = s3.upload_course_landing_images(
+                    block_card_serializer.validated_data[
+                        "photo"
+                    ] = s3.upload_course_landing_images(
                         request.FILES[key], instance.course
                     )
                     self.perform_update(block_card_serializer)
@@ -265,9 +289,9 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                 position=5,
                 can_up=True,
                 can_down=False,
-                name='Кнопка 1',
-                link='https://',
-                color='#3498db'
+                name="Кнопка 1",
+                link="https://",
+                color="#3498db",
             )
             landing = CourseLanding.objects.create(
                 course=course,
@@ -276,6 +300,7 @@ class CourseLandingViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, viewse
                 audience=audience,
                 training_program=training_program,
                 training_purpose=training_purpose,
+                link_button=link_button,
             )
             serializer = LandingGetSerializer(landing)
             return Response(serializer.data)
