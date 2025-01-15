@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from users.serializers import LoginSerializer
 
 
-class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
+class LoginView(WithHeadersViewSet, views.APIView):
     """<h2>/api/login/</h2>\n"""
 
     permission_classes = [permissions.AllowAny]

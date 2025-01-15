@@ -33,7 +33,6 @@ s3 = UploadToS3()
 
 
 class TestViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     LessonProgressMixin,
     SchoolMixin,

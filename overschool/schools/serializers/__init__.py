@@ -1,3 +1,13 @@
+from .box import (
+    BoxDetailSerializer,
+    BoxPrizeSerializer,
+    BoxSerializer,
+    PaymentSerializer,
+    PrizeDetailSerializer,
+    PrizeSerializer,
+    UserBoxSerializer,
+    UserPrizeSerializer,
+)
 from .payment_methods import (
     ProdamusLinkSerializer,
     SchoolExpressPayLinkSerializer,
@@ -30,6 +40,6 @@ from .school_header import (
 )
 from .school_newsletter import NewsletterTemplateSerializer
 from .school_referral import ReferralClickSerializer, ReferralSerializer
+from .school_roles import SchoolNewRoleSerializer
 from .SchoolMeetings import SchoolMeetingsSerializer
 from .userDomain import DomainSerializer
-from .school_roles import SchoolNewRoleSerializer

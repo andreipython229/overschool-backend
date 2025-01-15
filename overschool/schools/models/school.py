@@ -153,6 +153,42 @@ class School(TimeStampMixin, OrderMixin):
         verbose_name="Ребрендинг активирован",
         help_text="Активировать ребрендинг школы",
     )
+    telegram_link = models.URLField(
+        verbose_name="Ссылка на Telegram",
+        help_text="Ссылка на Telegram",
+        blank=True,
+        null=True,
+    )
+    instagram_link = models.URLField(
+        verbose_name="Ссылка на Instagram",
+        help_text="Ссылка на Instagram",
+        blank=True,
+        null=True,
+    )
+    twitter_link = models.URLField(
+        verbose_name="Ссылка на Twitter",
+        help_text="Ссылка на Twitter",
+        blank=True,
+        null=True,
+    )
+    vk_link = models.URLField(
+        verbose_name="Ссылка на ВКонтакте",
+        help_text="Ссылка на ВКонтакте",
+        blank=True,
+        null=True,
+    )
+    youtube_link = models.URLField(
+        verbose_name="Ссылка на YouTube",
+        help_text="Ссылка на YouTube",
+        blank=True,
+        null=True,
+    )
+    extra_link = models.URLField(
+        verbose_name="Дополнительная ссылка",
+        help_text="Дополнительная ссылка на ресурс",
+        blank=True,
+        null=True,
+    )
 
     objects = SchoolManager()
 

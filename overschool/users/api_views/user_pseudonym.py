@@ -1,13 +1,15 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.response import Response
+from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from django.http import Http404
 from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
+from users.models import User
 
 from ..models.user_pseudonym import UserPseudonym
 from ..serializers.user_pseudonym import UserPseudonymSerializer
-from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from schools.school_mixin import SchoolMixin
-from schools.models import School
-from users.models import User
 
 
 class UserPseudonymViewSet(
@@ -50,7 +52,7 @@ class UserPseudonymViewSet(
         Обновление псевдонима сотрудника
         """
 
-        user_id = request.data.get('user')
+        user_id = request.data.get("user")
         try:
             user_instance = User.objects.get(pk=int(user_id))
         except User.DoesNotExist:
@@ -61,11 +63,15 @@ class UserPseudonymViewSet(
         except School.DoesNotExist:
             raise Http404("Школа с таким именем не найдена")
 
-        user_pseudonym = UserPseudonym.objects.filter(user=user_instance, school=school_instance).first()
+        user_pseudonym = UserPseudonym.objects.filter(
+            user=user_instance, school=school_instance
+        ).first()
         if user_pseudonym:
             serializer = UserPseudonymSerializer(user_pseudonym, data=request.data)
         else:
-            user_pseudonym = UserPseudonym.objects.create(user=user_instance, school=school_instance)
+            user_pseudonym = UserPseudonym.objects.create(
+                user=user_instance, school=school_instance
+            )
             serializer = UserPseudonymSerializer(user_pseudonym, data=request.data)
 
         if serializer.is_valid():

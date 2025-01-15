@@ -12,7 +12,7 @@ class SchoolByDomainSerializer(serializers.Serializer):
     pass
 
 
-class SchoolByDomainView(LoggingMixin, WithHeadersViewSet, APIView):
+class SchoolByDomainView(WithHeadersViewSet, APIView):
     serializer_class = SchoolByDomainSerializer
     permission_classes = [permissions.AllowAny]
     serializer_class = SchoolByDomainSerializer

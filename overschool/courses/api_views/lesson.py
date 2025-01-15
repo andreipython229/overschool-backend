@@ -35,7 +35,7 @@ User = get_user_model()
 s3 = UploadToS3()
 
 
-class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonAvailability.objects.all()
     serializer_class = LessonAvailabilitySerializer
 
@@ -140,7 +140,7 @@ class LessonAvailabilityViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, A
         return Response(lessons_data)
 
 
-class LessonEnrollmentViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, APIView):
+class LessonEnrollmentViewSet(WithHeadersViewSet, SchoolMixin, APIView):
     queryset = LessonEnrollment.objects.all()
     serializer_class = LessonEnrollmentSerializer
 
@@ -206,7 +206,6 @@ class LessonEnrollmentViewSet(LoggingMixin, WithHeadersViewSet, SchoolMixin, API
 
 
 class LessonViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     LessonProgressMixin,
     SchoolMixin,
@@ -391,9 +390,7 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class LessonUpdateViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
-):
+class LessonUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
     @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)

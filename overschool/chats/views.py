@@ -48,7 +48,7 @@ class AllChatSerializer(serializers.Serializer):
     pass
 
 
-class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
+class ChatListCreate(WithHeadersViewSet, APIView):
     """
     - Список всех чатов
     - Создание чата
@@ -64,13 +64,16 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(
-            group__name__in=[
-                "Admin",
-                "Teacher",
-                "Student",
-            ]
-        ).exists() or user.email == "student@coursehub.ru":
+        if (
+            user.groups.filter(
+                group__name__in=[
+                    "Admin",
+                    "Teacher",
+                    "Student",
+                ]
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -260,7 +263,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         )
 
 
-class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
+class ChatDetailDelete(WithHeadersViewSet, APIView):
     """
     - Детали чата
     - Удаление / восстановление чата
@@ -368,7 +371,7 @@ class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
+class MessageList(WithHeadersViewSet, APIView):
     """
     - Сообщения чата
     """

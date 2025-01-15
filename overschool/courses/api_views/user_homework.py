@@ -35,9 +35,7 @@ from .utils import get_group_course_pairs
 s3 = UploadToS3()
 
 
-class UserHomeworkViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class UserHomeworkViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт домашних заданий ученика.\n
     <h2>/api/{school_name}/user_homeworks/</h2>\n
     Cоздавать дз может только ученик, а так же редактировать и удалять исключительно свои дз
@@ -279,9 +277,7 @@ class UserHomeworkViewSet(
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class HomeworkStatisticsView(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.ListAPIView
-):
+class HomeworkStatisticsView(WithHeadersViewSet, SchoolMixin, generics.ListAPIView):
     """Эндпоинт домашних заданий ученика.\n
     <h2>/api/{school_name}/homeworks_stats/</h2>\n
     Для поиска по нескольким названиям групп использовать параметры group_name_{i}_{j}.

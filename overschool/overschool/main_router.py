@@ -5,13 +5,20 @@ from courses.urls import router_catalog as catalog_router
 from courses.urls import router_video as video_router
 from rest_framework import routers
 from schools.urls import router as schools_router
-from schools.urls import router_meetings as meeting_router
-from users.urls import router as users_router
-from tg_notifications.urls import router as tg_notifications_router
+from schools.urls import router_box as box_router
 from schools.urls import router_domain as domain_router
+from schools.urls import router_meetings as meeting_router
+from tg_notifications.urls import router as tg_notifications_router
+from users.urls import router as users_router
 
 router = routers.DefaultRouter()
-router.registry += courses_router.registry + common_services_router.registry + meeting_router.registry + domain_router.registry
+router.registry += (
+    courses_router.registry
+    + common_services_router.registry
+    + meeting_router.registry
+    + domain_router.registry
+    + box_router.registry
+)
 
 user_router = routers.DefaultRouter()
 user_router.registry += users_router.registry

@@ -1,10 +1,10 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import Course
 from courses.models.homework.user_homework import (
     UserHomework,
     UserHomeworkStatusChoices,
 )
-from courses.models import Course
 from courses.models.homework.user_homework_check import UserHomeworkCheck
 from courses.paginators import UserHomeworkPagination
 from courses.serializers import (
@@ -19,9 +19,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class HomeworkCheckViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class HomeworkCheckViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт создания историй проверок домашних заданий ученика.\n
     <h2>/api/{school_name}/user_homework_checks/</h2>\n
     Cоздавать истории может только ученик и учитель, а так же редактировать исключительно свои истории.
@@ -39,9 +37,12 @@ class HomeworkCheckViewSet(
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(
-            group__name__in=["Student", "Teacher", "Admin"], school=school_id
-        ).exists() or user.email == "student@coursehub.ru":
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Teacher", "Admin"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")

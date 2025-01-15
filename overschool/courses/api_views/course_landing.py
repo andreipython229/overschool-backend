@@ -47,9 +47,7 @@ from .utils import convert_landing_data
 s3 = UploadToS3()
 
 
-class CourseLandingViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class CourseLandingViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт для просмотра, создания, изменения и удаления лендингов курсов \n
     <h2>/api/{school_name}/courses_landing/</h2>\n
     Получать лендинг курса может любой пользователь. \n

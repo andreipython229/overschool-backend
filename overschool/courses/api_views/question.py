@@ -12,7 +12,7 @@ from .schemas.question import QuestionsSchemas
 s3 = UploadToS3()
 
 
-class QuestionViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class QuestionViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления вопросов \n
     <h2>/api/{school_name}/questions/</h2>\n
     Получать вопросы может любой пользователь. \n

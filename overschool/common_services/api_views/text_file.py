@@ -17,9 +17,7 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class TextFileViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class TextFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """
     Модель добавления текстовых к занятиям\n
     <h2>/api/{school_name}/text_files/</h2>\n
