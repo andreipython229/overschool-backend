@@ -62,17 +62,24 @@ def get_student_training_duration(group, student_id):
         training_duration = TrainingDuration.objects.filter(
             user_id=student_id, students_group=group
         ).first()
-        if training_duration.limit > 0:
-            return (
-                training_duration.limit,
-                training_duration.limit,
-                training_duration.download,
-            )
+        if training_duration:
+            if training_duration.limit > 0:
+                return (
+                    training_duration.limit,
+                    training_duration.limit,
+                    training_duration.download,
+                )
+            else:
+                return (
+                    (group.training_duration, None, training_duration.download)
+                    if group.training_duration
+                    else (None, None, training_duration.download)
+                )
         else:
             return (
-                (group.training_duration, None, training_duration.download)
+                (group.training_duration, None, group.group_settings.download)
                 if group.training_duration
-                else (None, None, training_duration.download)
+                else (None, None, group.group_settings.download)
             )
     except TrainingDuration.DoesNotExist:
         return (
