@@ -197,11 +197,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = event["sender"]
         id_key = event["id"]
 
+        file_url = s3.get_link(file) if file else None
+
         await self.send(
             text_data=json.dumps(
                 {
                     "content": message,
-                    "file": file,
+                    "file": file_url,
                     "sender": user,
                     "id": id_key,
                 }
