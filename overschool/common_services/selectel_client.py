@@ -112,6 +112,11 @@ class UploadToS3:
         self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
         return file_path
 
+    def upload_file_chat(self, file, chat):
+        file_path = "chats/files/{}@{}".format(chat, file.name).replace(" ", "_")
+        self.s3.upload_fileobj(file, S3_BUCKET, file_path)
+        return file_path
+
     def upload_file(self, filename, base_lesson):
         course = base_lesson.section.course
         course_id = course.course_id

@@ -39,16 +39,13 @@ class UserChatRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserChat
         fields = [
-            'user_role',
-            'user',
+            "user_role",
+            "user",
         ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        return {
-            'user_role': data['user_role'],
-            **data['user']
-        }
+        return {"user_role": data["user_role"], **data["user"]}
 
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -81,7 +78,7 @@ class ChatSerializer(serializers.ModelSerializer):
         ]
         if last_message:
             message = obj.message_set.filter(sent_at=last_message).first()
-            serializer = MessageSerializer(
+            serializer = MessageGetSerializer(
                 message, context={"request": self.context["request"]}
             )
             return serializer.data
@@ -99,7 +96,25 @@ class MessageSerializer(serializers.ModelSerializer):
             "sender",
             "sent_at",
             "content",
+            "file",
         ]
+
+
+class MessageGetSerializer(serializers.ModelSerializer):
+    file = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "sender",
+            "sent_at",
+            "content",
+            "file",
+        ]
+
+    def get_file(self, obj):
+        return s3.get_link(obj.file.name) if obj.file else None
 
 
 class MessageInfoSerializer(serializers.ModelSerializer):

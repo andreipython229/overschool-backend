@@ -37,6 +37,7 @@ User = get_user_model()
 class AccessDistributionView(
     LoggingMixin, WithHeadersViewSet, SchoolMixin, generics.GenericAPIView
 ):
+    queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AccessDistributionSerializer
     parser_classes = (MultiPartParser,)

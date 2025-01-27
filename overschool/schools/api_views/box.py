@@ -7,7 +7,8 @@ from common_services.mixins import WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.db.models import F, Sum
 from django.utils.timezone import now
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, serializers, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -136,6 +137,76 @@ class BoxViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["patch"])
+    def bulk_update(self, request, *args, **kwargs):
+        """
+        Обновляет несколько коробок.
+        """
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        if not isinstance(request.data, list):
+            return Response(
+                {"error": "Ожидался массив с данными для обновления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_boxes = []
+        for box_data in request.data:
+            box_id = box_data.pop("id", None)
+            if not box_id:
+                return Response(
+                    {"error": "ID коробки обязателен для обновления."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                box = Box.objects.get(id=box_id, school_id=school_id)
+                serializer = self.get_serializer(box, data=box_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                if "icon" in request.FILES:
+                    if box.icon:
+                        s3.delete_file(str(box.icon))
+                    serializer.validated_data["icon"] = s3.upload_school_image(
+                        request.FILES["icon"], school_id
+                    )
+                else:
+                    serializer.validated_data["icon"] = box.icon
+                self.perform_update(serializer)
+                updated_boxes.append(BoxDetailSerializer(box).data)
+            except Box.DoesNotExist:
+                continue
+
+        return Response(updated_boxes, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["delete"])
+    def bulk_delete(self, request, *args, **kwargs):
+        """
+        Удаляет несколько коробок.
+        """
+        box_ids = request.data.get("ids", None)
+        if not box_ids or not isinstance(box_ids, list):
+            return Response(
+                {"error": "Ожидался массив ID коробок для удаления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        boxes = Box.objects.filter(id__in=box_ids)
+        remove_responses = []
+        for box in boxes:
+            if box.icon:
+                remove_responses.append(s3.delete_file(str(box.icon)))
+            box.delete()
+
+        if "Error" in remove_responses:
+            return Response(
+                {"error": "Ошибка удаления некоторых ресурсов из хранилища Selectel."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"message": "Коробки успешно удалены."}, status=status.HTTP_204_NO_CONTENT
+        )
+
 
 class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     serializer_class = PrizeSerializer
@@ -253,11 +324,81 @@ class PrizeViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["patch"])
+    def bulk_update(self, request, *args, **kwargs):
+        """
+        Массовое обновление призов.
+        """
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        if not isinstance(request.data, list):
+            return Response(
+                {"error": "Ожидался массив с данными для обновления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_prizes = []
+        for prize_data in request.data:
+            prize_id = prize_data.pop("id", None)
+            if not prize_id:
+                return Response(
+                    {"error": "ID приза обязателен для обновления."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                prize = Prize.objects.get(id=prize_id, school_id=school_id)
+                serializer = self.get_serializer(prize, data=prize_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+
+                if "icon" in request.FILES:
+                    if prize.icon:
+                        s3.delete_file(str(prize.icon))
+                    serializer.validated_data["icon"] = s3.upload_school_image(
+                        request.FILES["icon"], school_id
+                    )
+
+                self.perform_update(serializer)
+                self.perform_active_check(prize)  # Обновляем коробки
+                updated_prizes.append(PrizeDetailSerializer(prize).data)
+            except Prize.DoesNotExist:
+                continue
+
+        return Response(updated_prizes, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["delete"])
+    def bulk_delete(self, request, *args, **kwargs):
+        """
+        Массовое удаление призов.
+        """
+        prize_ids = request.data.get("ids", None)
+        if not prize_ids or not isinstance(prize_ids, list):
+            return Response(
+                {"error": "Ожидался массив ID призов для удаления."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        prizes = Prize.objects.filter(id__in=prize_ids)
+        for prize in prizes:
+            if prize.icon:
+                s3.delete_file(str(prize.icon))
+            prize.delete()
+
+        return Response(
+            {"message": "Призы успешно удалены."}, status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class PaymentLinkSerializer(serializers.Serializer):
+    pass
+
 
 class CreatePaymentLinkView(WithHeadersViewSet, SchoolMixin, APIView):
     """
     Эндпоинт для создания ссылки на оплату коробки.
     """
+
+    serializer_class = PaymentLinkSerializer
 
     def post(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -329,10 +470,16 @@ class CreatePaymentLinkView(WithHeadersViewSet, SchoolMixin, APIView):
             )
 
 
+class CheckPaymentSerializer(serializers.Serializer):
+    pass
+
+
 class CheckPaymentStatusView(WithHeadersViewSet, SchoolMixin, APIView):
     """
     Эндпоинт для проверки статусов платежей, ожидающих оплаты.
     """
+
+    serializer_class = CheckPaymentSerializer
 
     def get(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -496,7 +643,13 @@ def open_box(user, box):
     return None
 
 
+class OpenBoxSerializer(serializers.Serializer):
+    pass
+
+
 class OpenBoxView(WithHeadersViewSet, SchoolMixin, APIView):
+    serializer_class = OpenBoxSerializer
+
     def get(self, request, *args, **kwargs):
         """
         Возвращает все купленные пользователем коробки с их состоянием,
