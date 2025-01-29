@@ -735,8 +735,9 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             )["unique_students_count"]
 
             paginator = StudentsPagination()
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
             serialized_data = []
-            for item in sorted_data:
+            for item in paginated_data:
                 if not item["students__id"]:
                     continue
                 if "Прогресс" in fields and sort_by != "progress":
@@ -888,12 +889,12 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                             ),
                         }
                     )
-            paginated_data = paginator.paginate_queryset(serialized_data, request)
+
             pagination_data = {
                 "count": paginator.page.paginator.count,
                 "next": paginator.get_next_link(),
                 "previous": paginator.get_previous_link(),
-                "results": paginated_data,
+                "results": serialized_data,
             }
             return Response(pagination_data)
 

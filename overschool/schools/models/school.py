@@ -194,12 +194,12 @@ class School(TimeStampMixin, OrderMixin):
 
     def save(self, *args, **kwargs):
         # Проверка, что тариф не может быть None, пока есть оплаченный или пробный период
-        if self.tariff is None and (
-            self.purchased_tariff_end_date or self.trial_end_date
-        ):
-            raise ValidationError(
-                "Нельзя убрать тариф, пока действует оплаченный или пробный период."
-            )
+        # if self.tariff is None and (
+        #     self.purchased_tariff_end_date or self.trial_end_date
+        # ):
+        #     raise ValidationError(
+        #         "Нельзя убрать тариф, пока действует оплаченный или пробный период."
+        #     )
 
         # Отключение ребрендинга, если тариф меняется на другой, не Senior
         if self.tariff and self.tariff.name != TariffPlan.SENIOR:

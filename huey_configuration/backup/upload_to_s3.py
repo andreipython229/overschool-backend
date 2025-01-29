@@ -21,7 +21,7 @@ s3 = boto3.client(
 )
 
 
-def compress_and_upload_backup(backup_path, db_name):
+def compress_and_upload_backup(backup_path, db_name, max_backups):
     try:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         zip_file_path = f"{db_name}_{timestamp}.zip"
@@ -42,7 +42,7 @@ def compress_and_upload_backup(backup_path, db_name):
         os.remove(backup_path)
         os.remove(zip_file_path)
 
-    # Удалить старые файлы резервных копий, если превышен лимит в 7
+    # Удалить старые файлы резервных копий, если превышен лимит в 30
     try:
         # Получаем список файлов бэкапов
         files = s3.list_objects(Bucket=S3_BUCKET, Prefix=f"{db_name}/")["Contents"]
@@ -56,7 +56,6 @@ def compress_and_upload_backup(backup_path, db_name):
     logger.debug(f"Has {num_backups} backups")
 
     # Удаляем старые бэкапы, если их больше максимального лимита
-    max_backups = 7
     if num_backups > max_backups:
         logger.debug(f"Deleting old backups")
         old_files = sorted_files[max_backups:]

@@ -19,7 +19,6 @@ RUN set -eux; \
 WORKDIR /code
 
 COPY huey_configuration .
-COPY huey_configuration/requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 

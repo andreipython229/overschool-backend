@@ -15,6 +15,7 @@ class SchoolByDomainSerializer(serializers.Serializer):
 class SchoolByDomainView(WithHeadersViewSet, APIView):
     serializer_class = SchoolByDomainSerializer
     permission_classes = [permissions.AllowAny]
+    serializer_class = SchoolByDomainSerializer
 
     def get(self, request):
         domain_name = request.GET.get("domain", None)

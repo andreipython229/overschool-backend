@@ -183,9 +183,9 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                     "Не все пользователи, добавляемые в группу, являются студентами вашей школы."
                 )
 
-        # Создаем чат с названием "Чат с [имя группы]"
-        groupname = serializer.validated_data.get("name", "")
-        chat_name = f"{groupname}"
+        # Создаем чат с названием "Чат с [имя курса]"
+        course_name = course.name
+        chat_name = f"{course_name}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         # Создаём модель настроек группы
@@ -530,9 +530,10 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                         reverse=True,
                     )
             paginator = StudentsPagination()
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
 
             student_data = []
-            for student in sorted_data:
+            for student in paginated_data:
                 profile = Profile.objects.get(user_id=student["id"])
 
                 if "Прогресс" in fields and sort_by != "progress":
@@ -623,12 +624,12 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                             ),
                         }
                     )
-            paginated_data = paginator.paginate_queryset(student_data, request)
+
             pagination_data = {
                 "count": paginator.page.paginator.count,
                 "next": paginator.get_next_link(),
                 "previous": paginator.get_previous_link(),
-                "results": paginated_data,
+                "results": student_data,
             }
             return Response(pagination_data)
         else:
@@ -718,7 +719,6 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
 
         student_data = []
         for student in students:
-            profile = Profile.objects.get(user_id=student)
             students_history = StudentsHistory.objects.filter(
                 user_id=student.id, students_group=group.group_id, is_deleted=False
             ).first()
@@ -734,11 +734,8 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
-                    "phone_number": student.phone_number,
+                    "phone_number": str(student.phone_number),
                     "school_name": school.name,
-                    "avatar": s3.get_link(profile.avatar.name)
-                    if profile.avatar
-                    else s3.get_link("users/avatars/base_avatar.jpg"),
                     "last_active": student.date_joined,
                     "last_login": student.last_login,
                     "mark_sum": student.user_homeworks.aggregate(mark_sum=Sum("mark"))[
@@ -753,9 +750,6 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                     "date_added": students_history.date_added
                     if students_history
                     else None,
-                    "chat_uuid": UserChat.get_existed_chat_id_by_type(
-                        chat_creator=user, reciever=student.id, type="PERSONAL"
-                    ),
                 }
             )
 
@@ -960,9 +954,9 @@ class StudentsGroupWithoutTeacherViewSet(
         if not group_settings_data:
             group_settings_data = {}
         group_settings = StudentsGroupSettings.objects.create(**group_settings_data)
-        # Создаем чат с названием "Чат с [имя группы]"
-        groupname = serializer.validated_data.get("name", "")
-        chat_name = f"{groupname}"
+        # Создаем чат с названием "Чат с [имя курса]"
+        course_name = course.name
+        chat_name = f"{course_name}"
         chat = Chat.objects.create(name=chat_name, type="GROUP")
 
         serializer.save(group_settings=group_settings, type=type)

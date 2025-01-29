@@ -82,7 +82,7 @@ class TextFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         user_homework_id = request.data.get("user_homework")
         course_id = request.data.get("courseId")
         user_homework_check_id = request.data.get("user_homework_check")
-        course = Course.objects.get(course_id=course_id)
+        course = Course.objects.filter(course_id=course_id).first()
 
         # Проверяем, что пользователь студент или учитель
         if user.groups.filter(
@@ -94,7 +94,7 @@ class TextFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                     user_homework_id=user_homework_id, user=user
                 ).first()
                 if user_homework:
-                    if course.is_copy:
+                    if course and course.is_copy:
                         user_homeworks = UserHomework.objects.filter(
                             copy_course_id=course.course_id,
                         )
@@ -146,7 +146,7 @@ class TextFileViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 ).first()
 
                 if user_homework_check:
-                    if course.is_copy:
+                    if course and course.is_copy:
                         user_homework_checks = UserHomeworkCheck.objects.filter(
                             user_homework__copy_course_id=course.course_id,
                         )

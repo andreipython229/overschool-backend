@@ -534,9 +534,9 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                     )
 
             paginator = StudentsPagination()
-
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
             serialized_data = []
-            for item in sorted_data:
+            for item in paginated_data:
                 if not item["students__id"]:
                     continue
                 if "Прогресс" in fields and sort_by != "progress":
@@ -668,12 +668,12 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                             ),
                         }
                     )
-            paginated_data = paginator.paginate_queryset(serialized_data, request)
+
             pagination_data = {
                 "count": paginator.page.paginator.count,
                 "next": paginator.get_next_link(),
                 "previous": paginator.get_previous_link(),
-                "results": paginated_data,
+                "results": serialized_data,
             }
             return Response(pagination_data)
         else:
@@ -1069,8 +1069,8 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                             {"error": "Срок доступа к курсу истек."},
                             status=status.HTTP_403_FORBIDDEN,
                         )
-            except Exception:
-                raise NotFound("Ошибка поиска группы пользователя 1.")
+            except Exception as e:
+                raise NotFound(str(e))
 
         elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:

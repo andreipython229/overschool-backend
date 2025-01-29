@@ -21,7 +21,7 @@ class SignupSerializer(serializers.Serializer):
         email = attrs.get("email")
         phone_number = attrs.get("phone_number")
 
-        if email and User.objects.filter(email=email).exists():
+        if email and User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("Email already exists.")
 
         if phone_number and User.objects.filter(phone_number=phone_number).exists():

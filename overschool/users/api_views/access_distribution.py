@@ -46,6 +46,15 @@ class AccessDistributionView(
         school_name = self.kwargs.get("school_name")
         return School.objects.get(name=school_name)
 
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsGroup.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        # Возвращаем список объектов, связанных с текущей школой
+        school = self.get_school()
+        return StudentsGroup.objects.filter(course_id__school=school)
+
     def check_existing_role(self, user, school, group):
         existing_group = (
             UserGroup.objects.filter(user=user, school=school)

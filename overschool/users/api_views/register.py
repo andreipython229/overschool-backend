@@ -30,7 +30,7 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
 
     def post(self, request):
         email = request.data.get("email")
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email__iexact=email).exists():
             return HttpResponse("User already exists")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,7 +76,7 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         last_name = serializer.validated_data.get("last_name")
         patronymic = serializer.validated_data.get("patronymic")
 
-        existing_user = User.objects.filter(email=email).first()
+        existing_user = User.objects.filter(email__iexact=email).first()
         if existing_user:
             return Response({"user_id": existing_user.id}, status=status.HTTP_200_OK)
 

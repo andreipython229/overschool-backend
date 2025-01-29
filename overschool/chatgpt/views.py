@@ -1,18 +1,22 @@
 import json
+
 import g4f
-from g4f.client import Client
-
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-
-from rest_framework.views import APIView, View
+from django.views.decorators.csrf import csrf_exempt
+from g4f.client import Client
 from rest_framework.parsers import JSONParser
-
+from rest_framework.views import APIView, View
 from users.models.user import User
-from .models import UserMessage, BotResponse, OverAiChat
-from .serializers import UserMessageSerializer, BotResponseSerializer
-from .schemas import OverAiChatSchemas, SendMessageToGPTSchema, LastMessagesSchema, LastTenChatsSchema
+
+from .models import BotResponse, OverAiChat, UserMessage
+from .schemas import (
+    LastMessagesSchema,
+    LastTenChatsSchema,
+    OverAiChatSchemas,
+    SendMessageToGPTSchema,
+)
+from .serializers import BotResponseSerializer, UserMessageSerializer
 
 
 class AssignChatOrderView(APIView):
@@ -34,15 +38,15 @@ class AssignChatOrderView(APIView):
                 # Получаем объект чата по его id
                 chat = OverAiChat.objects.get(id=chat_id)
                 # Обновляем порядковый номер чата
-                chat.order = chat_info['order']
+                chat.order = chat_info["order"]
                 chat.save()
 
-            return JsonResponse({'success': True}, status=200)
+            return JsonResponse({"success": True}, status=200)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class UserWelcomeMessageView(View):
     """
     Приветственное сообщение в OVER AI:
@@ -55,21 +59,27 @@ class UserWelcomeMessageView(View):
             user = request.user
             user.shown_welcome_message = True
             user.save()
-            return JsonResponse({'message': 'show_welcome_message установлен в True'}, status=200)
+            return JsonResponse(
+                {"message": "show_welcome_message установлен в True"}, status=200
+            )
         except User.DoesNotExist:
-            return JsonResponse({'error': 'Пользователь с указанным ID не найден'}, status=404)
+            return JsonResponse(
+                {"error": "Пользователь с указанным ID не найден"}, status=404
+            )
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
     def get(self, request):
         try:
             user = request.user
             show_welcome_message = user.shown_welcome_message
-            return JsonResponse({'show_welcome_message': show_welcome_message})
+            return JsonResponse({"show_welcome_message": show_welcome_message})
         except User.DoesNotExist:
-            return JsonResponse({'error': 'Пользователь с указанным ID не найден'}, status=404)
+            return JsonResponse(
+                {"error": "Пользователь с указанным ID не найден"}, status=404
+            )
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
 
 @method_decorator(
@@ -90,18 +100,18 @@ class LastTenChats(APIView):
     def get(self, request):
         try:
             user = request.user
-            last_ten_chats = OverAiChat.objects.filter(user_id=user, order__gte=1, order__lte=10).order_by('order')[:10]
+            last_ten_chats = OverAiChat.objects.filter(
+                user_id=user, order__gte=1, order__lte=10
+            ).order_by("order")[:10]
 
             chat_data = {
-                chat.id: {
-                    'order': chat.order,
-                    'chat_name': chat.chat_name
-                } for chat in last_ten_chats
+                chat.id: {"order": chat.order, "chat_name": chat.chat_name}
+                for chat in last_ten_chats
             }
 
             return JsonResponse(chat_data, safe=False)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
 
 @method_decorator(
@@ -123,10 +133,10 @@ class SendMessageToGPT(APIView):
         try:
             # Получаем данные из request
             data = json.loads(request.body)
-            user_message = data.get('message', '')
-            language = data.get('language', '')
+            user_message = data.get("message", "")
+            language = data.get("language", "")
             user = request.user.id
-            overai_chat_id = data.get('overai_chat_id', '')
+            overai_chat_id = data.get("overai_chat_id", "")
             messages = []
 
             # Получаем последние сообщения для конкретного чата
@@ -137,12 +147,14 @@ class SendMessageToGPT(APIView):
             combined_data_list = json.loads(combined_data_str)
 
             # Передача последних сообщений для OVER AI, для поддержки контекста
-            for user_data, assistant_data in zip(combined_data_list[0][:4], combined_data_list[1][:4]):
+            for user_data, assistant_data in zip(
+                combined_data_list[0][:4], combined_data_list[1][:4]
+            ):
                 sender_question = user_data.get("sender_question", "")
                 if sender_question:
                     messages.append({"role": "user", "content": sender_question})
 
-                answer = assistant_data.get('answer', '')
+                answer = assistant_data.get("answer", "")
                 if answer:
                     messages.append({"role": "assistant", "content": answer})
 
@@ -157,19 +169,15 @@ class SendMessageToGPT(APIView):
                 overai_chat.save()
 
             UserMessage.objects.create(
-                sender_id=user,
-                sender_question=user_message,
-                overai_chat_id=overai_chat
+                sender_id=user, sender_question=user_message, overai_chat_id=overai_chat
             )
 
             BotResponse.objects.create(
-                sender_id=user,
-                answer=response,
-                overai_chat_id=overai_chat
+                sender_id=user, answer=response, overai_chat_id=overai_chat
             )
-            return JsonResponse({'bot_response': response})
+            return JsonResponse({"bot_response": response})
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
     def run_provider(self, messages, language):
         """
@@ -177,7 +185,7 @@ class SendMessageToGPT(APIView):
         """
 
         # Добавление указания на язык ответа к последнему сообщению
-        if language == 'ENG':
+        if language == "ENG":
             messages[-1]["content"] += " (Respond in English)"
         else:
             messages[-1]["content"] += " (Ответь на русском языке)"
@@ -188,24 +196,14 @@ class SendMessageToGPT(APIView):
                 messages=messages,
             )
 
-            response_str = ''.join(response.choices[0].message.content)
+            response_str = "".join(response.choices[0].message.content)
             return response_str
-            # if response_str:
-            #     detected_language = detect(response_str)
-            #     if (detected_language == 'en') or (detected_language == 'ru'):
-            #         return response_str
-            #     else:
-            #         return "Ошибка получения ответа: попробуйте позже..."
-            # else:
-            #     return "Ошибка: нет подходящего ответа, попробуйте позже..."
-        except Exception:
+
+        except Exception as e:
             return "Ошибка: нет подходящего ответа, попробуйте позже..."
 
 
-@method_decorator(
-    LastMessagesSchema.last_messages_get_schema(),
-    name="get"
-)
+@method_decorator(LastMessagesSchema.last_messages_get_schema(), name="get")
 class LastMessages(APIView):
     """
     Получение последних сообщений от пользователя и ответов от OVER AI для конкретного чата
@@ -216,24 +214,25 @@ class LastMessages(APIView):
     def get(self, request, overai_chat_id):
         user = request.user
         try:
-            latest_messages = UserMessage.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by(
-                '-message_date')[:7]
-            latest_responses = BotResponse.objects.filter(sender_id=user, overai_chat_id=overai_chat_id).order_by(
-                '-message_date')[:7]
+            latest_messages = UserMessage.objects.filter(
+                sender_id=user, overai_chat_id=overai_chat_id
+            ).order_by("-message_date")[:7]
+            latest_responses = BotResponse.objects.filter(
+                sender_id=user, overai_chat_id=overai_chat_id
+            ).order_by("-message_date")[:7]
             user_serializer = UserMessageSerializer(latest_messages, many=True)
             bot_serializer = BotResponseSerializer(latest_responses, many=True)
 
-            combined_data = list(reversed(user_serializer.data)), list(reversed(bot_serializer.data))
+            combined_data = list(reversed(user_serializer.data)), list(
+                reversed(bot_serializer.data)
+            )
 
             return JsonResponse(combined_data, safe=False)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
 
-@method_decorator(
-    OverAiChatSchemas.create_chat_schema(),
-    name="post"
-)
+@method_decorator(OverAiChatSchemas.create_chat_schema(), name="post")
 class CreateChatView(APIView):
     """
     Создание чата пользователя
@@ -250,7 +249,11 @@ class CreateChatView(APIView):
         new_chat = OverAiChat.objects.create(user_id=user)
         order = 2
 
-        last_10_chats = OverAiChat.objects.filter(user_id=user).exclude(id=new_chat.id).order_by('-order')[:10][::-1]
+        last_10_chats = (
+            OverAiChat.objects.filter(user_id=user)
+            .exclude(id=new_chat.id)
+            .order_by("-order")[:10][::-1]
+        )
 
         for chat in last_10_chats:
             chat.order = order
@@ -260,12 +263,16 @@ class CreateChatView(APIView):
         new_chat.order = 1
         new_chat.save()
 
-        new_last_10_chats = OverAiChat.objects.filter(user_id=user, order__range=(1, 10)).order_by('-order')
+        new_last_10_chats = OverAiChat.objects.filter(
+            user_id=user, order__range=(1, 10)
+        ).order_by("-order")
 
         # Устанавливаем порядковый номер 0 для всех остальных чатов пользователя, не включенных в последние 10
-        OverAiChat.objects.filter(user_id=user).exclude(id__in=[chat.id for chat in new_last_10_chats]).update(order=0)
+        OverAiChat.objects.filter(user_id=user).exclude(
+            id__in=[chat.id for chat in new_last_10_chats]
+        ).update(order=0)
 
-        return JsonResponse({'overai_chat_id': new_chat.id}, status=200)
+        return JsonResponse({"overai_chat_id": new_chat.id}, status=200)
 
 
 class DeleteChatView(APIView):
@@ -280,13 +287,19 @@ class DeleteChatView(APIView):
     def post(self, request):
         try:
             user = request.user
-            chat_id = request.data.get('chat_id')
-            chat_list = request.data.get('orderData')
-            cleaned_order_data = [chat_data for chat_data in chat_list if chat_data.get('id') != chat_id]
-            sorted_cleaned_order_data = sorted(cleaned_order_data, key=lambda x: x['order'])
+            chat_id = request.data.get("chat_id")
+            chat_list = request.data.get("orderData")
+            cleaned_order_data = [
+                chat_data for chat_data in chat_list if chat_data.get("id") != chat_id
+            ]
+            sorted_cleaned_order_data = sorted(
+                cleaned_order_data, key=lambda x: x["order"]
+            )
 
             if not OverAiChat.objects.filter(id=chat_id).exists():
-                return JsonResponse({'error': 'Чат с указанным ID не найден'}, status=404)
+                return JsonResponse(
+                    {"error": "Чат с указанным ID не найден"}, status=404
+                )
 
             UserMessage.objects.filter(overai_chat_id=chat_id).delete()
             BotResponse.objects.filter(overai_chat_id=chat_id).delete()
@@ -298,20 +311,24 @@ class DeleteChatView(APIView):
             # Присваиваем им новые значения от 1 до 9
             new_order = 1
             for chat_data in sorted_cleaned_order_data:
-                chat_id = chat_data.get('id')
+                chat_id = chat_data.get("id")
 
                 # Установка нового порядка чата
                 OverAiChat.objects.filter(id=chat_id).update(order=new_order)
                 new_order += 1
 
-            order_data_ids = [chat_data.get('id') for chat_data in chat_list]
-            latest_chat = OverAiChat.objects.filter(user_id=user.id).exclude(id__in=order_data_ids).order_by(
-                '-id').first()
+            order_data_ids = [chat_data.get("id") for chat_data in chat_list]
+            latest_chat = (
+                OverAiChat.objects.filter(user_id=user.id)
+                .exclude(id__in=order_data_ids)
+                .order_by("-id")
+                .first()
+            )
 
             if latest_chat:
                 latest_chat.order = 10
                 latest_chat.save()
 
-            return JsonResponse({'message': 'Чат успешно удален'}, status=200)
+            return JsonResponse({"message": "Чат успешно удален"}, status=200)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)

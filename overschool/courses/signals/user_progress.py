@@ -19,21 +19,39 @@ from django.utils import timezone
 @receiver([post_save, post_delete], sender=UserProgressLogs)
 def update_progress(sender, instance, **kwargs):
     student_id = instance.user_id
-    course_id = instance.lesson.section.course.course_id
-    cache_key = f"progress_update_{student_id}_{course_id}"
+    course_id = None
 
-    # Проверим, когда последний раз обновлялся прогресс
-    last_update = cache.get(cache_key)
-    now = timezone.now()
+    # При удалении урока используем cached_lesson_course_id если он есть
+    if hasattr(instance, "cached_lesson_course_id"):
+        course_id = instance.cached_lesson_course_id
+    else:
+        # Безопасно проверяем существование связанных объектов
+        try:
+            if instance.lesson_id:
+                lesson = instance.lesson
+                if lesson.section and lesson.section.course:
+                    course_id = lesson.section.course.course_id
+        except BaseLesson.DoesNotExist:
+            pass
 
-    if (
-        not last_update or (now - last_update).seconds > 180
-    ):  # Обновляем, если прошло больше 3 минут
-        progress = calculate_progress(student_id, course_id)
-        StudentCourseProgress.objects.update_or_create(
-            student_id=student_id, course_id=course_id, defaults={"progress": progress}
-        )
-        cache.set(cache_key, now, timeout=180)  # Устанавливаем таймаут на 3 минут
+    if course_id:
+        cache_key = f"progress_update_{student_id}_{course_id}"
+        # Проверим, когда последний раз обновлялся прогресс
+        last_update = cache.get(cache_key)
+        now = timezone.now()
+
+        if (
+            not last_update or (now - last_update).seconds > 180
+        ):  # Обновляем, если прошло больше 3 минут
+            progress = calculate_progress(student_id, course_id)
+            StudentCourseProgress.objects.update_or_create(
+                student_id=student_id,
+                course_id=course_id,
+                defaults={"progress": progress},
+            )
+            cache.set(cache_key, now, timeout=180)  # Устанавливаем таймаут на 3 минут
+    else:
+        pass
 
 
 def calculate_progress(student_id, course_id):

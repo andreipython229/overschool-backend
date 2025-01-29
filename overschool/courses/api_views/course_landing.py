@@ -56,7 +56,6 @@ class CourseLandingViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
     # serializer_class = LandingGetSerializer
     # permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "retrieve", "update", "patch"]
-
     # parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):

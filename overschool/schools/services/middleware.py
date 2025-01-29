@@ -80,8 +80,7 @@ class DomainAccessMiddleware(MiddlewareMixin):
         "localhost:8000",
         "localhost:3000",
         "127.0.0.1:8000",
-        "45.135.234.21:8000",
-        "45.135.234.21:8000",
+        "91.211.248.84:8000",
     ]
 
     def process_request(self, request):
@@ -127,7 +126,6 @@ class DomainAccessMiddleware(MiddlewareMixin):
             user_schools.update(School.objects.filter(owner=current_user))
             user_schools.update(School.objects.filter(groups__user=current_user))
 
-            # Если есть школы у пользователя
             # Если есть школы у пользователя
             if user_schools:
                 # Проверяем домены всех школ пользователя
