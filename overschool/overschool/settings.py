@@ -33,6 +33,7 @@ DEBUG = env.bool("DEBUG", False)
 ALLOWED_HOSTS = (
     [
         "platform.coursehb.ru",
+        "apidev.coursehb.ru",
         "dev.coursehb.ru",
         "www.coursehb.ru",
         "coursehb.ru",
@@ -101,6 +102,7 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://platform.coursehb.ru",
+    "https://apidev.coursehb.ru",
     "https://dev.coursehb.ru",
     "https://www.coursehb.ru",
     "https://coursehb.ru",
