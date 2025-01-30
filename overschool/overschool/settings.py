@@ -29,7 +29,21 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
+
+ALLOWED_HOSTS = (
+    [
+        "platform.coursehb.ru",
+        "dev.coursehb.ru",
+        "www.coursehb.ru",
+        "coursehb.ru",
+        "178.159.43.93",
+        "178.159.43.93:3000",
+        "127.0.0.1",
+        "localhost",
+    ]
+    if not DEBUG
+    else ["*"]
+)
 
 # Application definition
 
@@ -82,10 +96,19 @@ EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 SITE_URL: str = os.getenv("SITE_URL")
 
-
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "https://platform.coursehb.ru",
+    "https://dev.coursehb.ru",
+    "https://www.coursehb.ru",
+    "https://coursehb.ru",
+    "http://178.159.43.93",
+    "http://178.159.43.93:3000",
+    "http://127.0.0.1",
+    "http://localhost",
+]
 
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
@@ -122,14 +145,6 @@ CORS_ALLOW_HEADERS = [
     "Sec-WebSocket-Protocol",
 ]
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
-#         },
-#     },
-# }
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
@@ -241,7 +256,6 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 4294967296
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
