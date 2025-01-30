@@ -153,9 +153,16 @@ CORS_ALLOW_HEADERS = [
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+            "capacity": 1500,
+            "expiry": 10,
+        },
     },
 }
+
+ASGI_APPLICATION_SHUTDOWN_TIMEOUT = 10
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
