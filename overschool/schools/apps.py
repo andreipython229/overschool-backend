@@ -9,7 +9,6 @@ class SchoolsConfig(AppConfig):
         from courses.models import Course, Lesson
         from courses.models.common.base_lesson import BaseLessonBlock, BlockType
         from courses.models.students.students_group import StudentsGroup
-        from django.conf import settings
         from django.db.models.signals import post_save
         from schools.models import School
         from schools.signals import (
