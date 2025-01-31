@@ -10,3 +10,4 @@ class WithHeadersViewSet(viewsets.GenericViewSet):
         headers["access-control-allow-credentials"] = "true"
         headers["Access-Control-Allow-Origin"] = "*"
         headers["Access-Control-Allow-Methods"] = "*"
+        return headers
