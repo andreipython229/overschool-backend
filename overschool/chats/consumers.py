@@ -228,13 +228,44 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
-        self.set_room_group_name()
-        self.connected_users.remove(self.user)
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        try:
+            # Проверяем, существует ли пользователь и группа
+            if hasattr(self, "user") and hasattr(self, "room_group_name"):
+                self.set_room_group_name()
 
-        # Обновляем словарь подключенных пользователей
-        if self.room_group_name in self.connected_users_by_group:
-            self.connected_users_by_group[self.room_group_name].remove(self.user)
-            if len(self.connected_users_by_group[self.room_group_name]) == 0:
-                del self.connected_users_by_group[self.room_group_name]
-            # print("CONNECTED USERS BY GROUP: ", self.connected_users_by_group)
+                # Безопасное удаление пользователя из общего списка
+                if hasattr(self, "connected_users"):
+                    try:
+                        self.connected_users.remove(self.user)
+                    except (KeyError, ValueError):
+                        pass
+
+                # Отписка от группы channel layer
+                try:
+                    await self.channel_layer.group_discard(
+                        self.room_group_name, self.channel_name
+                    )
+                except Exception as e:
+                    print(f"Error discarding from group: {e}")
+
+                # Безопасное обновление словаря подключенных пользователей
+                if (
+                    self.room_group_name in self.connected_users_by_group
+                    and self.user in self.connected_users_by_group[self.room_group_name]
+                ):
+                    try:
+                        self.connected_users_by_group[self.room_group_name].remove(
+                            self.user
+                        )
+
+                        # Удаляем группу, только если она пуста
+                        if not self.connected_users_by_group[self.room_group_name]:
+                            del self.connected_users_by_group[self.room_group_name]
+                    except (KeyError, ValueError) as e:
+                        print(f"Error updating connected users: {e}")
+
+        except Exception as e:
+            print(f"Error in disconnect handler: {e}")
+        finally:
+            # Всегда вызываем родительский disconnect
+            await super().disconnect(close_code)

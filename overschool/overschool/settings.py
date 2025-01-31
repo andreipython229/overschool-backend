@@ -121,19 +121,18 @@ CORS_ALLOW_HEADERS = [
     "Sec-WebSocket-Protocol",
 ]
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [(env("REDIS_HOST"), int(env("REDIS_PORT")))],
-#         },
-#     },
-# }
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+            "capacity": 1500,
+            "expiry": 10,
+        },
     },
 }
+
+ASGI_APPLICATION_SHUTDOWN_TIMEOUT = 10
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -240,7 +239,6 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 4294967296
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
