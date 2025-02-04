@@ -79,10 +79,7 @@ class UploadToS3:
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "{}_school/{}_course/{}@{}".format(
-            school_id,
-            course_id,
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-            uploaded_image.name,
+            school_id, course_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
@@ -91,19 +88,14 @@ class UploadToS3:
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "{}_school/{}_course/landing/{}@{}".format(
-            school_id,
-            course_id,
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-            uploaded_image.name,
+            school_id, course_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
 
     def upload_school_image(self, uploaded_image, school_id):
         file_path = "{}_school/school_data/images/{}@{}".format(
-            school_id,
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-            uploaded_image.name,
+            school_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
         return file_path
@@ -135,22 +127,14 @@ class UploadToS3:
             zip_data = self.get_zip_file(filename)
             file_path = (
                 "{}_school/{}_course/{}_lesson/{}@{}".format(
-                    school_id,
-                    course_id,
-                    base_lesson.id,
-                    datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-                    name,
+                    school_id, course_id, base_lesson.id, datetime.now(), name
                 ).replace(" ", "_")
                 + ".zip"
             )
             self.s3.upload_fileobj(io.BytesIO(zip_data), S3_BUCKET, file_path)
         else:
             file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
-                school_id,
-                course_id,
-                base_lesson.id,
-                datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-                filename,
+                school_id, course_id, base_lesson.id, datetime.now(), filename
             ).replace(" ", "_")
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
         return file_path
@@ -160,11 +144,7 @@ class UploadToS3:
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
-            school_id,
-            course_id,
-            base_lesson.id,
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-            filename,
+            school_id, course_id, base_lesson.id, datetime.now(), filename
         ).replace(" ", "_")
         return file_path
 
@@ -173,11 +153,7 @@ class UploadToS3:
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
-            school_id,
-            course_id,
-            base_lesson.id,
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f"),
-            filename,
+            school_id, course_id, base_lesson.id, datetime.now(), filename
         ).replace(" ", "_")
 
         # Определите размер файла
