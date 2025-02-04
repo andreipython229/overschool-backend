@@ -6,7 +6,7 @@ atomicwrites==1.4.1
 channels-redis==4.1.0
 attrs==21.4.0
 billiard==3.6.4.0
-boto3
+boto3==1.28.66
 black==22.6.0
 certifi==2022.9.24
 cffi==1.15.1
