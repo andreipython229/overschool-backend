@@ -24,7 +24,7 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "status",
             "mark",
             "teacher",
-            "copy_course_id"
+            "copy_course_id",
         ]
         read_only_fields = (
             "user",
@@ -66,7 +66,7 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "teacher_last_name",
             "teacher_avatar",
             "user_homework_checks",
-            "copy_course_id"
+            "copy_course_id",
         ]
         read_only_fields = (
             "user",
@@ -177,8 +177,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         group = obj.user.students_group_fk.filter(
             course_id=obj.homework.section.course.course_id
         ).first()
-        if group:
-            return f"{group.teacher_id.last_name} {group.teacher_id.first_name}"
+        if group and group.teacher_id:
+            return f"{group.teacher_id.last_name if group.teacher_id.last_name else ''} {group.teacher_id.first_name if group.teacher_id.first_name else ''}"
         return None
 
     def get_user_avatar(self, obj):
