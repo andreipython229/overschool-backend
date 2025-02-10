@@ -153,7 +153,7 @@ def send_newsletter_emails():
 
         # Кешируем шаблоны рассылки (загружаем один раз)
         templates_cache = {}
-        for day in range(1, 31):
+        for day in range(2, 31):  # Начинаем с дня 2
             template_path = os.path.join(TEMPLATES_DIR, f"{day}.html")
             if os.path.exists(template_path):
                 with open(template_path, encoding="utf-8") as file:
@@ -164,9 +164,9 @@ def send_newsletter_emails():
             school_creation_date = school["created_at"].date()
             days_since_registration = (current_date - school_creation_date).days + 1
 
-            # Проверяем, что день в диапазоне и шаблон есть
+            # Проверяем, что день в диапазоне (от 2 до 30) и шаблон есть
             if (
-                1 <= days_since_registration <= 30
+                2 <= days_since_registration <= 30  # Начинаем с дня 2
                 and days_since_registration in templates_cache
             ):
                 email_content = templates_cache[days_since_registration]

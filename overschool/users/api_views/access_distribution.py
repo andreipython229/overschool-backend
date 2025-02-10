@@ -94,12 +94,12 @@ class AccessDistributionView(
         sender_service.send_code_by_email(
             email=email, subject=subject, message=html_message
         )
-        html_message = render_to_string("register_user.html")
+        html_message_template = render_to_string("register_user.html")
 
         sender_service.send_code_by_email(
             email=email,
             subject="Спасибо за верефикацию E-MAIL у нас на сайте",
-            message=html_message,
+            message=html_message_template,
         )
 
     def validate_tariff_plan(self, new_user_count, role):
