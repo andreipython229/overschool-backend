@@ -29,7 +29,24 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
+
+ALLOWED_HOSTS = (
+    [
+        "platform.coursehb.ru",
+        "apidev.coursehb.ru",
+        "dev.coursehb.ru",
+        "www.coursehb.ru",
+        "coursehb.ru",
+        "178.159.43.93",
+        "178.159.43.93:3000",
+        "127.0.0.1",
+        "45.88.76.53:8000",
+        "45.88.76.53",
+        "localhost",
+    ]
+    if not DEBUG
+    else ["*"]
+)
 
 # Application definition
 
@@ -82,15 +99,28 @@ EMAIL_HOST_USER = os.getenv("EMAIL_NAME")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 SITE_URL: str = os.getenv("SITE_URL")
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "https://platform.coursehb.ru",
+    "https://apidev.coursehb.ru",
+    "https://dev.coursehb.ru",
+    "https://www.coursehb.ru",
+    "https://coursehb.ru",
+    "http://178.159.43.93",
+    "http://178.159.43.93:3000",
+    "http://127.0.0.1",
+    "http://localhost",
+    "http://45.88.76.53:8000",
+    "http://45.88.76.53",
+]
 
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTOCOL", "https")
 
 SESSION_COOKIE_SECURE = False
-CSRF_TRUSTED_ORIGINS = ["http://sandbox.coursehb.ru"]
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
-CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = None
 CSRF_COOKIE_SAMESITE = None
 
@@ -224,7 +254,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "/backend-static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
