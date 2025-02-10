@@ -73,16 +73,14 @@ class DomainAccessMiddleware(MiddlewareMixin):
         r"/api/.+/answers/\d+/",
     ]
     ALLOWED_DOMAINS = [
-        "dev.coursehb.ru",
-        "apidev.coursehb.ru",
+        "sandbox.coursehb.ru",
         "coursehb.ru",
         "sandbox.coursehb.ru",
         "platform.coursehb.ru",
         "localhost:8000",
         "localhost:3000",
         "127.0.0.1:8000",
-        "45.135.234.9:8000",
-        "45.135.234.21:8000",
+        "91.211.248.84:8000",
     ]
 
     def process_request(self, request):

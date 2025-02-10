@@ -7,5 +7,4 @@ from .school_tasks import (
     mark_create_first_lesson_complete,
     mark_publish_course_complete,
     mark_upload_video_complete,
-    update_allowed_hosts_and_cors,
 )

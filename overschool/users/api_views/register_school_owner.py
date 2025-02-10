@@ -2,6 +2,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from schools.models import School
@@ -62,6 +63,14 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
 
         send = sender_service.send_code_by_email(
             email=email, subject=subject, message=message
+        )
+
+        html_message_template = render_to_string("day1.html")
+
+        sender_service.send_code_by_email(
+            email=email,
+            subject="День первый: CourseHub",
+            message=html_message_template,
         )
 
         new_user = get_object_or_404(User, email=email)

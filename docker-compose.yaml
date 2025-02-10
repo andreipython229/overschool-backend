@@ -22,33 +22,31 @@ services:
     volumes:
       - .:/code/
       - static_volume:/code/staticfiles
-  huey:
-    build:
-      context: .
-      dockerfile: huey_task.Dockerfile
-    image: huey
-    restart: always
-    ports:
-      - "8002:8002"
-    depends_on:
-      - redis
-  over_bot:
-    build:
-      context: .
-      dockerfile: over_bot.Dockerfile
-    image: over_bot
-    restart: always
+#  huey:
+#    build:
+#      context: .
+#      dockerfile: huey_task.Dockerfile
+#    image: huey
+#    restart: always
+#    ports:
+#      - "8002:8002"
+#    depends_on:
+#      - redis
+#  over_bot:
+#    build:
+#      context: .
+#      dockerfile: over_bot.Dockerfile
+#    image: over_bot
+#    restart: always
   nginx:
     image: nginx:stable
     container_name: nginx
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/code/staticfiles
-      - /etc/letsencrypt:/etc/letsencrypt
     depends_on:
       - back
 

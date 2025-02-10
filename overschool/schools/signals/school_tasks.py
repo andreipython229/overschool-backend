@@ -3,11 +3,10 @@ from datetime import timedelta
 from courses.models import Course, Lesson
 from courses.models.common.base_lesson import BaseLessonBlock, BlockType
 from courses.models.students.students_group import StudentsGroup
-from django.conf import settings
 from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 from django.utils import timezone
-from schools.models import Domain, School, SchoolTask, Task
+from schools.models import School, SchoolTask, Task
 from users.models import UserGroup
 
 
@@ -112,35 +111,3 @@ def mark_add_first_student_complete(sender, instance, action, **kwargs):
             school=school, task=Task.ADD_FIRST_STUDENT, completed=True
         ).exists():
             complete_task_and_extend_trial(school, Task.ADD_FIRST_STUDENT)
-
-
-@receiver(post_save, sender=Domain)
-def update_allowed_hosts_and_cors(sender, instance, **kwargs):
-    if not settings.DEBUG:
-        # Базовые хосты
-        base_hosts = [
-            "platform.coursehb.ru",
-            "dev.coursehb.ru",
-            "www.coursehb.ru",
-            "coursehb.ru",
-            "178.159.43.93",
-            "178.159.43.93:3000",
-        ]
-
-        # Базовые CORS origins
-        base_cors_origins = [
-            "https://platform.coursehb.ru",
-            "https://dev.coursehb.ru",
-            "https://www.coursehb.ru",
-            "https://coursehb.ru",
-        ]
-
-        domains = Domain.objects.filter(nginx_configured=True)
-
-        # Обновляем ALLOWED_HOSTS
-        custom_domains = [domain.domain_name for domain in domains]
-        settings.ALLOWED_HOSTS = base_hosts + custom_domains
-
-        # Обновляем CORS_ALLOWED_ORIGINS
-        custom_cors_origins = [f"https://{domain.domain_name}" for domain in domains]
-        settings.CORS_ALLOWED_ORIGINS = base_cors_origins + custom_cors_origins
