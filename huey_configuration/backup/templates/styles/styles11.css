@@ -511,6 +511,14 @@ body {
     gap: min(5px, 0.84vw);
 }
 
+.head_day0{
+    width: min(326px,55.2vw);
+    height: auto;
+    position: relative;
+    top: min(10px,1.68vw);
+    right: min(85px,14.4vw);
+}
+
 .head_day1{
     width: min(278px, 46.723vw);
     height: auto;
