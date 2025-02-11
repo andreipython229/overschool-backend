@@ -129,7 +129,7 @@ def distribution_of_templates():
         session.close()
 
 
-@huey.periodic_task(crontab(minute="0", hour="7"))
+@huey.task()
 def send_newsletter_emails():
     Session = sessionmaker(bind=engine)
     session = Session()
