@@ -31,24 +31,43 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
             raise serializers.ValidationError("'phone_number' обязателеное поле.")
         if not attrs.get("school_name"):
             raise serializers.ValidationError("'school_name' обязателеное поле.")
-        password = attrs.get("password")
-        password_confirmation = attrs.get("password_confirmation")
-        if password and password != password_confirmation:
-            raise serializers.ValidationError("Пароли не совпадают.")
+
+        email = attrs["email"]
+        password = attrs["password"]
+
+        user = User.objects.filter(email__iexact=email).first()
+        if user:
+            # Если пользователь есть, проверяем его пароль
+            if not user.check_password(password):
+                raise serializers.ValidationError(
+                    "Неверный пароль для указанного email."
+                )
+        else:
+            # Если пользователь новый, проверяем совпадение паролей
+            password_confirmation = attrs.get("password_confirmation")
+            if not password_confirmation:
+                raise serializers.ValidationError("Подтвердите пароль.")
+            if password != password_confirmation:
+                raise serializers.ValidationError("Пароли не совпадают.")
+
         attrs["school_name"] = translit(attrs.get("school_name"), "ru", reversed=True)
         return attrs
 
     def create(self, validated_data):
-        # Извлекаем school_name из validated_data
         school_name = validated_data.pop("school_name")
         referral_code = validated_data.pop("referral_code", None)
 
-        # Создаем пользователя и связываем его с школой
-        validated_data.pop("password_confirmation")
+        email = validated_data.get("email")
         password = validated_data.pop("password")
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
+        validated_data.pop("password_confirmation", None)
+
+        user = User.objects.filter(email__iexact=email).first()
+
+        if not user:
+            # Если пользователя нет — создаём его
+            user = User(**validated_data)
+            user.set_password(password)
+            user.save()
 
         trial_days = 14
 

@@ -43,9 +43,6 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
                 "Требуется указать email, номер телефона и название школы", status=400
             )
 
-        if email and User.objects.filter(email__iexact=email).exists():
-            return HttpResponse("Email уже существует.", status=400)
-
         if School.objects.filter(name=school_name).exists():
             return HttpResponse("Название школы уже существует.", status=400)
 
