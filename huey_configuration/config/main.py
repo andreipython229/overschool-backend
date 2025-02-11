@@ -14,10 +14,10 @@ if __name__ == "__main__":
     with engine.connect() as conn:
         meta.reflect(bind=engine)
 
-    huey.periodic_task(backup_db, weekly_backup)
+    # huey.periodic_task(backup_db, weekly_backup)
     huey.periodic_task(send_newsletter_emails)
-    huey.periodic_task(distribution_of_templates)
-    huey.periodic_task(meeting_reminders_tg)
-    huey.periodic_task(remove_old_courses)
+    # huey.periodic_task(distribution_of_templates)
+    # huey.periodic_task(meeting_reminders_tg)
+    # huey.periodic_task(remove_old_courses)
 
     huey.run()

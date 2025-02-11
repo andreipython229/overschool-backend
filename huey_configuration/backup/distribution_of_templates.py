@@ -158,11 +158,14 @@ def send_newsletter_emails():
             if os.path.exists(template_path):
                 with open(template_path, encoding="utf-8") as file:
                     templates_cache[day] = file.read()
+            else:
+                logger.warning(f"Нет шаблона1 для дня {day}")
 
         for school in school_query_result:
             email = school["email"]
             school_creation_date = school["created_at"].date()
             days_since_registration = (current_date - school_creation_date).days + 1
+            print(f"День {days_since_registration}: {email}")
 
             # Проверяем, что день в диапазоне (от 2 до 30) и шаблон есть
             if (
@@ -170,6 +173,7 @@ def send_newsletter_emails():
                 and days_since_registration in templates_cache
             ):
                 email_content = templates_cache[days_since_registration]
+                print(email_content)
 
                 if email:
                     sender_service.send_code_by_email(
@@ -177,6 +181,9 @@ def send_newsletter_emails():
                         email_content,
                         f"День {days_since_registration}: CourseHub",
                     )
+
+                else:
+                    logger.warning(f"Нет email для дня1 {days_since_registration}")
             else:
                 logger.warning(f"Нет шаблона для дня {days_since_registration}")
 
