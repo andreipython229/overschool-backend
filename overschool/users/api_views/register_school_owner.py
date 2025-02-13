@@ -62,6 +62,14 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             email=email, subject=subject, message=message
         )
 
+        html_message_template = render_to_string("register_user.html")
+
+        sender_service.send_code_by_email(
+            email=email,
+            subject="Спасибо за верефикацию E-MAIL у нас на сайте",
+            message=html_message_template,
+        )
+
         html_message_template = render_to_string("day1.html")
 
         sender_service.send_code_by_email(
