@@ -8,6 +8,7 @@ from courses.models import (
     CourseCopy,
     Lesson,
     SectionTest,
+    StudentCourseProgress,
     StudentsGroup,
     StudentsHistory,
     UserHomework,
@@ -15,7 +16,8 @@ from courses.models import (
 )
 from courses.models.homework.homework import Homework
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg, Q
+from django.db.models import Avg, F, Q, Window
+from django.db.models.functions import Rank, RowNumber
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -427,7 +429,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             total_completed = sum(completed_counts.values())
             total_lessons = base_lessons.count()
 
-            progress_percent = self.calculate_progress(total_completed, total_lessons)
+            progress_percent = (
+                StudentCourseProgress.objects.filter(
+                    student=student, course_id=course_id
+                )
+            ).values_list("progress", flat=True).first() or 0
 
             average_mark = (
                 UserHomework.objects.filter(
@@ -436,8 +442,8 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 or 0
             )
 
-            students_progress = self.get_students_progress(
-                course_id, base_lessons, student
+            current_student_rank, top_3_leaders = self.get_students_progress(
+                course.pk, student
             )
 
             course_data = {
@@ -447,15 +453,8 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 "completed_count": total_completed,
                 "completed_percent": progress_percent,
                 "average_mark": average_mark,
-                "rank_in_course": next(
-                    (
-                        i
-                        for i, s in enumerate(students_progress, 1)
-                        if s["student"].pk == student.pk
-                    ),
-                    None,
-                ),
-                "top_leaders": self.get_top_leaders(students_progress[:3]),
+                "rank_in_course": current_student_rank,
+                "top_leaders": top_3_leaders,
                 "lessons": self.get_lesson_stats(
                     all_lessons, completed_counts["lessons"]
                 ),
@@ -483,51 +482,55 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             }
         )
 
-    def get_students_progress(self, course_id, base_lessons, current_student):
-        student_groups = StudentsGroup.objects.filter(
-            course_id=course_id
-        ).prefetch_related("students")
-        students_progress = []
+    def get_students_progress(self, course_id, current_student):
 
-        all_lessons = Lesson.objects.filter(section__course_id=course_id, active=True)
-        all_homeworks = Homework.objects.filter(
-            section__course_id=course_id, active=True
-        )
-        all_tests = SectionTest.objects.filter(
-            section__course_id=course_id, active=True
-        )
-
-        for group in student_groups:
-            for student in group.students.all():
-                lesson_viewed_ids = UserProgressLogs.objects.filter(
-                    lesson__in=base_lessons, user=student
-                ).values_list("lesson_id", flat=True)
-
-                lesson_completed_ids = UserProgressLogs.objects.filter(
-                    lesson__in=base_lessons, completed=True, user=student
-                ).values_list("lesson_id", flat=True)
-
-                completed_all_for_student = (
-                    all_lessons.filter(baselesson_ptr_id__in=lesson_viewed_ids).count()
-                    + all_homeworks.filter(
-                        baselesson_ptr_id__in=lesson_completed_ids
-                    ).count()
-                    + all_tests.filter(
-                        baselesson_ptr_id__in=lesson_completed_ids
-                    ).count()
+        progress_for_students = (
+            StudentCourseProgress.objects.filter(progress__gt=0, course_id=course_id)
+            .select_related("student", "student__profile")
+            .annotate(
+                rank=Window(
+                    expression=RowNumber(),
+                    order_by=[F("progress").desc(), F("last_updated").asc()],
                 )
-
-                progress_for_student = self.calculate_progress(
-                    completed_all_for_student, base_lessons.count()
-                )
-
-                students_progress.append(
-                    {"student": student, "progress_percent": progress_for_student}
-                )
-
-        return sorted(
-            students_progress, key=lambda x: x["progress_percent"], reverse=True
+            )
         )
+
+        base_avatar_path = "users/avatars/base_avatar.jpg"
+
+        # Получаем всё одним запросом
+        results = list(
+            progress_for_students.values(
+                "student_id",
+                "student__first_name",
+                "student__profile__avatar",
+                "progress",
+                "rank",
+            )
+        )
+
+        # Получаем место текущего студента
+        current_student_progress = next(
+            (entry for entry in results if entry["student_id"] == current_student.id),
+            None,
+        )
+
+        current_student_rank = (
+            current_student_progress["rank"] if current_student_progress else None
+        )
+
+        # Форматируем лидеров
+        top_3_leaders = [
+            {
+                "student_name": result["student__first_name"],
+                "student_avatar": s3.get_link(result["student__profile__avatar"])
+                if result["student__profile__avatar"]
+                else s3.get_link(base_avatar_path),
+                "progress_percent": result["progress"],
+            }
+            for result in results[:3]
+        ]
+
+        return current_student_rank, top_3_leaders
 
     def get_top_leaders(self, top_students):
         base_avatar_path = "users/avatars/base_avatar.jpg"
