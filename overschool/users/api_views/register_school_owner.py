@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from premailer import transform
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from schools.models import School
@@ -63,19 +64,21 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         )
 
         html_message_template = render_to_string("register_user.html")
+        inline_html = transform(html_message_template)
 
         sender_service.send_code_by_email(
             email=email,
             subject="Спасибо за верефикацию E-MAIL у нас на сайте",
-            message=html_message_template,
+            message=inline_html,
         )
 
-        html_message_template = render_to_string("day1.html")
+        html_template = render_to_string("day1.html")
+        inline_html_template = transform(html_template)
 
         sender_service.send_code_by_email(
             email=email,
             subject="День первый: CourseHub",
-            message=html_message_template,
+            message=inline_html_template,
         )
 
         new_user = get_object_or_404(User, email=email)
