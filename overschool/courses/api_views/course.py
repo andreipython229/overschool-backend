@@ -1178,6 +1178,12 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         completed_lesson_ids = {k for k, v in progress_map.items() if v.completed}
 
         section_lessons = {}
+        # video_screenshots = {
+        #     block['base_lesson']: block['video_screenshot']
+        #     for block in BaseLessonBlock.objects.filter(
+        #         type="video"
+        #     ).values('base_lesson', 'video_screenshot').distinct()
+        # }
 
         def process_lesson_data(data, lesson_type, completed_set=None):
             for obj in data:
@@ -1185,9 +1191,6 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 baselesson_ptr_id = obj["baselesson_ptr_id"]
                 if section_id not in section_lessons:
                     section_lessons[section_id] = []
-                video_block = BaseLessonBlock.objects.filter(
-                    type="video", base_lesson_id=baselesson_ptr_id
-                ).first()
                 lesson_data = {
                     "type": {0: "homework", 1: "lesson", 2: "test"}[lesson_type],
                     "order": obj["order"],
@@ -1201,9 +1204,7 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                     "sended": obj["pk"] in completed_set
                     if completed_set is not None
                     else None,
-                    "video_screenshot": video_block.video_screenshot
-                    if video_block
-                    else None,
+                    "video_screenshot": None,
                 }
                 section_lessons[section_id].append(lesson_data)
 
