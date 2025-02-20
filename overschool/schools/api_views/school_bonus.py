@@ -1,7 +1,11 @@
+from datetime import datetime, timedelta
+
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
+from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
@@ -31,15 +35,43 @@ class BonusViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         school = School.objects.get(name=school_name)
         return school
 
-    def get_queryset(self):
+    def get_queryset(self, *args, **kwargs):
         if getattr(self, "swagger_fake_view", False):
             return (
                 Bonus.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school = self.get_school()
+
         if user.groups.filter(group__name="Admin", school=school).exists():
-            return Bonus.objects.filter(school=school)
+            queryset = Bonus.objects.filter(school=school)
+            search = self.request.GET.get("search")
+            if search:
+                tsquery = SearchQuery(search, config="russian")
+                queryset = queryset.annotate(
+                    search=SearchVector("text", config="russian")
+                ).filter(search=tsquery)
+            is_active = self.request.GET.get("is_active")
+            if is_active:
+                if is_active == "true":
+                    queryset = queryset.filter(active=True)
+                elif is_active == "false":
+                    queryset = queryset.filter(active=False)
+            if self.request.GET.get("start_date"):
+                start_datetime = timezone.make_aware(
+                    datetime.strptime(self.request.GET.get("start_date"), "%Y-%m-%d")
+                )
+                queryset = queryset.filter(expire_date__gte=start_datetime)
+
+            if self.request.GET.get("end_date"):
+                end_datetime = timezone.make_aware(
+                    datetime.strptime(self.request.GET.get("end_date"), "%Y-%m-%d")
+                    + timedelta(days=1)
+                    - timedelta(seconds=1)
+                )
+                queryset = queryset.filter(expire_date__lte=end_datetime)
+
+            return queryset
         if user.groups.filter(group__name="Student", school=school).exists():
             return Bonus.objects.filter(
                 school=school, student_groups__students=user, active=True

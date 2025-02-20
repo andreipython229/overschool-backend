@@ -1000,10 +1000,12 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
+        import time
+
         """Данные по всем секциям курс\n
         <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
-
+        time.time()
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
@@ -1052,7 +1054,7 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                         .first()
                     )
                     if not history:
-                        history = StudentsHistory.objects.create(
+                        StudentsHistory.objects.create(
                             user=user,
                             students_group=group,
                             is_deleted=False,
@@ -1082,13 +1084,17 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         queryset = Course.objects.filter(course_id=original_course.course_id)
 
-        data = queryset.values(
-            course=F("course_id"),
-            course_name=F("name"),
-            section_name=F("sections__name"),
-            section=F("sections__section_id"),
-            section_order=F("sections__order"),
-        ).order_by("sections__order")
+        data = (
+            queryset.values(
+                course=F("course_id"),
+                course_name=F("name"),
+                section_name=F("sections__name"),
+                section=F("sections__section_id"),
+                section_order=F("sections__order"),
+            )
+            .order_by("sections__order")
+            .distinct()
+        )
         result_data = dict(
             course_name=data[0]["course_name"],
             course_id=data[0]["course"],
@@ -1106,137 +1112,159 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         result_data["sections"] = []
 
-        lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
-        types = {0: "homework", 1: "lesson", 2: "test"}
-        for index, value in enumerate(data):
-            result_data["sections"].append(
-                {
-                    "section_name": value["section_name"],
-                    "section": value["section"],
-                    "order": value["section_order"],
-                    "lessons": [],
+        # Предварительная загрузка прогресса пользователя
+        progress_map = {
+            prog.lesson_id: prog
+            for prog in UserProgressLogs.objects.filter(user_id=user.pk).select_related(
+                "lesson"
+            )
+        }
+
+        # Предварительная загрузка информации о выполненных заданиях
+        completed_homeworks = set(
+            UserHomework.objects.filter(user=user).values_list("homework_id", flat=True)
+        )
+        completed_tests = set(
+            UserTest.objects.filter(user=user).values_list("test_id", flat=True)
+        )
+        # Базовый фильтр для поиска
+        search_filter = (
+            Q(name__icontains=search_query)
+            | Q(blocks__description__icontains=search_query)
+            if search_query
+            else Q()
+        )
+
+        # Определяем базовые фильтры в зависимости от роли пользователя
+        is_admin = user.groups.filter(group__name="Admin", school=school).exists()
+        is_student = user.groups.filter(group__name="Student", school=school).exists()
+
+        base_filters = Q()
+        if not is_admin:
+            base_filters &= Q(active=True)
+            if is_student:
+                base_filters &= ~Q(lessonavailability__student=user)
+        course_filter = Q(section__course=course.pk)
+        # Предварительная загрузка всех необходимых данных
+        homework_qs = Homework.objects.filter(
+            base_filters & search_filter & course_filter
+        ).select_related("section")
+
+        lesson_qs = Lesson.objects.filter(
+            base_filters & search_filter & course_filter
+        ).select_related("section")
+
+        test_qs = SectionTest.objects.filter(
+            base_filters & search_filter & course_filter
+        ).select_related("section")
+        homework_data = list(
+            homework_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
+            )
+        )
+        lesson_data = list(
+            lesson_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
+            )
+        )
+        test_data = list(
+            test_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
+            )
+        )
+
+        # Подготавливаем наборы для быстрых проверок
+        viewed_lesson_ids = {k for k, v in progress_map.items() if v.viewed}
+        completed_lesson_ids = {k for k, v in progress_map.items() if v.completed}
+
+        section_lessons = {}
+
+        def process_lesson_data(data, lesson_type, completed_set=None):
+            for obj in data:
+                section_id = obj["section_id"]
+                baselesson_ptr_id = obj["baselesson_ptr_id"]
+                if section_id not in section_lessons:
+                    section_lessons[section_id] = []
+                video_block = BaseLessonBlock.objects.filter(
+                    type="video", base_lesson_id=baselesson_ptr_id
+                ).first()
+                lesson_data = {
+                    "type": {0: "homework", 1: "lesson", 2: "test"}[lesson_type],
+                    "order": obj["order"],
+                    "name": obj["name"],
+                    "id": obj["pk"],
+                    "baselesson_ptr_id": baselesson_ptr_id,
+                    "section_id": section_id,
+                    "active": obj["active"],
+                    "viewed": baselesson_ptr_id in viewed_lesson_ids,
+                    "completed": baselesson_ptr_id in completed_lesson_ids,
+                    "sended": obj["pk"] in completed_set
+                    if completed_set is not None
+                    else None,
+                    "video_screenshot": video_block.video_screenshot
+                    if video_block
+                    else None,
                 }
-            )
-            if user.groups.filter(group__name="Admin", school=school).exists():
-                a = Homework.objects.filter(section=value["section"])
-                b = Lesson.objects.filter(section=value["section"])
-                c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Teacher",
-                ],
-                school=school,
-            ).exists():
-                a = Homework.objects.filter(section=value["section"], active=True)
-                b = Lesson.objects.filter(section=value["section"], active=True)
-                c = SectionTest.objects.filter(section=value["section"], active=True)
-                if user.groups.filter(group__name="Student", school=school).exists():
-                    a = a.exclude(lessonavailability__student=user)
-                    b = b.exclude(lessonavailability__student=user)
-                    c = c.exclude(lessonavailability__student=user)
+                section_lessons[section_id].append(lesson_data)
 
-            if search_query:
-                search_filter = Q(name__icontains=search_query) | Q(
-                    blocks__description__icontains=search_query
-                )
-                a = a.filter(search_filter).distinct()
-                b = b.filter(search_filter).distinct()
-                c = c.filter(search_filter).distinct()
+        # Обработка всех типов
+        process_lesson_data(homework_data, 0, completed_homeworks)
+        process_lesson_data(lesson_data, 1)
+        process_lesson_data(test_data, 2, completed_tests)
 
-            for i in enumerate((a, b, c)):
-                for obj in i[1]:
-                    sended = None
-                    if obj in a:
-                        sended = UserHomework.objects.filter(
-                            homework=obj, user=user
-                        ).exists()
-                    if obj in c:
-                        sended = UserTest.objects.filter(test=obj, user=user).exists()
-                    # Получаем все блоки урока, чтобы найти блоки с видео
-                    video_blocks = BaseLessonBlock.objects.filter(
-                        base_lesson=obj.baselesson_ptr_id, type="video"
-                    )
-                    video_screenshot = None
-                    if video_blocks.exists():
-                        # Берем скриншот из первого блока видео
-                        video_screenshot = video_blocks.first().video_screenshot
+        # Формируем финальный результат
+        for index, value in enumerate(data):
+            section_id = value["section"]
+            section_data = {
+                "section_name": value["section_name"],
+                "section": section_id,
+                "order": value["section_order"],
+                "lessons": sorted(
+                    section_lessons.get(section_id, []),
+                    key=lambda x: x["order"] if x["order"] is not None else 0,
+                ),
+            }
 
-                    dict_obj = model_to_dict(obj)
-                    result_data["sections"][index]["lessons"].append(
-                        {
-                            "type": types[i[0]],
-                            "order": dict_obj["order"],
-                            "name": dict_obj["name"],
-                            "id": obj.pk,
-                            "baselesson_ptr_id": obj.baselesson_ptr_id,
-                            "section_id": obj.section_id,
-                            "active": obj.active,
-                            "viewed": lesson_progress.filter(
-                                lesson_id=obj.baselesson_ptr_id, viewed=True
-                            ).exists(),
-                            "sended": sended,
-                            "completed": lesson_progress.filter(
-                                lesson_id=obj.baselesson_ptr_id, completed=True
-                            ).exists(),
-                            "video_screenshot": video_screenshot,
-                        }
-                    )
+            if is_student:
+                lessons = section_data["lessons"]
 
-            if user.groups.filter(group__name="Student", school=school).exists():
-                all_section_lessons = result_data["sections"][index]["lessons"]
+                # Подсчёт статистики
+                hw_data = [l for l in lessons if l["type"] == "homework"]
+                lesson_data = [l for l in lessons if l["type"] == "lesson"]
+                test_data = [l for l in lessons if l["type"] == "test"]
 
-                homeworks = list(
-                    filter(lambda el: el["type"] == "homework", all_section_lessons)
-                )
-                homework_count = len(homeworks)
-                completed_hw_count = len(
-                    list(filter(lambda el: el["completed"], homeworks))
-                )
-                result_data["sections"][index]["homework_count"] = homework_count
-                result_data["sections"][index][
-                    "completed_hw_count"
-                ] = completed_hw_count
-
-                lessons = list(
-                    filter(lambda el: el["type"] == "lesson", all_section_lessons)
-                )
-                lesson_count = len(lessons)
-                completed_les_count = len(
-                    list(filter(lambda el: el["viewed"], lessons))
-                )
-                result_data["sections"][index]["lesson_count"] = lesson_count
-                result_data["sections"][index][
-                    "completed_les_count"
-                ] = completed_les_count
-
-                tests = list(
-                    filter(lambda el: el["type"] == "test", all_section_lessons)
-                )
-                test_count = len(tests)
-                completed_test_count = len(
-                    list(filter(lambda el: el["completed"], tests))
-                )
-                result_data["sections"][index]["test_count"] = test_count
-                result_data["sections"][index][
-                    "completed_test_count"
-                ] = completed_test_count
-
-                result_data["sections"][index]["completed_count"] = (
-                    completed_hw_count + completed_les_count + completed_test_count
+                section_data.update(
+                    {
+                        "homework_count": len(hw_data),
+                        "completed_hw_count": sum(1 for l in hw_data if l["completed"]),
+                        "lesson_count": len(lesson_data),
+                        "completed_les_count": sum(
+                            1 for l in lesson_data if l["viewed"]
+                        ),
+                        "test_count": len(test_data),
+                        "completed_test_count": sum(
+                            1 for l in test_data if l["completed"]
+                        ),
+                    }
                 )
 
-                marks = UserHomework.objects.filter(
-                    homework__section=value["section"], user=user
-                ).values_list("mark", flat=True)
-
-                result_data["sections"][index]["sum_marks"] = sum(
-                    list(map(lambda el: 0 if el is None else el, marks))
+                section_data["completed_count"] = (
+                    section_data["completed_hw_count"]
+                    + section_data["completed_les_count"]
+                    + section_data["completed_test_count"]
                 )
 
-            result_data["sections"][index]["lessons"].sort(
-                key=lambda x: x["order"] if x["order"] is not None else 0
-            )
+                # Оптимизированный подсчёт суммы оценок
+                marks_sum = (
+                    UserHomework.objects.filter(
+                        homework__section=section_id, user=user
+                    ).aggregate(Sum("mark"))["mark__sum"]
+                    or 0
+                )
+
+                section_data["sum_marks"] = marks_sum
+
+            result_data["sections"].append(section_data)
         return Response(result_data)
 
     @action(detail=True)

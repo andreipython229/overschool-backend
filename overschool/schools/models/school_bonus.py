@@ -1,10 +1,12 @@
+from common_services.mixins import TimeStampMixin
 from common_services.services import TruncateFileName, limit_image_size
 from courses.models.students.students_group import StudentsGroup
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from schools.models import School
 
 
-class Bonus(models.Model):
+class Bonus(TimeStampMixin, models.Model):
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -45,6 +47,7 @@ class Bonus(models.Model):
         related_name="group_bonuses",
         blank=True,
     )
+    search_vector = SearchVectorField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.school} - {self.link}"
@@ -53,31 +56,8 @@ class Bonus(models.Model):
         verbose_name = "Бонус"
         verbose_name_plural = "Бонусы"
         indexes = [
+            models.Index(fields=["search_vector"]),
             models.Index(fields=["school"]),
             models.Index(fields=["expire_date"]),
             models.Index(fields=["active"]),
         ]
-
-
-# class GroupBonus(models.Model):
-#     bonus = models.ForeignKey(
-#         Bonus,
-#         on_delete=models.CASCADE,
-#         related_name="group_bonuses",
-#         verbose_name="Бонус",
-#         help_text="Предоставленный группе бонус",
-#     )
-#     group = models.ForeignKey(
-#         StudentsGroup,
-#         on_delete=models.CASCADE,
-#         related_name="group_bonuses",
-#         verbose_name="Группа",
-#         help_text="Группа, которой предоставлен бонус",
-#     )
-#
-#     def __str__(self):
-#         return f"{self.bonus} -> {self.group}"
-#
-#     class Meta:
-#         verbose_name = "Бонус для группы"
-#         verbose_name_plural = "Бонусы для групп"
