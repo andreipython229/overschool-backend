@@ -1,8 +1,6 @@
 import datetime
 import logging
 import os
-import signal
-import sys
 import time
 
 import sentry_sdk
@@ -50,11 +48,3 @@ application = ProtocolTypeRouter(
         ),
     }
 )
-
-
-async def shutdown_handler(sig, frame):
-    print("Received shutdown signal")
-    sys.exit(0)
-
-
-signal.signal(signal.SIGTERM, shutdown_handler)
