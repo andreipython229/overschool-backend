@@ -69,16 +69,17 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                     lesson_id = lesson_info.get("lesson_id")
                     available = lesson_info.get("available")
                     if lesson_id is not None and available is not None:
-                        existing_availability = LessonAvailability.objects.filter(
-                            student_id=student_id, lesson_id=lesson_id, available=False
-                        )
-                        if available and existing_availability.exists():
-                            existing_availability.delete()
-                        elif not available:
-                            LessonAvailability.objects.update_or_create(
+                        # Удаляем ВСЕ дублирующие записи
+                        LessonAvailability.objects.filter(
+                            student_id=student_id, lesson_id=lesson_id
+                        ).delete()
+
+                        # Создаём новую запись, если доступ не False
+                        if available:
+                            LessonAvailability.objects.create(
                                 student_id=student_id,
                                 lesson_id=lesson_id,
-                                defaults={"available": available},
+                                available=available,
                             )
 
         return Response(
