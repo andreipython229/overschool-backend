@@ -1000,12 +1000,10 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
-        import time
-
         """Данные по всем секциям курс\n
         <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
-        time.time()
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
