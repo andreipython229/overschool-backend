@@ -1146,15 +1146,15 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         # Предварительная загрузка всех необходимых данных
         homework_qs = Homework.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
 
         lesson_qs = Lesson.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
 
         test_qs = SectionTest.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
         homework_data = list(
             homework_qs.values(
                 "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
