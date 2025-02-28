@@ -1141,7 +1141,7 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         if not is_admin:
             base_filters &= Q(active=True)
             if is_student:
-                base_filters &= ~Q(lessonavailability__student=user)
+                base_filters &= ~Q(lessonavailability__student=user) | Q(lessonavailability__available=True)
         course_filter = Q(section__course=course.pk)
         # Предварительная загрузка всех необходимых данных
         homework_qs = Homework.objects.filter(
