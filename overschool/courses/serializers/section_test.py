@@ -47,7 +47,7 @@ class TestSerializer(serializers.ModelSerializer):
             "type",
             "active",
         ]
-        read_only_fields = ["type", "order"]
+        read_only_fields = ["type"]
 
     def get_tests_ids(self, obj):
         test = SectionTest.objects.get(baselesson_ptr_id=obj.id)

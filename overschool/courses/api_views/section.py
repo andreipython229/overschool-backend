@@ -269,9 +269,9 @@ class SectionViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
                 if user.groups.filter(group__name="Student", school=school).exists():
-                    a = a.exclude(lessonavailability__student=user)
-                    b = b.exclude(lessonavailability__student=user)
-                    c = c.exclude(lessonavailability__student=user)
+                    a = a.exclude(lessonavailability__student=user, lessonavailability__available=False)
+                    b = b.exclude(lessonavailability__student=user, lessonavailability__available=False)
+                    c = c.exclude(lessonavailability__student=user, lessonavailability__available=False)
 
             for i in enumerate((a, b, c)):
                 for obj in i[1]:

@@ -1000,12 +1000,10 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
-        import time
-
         """Данные по всем секциям курс\n
         <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
-        time.time()
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
@@ -1143,20 +1141,20 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         if not is_admin:
             base_filters &= Q(active=True)
             if is_student:
-                base_filters &= ~Q(lessonavailability__student=user)
+                base_filters &= ~Q(lessonavailability__student=user) | Q(lessonavailability__available=True)
         course_filter = Q(section__course=course.pk)
         # Предварительная загрузка всех необходимых данных
         homework_qs = Homework.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
 
         lesson_qs = Lesson.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
 
         test_qs = SectionTest.objects.filter(
             base_filters & search_filter & course_filter
-        ).select_related("section")
+        ).select_related("section").distinct()
         homework_data = list(
             homework_qs.values(
                 "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
