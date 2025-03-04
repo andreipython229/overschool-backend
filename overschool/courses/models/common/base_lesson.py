@@ -45,11 +45,8 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         return f"{self.section}. {self.name}"
 
     def is_available_for_student(self, student):
-        try:
-            availability = LessonAvailability.objects.get(student=student, lesson=self)
-            return availability.available
-        except LessonAvailability.DoesNotExist:
-            return None
+        availability = LessonAvailability.objects.filter(student=student, lesson=self).first()
+        return availability.available if availability else None
 
     def is_available_for_group(self, group):
         return not LessonEnrollment.objects.filter(
