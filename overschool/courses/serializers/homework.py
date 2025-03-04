@@ -32,7 +32,6 @@ class HomeworkSerializer(serializers.ModelSerializer):
             "type",
             "active",
         ]
-        read_only_fields = ["order"]
 
     def create(self, validated_data):
         homework = Homework.objects.create(**validated_data)

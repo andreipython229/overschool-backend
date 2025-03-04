@@ -33,7 +33,6 @@ class LessonSerializer(serializers.ModelSerializer):
             "type",
             "active",
         ]
-        read_only_fields = ["order"]
 
     def create(self, validated_data):
         lesson = Lesson.objects.create(**validated_data)
