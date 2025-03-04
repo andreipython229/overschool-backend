@@ -157,38 +157,25 @@ class CommentViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
 
         lesson_id = self.request.GET.get("lesson_id", "")
         course_id = self.request.GET.get("course_id", "")
-        course = Course.objects.get(course_id=course_id)
+        course = Course.objects.filter(course_id=course_id).first()
+
+        if not course:
+            return Response({"message": "Курс не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        base_queryset = Comment.objects.filter(lesson=lesson_id).select_related(
+            "author", "author__profile"
+        ).prefetch_related("replies")
 
         if course.is_copy:
-            try:
-                comment = Comment.objects.filter(
-                    lesson=lesson_id, copy_course_id=course
-                )
-                author_ids = comment.values_list("author_id", flat=True)
-                user = User.objects.filter(pk__in=author_ids)
-                serializer = CommentSerializer(
-                    comment, many=True, context={"user": user}
-                )
-                comments_data = {"comments": serializer.data}
-                return Response(comments_data, status=status.HTTP_200_OK)
-            except BaseLesson.DoesNotExist:
-                return Response(
-                    {"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND
-                )
-        else:
-            try:
-                comment = Comment.objects.filter(lesson=lesson_id)
-                author_ids = comment.values_list("author_id", flat=True)
-                user = User.objects.filter(pk__in=author_ids)
-                serializer = CommentSerializer(
-                    comment, many=True, context={"user": user}
-                )
-                comments_data = {"comments": serializer.data}
-                return Response(comments_data, status=status.HTTP_200_OK)
-            except BaseLesson.DoesNotExist:
-                return Response(
-                    {"message": "Урок не найден"}, status=status.HTTP_404_NOT_FOUND
-                )
+            base_queryset = base_queryset.filter(copy_course_id=course)
+
+        # Кэшируем prefetch_related, чтобы ускорить `get_replies()`
+        for comment in base_queryset:
+            comment._cached_replies = list(comment.replies.all())
+
+        serializer = CommentSerializer(base_queryset, many=True)
+
+        return Response({"comments": serializer.data}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["POST"])
     def admin_reply_to_comment(self, request, *args, **kwargs):
