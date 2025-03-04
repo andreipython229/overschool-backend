@@ -74,13 +74,12 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                             student_id=student_id, lesson_id=lesson_id
                         ).delete()
 
-                        # Создаём новую запись, если доступ не False
-                        if available:
-                            LessonAvailability.objects.create(
-                                student_id=student_id,
-                                lesson_id=lesson_id,
-                                available=available,
-                            )
+                        # Создаём новую запись
+                        LessonAvailability.objects.create(
+                            student_id=student_id,
+                            lesson_id=lesson_id,
+                            available=available,
+                        )
 
         return Response(
             {"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK
@@ -231,7 +230,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
+                    group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
