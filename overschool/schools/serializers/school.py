@@ -237,6 +237,10 @@ class TariffSerializer(serializers.ModelSerializer):
     discount_12_months_byn = serializers.SerializerMethodField()
     discount_12_months_rub = serializers.SerializerMethodField()
 
+    # Храним курс как переменную класса, чтобы не делать запрос для каждого экземпляра
+    _rf_rate = None
+    _rf_rate_updated_at = None
+
     class Meta:
         model = Tariff
         fields = [
@@ -256,66 +260,58 @@ class TariffSerializer(serializers.ModelSerializer):
             "discount_12_months_rub",
         ]
 
-    def rf_rate(self):
-        # Получение курса российского рубля от НБРБ
+    def get_rf_rate(self):
+        """Получение курса российского рубля с кэшированием на время сериализации"""
+        # Если уже есть кэшированный курс, используем его
+        if self.__class__._rf_rate is not None:
+            return self.__class__._rf_rate
+
+        # Получение курса от НБРБ
         url = "https://api.nbrb.by/exrates/rates/456"
 
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            rate = data.get("Cur_OfficialRate", 1)
-            return rate
-        return None
+        try:
+            response = requests.get(url, timeout=3)  # Добавляем таймаут
+            if response.status_code == 200:
+                data = response.json()
+                self.__class__._rf_rate = data.get("Cur_OfficialRate", 1)
+                import datetime
+                self.__class__._rf_rate_updated_at = datetime.datetime.now()
+                print(self.__class__._rf_rate)
+                return self.__class__._rf_rate
+        except Exception:
+            # В случае ошибки возвращаем значение по умолчанию
+            pass
 
-    def get_price_rf_rub(self, obj):
-        if float(obj.price) == 0.00:
+        return 3.3  # Значение по умолчанию, если не удалось получить курс
+
+    def convert_to_rub(self, byn_value):
+        """Общий метод для конвертации из BYN в RUB"""
+        if byn_value is None or float(byn_value) == 0.00:
             return 0.00
 
-        rate = self.rf_rate()
-        if rate is None:
-            return None
-        return round(
-            (float(obj.price) / rate) * 100, 2
-        )  # округление до двух знаков после запятой
+        rate = self.get_rf_rate()
+        return round((float(byn_value) / rate) * 100, 2)
+
+    def get_price_rf_rub(self, obj):
+        return self.convert_to_rub(obj.price)
 
     def get_discount_3_months_byn(self, obj):
-        if obj.discount_3_months is not None:
-            return obj.discount_3_months
-        return None
+        return obj.discount_3_months
 
     def get_discount_3_months_rub(self, obj):
-        if obj.discount_3_months is not None:
-            rate = self.rf_rate()
-            if rate is None:
-                return None
-            return round((float(obj.discount_3_months) / rate) * 100, 2)
-        return None
+        return self.convert_to_rub(obj.discount_3_months)
 
     def get_discount_6_months_byn(self, obj):
-        if obj.discount_6_months is not None:
-            return obj.discount_6_months
-        return None
+        return obj.discount_6_months
 
     def get_discount_6_months_rub(self, obj):
-        if obj.discount_6_months is not None:
-            rate = self.rf_rate()
-            if rate is None:
-                return None
-            return round((float(obj.discount_6_months) / rate) * 100, 2)
-        return None
+        return self.convert_to_rub(obj.discount_6_months)
 
     def get_discount_12_months_byn(self, obj):
-        if obj.discount_12_months is not None:
-            return obj.discount_12_months
-        return None
+        return obj.discount_12_months
 
     def get_discount_12_months_rub(self, obj):
-        if obj.discount_12_months is not None:
-            rate = self.rf_rate()
-            if rate is None:
-                return None
-            return round((float(obj.discount_12_months) / rate) * 100, 2)
-        return None
+        return self.convert_to_rub(obj.discount_12_months)
 
 
 class SchoolStudentsTableSettingsSerializer(serializers.ModelSerializer):
