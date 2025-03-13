@@ -83,7 +83,7 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
         password = generate_random_password()
 
         user = User.objects.create(
-            email=email,
+            email=email.lower().strip(),
             first_name=first_name,
             last_name=last_name,
             patronymic=patronymic,
