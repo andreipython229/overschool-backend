@@ -135,11 +135,12 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
 
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
+        if user.groups.filter(group__name="Admin", school__name=school_name).exists():
             # Основной queryset для админов
-            admin_queryset = Course.objects.filter(school__name=school_name).annotate(
+            admin_queryset = Course.objects.filter(
+                Q(school__name=school_name) | Q(course_id=247)
+            ).annotate(
                 baselessons_count=Count("sections__lessons", distinct=True),
                 homework_count=Count("sections__lessons__homeworks", distinct=True),
                 test_count=Count("sections__lessons__tests", distinct=True),
@@ -150,11 +151,10 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 ),
                 students_count=Count("group_course_fk__students", distinct=True),
             )
-            # Тестовый курс для всех админов, который нужно добавить
-            test_course = Course.objects.filter(course_id=247)
-            return admin_queryset | test_course
 
-        if user.groups.filter(group__name="Student", school=school_id).exists():
+            return admin_queryset
+
+        if user.groups.filter(group__name="Student", school__name=school_name).exists():
             sub_history = TrainingDuration.objects.filter(
                 students_group=OuterRef("group_id"), user=user
             ).values("created_at")[:1]
@@ -201,7 +201,7 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
             )
             return courses
 
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+        if user.groups.filter(group__name="Teacher", school__name=school_name).exists():
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
@@ -1141,20 +1141,28 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
         if not is_admin:
             base_filters &= Q(active=True)
             if is_student:
-                base_filters &= ~Q(lessonavailability__student=user) | Q(lessonavailability__available=True)
+                base_filters &= ~Q(lessonavailability__student=user) | Q(
+                    lessonavailability__available=True
+                )
         course_filter = Q(section__course=course.pk)
         # Предварительная загрузка всех необходимых данных
-        homework_qs = Homework.objects.filter(
-            base_filters & search_filter & course_filter
-        ).select_related("section").distinct()
+        homework_qs = (
+            Homework.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
 
-        lesson_qs = Lesson.objects.filter(
-            base_filters & search_filter & course_filter
-        ).select_related("section").distinct()
+        lesson_qs = (
+            Lesson.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
 
-        test_qs = SectionTest.objects.filter(
-            base_filters & search_filter & course_filter
-        ).select_related("section").distinct()
+        test_qs = (
+            SectionTest.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
         homework_data = list(
             homework_qs.values(
                 "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"

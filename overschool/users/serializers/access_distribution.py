@@ -17,6 +17,10 @@ class AccessDistributionSerializer(serializers.Serializer):
         role_choices = [role["name"] for role in all_roles]
         self.fields["role"].choices = role_choices
 
+    def validate_emails(self, value):
+        """Приводим все email-адреса к нижнему регистру"""
+        return [email.lower() for email in value]
+
     def validate(self, attrs):
         if not attrs.get("user_ids") and not attrs.get("emails"):
             raise serializers.ValidationError(

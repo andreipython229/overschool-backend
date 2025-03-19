@@ -52,7 +52,7 @@ class CourseGetSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
-    folder = FolderSerializer()
+    folder = serializers.SerializerMethodField()
     baselessons_count = serializers.IntegerField(required=False)
     homework_count = serializers.IntegerField(required=False)
     test_count = serializers.IntegerField(required=False)
@@ -92,6 +92,9 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "is_access",
             "course_removed",
         ]
+
+    def get_folder(self, obj):
+        return FolderSerializer(obj.folder).data if obj.folder else None
 
     def get_photo(self, obj):
         if obj.photo:
