@@ -469,7 +469,7 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
             # Проверяем, является ли search_value email
             if re.match(email_regex, search_value):
-                deleted_history_queryset = deleted_history_queryset.filter(Q(students__email__icontains=search_value))
+                deleted_history_queryset = deleted_history_queryset.filter(Q(user_id__email__icontains=search_value))
             else:
                 deleted_history_queryset = deleted_history_queryset.filter(
                     deleted_history_query
@@ -970,9 +970,16 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                     user_id__phone_number__icontains=cleaned_phone
                 )
 
-            deleted_history_queryset = deleted_history_queryset.filter(
-                deleted_history_query
-            )
+            # Регулярное выражение для проверки email
+            email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+
+            # Проверяем, является ли search_value email
+            if re.match(email_regex, search_value):
+                deleted_history_queryset = deleted_history_queryset.filter(Q(user_id__email__icontains=search_value))
+            else:
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    deleted_history_query
+                )
 
         # Фильтры
         first_name = self.request.GET.get("first_name")
