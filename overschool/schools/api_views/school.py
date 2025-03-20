@@ -88,15 +88,15 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-            self.action in ["stats", "section_student"]
-            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+                self.action in ["stats", "section_student"]
+                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if (
-                user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
-                or user.email == "student@coursehub.ru"
+                    user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
+                    or user.email == "student@coursehub.ru"
             ):
                 return permissions
             else:
@@ -134,14 +134,14 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 schools = School.objects.all()
                 for school in schools:
                     if not UserGroup.objects.filter(
-                        user=admin_user, group=group_admin, school=school
+                            user=admin_user, group=group_admin, school=school
                     ).exists():
                         UserGroup.objects.create(
                             user=admin_user, group=group_admin, school=school
                         )
 
                     if not UserGroup.objects.filter(
-                        user=teacher_user, group=group_teacher, school=school
+                            user=teacher_user, group=group_teacher, school=school
                     ).exists():
                         UserGroup.objects.create(
                             user=teacher_user, group=group_teacher, school=school
@@ -435,34 +435,45 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                Q(students__first_name__icontains=search_value)
-                | Q(students__last_name__icontains=search_value)
-                | Q(students__email__icontains=search_value)
-                | Q(name__icontains=search_value)
-                | Q(course_id__name__icontains=search_value)
+                    Q(students__first_name__icontains=search_value)
+                    | Q(students__last_name__icontains=search_value)
+                    | Q(name__icontains=search_value)
+                    | Q(course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
                 query |= Q(students__phone_number__icontains=cleaned_phone)
 
-            queryset = queryset.filter(query)
+            # Регулярное выражение для проверки email
+            email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+
+            # Проверяем, является ли search_value email
+            if re.match(email_regex, search_value):
+                queryset = queryset.filter(Q(students__email__icontains=search_value))
+            else:
+                queryset = queryset.filter(query)
 
             deleted_history_query = (
-                Q(user_id__first_name__icontains=search_value)
-                | Q(user_id__last_name__icontains=search_value)
-                | Q(user_id__email__icontains=search_value)
-                | Q(students_group_id__name__icontains=search_value)
-                | Q(students_group_id__course_id__name__icontains=search_value)
+                    Q(user_id__first_name__icontains=search_value)
+                    | Q(user_id__last_name__icontains=search_value)
+                    | Q(students_group_id__name__icontains=search_value)
+                    | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
                 deleted_history_query |= Q(
                     user_id__phone_number__icontains=cleaned_phone
                 )
+            # Регулярное выражение для проверки email
+            email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
 
-            deleted_history_queryset = deleted_history_queryset.filter(
-                deleted_history_query
-            )
+            # Проверяем, является ли search_value email
+            if re.match(email_regex, search_value):
+                deleted_history_queryset = deleted_history_queryset.filter(Q(students__email__icontains=search_value))
+            else:
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    deleted_history_query
+                )
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -928,24 +939,30 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                Q(students__first_name__icontains=search_value)
-                | Q(students__last_name__icontains=search_value)
-                | Q(students__email__icontains=search_value)
-                | Q(name__icontains=search_value)
-                | Q(course_id__name__icontains=search_value)
+                    Q(students__first_name__icontains=search_value)
+                    | Q(students__last_name__icontains=search_value)
+                    | Q(name__icontains=search_value)
+                    | Q(course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
                 query |= Q(students__phone_number__icontains=cleaned_phone)
 
-            queryset = queryset.filter(query)
+            # Регулярное выражение для проверки email
+            email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+
+            # Проверяем, является ли search_value email
+            if re.match(email_regex, search_value):
+                queryset = queryset.filter(Q(students__email__icontains=search_value))
+            else:
+                queryset = queryset.filter(query)
 
             deleted_history_query = (
-                Q(user_id__first_name__icontains=search_value)
-                | Q(user_id__last_name__icontains=search_value)
-                | Q(user_id__email__icontains=search_value)
-                | Q(students_group_id__name__icontains=search_value)
-                | Q(students_group_id__course_id__name__icontains=search_value)
+                    Q(user_id__first_name__icontains=search_value)
+                    | Q(user_id__last_name__icontains=search_value)
+                    | Q(user_id__email__icontains=search_value)
+                    | Q(students_group_id__name__icontains=search_value)
+                    | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
