@@ -221,15 +221,16 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        if (
-            school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
-            and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
-        ):
-            return Response(
-                "Превышено количество курсов для выбранного тарифа",
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        print(school_obj.tariff)
+        if school_obj.tariff:
+            if (
+                school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+                and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
+            ):
+                return Response(
+                    "Превышено количество курсов для выбранного тарифа",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
