@@ -250,90 +250,134 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     def get_student_sections_and_availability(self, student_id, student_groups):
         student_data = []
 
+        # Предварительно получаем все необходимые объекты
+        group_ids = [group.group_id for group in student_groups]
+
+        # Получаем информацию о длительности обучения за один запрос
+        training_durations = {
+            td['students_group']: td
+            for td in TrainingDuration.objects.filter(
+                students_group__in=group_ids,
+                user=student_id
+            ).values('students_group', 'limit', 'created_at')
+        }
+
+        # Получаем все секции и уроки за один запрос
+        course_ids = [group.course_id.course_id for group in student_groups]
+        sections_by_course = {}
+
+        for course_id in course_ids:
+            sections_by_course[course_id] = list(
+                Section.objects.filter(course_id=course_id)
+                .prefetch_related('lessons')
+                .order_by('section_id')
+            )
+
+        # Получаем все типы уроков за один запрос
+        all_lesson_ids = []
+        for course_id in course_ids:
+            for section in sections_by_course[course_id]:
+                all_lesson_ids.extend([lesson.id for lesson in section.lessons.all()])
+
+        # Предзагружаем типы уроков
+        homework_lessons = set(Homework.objects.filter(
+            baselesson_ptr__in=all_lesson_ids
+        ).values_list('baselesson_ptr_id', flat=True))
+
+        regular_lessons = set(Lesson.objects.filter(
+            baselesson_ptr__in=all_lesson_ids
+        ).values_list('baselesson_ptr_id', flat=True))
+
+        test_lessons = set(SectionTest.objects.filter(
+            baselesson_ptr__in=all_lesson_ids
+        ).values_list('baselesson_ptr_id', flat=True))
+
+        # Получаем все логи прогресса за один запрос
+        user_logs = {
+            log.lesson_id: log
+            for log in UserProgressLogs.objects.filter(
+                user_id=student_id,
+                lesson_id__in=all_lesson_ids
+            )
+        }
+
+        # Получаем все домашние задания за один запрос
+        user_homeworks = {}
+        if homework_lessons:
+            user_homeworks = {
+                hw.homework_id: hw
+                for hw in UserHomework.objects.filter(
+                    user_id=student_id,
+                    homework_id__in=homework_lessons
+                )
+            }
+
+        # Теперь обрабатываем группы
         for group in student_groups:
-            # Получаем информацию о длительности обучения
-            sub_history = (
-                TrainingDuration.objects.filter(
-                    students_group=group.group_id, user=student_id
-                )
-                .values("created_at")
-                .first()
-            )
-
-            sub_duration = (
-                TrainingDuration.objects.filter(
-                    students_group=group.group_id, user=student_id
-                )
-                .values("limit")
-                .first()
-            )
-
             # Рассчитываем оставшееся время
             remaining_period = None
-            if sub_duration and sub_duration["limit"]:
-                limit = sub_duration["limit"]
-                past_period = 0
-                if sub_history:
-                    past_period = (timezone.now() - sub_history["created_at"]).days
 
-                if limit > past_period:
-                    remaining_period = limit - past_period
-                elif limit > 0:
-                    remaining_period = 0
+            if group.group_id in training_durations:
+                td = training_durations[group.group_id]
+                limit = td.get('limit')
+
+                if limit:
+                    past_period = 0
+                    if 'created_at' in td:
+                        past_period = (timezone.now() - td['created_at']).days
+
+                    if limit > past_period:
+                        remaining_period = limit - past_period
+                    elif limit > 0:
+                        remaining_period = 0
             elif group.training_duration > 0:
                 remaining_period = group.training_duration
 
-            # Создаем словарь с данными группы, включая оставшееся время
+            # Создаем словарь с данными группы
             group_data = {
                 "group_id": group.group_id,
                 "remaining_period": remaining_period,
                 "sections": [],
             }
 
-            course = group.course_id
-            sections = Section.objects.filter(course=course)
+            # Получаем секции для курса
+            course_id = group.course_id.course_id
+            sections = sections_by_course.get(course_id, [])
 
             for section in sections:
                 lessons_data = []
+
                 for lesson in section.lessons.all():
+                    # Определяем тип урока
+                    if lesson.id in homework_lessons:
+                        obj_type = "homework"
+                    elif lesson.id in regular_lessons:
+                        obj_type = "lesson"
+                    elif lesson.id in test_lessons:
+                        obj_type = "test"
+                    else:
+                        obj_type = "unknown"
+
+                    # Проверяем доступность
                     availability = lesson.is_available_for_student(student_id)
                     if availability is None:
                         availability = True
-                    try:
-                        Homework.objects.get(baselesson_ptr=lesson.id)
-                        obj_type = "homework"
-                    except Homework.DoesNotExist:
-                        pass
-                    try:
-                        Lesson.objects.get(baselesson_ptr=lesson.id)
-                        obj_type = "lesson"
-                    except Lesson.DoesNotExist:
-                        pass
-                    try:
-                        SectionTest.objects.get(baselesson_ptr=lesson.id)
-                        obj_type = "test"
-                    except SectionTest.DoesNotExist:
-                        pass
 
                     status = None
                     mark = None
+
                     if availability:
-                        log = UserProgressLogs.objects.filter(
-                            user_id=student_id, lesson_id=lesson.id
-                        ).first()
+                        log = user_logs.get(lesson.id)
+
                         if log:
                             status = "Пройдено" if log.completed else "Не пройдено"
-                            if obj_type == "homework":
-                                homework = Homework.objects.get(
-                                    baselesson_ptr=lesson.id
-                                )
-                                user_homework = UserHomework.objects.filter(
-                                    user_id=student_id, homework=homework
-                                ).first()
-                                if user_homework:
-                                    mark = user_homework.mark
-                                    if not log.completed:
-                                        status = user_homework.status
+
+                            if obj_type == "homework" and lesson.id in user_homeworks:
+                                user_homework = user_homeworks[lesson.id]
+                                mark = user_homework.mark
+
+                                if not log.completed:
+                                    status = user_homework.status
                         else:
                             status = "Не пройдено"
 
@@ -347,6 +391,7 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                         "status": status,
                         "mark": mark,
                     }
+
                     lessons_data.append(lesson_data)
 
                 lessons_data.sort(key=lambda x: x["order"])
@@ -356,6 +401,7 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                     "name": section.name,
                     "lessons": lessons_data,
                 }
+
                 group_data["sections"].append(section_data)
 
             student_data.append(group_data)
@@ -377,13 +423,17 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         school = self.get_object()
         user = self.request.user
         student_id = request.query_params.get("student_id", None)
+
         if not student_id:
             return Response(
                 {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Оптимизация запроса с prefetch_related
         student_groups = StudentsGroup.objects.filter(
             course_id__school=school, students__id=student_id
-        )
+        ).select_related('course_id')
+
         if not user.groups.filter(group__name="Admin", school=school).exists():
             if user.groups.filter(group__name="Teacher", school=school).exists():
                 student_groups = student_groups.filter(teacher_id=request.user)
@@ -393,11 +443,13 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         student_data = self.get_student_sections_and_availability(
             student_id, student_groups
         )
+
         response_data = {
             "school_name": school.name,
             "student_id": student_id,
             "student_data": student_data,
         }
+
         return Response(response_data, status=status.HTTP_200_OK)
 
     @action(detail=True)
