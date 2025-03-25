@@ -98,12 +98,15 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_teacher_avatar(self, obj):
-        if obj.teacher.profile.avatar:
-            return s3.get_link(obj.teacher.profile.avatar.name)
+        if obj.teacher:
+            if obj.teacher.profile.avatar:
+                return s3.get_link(obj.teacher.profile.avatar.name)
+            else:
+                # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+                base_avatar_path = "users/avatars/base_avatar.jpg"
+                return s3.get_link(base_avatar_path)
         else:
-            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "users/avatars/base_avatar.jpg"
-            return s3.get_link(base_avatar_path)
+            return None
 
 
 class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
