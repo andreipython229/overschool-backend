@@ -12,11 +12,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     Сериализатор модели группы студентов
     """
 
-    group_settings = StudentsGroupSettingsSerializer(required=False)
-    students = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), many=True, required=False
-    )
-    course_name = serializers.SerializerMethodField()
+    group_settings = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source="course_id.name", read_only=True)
 
     class Meta:
         model = StudentsGroup
@@ -33,8 +30,12 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "training_duration",
         ]
 
-    def get_course_name(self, obj):
-        return obj.course_id.name if obj.course_id else None
+    def get_group_settings(self, obj):
+        return (
+            StudentsGroupSettingsSerializer(obj.group_settings).data
+            if obj.group_settings
+            else None
+        )
 
     def validate(self, attrs):
         request = self.context.get("request")

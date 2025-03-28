@@ -9,6 +9,7 @@ from courses.models import (
     StudentsGroup,
     UserProgressLogs,
 )
+from django.db.models import Q
 from django.core.cache import cache
 from django.db.models import OuterRef
 from django.db.models.signals import post_delete, post_save
@@ -41,7 +42,7 @@ def update_progress(sender, instance, **kwargs):
         now = timezone.now()
 
         if (
-            not last_update or (now - last_update).seconds > 180
+                not last_update or (now - last_update).seconds > 180
         ):  # Обновляем, если прошло больше 3 минут
             progress = calculate_progress(student_id, course_id)
             StudentCourseProgress.objects.update_or_create(
@@ -50,8 +51,37 @@ def update_progress(sender, instance, **kwargs):
                 defaults={"progress": progress},
             )
             cache.set(cache_key, now, timeout=180)  # Устанавливаем таймаут на 3 минут
+
+            # **Проверка завершения курса**
+            try:
+                base_query = Q(active=True) & ~Q(lessonavailability__student=student_id)
+                lesson_ids = BaseLesson.objects.filter(
+                    section__course_id=course_id
+                ).filter(base_query).values_list("id", flat=True)
+
+                total_lessons = len(lesson_ids)  # Количество доступных уроков
+
+                completed_lessons = UserProgressLogs.objects.filter(
+                    lesson_id__in=lesson_ids, user_id=student_id, completed=True
+                ).count()
+
+                if total_lessons and total_lessons == completed_lessons:
+                    finalize_course_progress(student_id, course_id)
+            except Exception:
+                pass
     else:
         pass
+
+
+def finalize_course_progress(student_id, course_id):
+    """
+    Устанавливает курс как завершенный, если все уроки пройдены.
+    """
+    StudentCourseProgress.objects.update_or_create(
+        student_id=student_id,
+        course_id=course_id,
+        defaults={"progress": 100},  # Прогресс 100% если курс завершен
+    )
 
 
 def calculate_progress(student_id, course_id):

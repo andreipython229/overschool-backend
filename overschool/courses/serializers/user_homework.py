@@ -24,7 +24,7 @@ class UserHomeworkSerializer(serializers.ModelSerializer):
             "status",
             "mark",
             "teacher",
-            "copy_course_id"
+            "copy_course_id",
         ]
         read_only_fields = (
             "user",
@@ -66,7 +66,7 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
             "teacher_last_name",
             "teacher_avatar",
             "user_homework_checks",
-            "copy_course_id"
+            "copy_course_id",
         ]
         read_only_fields = (
             "user",
@@ -98,12 +98,15 @@ class UserHomeworkDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_teacher_avatar(self, obj):
-        if obj.teacher.profile.avatar:
-            return s3.get_link(obj.teacher.profile.avatar.name)
+        if obj.teacher:
+            if obj.teacher.profile.avatar:
+                return s3.get_link(obj.teacher.profile.avatar.name)
+            else:
+                # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
+                base_avatar_path = "users/avatars/base_avatar.jpg"
+                return s3.get_link(base_avatar_path)
         else:
-            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "users/avatars/base_avatar.jpg"
-            return s3.get_link(base_avatar_path)
+            return None
 
 
 class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
@@ -177,8 +180,8 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         group = obj.user.students_group_fk.filter(
             course_id=obj.homework.section.course.course_id
         ).first()
-        if group:
-            return f"{group.teacher_id.last_name} {group.teacher_id.first_name}"
+        if group and group.teacher_id:
+            return f"{group.teacher_id.last_name if group.teacher_id.last_name else ''} {group.teacher_id.first_name if group.teacher_id.first_name else ''}"
         return None
 
     def get_user_avatar(self, obj):

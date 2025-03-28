@@ -107,26 +107,6 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
         school = School.objects.get(name=school_name)
         return school
 
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return (
-                StudentsGroup.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
-        user = self.request.user
-        if user.groups.filter(group__name="Student", school=self.get_school()).exists():
-            return StudentsGroup.objects.filter(
-                students=user, course_id__school__school_id=self.get_school().school_id
-            )
-        if user.groups.filter(group__name="Teacher", school=self.get_school()).exists():
-            return StudentsGroup.objects.filter(
-                teacher_id=user,
-                course_id__school__school_id=self.get_school().school_id,
-            )
-        if user.groups.filter(group__name="Admin", school=self.get_school()).exists():
-            return StudentsGroup.objects.filter(
-                course_id__school__school_id=self.get_school().school_id
-            )
-
     def get_permissions(self):
         permissions = super().get_permissions()
         user = self.request.user
@@ -156,6 +136,39 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    def get_queryset(self, *args, **kwargs):
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                StudentsGroup.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        user = self.request.user
+        if user.groups.filter(group__name="Admin", school=self.get_school()).exists():
+            return (
+                StudentsGroup.objects.filter(
+                    course_id__school__school_id=self.get_school().school_id
+                )
+                .select_related("course_id", "teacher_id")
+                .prefetch_related("students", "group_settings")
+            )
+        if user.groups.filter(group__name="Student", school=self.get_school()).exists():
+            return (
+                StudentsGroup.objects.filter(
+                    students=user,
+                    course_id__school__school_id=self.get_school().school_id,
+                )
+                .select_related("course_id", "teacher_id")
+                .prefetch_related("students", "group_settings")
+            )
+        if user.groups.filter(group__name="Teacher", school=self.get_school()).exists():
+            return (
+                StudentsGroup.objects.filter(
+                    teacher_id=user,
+                    course_id__school__school_id=self.get_school().school_id,
+                )
+                .select_related("course_id", "teacher_id")
+                .prefetch_related("students", "group_settings")
+            )
 
     def perform_create(self, serializer):
         serializer.is_valid()

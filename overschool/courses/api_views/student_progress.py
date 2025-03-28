@@ -442,7 +442,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 or 0
             )
 
-            current_student_rank, top_3_leaders = self.get_students_progress(
+            current_student_rank, top_3_leaders, better_than_percent = self.get_students_progress(
                 course.pk, student
             )
 
@@ -453,6 +453,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
                 "completed_count": total_completed,
                 "completed_percent": progress_percent,
                 "average_mark": average_mark,
+                "better_than_percent": better_than_percent,
                 "rank_in_course": current_student_rank,
                 "top_leaders": top_3_leaders,
                 "lessons": self.get_lesson_stats(
@@ -518,6 +519,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             current_student_progress["rank"] if current_student_progress else None
         )
 
+        better_than_percent = 0
+        if results and current_student_progress:
+            lower_progress_count = sum(1 for r in results if r["progress"] < current_student_progress["progress"])
+            better_than_percent = round((lower_progress_count / len(results)) * 100)
+
         # Форматируем лидеров
         top_3_leaders = [
             {
@@ -530,7 +536,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             for result in results[:3]
         ]
 
-        return current_student_rank, top_3_leaders
+        return current_student_rank, top_3_leaders, better_than_percent
 
     def get_top_leaders(self, top_students):
         base_avatar_path = "users/avatars/base_avatar.jpg"
