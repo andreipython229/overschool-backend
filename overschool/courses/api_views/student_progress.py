@@ -519,10 +519,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             current_student_progress["rank"] if current_student_progress else None
         )
 
-        better_than_percent = 0
-        if results and current_student_progress:
+        # **Рассчитываем, насколько студент лучше других (в процентах)**
+        better_than_percent = 100 if len(results) == 1 else 0  # Если он единственный, то 100%
+        if results and current_student_progress and len(results) > 1:
             lower_progress_count = sum(1 for r in results if r["progress"] < current_student_progress["progress"])
-            better_than_percent = round((lower_progress_count / len(results)) * 100)
+            better_than_percent = round((lower_progress_count / (len(results) - 1)) * 100)
 
         # Форматируем лидеров
         top_3_leaders = [
