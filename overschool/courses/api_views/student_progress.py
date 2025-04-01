@@ -59,28 +59,28 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["all_courses_progress"]:
             if (
-                user.groups.filter(
-                    group__name__in=[
-                        "Student",
-                        "Admin",
-                    ],
-                    school=school_id,
-                ).exists()
-                or user.email == "student@coursehub.ru"
+                    user.groups.filter(
+                        group__name__in=[
+                            "Student",
+                            "Admin",
+                        ],
+                        school=school_id,
+                    ).exists()
+                    or user.email == "student@coursehub.ru"
             ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["homework_progress"]:
             if (
-                user.groups.filter(
-                    group__name__in=[
-                        "Student",
-                        "Admin",
-                    ],
-                    school=school_id,
-                ).exists()
-                or user.email == "student@coursehub.ru"
+                    user.groups.filter(
+                        group__name__in=[
+                            "Student",
+                            "Admin",
+                        ],
+                        school=school_id,
+                    ).exists()
+                    or user.email == "student@coursehub.ru"
             ):
                 return permissions
             else:
@@ -90,13 +90,13 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         ]:
             # Разрешения для просмотра статистики (Только Student)
             if (
-                user.groups.filter(
-                    group__name__in=[
-                        "Student",
-                    ],
-                    school=school_id,
-                ).exists()
-                or user.email == "student@coursehub.ru"
+                    user.groups.filter(
+                        group__name__in=[
+                            "Student",
+                        ],
+                        school=school_id,
+                    ).exists()
+                    or user.email == "student@coursehub.ru"
             ):
                 return permissions
             else:
@@ -106,11 +106,11 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         ]:
             # Разрешения для просмотра статистики по id (Только Admin этой школы)
             if user.groups.filter(
-                group__name__in=[
-                    "Admin",
-                    "Teacher",
-                ],
-                school=school_id,
+                    group__name__in=[
+                        "Admin",
+                        "Teacher",
+                    ],
+                    school=school_id,
             ).exists():
                 return permissions
             else:
@@ -157,7 +157,7 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         try:
             student = User.objects.get(pk=student_id)
             if not student.groups.filter(
-                group__name="Student", school=school_id
+                    group__name="Student", school=school_id
             ).exists():
                 return Response(
                     f"student_id не принадлежит пользователю добавленному как студент в данную школу.",
@@ -172,15 +172,15 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         courses_ids = []
 
         if (
-            student.groups.filter(group__name="Student", school=school_id).exists()
-            and user.groups.filter(group__name="Admin", school=school_id).exists()
+                student.groups.filter(group__name="Student", school=school_id).exists()
+                and user.groups.filter(group__name="Admin", school=school_id).exists()
         ):
             courses_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=student_id
             ).values_list("course_id", flat=True)
         elif (
-            student.groups.filter(group__name="Student", school=school_id).exists()
-            and user.groups.filter(group__name="Teacher", school=school_id).exists()
+                student.groups.filter(group__name="Student", school=school_id).exists()
+                and user.groups.filter(group__name="Teacher", school=school_id).exists()
         ):
             courses_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name,
@@ -209,8 +209,8 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         ).exists()
 
         if (
-            not is_student
-            and not user.groups.filter(group__name="Admin", school=school_id).exists()
+                not is_student
+                and not user.groups.filter(group__name="Admin", school=school_id).exists()
         ):
             return Response(
                 f"Студент не найден в школе {school_name}.",
@@ -263,7 +263,9 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         school = School.objects.get(name=school_name)
         courses_data = []
 
-        base_query = Q(active=True) & ~Q(lessonavailability__student=student)
+        base_query = Q(active=True) | Q(
+            lessonavailability__available=True
+        )
 
         for course_id in courses_ids:
             course = Course.objects.get(pk=course_id)
@@ -273,10 +275,118 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
 
             if course.is_copy:
                 course_id = (
-                    CourseCopy.objects.filter(course_copy_id=course.course_id)
-                    .values_list("course_id", flat=True)
-                    .first()
-                    or course_id
+                        CourseCopy.objects.filter(course_copy_id=course.course_id)
+                        .values_list("course_id", flat=True)
+                        .first()
+                        or course_id
+                )
+
+            base_lessons = BaseLesson.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
+
+            progress_logs = UserProgressLogs.objects.filter(
+                lesson__in=base_lessons, user=student
+            )
+            viewed_lessons = progress_logs.values_list("lesson_id", flat=True)
+            completed_lessons = progress_logs.filter(completed=True).values_list(
+                "lesson_id", flat=True
+            )
+
+            all_lessons = Lesson.objects.filter(section__course_id=course_id).filter(
+                base_query
+            )
+            all_homeworks = Homework.objects.filter(
+                section__course_id=course_id
+            ).filter(base_query)
+
+            all_tests = SectionTest.objects.filter(section__course_id=course_id).filter(
+                base_query
+            )
+
+            if student_group:
+                exclude_query = Q(lessonenrollment__student_group=student_group)
+                all_lessons = all_lessons.exclude(exclude_query)
+                all_homeworks = all_homeworks.exclude(exclude_query)
+                all_tests = all_tests.exclude(exclude_query)
+
+            completed_counts = {
+                "lessons": all_lessons.filter(
+                    baselesson_ptr_id__in=viewed_lessons
+                ).count(),
+                "homeworks": all_homeworks.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+                "tests": all_tests.filter(
+                    baselesson_ptr_id__in=completed_lessons
+                ).count(),
+            }
+
+            total_completed = sum(completed_counts.values())
+            total_lessons = base_lessons.count()
+
+            progress_percent = self.calculate_progress(total_completed, total_lessons)
+
+            average_mark = (
+                    UserHomework.objects.filter(
+                        user=student, homework__section__course_id=course_id
+                    ).aggregate(average_mark=Avg("mark"))["average_mark"]
+                    or 0
+            )
+
+            course_data = {
+                "course_id": course.pk,
+                "course_name": course.name,
+                "all_baselessons": total_lessons,
+                "completed_count": total_completed,
+                "completed_percent": progress_percent,
+                "average_mark": average_mark,
+                "lessons": self.get_lesson_stats(
+                    all_lessons, completed_counts["lessons"]
+                ),
+                "homeworks": self.get_lesson_stats(
+                    all_homeworks, completed_counts["homeworks"]
+                ),
+                "tests": self.get_lesson_stats(all_tests, completed_counts["tests"]),
+            }
+
+            courses_data.append(course_data)
+
+            if progress_percent == 100:
+                self.update_student_history(student, student_group)
+
+            CompletedCourseNotifications.send_completed_course_notification(
+                progress_percent, student.id, course.pk, course.name, school.school_id
+            )
+
+        return Response(
+            {
+                "student": student.email,
+                "school_id": school.school_id,
+                "school_name": school_name,
+                "courses": courses_data,
+            }
+        )
+
+    def generate_response(self, school_name, student, courses_ids):
+        """Генерирует статистику по студенту по всем курсам в школе"""
+        school = School.objects.get(name=school_name)
+        courses_data = []
+        base_query = Q(active=True) | Q(
+            lessonavailability__available=True
+        )
+        for course_id in courses_ids:
+            course = Course.objects.get(pk=course_id)
+            student_group = StudentsGroup.objects.filter(
+                students=student, course_id=course
+            ).first()
+
+            if course.is_copy:
+                course_id = (
+                        CourseCopy.objects.filter(course_copy_id=course.course_id)
+                        .values_list("course_id", flat=True)
+                        .first()
+                        or course_id
                 )
 
             base_lessons = BaseLesson.objects.filter(
@@ -325,121 +435,10 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             progress_percent = self.calculate_progress(total_completed, total_lessons)
 
             average_mark = (
-                UserHomework.objects.filter(
-                    user=student, homework__section__course_id=course_id
-                ).aggregate(average_mark=Avg("mark"))["average_mark"]
-                or 0
-            )
-
-            course_data = {
-                "course_id": course.pk,
-                "course_name": course.name,
-                "all_baselessons": total_lessons,
-                "completed_count": total_completed,
-                "completed_percent": progress_percent,
-                "average_mark": average_mark,
-                "lessons": self.get_lesson_stats(
-                    all_lessons, completed_counts["lessons"]
-                ),
-                "homeworks": self.get_lesson_stats(
-                    all_homeworks, completed_counts["homeworks"]
-                ),
-                "tests": self.get_lesson_stats(all_tests, completed_counts["tests"]),
-            }
-
-            courses_data.append(course_data)
-
-            if progress_percent == 100:
-                self.update_student_history(student, student_group)
-
-            CompletedCourseNotifications.send_completed_course_notification(
-                progress_percent, student.id, course.pk, course.name, school.school_id
-            )
-
-        return Response(
-            {
-                "student": student.email,
-                "school_id": school.school_id,
-                "school_name": school_name,
-                "courses": courses_data,
-            }
-        )
-
-    def generate_response(self, school_name, student, courses_ids):
-        """Генерирует статистику по студенту по всем курсам в школе"""
-        school = School.objects.get(name=school_name)
-        courses_data = []
-
-        base_query = Q(active=True) & ~Q(lessonavailability__student=student)
-
-        for course_id in courses_ids:
-            course = Course.objects.get(pk=course_id)
-            student_group = StudentsGroup.objects.filter(
-                students=student, course_id=course
-            ).first()
-
-            if course.is_copy:
-                course_id = (
-                    CourseCopy.objects.filter(course_copy_id=course.course_id)
-                    .values_list("course_id", flat=True)
-                    .first()
-                    or course_id
-                )
-
-            base_lessons = BaseLesson.objects.filter(
-                section__course_id=course_id
-            ).filter(base_query)
-
-            progress_logs = UserProgressLogs.objects.filter(
-                lesson__in=base_lessons, user=student
-            )
-            viewed_lessons = progress_logs.values_list("lesson_id", flat=True)
-            completed_lessons = progress_logs.filter(completed=True).values_list(
-                "lesson_id", flat=True
-            )
-
-            all_lessons = Lesson.objects.filter(section__course_id=course_id).filter(
-                base_query
-            )
-            all_homeworks = Homework.objects.filter(
-                section__course_id=course_id
-            ).filter(base_query)
-            all_tests = SectionTest.objects.filter(section__course_id=course_id).filter(
-                base_query
-            )
-
-            if student_group:
-                exclude_query = Q(lessonenrollment__student_group=student_group)
-                all_lessons = all_lessons.exclude(exclude_query)
-                all_homeworks = all_homeworks.exclude(exclude_query)
-                all_tests = all_tests.exclude(exclude_query)
-
-            completed_counts = {
-                "lessons": all_lessons.filter(
-                    baselesson_ptr_id__in=viewed_lessons
-                ).count(),
-                "homeworks": all_homeworks.filter(
-                    baselesson_ptr_id__in=completed_lessons
-                ).count(),
-                "tests": all_tests.filter(
-                    baselesson_ptr_id__in=completed_lessons
-                ).count(),
-            }
-
-            total_completed = sum(completed_counts.values())
-            total_lessons = base_lessons.count()
-
-            progress_percent = (
-                StudentCourseProgress.objects.filter(
-                    student=student, course_id=course_id
-                )
-            ).values_list("progress", flat=True).first() or 0
-
-            average_mark = (
-                UserHomework.objects.filter(
-                    user=student, homework__section__course_id=course_id
-                ).aggregate(average_mark=Avg("mark"))["average_mark"]
-                or 0
+                    UserHomework.objects.filter(
+                        user=student, homework__section__course_id=course_id
+                    ).aggregate(average_mark=Avg("mark"))["average_mark"]
+                    or 0
             )
 
             current_student_rank, top_3_leaders, better_than_percent = self.get_students_progress(

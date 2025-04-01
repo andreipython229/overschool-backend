@@ -54,7 +54,9 @@ def update_progress(sender, instance, **kwargs):
 
             # **Проверка завершения курса**
             try:
-                base_query = Q(active=True) & ~Q(lessonavailability__student=student_id)
+                base_query = Q(active=True) | Q(
+                    lessonavailability__available=True
+                )
                 lesson_ids = BaseLesson.objects.filter(
                     section__course_id=course_id
                 ).filter(base_query).values_list("id", flat=True)
