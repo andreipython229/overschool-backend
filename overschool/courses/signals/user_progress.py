@@ -54,9 +54,7 @@ def update_progress(sender, instance, **kwargs):
 
             # **Проверка завершения курса**
             try:
-                base_query = Q(active=True) | Q(
-                    lessonavailability__available=True
-                )
+                base_query = Q(active=True) & ~Q(lessonavailability__student=student_id)
                 lesson_ids = BaseLesson.objects.filter(
                     section__course_id=course_id
                 ).filter(base_query).values_list("id", flat=True)
@@ -94,13 +92,12 @@ def calculate_progress(student_id, course_id):
             course_id = course_copy.course_id
     except Course.DoesNotExist:
         return 0
-
-    all_base_lesson = BaseLesson.objects.filter(
-        section_id__course_id=course_id,
-        active=True,
-    ).exclude(
-        lessonavailability__student=student_id,
+    base_query = Q(active=True) | Q(
+        lessonavailability__available=True
     )
+    all_base_lesson = BaseLesson.objects.filter(
+        section_id__course_id=course_id
+    ).filter(base_query)
 
     if all_base_lesson.count() == 0:
         return 0
@@ -115,7 +112,6 @@ def calculate_progress(student_id, course_id):
 
     completed_lessons = (
         Lesson.objects.filter(section_id__course_id=course_id, active=True)
-        .exclude(lessonavailability__student=student_id)
         .exclude(lessonenrollment__student_group=OuterRef("pk"))
         .filter(baselesson_ptr_id__in=lesson_viewed_ids)
         .count()
@@ -123,7 +119,6 @@ def calculate_progress(student_id, course_id):
 
     completed_homeworks = (
         Homework.objects.filter(section_id__course_id=course_id, active=True)
-        .exclude(lessonavailability__student=student_id)
         .exclude(lessonenrollment__student_group=OuterRef("pk"))
         .filter(baselesson_ptr_id__in=lesson_completed_ids)
         .count()
@@ -131,7 +126,6 @@ def calculate_progress(student_id, course_id):
 
     completed_tests = (
         SectionTest.objects.filter(section_id__course_id=course_id, active=True)
-        .exclude(lessonavailability__student=student_id)
         .exclude(lessonenrollment__student_group=OuterRef("pk"))
         .filter(baselesson_ptr_id__in=lesson_completed_ids)
         .count()
