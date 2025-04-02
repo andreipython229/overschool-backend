@@ -15,6 +15,7 @@ from .school import (
     TariffViewSet,
 )
 from .school_banner import BannerViewSet
+from .invite_program import InviteProgramViewSet
 from .school_bonus import BonusViewSet
 from .school_branding import SchoolByDomainView
 from .school_document import SchoolDocumentViewSet

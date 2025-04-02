@@ -43,3 +43,4 @@ from .school_referral import ReferralClickSerializer, ReferralSerializer
 from .school_roles import SchoolNewRoleSerializer
 from .SchoolMeetings import SchoolMeetingsSerializer
 from .userDomain import DomainSerializer
+from . invite_program import InviteProgramSerializer
