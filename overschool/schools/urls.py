@@ -3,6 +3,7 @@ from rest_framework import routers
 from schools.api_views import (
     AddPaymentMethodViewSet,
     BannerViewSet,
+    InviteProgramViewSet,
     BoxViewSet,
     ConfiguredDomainViewSet,
     DomainViewSet,
@@ -55,6 +56,7 @@ router.register(
     basename="referral-click",
 )
 router.register(r"(?P<school_name>\w+)/banners", BannerViewSet, basename="banner")
+router.register(r"(?P<school_name>\w+)/invites_program", InviteProgramViewSet, basename="invites_program")
 router.register(r"school-new-roles", SchoolNewRoleViewSet, basename="school-new-roles")
 
 router_meetings = routers.DefaultRouter()

@@ -33,7 +33,7 @@ class BannerViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
             "accept",
         ]:
             if (
-                user.groups.filter(group__name="Student", school=school_id).exists()
+                user.groups.filter(group__name__in=["Student", "Teacher"], school=school_id).exists()
                 or user.email == "student@coursehub.ru"
             ):
                 return permissions

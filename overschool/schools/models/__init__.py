@@ -22,3 +22,4 @@ from .school_roles import SchoolNewRole
 from .schoolMeetings import SchoolMeetings
 from .userDomain import Domain
 from .box import Box, BoxPrize, Payment, Prize, UserBox, UserPrize
+from .invite_program import InviteProgram
