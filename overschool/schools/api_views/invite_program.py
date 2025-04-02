@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, viewsets, status
 from common_services.mixins import WithHeadersViewSet
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -66,27 +66,20 @@ class InviteProgramViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
 
         return Response(self.get_serializer(queryset, many=True).data)
 
-    def perform_create(self, serializer):
-        """Создаёт новую инвайт-программу и отключает старые"""
+    def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
         school = get_object_or_404(School, name=school_name)
 
-        if serializer.validated_data.get("is_active"):
-            InviteProgram.objects.filter(school=school, is_active=True).update(is_active=False)
+        if InviteProgram.objects.filter(school=school).exists():
+            return Response(
+                {"detail": "У школы уже есть инвайт-программа."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Если группы не указаны, добавляем все группы школы
-        if not serializer.validated_data.get("groups"):
-            groups = StudentsGroup.objects.filter(course_id__school=school)
-            serializer.save(school=school, groups=groups)
-        else:
-            serializer.save(school=school)
+        return super().create(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        """Обновляет инвайт-программу, отключая другие, если активна"""
         school_name = self.kwargs.get("school_name")
         school = get_object_or_404(School, name=school_name)
 
-        if serializer.validated_data.get("is_active"):
-            InviteProgram.objects.filter(school=school, is_active=True).update(is_active=False)
-
-        serializer.save()
+        serializer.save(school=school)
