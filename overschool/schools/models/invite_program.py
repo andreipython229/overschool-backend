@@ -5,12 +5,11 @@ from users.models.user import User
 
 
 class InviteProgram(models.Model):
-
     is_active = models.BooleanField(
         default=False, verbose_name="Активный", help_text="Активация программы"
     )
     link = models.URLField(
-        max_length=255, verbose_name="Ссылка", help_text="Реферальная ссылка"
+        max_length=255, verbose_name="Ссылка", help_text="Реферальная ссылка", blank=True, null=True
     )
     groups = models.ManyToManyField(
         StudentsGroup, related_name="invite_program", verbose_name="Группы", blank=True
