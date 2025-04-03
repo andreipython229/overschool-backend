@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets, status
+from rest_framework import permissions, viewsets, status, serializers
 from common_services.mixins import WithHeadersViewSet
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -67,6 +67,10 @@ class InviteProgramViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
         return Response(self.get_serializer(queryset, many=True).data)
 
     def create(self, request, *args, **kwargs):
+        """Создаёт новую инвайт-программу"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # Проверяем данные
+
         school_name = self.kwargs.get("school_name")
         school = get_object_or_404(School, name=school_name)
 
@@ -76,10 +80,30 @@ class InviteProgramViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        return super().create(request, *args, **kwargs)
+        # Проверяем, если программа активна, то ссылка не должна быть пустой
+        if serializer.validated_data.get("is_active") and not serializer.validated_data.get("link"):
+            return Response(
+                {"detail": "Если программа активна, ссылка не может быть пустой."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Если группы не указаны, добавляем все группы школы
+        if not serializer.validated_data.get("groups"):
+            groups = StudentsGroup.objects.filter(course_id__school=school)
+            serializer.save(school=school, groups=groups)
+        else:
+            serializer.save(school=school)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_update(self, serializer):
+        """Обновление инвайт-программы с проверкой на активацию"""
         school_name = self.kwargs.get("school_name")
         school = get_object_or_404(School, name=school_name)
+
+        if serializer.validated_data.get("is_active") and not serializer.validated_data.get("link"):
+            raise serializers.ValidationError(
+                {"detail": "Нельзя активировать программу без ссылки."}
+            )
 
         serializer.save(school=school)
