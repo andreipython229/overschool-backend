@@ -98,12 +98,10 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
             "new_user_notification.html", {"password": password, "url": url}
         )
 
-        send = sender_service.send_code_by_email(
+        sender_service.send_code_by_email(
             email=email, subject=subject, message=html_message
         )
 
-        if send and send["status_code"] == 500:
-            return Response(send["error"], status=send["status_code"])
         return Response({"user_id": user.id}, status=status.HTTP_200_OK)
 
 

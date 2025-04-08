@@ -117,17 +117,15 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
     homework_name = serializers.CharField(source="homework.name", read_only=True)
     user_first_name = serializers.CharField(source="user.first_name", read_only=True)
     user_last_name = serializers.CharField(source="user.last_name", read_only=True)
-    user_avatar = serializers.SerializerMethodField()
     user_email = serializers.CharField(source="user.email", read_only=True)
-    course_name = serializers.CharField(
-        source="homework.section.course.name", read_only=True
-    )
-    course_id = serializers.IntegerField(
-        source="homework.section.course.course_id", read_only=True
-    )
+    course_name = serializers.CharField(source="homework.section.course.name", read_only=True)
+    course_id = serializers.IntegerField(source="homework.section.course.course_id", read_only=True)
+
+    user_avatar = serializers.SerializerMethodField()
     group_id = serializers.SerializerMethodField()
     group_name = serializers.SerializerMethodField()
     teacher_name = serializers.SerializerMethodField()
+    teacher_email = serializers.SerializerMethodField()
     last_reply = serializers.SerializerMethodField()
 
     class Meta:
@@ -147,6 +145,7 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
             "group_id",
             "group_name",
             "teacher_name",
+            "teacher_email",
             "status",
             "mark",
             "last_reply",
@@ -154,40 +153,37 @@ class UserHomeworkStatisticsSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_last_reply(self, obj):
-        user_homework_checks = UserHomeworkCheck.objects.filter(
-            user_homework=obj
-        ).last()
-        if user_homework_checks:
-            return user_homework_checks.updated_at
-        return None
+        last_check = (
+            UserHomeworkCheck.objects.filter(user_homework=obj)
+            .order_by("-updated_at")
+            .first()
+        )
+        return last_check.updated_at if last_check else None
+
+    def get_group(self, obj):
+        return obj.user.students_group_fk.filter(
+            course_id=obj.homework.section.course.course_id
+        ).first()
 
     def get_group_id(self, obj):
-        group = obj.user.students_group_fk.filter(
-            course_id=obj.homework.section.course.course_id
-        ).first()
-        if group:
-            return group.group_id
-        return None
+        group = self.get_group(obj)
+        return group.group_id if group else None
 
     def get_group_name(self, obj):
-        group = obj.user.students_group_fk.filter(
-            course_id=obj.homework.section.course.course_id
-        ).first()
-        if group:
-            return group.name
+        group = self.get_group(obj)
+        return group.name if group else None
 
     def get_teacher_name(self, obj):
-        group = obj.user.students_group_fk.filter(
-            course_id=obj.homework.section.course.course_id
-        ).first()
-        if group and group.teacher_id:
-            return f"{group.teacher_id.last_name if group.teacher_id.last_name else ''} {group.teacher_id.first_name if group.teacher_id.first_name else ''}"
+        teacher = obj.teacher
+        if teacher:
+            return f"{teacher.last_name or ''} {teacher.first_name or ''}".strip()
         return None
 
+    def get_teacher_email(self, obj):
+        return obj.teacher.email if obj.teacher else None
+
     def get_user_avatar(self, obj):
-        if obj.user.profile.avatar:
-            return s3.get_link(obj.user.profile.avatar.name)
-        else:
-            # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
-            base_avatar_path = "users/avatars/base_avatar.jpg"
-            return s3.get_link(base_avatar_path)
+        avatar = getattr(obj.user.profile, "avatar", None)
+        if avatar:
+            return s3.get_link(avatar.name)
+        return s3.get_link("users/avatars/base_avatar.jpg")

@@ -58,7 +58,7 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         subject = "Успешная регистрация"
         message = f"Вы успешно зарегистрированы, ваша школа '{school_name}'создана.Перейдите по ссылке для ознакомления {url}"
 
-        send = sender_service.send_code_by_email(
+        sender_service.send_code_by_email(
             email=email, subject=subject, message=message
         )
 
@@ -88,8 +88,5 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
             utm_term=utm_term,
             utm_content=utm_content,
         )
-
-        if send and send["status_code"] == 500:
-            return HttpResponse(send["error"], status=send["status_code"])
 
         return HttpResponse("/api/user/", status=201)
