@@ -55,11 +55,9 @@ class ForgotPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIVi
             f"<a href='{reset_password_url}'>{reset_password_url}</a><br><br>"
             "Если это письмо пришло вам по ошибке, просто проигнорируйте его."
         )
-        send = self.sender_service.send_code_by_email(
+        self.sender_service.send_code_by_email(
             email=email, subject=subject, message=message
         )
-        if send and send["status_code"] == 500:
-            return Response(send["error"], status=send["status_code"])
 
         return Response(
             "Ссылка для сброса пароля была отправлена. Проверьте свою электронную почту."

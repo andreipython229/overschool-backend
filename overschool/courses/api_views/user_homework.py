@@ -22,6 +22,8 @@ from courses.serializers import (
 from django.core.exceptions import PermissionDenied
 from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser
@@ -365,6 +367,8 @@ class HomeworkStatisticsView(WithHeadersViewSet, SchoolMixin, generics.ListAPIVi
         elif user.groups.filter(group__name="Admin", school=school_id).exists():
             pass
 
+        if self.request.GET.get("teacher_id"):
+            queryset = queryset.filter(teacher_id=self.request.GET.get("teacher_id"))
         if self.request.GET.get("status"):
             queryset = queryset.filter(status=self.request.GET.get("status"))
 
@@ -401,7 +405,6 @@ class HomeworkStatisticsView(WithHeadersViewSet, SchoolMixin, generics.ListAPIVi
             for term in search_terms:
                 search_filter |= Q(user__last_name__icontains=term)
                 search_filter |= Q(user__first_name__icontains=term)
-                search_filter |= Q(user__last_name__icontains=term)
                 search_filter |= Q(user__email__icontains=term)
 
             # Применение фильтрации к QuerySet
@@ -466,6 +469,27 @@ class HomeworkStatisticsView(WithHeadersViewSet, SchoolMixin, generics.ListAPIVi
             )
             queryset = queryset.filter(last_check_updated_at__lte=end_datetime)
         return queryset
+
+    @action(detail=False, methods=["get"], url_path="teachers", url_name="teachers")
+    def list_teachers(self, request, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school = get_object_or_404(School, name=school_name)
+
+        teachers = User.objects.filter(
+            groups__group__name="Teacher",
+            groups__school=school.school_id
+        ).distinct()
+
+        data = [
+            {
+                "id": teacher.id,
+                "full_name": f"{teacher.last_name} {teacher.first_name}".strip(),
+                "email": teacher.email,
+            }
+            for teacher in teachers
+        ]
+
+        return Response(data)
 
 
 UserHomeworkViewSet = apply_swagger_auto_schema(
