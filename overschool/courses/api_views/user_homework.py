@@ -483,7 +483,7 @@ class HomeworkStatisticsView(WithHeadersViewSet, SchoolMixin, generics.ListAPIVi
         data = [
             {
                 "id": teacher.id,
-                "full_name": f"{teacher.last_name} {teacher.first_name}".strip(),
+                "name": f"{teacher.last_name} {teacher.first_name}".strip(),
                 "email": teacher.email,
             }
             for teacher in teachers
