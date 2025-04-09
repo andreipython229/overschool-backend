@@ -52,8 +52,7 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ["order", "section_id", "course", "name", "lessons"]
-        read_only_fields = ["order"]
+        fields = ["order", "section_id", "course", "name", "lessons", "order"]
 
     def get_lessons(self, instance):
         lessons_data = instance.lessons.all()
@@ -120,7 +119,7 @@ class SectionRetrieveSerializer(serializers.ModelSerializer):
     def get_group_settings(self, obj):
         user = self.context["request"].user
         if user.groups.filter(
-            group__name="Student", school=obj.course.school_id
+                group__name="Student", school=obj.course.school_id
         ).exists():
             try:
                 group = StudentsGroup.objects.get(
