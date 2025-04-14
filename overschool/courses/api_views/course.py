@@ -1046,7 +1046,10 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN,
                     )
 
-                limit = get_student_training_duration(group, user.id)[0]
+                limit, _, _, created_at, _, _ = get_student_training_duration(
+                    group, user.id
+                )
+
                 if limit:
                     history = (
                         StudentsHistory.objects.filter(
@@ -1062,12 +1065,11 @@ class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                             is_deleted=False,
                             date_added=timezone.now(),
                         )
-                    training_duration = TrainingDuration.objects.filter(
-                        user=user, students_group=group
-                    ).first()
+
+                    # Проверка срока действия
                     if (
-                        training_duration.created_at + timedelta(days=limit)
-                        < timezone.now()
+                        created_at
+                        and (created_at + timedelta(days=limit)) < timezone.now()
                     ):
                         return Response(
                             {"error": "Срок доступа к курсу истек."},

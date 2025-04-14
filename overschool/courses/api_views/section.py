@@ -20,6 +20,7 @@ from courses.serializers import (
     SectionRetrieveSerializer,
     SectionSerializer,
 )
+from django.db import DatabaseError, transaction
 from django.db.models import F, Q
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
@@ -270,7 +271,9 @@ class SectionViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
                 if user.groups.filter(group__name="Student", school=school).exists():
-                    base_filters &= ~Q(lessonavailability__student=user) | Q(lessonavailability__available=True)
+                    base_filters &= ~Q(lessonavailability__student=user) | Q(
+                        lessonavailability__available=True
+                    )
                     a = a.filter(base_filters).distinct()
                     b = b.filter(base_filters).distinct()
                     c = c.filter(base_filters).distinct()
@@ -317,28 +320,75 @@ SectionViewSet = apply_swagger_auto_schema(
 class SectionUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
-    @swagger_auto_schema(method="post", request_body=SectionOrderSerializer)
+    @swagger_auto_schema(
+        method="post",
+        request_body=SectionOrderSerializer(many=True),
+        responses={
+            200: "Секции успешно обновлены",
+            400: "Ошибка валидации данных или секция не найдена",
+            500: "Внутренняя ошибка сервера",
+        },
+        operation_summary="Массовое обновление порядка секций",
+        operation_description="Принимает список объектов с id секции ('section_id') и новым порядковым номером 'order'.",
+    )
     @action(detail=False, methods=["POST"])
     def shuffle_sections(self, request, *args, **kwargs):
+        serializer = SectionOrderSerializer(data=request.data, many=True)
 
-        data = request.data
-
-        # сериализатор с полученными данными
-        serializer = SectionOrderSerializer(data=data, many=True)
-
-        if serializer.is_valid():
-            for section_data in serializer.validated_data:
-                section_id = section_data["section_id"]
-                new_order = section_data["order"]
-
-                # Обновите порядок секции в базе данных
-                try:
-                    section = Section.objects.get(section_id=section_id)
-                    section.order = new_order
-                    section.save()
-                except Exception as e:
-                    return Response(str(e), status=500)
-            return Response("Секции успешно обновлены", status=status.HTTP_200_OK)
-
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+
+        section_update_map = {
+            item["section_id"]: item["order"] for item in validated_data
+        }
+        section_ids = list(section_update_map.keys())
+
+        # 1. Начинаем транзакцию
+        try:
+            with transaction.atomic():
+                # 2. Получаем все нужные секции одним запросом
+
+                sections = Section.objects.select_for_update().filter(
+                    section_id__in=section_ids
+                )
+
+                sections_to_update = []
+                found_ids = set()
+
+                for section in sections:
+
+                    found_ids.add(section.section_id)
+                    new_order = section_update_map.get(section.section_id)
+
+                    if new_order is not None and section.order != new_order:
+                        section.order = new_order
+                        sections_to_update.append(section)
+
+                # 3. Проверяем, все ли запрошенные ID были найдены
+                missing_ids = set(section_ids) - found_ids
+                if missing_ids:
+
+                    return Response(
+                        {"detail": f"Секции с ID {list(missing_ids)} не найдены."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # 4. Выполняем массовое обновление, если есть что обновлять
+                if sections_to_update:
+
+                    Section.objects.bulk_update(sections_to_update, ["order"])
+
+            # 5. Возвращаем успешный ответ после коммита транзакции
+            return Response(
+                f"{len(sections_to_update)} секций успешно обновлены",
+                status=status.HTTP_200_OK,
+            )
+
+        except DatabaseError as e:
+
+            return Response(
+                "Ошибка базы данных при обновлении секций.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
