@@ -42,6 +42,7 @@ from django.db.models import (
     Sum,
 )
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, serializers, status, viewsets
@@ -62,30 +63,66 @@ def get_student_training_duration(group, student_id):
         training_duration = TrainingDuration.objects.filter(
             user_id=student_id, students_group=group
         ).first()
+
+        # Базовые значения по умолчанию
+        created_at = None
+        updated_at = None
+        remaining_period = None
+
         if training_duration:
-            if training_duration.limit > 0:
+            created_at = training_duration.created_at
+            updated_at = training_duration.updated_at
+
+            # Вычисляем оставшийся период
+            if training_duration.limit > 0 and training_duration.created_at:
+                delta = (now() - training_duration.created_at).days
+                remaining_period = max(training_duration.limit - delta, 0)
                 return (
                     training_duration.limit,
                     training_duration.limit,
                     training_duration.download,
+                    created_at,
+                    updated_at,
+                    remaining_period,
                 )
             else:
+                base_limit = group.training_duration
+                if base_limit and training_duration.created_at:
+                    delta = (now() - training_duration.created_at).days
+                    remaining_period = max(base_limit - delta, 0)
                 return (
-                    (group.training_duration, None, training_duration.download)
-                    if group.training_duration
-                    else (None, None, training_duration.download)
+                    base_limit,
+                    None,
+                    training_duration.download,
+                    created_at,
+                    updated_at,
+                    remaining_period,
                 )
+
         else:
+            base_limit = group.training_duration
+            created_at = None
+            updated_at = None
+            if base_limit:
+                remaining_period = base_limit
             return (
-                (group.training_duration, None, group.group_settings.download)
-                if group.training_duration
-                else (None, None, group.group_settings.download)
+                base_limit,
+                None,
+                group.group_settings.download,
+                created_at,
+                updated_at,
+                remaining_period,
             )
+
     except TrainingDuration.DoesNotExist:
+        base_limit = group.training_duration
         return (
-            (group.training_duration, None, group.group_settings.download)
-            if group.training_duration
-            else (None, None, group.group_settings.download)
+            base_limit,
+            None,
+            group.group_settings.download,
+            None,
+            None,
+            base_limit if base_limit else None,
         )
 
 
@@ -875,13 +912,23 @@ class StudentsGroupViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSe
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result = get_student_training_duration(group, student_id)
+        (
+            final_limit,
+            individual_limit,
+            download,
+            created_at,
+            updated_at,
+            remaining_period,
+        ) = get_student_training_duration(group, student_id)
 
         return Response(
             {
-                "final_limit": result[0],
-                "individual_limit": result[1],
-                "download": result[2],
+                "final_limit": final_limit,
+                "individual_limit": individual_limit,
+                "download": download,
+                "created_at": created_at,
+                "updated_at": updated_at,
+                "remaining_period": remaining_period,
             },
             status=status.HTTP_200_OK,
         )

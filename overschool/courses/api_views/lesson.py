@@ -20,7 +20,7 @@ from courses.serializers import (
 from courses.services import LessonProgressMixin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -230,7 +230,7 @@ class LessonViewSet(
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра уроков (любой пользователь школы)
             if user.groups.filter(
-                    group__name__in=["Student", "Teacher"], school=school_id
+                group__name__in=["Student", "Teacher"], school=school_id
             ).exists():
                 return permissions
             else:
@@ -393,28 +393,72 @@ class LessonViewSet(
 class LessonUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
-    @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)
+    @swagger_auto_schema(
+        method="post",
+        request_body=LessonUpdateSerializer(many=True),
+        responses={
+            200: "Уроки успешно обновлены",
+            400: "Ошибка валидации данных или урок не найден",
+            500: "Внутренняя ошибка сервера",
+        },
+        operation_summary="Массовое обновление порядка уроков",
+        operation_description="Принимает список объектов с id урока и новым порядковым номером 'order'.",
+    )
     @action(detail=False, methods=["POST"])
     def shuffle_lessons(self, request, *args, **kwargs):
+        serializer = LessonUpdateSerializer(data=request.data, many=True)
 
-        data = request.data
-
-        # сериализатор с полученными данными
-        serializer = LessonUpdateSerializer(data=data, many=True)
-
-        if serializer.is_valid():
-            for lesson_data in serializer.validated_data:
-                baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
-                new_order = lesson_data["order"]
-
-                # Обновите порядок урока в базе данных
-                try:
-                    lesson = BaseLesson.objects.get(id=baselesson_ptr_id)
-                    lesson.order = new_order
-                    lesson.save()
-                except Exception as e:
-                    return Response(str(e), status=500)
-            return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
-
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        lesson_update_map = {
+            item["baselesson_ptr_id"]: item["order"] for item in validated_data
+        }
+        lesson_ids = list(lesson_update_map.keys())
+
+        # 1. Начинаем транзакцию
+        try:
+            with transaction.atomic():
+                # 2. Получаем все нужные уроки одним запросом
+
+                lessons = BaseLesson.objects.select_for_update().filter(
+                    id__in=lesson_ids
+                )
+
+                lessons_to_update = []
+                found_ids = set()
+
+                for lesson in lessons:
+                    found_ids.add(lesson.id)
+                    new_order = lesson_update_map.get(lesson.id)
+
+                    if new_order is not None and lesson.order != new_order:
+                        lesson.order = new_order
+                        lessons_to_update.append(lesson)
+
+                # 3. Проверяем, все ли запрошенные ID были найдены
+                missing_ids = set(lesson_ids) - found_ids
+                if missing_ids:
+
+                    return Response(
+                        {"detail": f"Уроки с ID {list(missing_ids)} не найдены."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # 4. Выполняем массовое обновление, если есть что обновлять
+                if lessons_to_update:
+                    BaseLesson.objects.bulk_update(lessons_to_update, ["order"])
+
+            # 5. Возвращаем успешный ответ после коммита транзакции
+            return Response(
+                f"{len(lessons_to_update)} уроков успешно обновлены",
+                status=status.HTTP_200_OK,
+            )
+
+        except DatabaseError as e:
+
+            return Response(
+                "Ошибка базы данных при обновлении уроков.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
