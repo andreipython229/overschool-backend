@@ -56,14 +56,17 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
     def create(self, validated_data):
         school_name = validated_data.pop("school_name")
         referral_code = validated_data.pop("referral_code", None)
-
+        phone_number = validated_data.pop("phone_number")
         email = validated_data.get("email")
         password = validated_data.pop("password")
         validated_data.pop("password_confirmation", None)
 
         user = User.objects.filter(email__iexact=email).first()
+        if user:
+            user.phone_number = phone_number
+            user.save(update_fields=["phone_number"])
 
-        if not user:
+        else:
             # Если пользователя нет — создаём его
             user = User(**validated_data)
             user.set_password(password)
@@ -73,7 +76,10 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
 
         if referral_code:
             trial_days += 21
-
+        if School.objects.filter(owner=user).count() >= 2:
+            raise serializers.ValidationError(
+                "Пользователь может быть владельцем только двух школ."
+            )
         school = School(
             name=school_name,
             owner=user,

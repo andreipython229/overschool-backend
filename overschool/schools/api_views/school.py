@@ -16,12 +16,13 @@ from courses.models import (
     UserHomework,
     UserProgressLogs,
 )
+from courses.models.common.base_lesson import BaseLesson, LessonAvailability
 from courses.models.students.students_history import StudentsHistory
 from courses.paginators import StudentsPagination
 from courses.services import get_student_progress, progress_subquery
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Avg, Count, F, OuterRef, Q, Subquery, Sum, Prefetch
+from django.db.models import Avg, Count, F, OuterRef, Prefetch, Q, Subquery, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from drf_yasg import openapi
@@ -58,8 +59,6 @@ from schools.serializers import (
 from schools.services import Hmac
 from users.models import Profile, UserGroup, UserRole
 
-from courses.models.common.base_lesson import BaseLesson
-
 s3 = UploadToS3()
 
 
@@ -90,15 +89,15 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
         if user.is_authenticated and self.action in ["create"]:
             return permissions
         if (
-                self.action in ["stats", "section_student"]
-                and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
+            self.action in ["stats", "section_student"]
+            and user.groups.filter(group__name__in=["Teacher", "Admin"]).exists()
         ):
             return permissions
         if self.action in ["list", "retrieve", "create"]:
             # Разрешения для просмотра домашних заданий (любой пользователь школы)
             if (
-                    user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
-                    or user.email == "student@coursehub.ru"
+                user.groups.filter(group__name__in=["Teacher", "Student"]).exists()
+                or user.email == "student@coursehub.ru"
             ):
                 return permissions
             else:
@@ -136,14 +135,14 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 schools = School.objects.all()
                 for school in schools:
                     if not UserGroup.objects.filter(
-                            user=admin_user, group=group_admin, school=school
+                        user=admin_user, group=group_admin, school=school
                     ).exists():
                         UserGroup.objects.create(
                             user=admin_user, group=group_admin, school=school
                         )
 
                     if not UserGroup.objects.filter(
-                            user=teacher_user, group=group_teacher, school=school
+                        user=teacher_user, group=group_teacher, school=school
                     ).exists():
                         UserGroup.objects.create(
                             user=teacher_user, group=group_teacher, school=school
@@ -250,129 +249,224 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_student_sections_and_availability(self, student_id, student_groups):
+        """
+        Метод для получения секций, уроков и их доступности для студента.
+        """
         student_data = []
+        if not student_groups:
+            return student_data
 
         group_ids = [group.group_id for group in student_groups]
-        course_ids = list({group.course_id.course_id for group in student_groups})
 
-        # Получаем информацию о длительности обучения
+        course_ids = {group.course_id_id for group in student_groups}
+
+        # 1. Получаем информацию о длительности обучения
         training_durations = {
-            td['students_group']: td
+            td.students_group_id: td
             for td in TrainingDuration.objects.filter(
-                students_group__in=group_ids, user=student_id
-            ).values('students_group', 'limit', 'created_at')
+                students_group_id__in=group_ids, user_id=student_id
+            )
         }
 
-        # Загружаем секции и уроки с prefetch_related
-        sections_by_course = {
-            course_id: list(Section.objects.filter(course_id=course_id)
-                            .prefetch_related('lessons')
-                            .order_by('section_id'))
-            for course_id in course_ids
+        # 2. Загружаем все нужные секции одним запросом, сортируем по курсу и порядку секций
+        all_sections = (
+            Section.objects.filter(course_id__in=course_ids)
+            .order_by("course_id", "order")
+            .prefetch_related(
+                Prefetch(
+                    "lessons",
+                    queryset=BaseLesson.objects.order_by("order"),
+                    to_attr="ordered_lessons",
+                )
+            )
+        )
+
+        # Группируем секции по курсам
+        sections_by_course = {}
+        for section in all_sections:
+            if section.course_id not in sections_by_course:
+                sections_by_course[section.course_id] = []
+            sections_by_course[section.course_id].append(section)
+
+        # 3. Получаем все ID уроков из загруженных секций
+        lesson_ids = set()
+        for section in all_sections:
+            for lesson in section.ordered_lessons:
+                lesson_ids.add(lesson.id)
+
+        if not lesson_ids:
+            for group in student_groups:
+                group_data = self._prepare_group_data(
+                    group, training_durations, sections_by_course, {}, {}, {}, {}
+                )
+                student_data.append(group_data)
+            return student_data
+
+        # 4. Получаем все уроки (только нужные поля) одним запросом
+        lesson_map = {
+            lesson["id"]: lesson
+            for lesson in BaseLesson.objects.filter(id__in=lesson_ids).values(
+                "id", "name", "active", "order"
+            )
         }
 
-        # Все уроки одним запросом
-        all_lessons = BaseLesson.objects.filter(
-            section__course_id__in=course_ids
-        ).values('id', 'section_id', 'name', 'active', 'order')
-
-        lesson_map = {lesson['id']: lesson for lesson in all_lessons}
-        lesson_ids = set(lesson_map.keys())
-
-        # Определяем типы уроков
+        # 5. Определяем типы уроков
         lesson_types = {lesson_id: "unknown" for lesson_id in lesson_ids}
-        lesson_types.update({
-            lesson_id: "homework" for lesson_id in
-            Homework.objects.filter(baselesson_ptr__in=lesson_ids).values_list('baselesson_ptr_id', flat=True)
-        })
-        lesson_types.update({
-            lesson_id: "lesson" for lesson_id in
-            Lesson.objects.filter(baselesson_ptr__in=lesson_ids).values_list('baselesson_ptr_id', flat=True)
-        })
-        lesson_types.update({
-            lesson_id: "test" for lesson_id in
-            SectionTest.objects.filter(baselesson_ptr__in=lesson_ids).values_list('baselesson_ptr_id', flat=True)
-        })
+        lesson_types.update(
+            {
+                lesson_id: "homework"
+                for lesson_id in Homework.objects.filter(
+                    baselesson_ptr_id__in=lesson_ids
+                ).values_list("baselesson_ptr_id", flat=True)
+            }
+        )
+        lesson_types.update(
+            {
+                lesson_id: "lesson"
+                for lesson_id in Lesson.objects.filter(
+                    baselesson_ptr_id__in=lesson_ids
+                ).values_list("baselesson_ptr_id", flat=True)
+            }
+        )
+        lesson_types.update(
+            {
+                lesson_id: "test"
+                for lesson_id in SectionTest.objects.filter(
+                    baselesson_ptr_id__in=lesson_ids
+                ).values_list("baselesson_ptr_id", flat=True)
+            }
+        )
 
-        # Прогресс пользователя одним запросом
+        # 6. Прогресс пользователя одним запросом
         user_logs = {
             log.lesson_id: log
-            for log in UserProgressLogs.objects.filter(user_id=student_id, lesson_id__in=lesson_ids)
+            for log in UserProgressLogs.objects.filter(
+                user_id=student_id, lesson_id__in=lesson_ids
+            )
         }
 
-        # Домашние работы пользователя одним запросом
+        # 7. Домашние работы пользователя одним запросом
         user_homeworks = {
-            hw.homework_id: hw
-            for hw in UserHomework.objects.filter(user_id=student_id, homework_id__in=lesson_ids)
+            hw.homework.baselesson_ptr_id: hw
+            for hw in UserHomework.objects.filter(
+                user_id=student_id, homework__baselesson_ptr_id__in=lesson_ids
+            ).select_related("homework")
         }
 
-        # Обрабатываем группы
+        # 8. Доступность уроков для студента одним запросом (1 запрос)
+        lesson_availabilities = {
+            avail.lesson_id: avail.available
+            for avail in LessonAvailability.objects.filter(
+                student_id=student_id, lesson_id__in=lesson_ids
+            ).only("lesson_id", "available")
+        }
+
+        # 9. Обрабатываем группы и формируем результат
         for group in student_groups:
-            remaining_period = None
-            if group.group_id in training_durations:
-                td = training_durations[group.group_id]
-                limit = td.get('limit')
-
-                if limit:
-                    past_period = (timezone.now() - td['created_at']).days if 'created_at' in td else 0
-                    remaining_period = max(limit - past_period, 0) if limit > 0 else None
-            elif group.training_duration > 0:
-                remaining_period = group.training_duration
-
-            group_data = {
-                "group_id": group.group_id,
-                "remaining_period": remaining_period,
-                "sections": [],
-            }
-
-            course_id = group.course_id.course_id
-            sections = sections_by_course.get(course_id, [])
-
-            for section in sections:
-                lessons_data = []
-                for lesson in section.lessons.all():
-                    lesson_id = lesson.id
-                    obj_type = lesson_types.get(lesson_id, "unknown")
-
-                    availability = lesson.is_available_for_student(student_id)
-                    availability = True if availability is None else availability
-
-                    status, mark = None, None
-                    if availability:
-                        log = user_logs.get(lesson_id)
-                        if log:
-                            status = "Пройдено" if log.completed else "Не пройдено"
-                            if obj_type == "homework" and lesson_id in user_homeworks:
-                                user_homework = user_homeworks[lesson_id]
-                                mark = user_homework.mark
-                                if not log.completed:
-                                    status = user_homework.status
-                        else:
-                            status = "Не пройдено"
-
-                    lessons_data.append({
-                        "lesson_id": lesson_id,
-                        "type": obj_type,
-                        "name": lesson_map[lesson_id]['name'],
-                        "availability": availability,
-                        "active": lesson_map[lesson_id]['active'],
-                        "order": lesson_map[lesson_id]['order'],
-                        "status": status,
-                        "mark": mark,
-                    })
-
-                # Сортируем уроки перед добавлением секции
-                lessons_data.sort(key=lambda x: x["order"])
-
-                group_data["sections"].append({
-                    "section_id": section.section_id,
-                    "name": section.name,
-                    "lessons": lessons_data,
-                })
-
+            group_data = self._prepare_group_data(
+                group,
+                training_durations,
+                sections_by_course,
+                lesson_map,
+                lesson_types,
+                user_logs,
+                user_homeworks,
+                lesson_availabilities,
+            )
             student_data.append(group_data)
 
         return student_data
+
+    def _prepare_group_data(
+        self,
+        group,
+        training_durations,
+        sections_by_course,
+        lesson_map,
+        lesson_types,
+        user_logs,
+        user_homeworks,
+        lesson_availabilities,
+    ):
+        """Вспомогательный метод для формирования данных группы."""
+        remaining_period = None
+        td = training_durations.get(group.group_id)
+
+        if td:
+            limit = td.limit
+            if limit and limit > 0:
+                past_period = (timezone.now() - td.created_at).days
+                remaining_period = max(limit - past_period, 0)
+
+        elif group.training_duration > 0:
+            remaining_period = group.training_duration
+
+        group_data = {
+            "group_id": group.group_id,
+            "remaining_period": remaining_period,
+            "sections": [],
+        }
+
+        course_id = group.course_id_id
+        sections = sections_by_course.get(course_id, [])
+
+        for section in sections:
+            lessons_data = []
+
+            for lesson in section.ordered_lessons:
+                lesson_id = lesson.id
+                if lesson_id not in lesson_map:
+                    continue
+
+                obj_type = lesson_types.get(lesson_id, "unknown")
+
+                availability = lesson_availabilities.get(lesson_id, True)
+
+                status, mark = None, None
+                if availability:
+                    log = user_logs.get(lesson_id)
+                    if log:
+
+                        status = "Пройдено" if log.completed else "Не пройдено"
+                        mark = None
+
+                        if obj_type == "homework" and not log.completed:
+                            user_homework = user_homeworks.get(lesson_id)
+                            if user_homework:
+                                status = user_homework.status
+                                mark = user_homework.mark
+
+                    else:
+                        status = "Не пройдено"
+                        mark = None
+
+                        if obj_type == "homework":
+                            user_homework = user_homeworks.get(lesson_id)
+                            if user_homework:
+                                status = user_homework.status
+                                mark = user_homework.mark
+
+                lessons_data.append(
+                    {
+                        "lesson_id": lesson_id,
+                        "type": obj_type,
+                        "name": lesson_map[lesson_id]["name"],
+                        "availability": availability,
+                        "active": lesson_map[lesson_id]["active"],
+                        "status": status,
+                        "mark": mark,
+                    }
+                )
+
+            group_data["sections"].append(
+                {
+                    "section_id": section.section_id,
+                    "name": section.name,
+                    "lessons": lessons_data,
+                }
+            )
+
+        return group_data
 
     @action(detail=True, methods=["get"])
     @swagger_auto_schema(
@@ -382,31 +476,75 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 openapi.IN_QUERY,
                 description="ID студента",
                 type=openapi.TYPE_INTEGER,
+                required=True,
             ),
         ],
+        operation_description="Получение структуры курсов, секций и уроков для студента с указанием доступности и прогресса.",
+        responses={
+            200: openapi.Response(
+                "Успешный ответ", schema=openapi.Schema(type=openapi.TYPE_OBJECT)
+            )
+        },  # Пример схемы ответа
     )
     def section_student(self, request, pk=None, *args, **kwargs):
-        school = self.get_object()
-        user = self.request.user
-        student_id = request.query_params.get("student_id", None)
-
-        if not student_id:
+        try:
+            school_id = int(pk)
+            school = School.objects.get(pk=school_id)
+        except (ValueError, School.DoesNotExist):
             return Response(
-                {"error": "Не указан ID студента"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Школа не найдена"}, status=status.HTTP_404_NOT_FOUND
             )
-        # Оптимизация запроса с prefetch_related
-        student_groups = StudentsGroup.objects.filter(
+        except Exception as e:
+            return Response(
+                {"error": "Ошибка получения данных школы"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user = self.request.user
+        student_id_str = request.query_params.get("student_id", None)
+
+        if not student_id_str:
+            return Response(
+                {"error": "Не указан обязательный параметр 'student_id'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            student_id = int(student_id_str)
+        except ValueError:
+            return Response(
+                {"error": "Параметр 'student_id' должен быть целым числом"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        student_groups_query = StudentsGroup.objects.filter(
             course_id__school=school, students__id=student_id
-        ).select_related('course_id')
-        if not user.groups.filter(group__name="Admin", school=school).exists():
-            if user.groups.filter(group__name="Teacher", school=school).exists():
-                student_groups = student_groups.filter(teacher_id=request.user)
+        ).select_related("course_id")
+
+        is_admin = user.groups.filter(group__name="Admin", school=school).exists()
+        is_teacher = user.groups.filter(group__name="Teacher", school=school).exists()
+
+        if not is_admin:
+            if is_teacher:
+                student_groups_query = student_groups_query.filter(teacher_id=user)
+            elif user.pk == student_id:
+                pass
             else:
-                raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+                return Response(
+                    {
+                        "school_name": school.name,
+                        "student_id": student_id,
+                        "student_data": [],
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+        student_groups = list(student_groups_query)
 
         student_data = self.get_student_sections_and_availability(
             student_id, student_groups
         )
+
         response_data = {
             "school_name": school.name,
             "student_id": student_id,
@@ -449,10 +587,10 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                    Q(students__first_name__icontains=search_value)
-                    | Q(students__last_name__icontains=search_value)
-                    | Q(name__icontains=search_value)
-                    | Q(course_id__name__icontains=search_value)
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(name__icontains=search_value)
+                | Q(course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -468,10 +606,10 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 queryset = queryset.filter(query)
 
             deleted_history_query = (
-                    Q(user_id__first_name__icontains=search_value)
-                    | Q(user_id__last_name__icontains=search_value)
-                    | Q(students_group_id__name__icontains=search_value)
-                    | Q(students_group_id__course_id__name__icontains=search_value)
+                Q(user_id__first_name__icontains=search_value)
+                | Q(user_id__last_name__icontains=search_value)
+                | Q(students_group_id__name__icontains=search_value)
+                | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -483,7 +621,9 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
             # Проверяем, является ли search_value email
             if re.match(email_regex, search_value):
-                deleted_history_queryset = deleted_history_queryset.filter(Q(user_id__email__icontains=search_value))
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    Q(user_id__email__icontains=search_value)
+                )
             else:
                 deleted_history_queryset = deleted_history_queryset.filter(
                     deleted_history_query
@@ -953,10 +1093,10 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
             cleaned_phone = re.sub(r"\D", "", search_value)
 
             query = (
-                    Q(students__first_name__icontains=search_value)
-                    | Q(students__last_name__icontains=search_value)
-                    | Q(name__icontains=search_value)
-                    | Q(course_id__name__icontains=search_value)
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(name__icontains=search_value)
+                | Q(course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -972,11 +1112,11 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
                 queryset = queryset.filter(query)
 
             deleted_history_query = (
-                    Q(user_id__first_name__icontains=search_value)
-                    | Q(user_id__last_name__icontains=search_value)
-                    | Q(user_id__email__icontains=search_value)
-                    | Q(students_group_id__name__icontains=search_value)
-                    | Q(students_group_id__course_id__name__icontains=search_value)
+                Q(user_id__first_name__icontains=search_value)
+                | Q(user_id__last_name__icontains=search_value)
+                | Q(user_id__email__icontains=search_value)
+                | Q(students_group_id__name__icontains=search_value)
+                | Q(students_group_id__course_id__name__icontains=search_value)
             )
 
             if cleaned_phone:
@@ -989,7 +1129,9 @@ class SchoolViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
 
             # Проверяем, является ли search_value email
             if re.match(email_regex, search_value):
-                deleted_history_queryset = deleted_history_queryset.filter(Q(user_id__email__icontains=search_value))
+                deleted_history_queryset = deleted_history_queryset.filter(
+                    Q(user_id__email__icontains=search_value)
+                )
             else:
                 deleted_history_queryset = deleted_history_queryset.filter(
                     deleted_history_query
