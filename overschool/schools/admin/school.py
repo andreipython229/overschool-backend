@@ -30,12 +30,12 @@ class SchoolAdmin(admin.ModelAdmin):
     ordering = ("purchased_tariff_end_date", "trial_end_date")
 
     def owner_email(self, obj):
-        return obj.owner.email
+        return obj.owner.email if obj.owner else None
 
     owner_email.short_description = "Email владельца"
 
     def owner_phone(self, obj):
-        return obj.owner.phone_number
+        return obj.owner.phone_number if obj.owner else None
 
     owner_phone.short_description = "Телефон владельца"
 
@@ -141,12 +141,12 @@ class SchoolStatisticsAdmin(admin.ModelAdmin):
         return queryset.order_by("-school__created_at")
 
     def school_owner_phone(self, obj):
-        return obj.school.owner.phone_number
+        return obj.school.owner.phone_number if obj.school.owner else None
 
     school_owner_phone.short_description = "Телефон владельца школы"
 
     def school_owner_email(self, obj):
-        return obj.school.owner.email
+        return obj.school.owner.email if obj.school.owner else None
 
     school_owner_email.short_description = "Email владельца школы"
 

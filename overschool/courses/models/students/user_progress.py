@@ -69,4 +69,4 @@ class StudentCourseProgress(models.Model):
         ]
 
     def __str__(self) -> str:
-        return str(self.user) + " " + str(self.course) + " " + str(self.progress)
+        return str(self.student) + " " + str(self.course) + " " + str(self.progress)

@@ -1,7 +1,7 @@
 from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
-from users.models import Profile, User, UserGroup
 from schools.models import SchoolNewRole
+from users.models import Profile, User, UserGroup
 
 s3 = UploadToS3()
 
@@ -101,12 +101,11 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
         for school_id in school_ids:
             additional_roles = SchoolNewRole.objects.filter(
                 user=user, school_id=school_id
-            ).values_list('role_name', flat=True)
+            ).values_list("role_name", flat=True)
 
-            additional_roles_data.append({
-                "school_id": school_id,
-                "roles": list(additional_roles)
-            })
+            additional_roles_data.append(
+                {"school_id": school_id, "roles": list(additional_roles)}
+            )
 
         return additional_roles_data
 
@@ -114,8 +113,11 @@ class UserProfileGetSerializer(serializers.ModelSerializer):
         """
         Получаем список ID школ через модель UserGroup
         """
-        user_groups = UserGroup.objects.filter(user=user).values_list('school_id', flat=True).distinct()
-
+        user_groups = (
+            UserGroup.objects.filter(user=user)
+            .values_list("school_id", flat=True)
+            .distinct()
+        )
         return list(user_groups)
 
 
