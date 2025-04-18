@@ -449,75 +449,165 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
         )
 
     def generate_response(self, school_name, student, courses_ids):
-        """Генерирует статистику по студенту по всем курсам в школе"""
-        school = School.objects.get(name=school_name)
-        courses_data = []
-        base_query = Q(active=True) | Q(lessonavailability__available=True)
-        for course_id in courses_ids:
-            course = Course.objects.get(pk=course_id)
-            student_group = StudentsGroup.objects.filter(
-                students=student, course_id=course
-            ).first()
+        """Генерирует статистику по студенту для ЗАДАННЫХ курсов"""
+        try:
+            school = School.objects.get(name=school_name)
+        except School.DoesNotExist:
+            return Response(
+                {"error": f"Школа {school_name} не найдена"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
+        courses_data = []
+
+        courses = {c.pk: c for c in Course.objects.filter(pk__in=courses_ids)}
+
+        student_groups = {
+            sg.course_id_id: sg
+            for sg in StudentsGroup.objects.filter(
+                students=student, course_id__in=courses_ids
+            )
+        }
+
+        for course_pk in courses_ids:
+            course = courses.get(course_pk)
+            if not course:
+                print(f"Предупреждение: Курс с ID {course_pk} не найден.")
+                continue
+
+            student_group = student_groups.get(course_pk)
+
+            query_course_id = course_pk
             if course.is_copy:
-                course_id = (
-                    CourseCopy.objects.filter(course_copy_id=course.course_id)
+                original_course_id = (
+                    CourseCopy.objects.filter(course_copy_id=course.pk)
                     .values_list("course_id", flat=True)
                     .first()
-                    or course_id
+                )
+                if original_course_id:
+                    query_course_id = original_course_id
+
+            # 1. Получаем ID активных уроков в курсе
+            active_lesson_ids = set(
+                BaseLesson.objects.filter(
+                    section__course_id=query_course_id, active=True
+                ).values_list("id", flat=True)
+            )
+
+            # 2. Получаем ID уроков, доступных этому студенту через LessonAvailability
+            available_via_enrollment_ids = set(
+                LessonAvailability.objects.filter(
+                    lesson__section__course_id=query_course_id,
+                    student=student,
+                    available=True,
+                ).values_list("lesson_id", flat=True)
+            )
+
+            # 3. Объединяем ID
+            potentially_available_lesson_ids = (
+                active_lesson_ids | available_via_enrollment_ids
+            )
+
+            # 4. Применяем исключения LessonEnrollment
+            excluded_lesson_ids = set()
+            if student_group:
+                excluded_lesson_ids = set(
+                    LessonEnrollment.objects.filter(
+                        student_group=student_group,
+                        lesson_id__in=potentially_available_lesson_ids,
+                    ).values_list("lesson_id", flat=True)
                 )
 
-            base_lessons = BaseLesson.objects.filter(
-                section__course_id=course_id
-            ).filter(base_query)
+            # 5. Финальный набор ID уроков
+            final_lesson_ids = potentially_available_lesson_ids - excluded_lesson_ids
 
+            if not final_lesson_ids:
+
+                (
+                    current_student_rank,
+                    top_3_leaders,
+                    better_than_percent,
+                ) = self.get_students_progress(course.pk, student)
+
+                course_data = {
+                    "course_id": course.pk,
+                    "course_name": course.name,
+                    "all_baselessons": 0,
+                    "completed_count": 0,
+                    "completed_percent": 0.0,
+                    "average_mark": 0.0,
+                    "better_than_percent": better_than_percent,
+                    "rank_in_course": current_student_rank,
+                    "top_leaders": top_3_leaders,
+                    "lessons": self.get_lesson_stats_zero(),
+                    "homeworks": self.get_lesson_stats_zero(),
+                    "tests": self.get_lesson_stats_zero(),
+                }
+                courses_data.append(course_data)
+                continue
+
+            # 6. Получаем логи прогресса
             progress_logs = UserProgressLogs.objects.filter(
-                lesson__in=base_lessons, user=student
+                lesson_id__in=final_lesson_ids, user=student
             )
-            viewed_lessons = progress_logs.values_list("lesson_id", flat=True)
-            completed_lessons = progress_logs.filter(completed=True).values_list(
-                "lesson_id", flat=True
-            )
-
-            all_lessons = Lesson.objects.filter(section__course_id=course_id).filter(
-                base_query
-            )
-            all_homeworks = Homework.objects.filter(
-                section__course_id=course_id
-            ).filter(base_query)
-            all_tests = SectionTest.objects.filter(section__course_id=course_id).filter(
-                base_query
+            viewed_lesson_ids = set(progress_logs.values_list("lesson_id", flat=True))
+            completed_lesson_ids = set(
+                progress_logs.filter(completed=True).values_list("lesson_id", flat=True)
             )
 
-            if student_group:
-                exclude_query = Q(lessonenrollment__student_group=student_group)
-                all_lessons = all_lessons.exclude(exclude_query)
-                all_homeworks = all_homeworks.exclude(exclude_query)
-                all_tests = all_tests.exclude(exclude_query)
+            # 7. Фильтруем конкретные типы уроков
+            all_lessons_final_qs = Lesson.objects.filter(
+                baselesson_ptr_id__in=final_lesson_ids
+            )
+            all_homeworks_final_qs = Homework.objects.filter(
+                baselesson_ptr_id__in=final_lesson_ids
+            )
+            all_tests_final_qs = SectionTest.objects.filter(
+                baselesson_ptr_id__in=final_lesson_ids
+            )
 
-            completed_counts = {
-                "lessons": all_lessons.filter(
-                    baselesson_ptr_id__in=viewed_lessons
-                ).count(),
-                "homeworks": all_homeworks.filter(
-                    baselesson_ptr_id__in=completed_lessons
-                ).count(),
-                "tests": all_tests.filter(
-                    baselesson_ptr_id__in=completed_lessons
-                ).count(),
-            }
+            # 8. Считаем количество каждого типа
+            count_all_lessons = all_lessons_final_qs.count()
+            count_all_homeworks = all_homeworks_final_qs.count()
+            count_all_tests = all_tests_final_qs.count()
 
-            total_completed = sum(completed_counts.values())
-            total_lessons = base_lessons.count()
+            total_lessons_final = len(final_lesson_ids)
 
-            progress_percent = self.calculate_progress(total_completed, total_lessons)
+            # 9. Считаем завершенные
+            completed_lessons_count = all_lessons_final_qs.filter(
+                baselesson_ptr_id__in=viewed_lesson_ids
+            ).count()
+            completed_homeworks_count = all_homeworks_final_qs.filter(
+                baselesson_ptr_id__in=completed_lesson_ids
+            ).count()
+            completed_tests_count = all_tests_final_qs.filter(
+                baselesson_ptr_id__in=completed_lesson_ids
+            ).count()
 
+            total_completed_final = (
+                completed_lessons_count
+                + completed_homeworks_count
+                + completed_tests_count
+            )
+
+            # 10. Считаем прогресс
+            progress_percent = self.calculate_progress(
+                total_completed_final, total_lessons_final
+            )
+
+            # 11. Считаем среднюю оценку
+            homework_ids_for_avg = all_homeworks_final_qs.values_list(
+                "baselesson_ptr_id", flat=True
+            )
             average_mark = (
                 UserHomework.objects.filter(
-                    user=student, homework__section__course_id=course_id
+                    user=student, homework_id__in=homework_ids_for_avg
                 ).aggregate(average_mark=Avg("mark"))["average_mark"]
-                or 0
-            )
+                or 0.0
+            )  # Изменено на float
+            average_mark = round(average_mark, 2)
+
+            # 12. Получаем ранг и лидеров
 
             (
                 current_student_rank,
@@ -528,22 +618,21 @@ class StudentProgressViewSet(SchoolMixin, viewsets.ViewSet):
             course_data = {
                 "course_id": course.pk,
                 "course_name": course.name,
-                "all_baselessons": total_lessons,
-                "completed_count": total_completed,
+                "all_baselessons": total_lessons_final,
+                "completed_count": total_completed_final,
                 "completed_percent": progress_percent,
                 "average_mark": average_mark,
                 "better_than_percent": better_than_percent,
                 "rank_in_course": current_student_rank,
                 "top_leaders": top_3_leaders,
                 "lessons": self.get_lesson_stats(
-                    all_lessons, completed_counts["lessons"]
+                    count_all_lessons, completed_lessons_count
                 ),
                 "homeworks": self.get_lesson_stats(
-                    all_homeworks, completed_counts["homeworks"]
+                    count_all_homeworks, completed_homeworks_count
                 ),
-                "tests": self.get_lesson_stats(all_tests, completed_counts["tests"]),
+                "tests": self.get_lesson_stats(count_all_tests, completed_tests_count),
             }
-
             courses_data.append(course_data)
 
             if progress_percent == 100:
