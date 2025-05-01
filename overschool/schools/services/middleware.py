@@ -27,35 +27,24 @@ class HttpResponseAccessDenied(HttpResponse):
 
 class CheckTrialStatusMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        # Пропускаем запросы к админке
         if request.path.startswith("/admin/"):
             return None
 
-        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
-        if auth_header and auth_header.startswith("Bearer "):
-            access_token = auth_header.split(" ")[1]
-
+        user = request.user
+        if user and user.is_authenticated:
             try:
-                payload = jwt.decode(
-                    access_token,
-                    settings.SIMPLE_JWT["SIGNING_KEY"],
-                    algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
-                )
-                user = User.objects.get(pk=payload.get("user_id"))
-                request.user = user
+                schools_owned = School.objects.filter(owner=user)
+                schools_member = School.objects.filter(groups__user=user).distinct()
 
-                # Вызываем метод check_trial_status() для аутентифицированного пользователя
-                if user.is_authenticated:
-                    try:
-                        for school in School.objects.filter(owner=user):
-                            school.check_trial_status()
+                for school in schools_owned:
+                    school.check_trial_status()
+                for school in schools_member:
+                    school.check_trial_status()
 
-                        for school in School.objects.filter(groups__user=user):
-                            school.check_trial_status()
-                    except School.DoesNotExist:
-                        pass
-            except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
+            except Exception as e:
                 pass
+
+        return None
 
     def process_response(self, request, response):
         return response
@@ -88,67 +77,76 @@ class DomainAccessMiddleware(MiddlewareMixin):
             return None
         current_path = request.path
 
-        # Исключаем страницы логина и другие страницы
         if any(re.fullmatch(pattern, current_path) for pattern in self.EXCLUDED_PATHS):
             return None
 
-        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
-        if auth_header and auth_header.startswith("Bearer "):
-            access_token = auth_header.split(" ")[1]
-            try:
-                payload = jwt.decode(
-                    access_token,
-                    settings.SIMPLE_JWT["SIGNING_KEY"],
-                    algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
-                )
-                user = User.objects.get(pk=payload.get("user_id"))
-                request.user = user
-            except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
-                request.user = None
-        else:
-            request.user = None
-
         current_user = request.user
+
         domain = request.META.get("HTTP_X_ORIGIN")
         if domain:
             parsed_url = urlparse(domain)
             current_domain = parsed_url.netloc
         else:
-            current_domain = None
+            current_domain = request.get_host().split(":")[0]
 
-        # Проверка для общего домена
         if current_domain in self.ALLOWED_DOMAINS:
             return None
 
         if current_user and current_user.is_authenticated:
-            # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
             user_schools = set()
             user_schools.update(School.objects.filter(owner=current_user))
             user_schools.update(School.objects.filter(groups__user=current_user))
 
-            # Если есть школы у пользователя
             if user_schools:
-                # Проверяем домены всех школ пользователя
-                school_domains = Domain.objects.filter(school__in=user_schools)
+                # Ищем домен среди разрешенных для школ пользователя
+                school_found = False
+                for school in user_schools:
+                    # Проверяем основной домен школы и связанные домены
+                    if (
+                        school.subdomain == current_domain
+                        or Domain.objects.filter(
+                            school=school, domain_name=current_domain
+                        ).exists()
+                    ):
+                        school_found = True
+                        # Проверяем тариф только если доступ через собственный домен (не основной и не из ALLOWED_DOMAINS)
+                        is_custom_domain = (
+                            current_domain != school.subdomain
+                            and not Domain.objects.filter(
+                                school=school, domain_name=current_domain, is_main=True
+                            ).exists()
+                        )
 
-                for school_domain in school_domains:
-                    if school_domain.domain_name == current_domain:
-                        # Проверяем, что у школы тариф Senior
-                        if school_domain.school.tariff.name != TariffPlan.SENIOR.value:
+                        if (
+                            is_custom_domain
+                            and school.tariff.name != TariffPlan.SENIOR.value
+                        ):
                             return HttpResponseForbidden(
                                 "Доступ запрещен. Тариф школы не позволяет доступ через собственный домен."
                             )
+                        # Если это основной домен школы или тариф Senior, доступ разрешен
                         return None
 
-                return HttpResponseForbidden(
-                    "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
-                )
-            else:
-                # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
-                if not Domain.objects.filter(domain_name=current_domain).exists():
+                # Если домен не найден среди разрешенных для пользователя
+                if not school_found:
                     return HttpResponseForbidden(
-                        "Доступ запрещен. Необходимо выполнить вход."
+                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
                     )
+            else:
+                return HttpResponseForbidden(
+                    "Доступ запрещен. Пользователь не привязан к школе."
+                )
+
+        else:
+            try:
+                domain_entry = Domain.objects.get(
+                    domain_name=current_domain, is_main=True
+                )
+                return None
+            except Domain.DoesNotExist:
+                return HttpResponseForbidden(
+                    "Доступ запрещен. Требуется выполнить вход."
+                )
 
     def process_response(self, request, response):
         return response
