@@ -21,7 +21,6 @@ class LoginView(WithHeadersViewSet, views.APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-        user.backend = "django.contrib.auth.backends.ModelBackend"
         login(request, user)
 
         tokens = serializer.create(serializer.validated_data)
