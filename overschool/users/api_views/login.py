@@ -35,7 +35,7 @@ class SocialLoginCompleteView(views.APIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
         user = request.user
