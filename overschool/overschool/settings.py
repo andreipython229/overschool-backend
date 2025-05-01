@@ -149,8 +149,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "schools.services.middleware.DomainAccessMiddleware",
-    "schools.services.middleware.CheckTrialStatusMiddleware",
+    # "schools.services.middleware.DomainAccessMiddleware",
+    # "schools.services.middleware.CheckTrialStatusMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
