@@ -1,7 +1,7 @@
 from .access_distribution import AccessDistributionView
 from .feedback import FeedbackViewSet
 from .forgot_password import ForgotPasswordView, PasswordResetView, TokenValidateView
-from .login import LoginView
+from .login import LoginView, SocialLoginCompleteView
 from .logout import LogoutView
 from .profile import EmailValidateView, ProfileViewSet
 from .register import PasswordChangeView, SendPasswordView, SignupView

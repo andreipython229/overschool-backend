@@ -1,31 +1,39 @@
+import logging
+
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from rest_framework import generics
+from rest_framework import generics, serializers, status
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from schools.models import School
 from transliterate import translit
-from users.serializers import SignupSchoolOwnerSerializer
+from users.serializers import CreateSchoolSerializer, SignupSchoolOwnerSerializer
 from users.services import SenderServiceMixin
 
 from ..models.utm_label import UtmLabel
+from ..services.create_school import create_school_for_user
 
+logger = logging.getLogger(__name__)
 sender_service = SenderServiceMixin()
 User = get_user_model()
 
 
 class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
-    """Ендпоинт регистрации владельца школы\n
-    <h2>/api/register-school-owner/</h2>\n
-    Ендпоинт регистрации владельца школы,
-    или же дополнение или изменения
-    необходимых данных уже зарегистрированного пользователя,
-    для регистрации школы"""
+    """
+    Ендпоинт регистрации владельца школы ИЛИ создания новой школы существующим пользователем.
+    <h2>/api/register-school-owner/</h2>
+    """
 
     permission_classes = [AllowAny]
-    serializer_class = SignupSchoolOwnerSerializer
+
+    def get_serializer_class(self):
+        if getattr(self, "request", None) and self.request.method == "POST":
+            if self.request.user and self.request.user.is_authenticated:
+                return CreateSchoolSerializer
+            else:
+                return SignupSchoolOwnerSerializer
+        return SignupSchoolOwnerSerializer
 
     def post(self, request, *args, **kwargs):
         utm_source = request.data.get("utm_source", None)
@@ -35,58 +43,155 @@ class SignupSchoolOwnerView(LoggingMixin, WithHeadersViewSet, generics.GenericAP
         utm_content = request.data.get("utm_content", None)
         referral_code = kwargs.get("referral_code")
 
-        email = request.data.get("email")
-        phone_number = request.data.get("phone_number")
-        school_name = translit(request.data.get("school_name"), "ru", reversed=True)
-        if not all([email, phone_number, school_name]):
-            return HttpResponse(
-                "Требуется указать email, номер телефона и название школы", status=400
-            )
+        if request.user and request.user.is_authenticated:
+            user = request.user
+            serializer = CreateSchoolSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        if School.objects.filter(name=school_name).exists():
-            return HttpResponse("Название школы уже существует.", status=400)
+            school_name = serializer.validated_data.get("school_name")
+            phone_number = serializer.validated_data.get("phone_number")
 
-        serializer = self.get_serializer(
-            data=request.data, context={"referral_code": referral_code}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+            try:
+                school = create_school_for_user(
+                    user=user,
+                    school_name=school_name,
+                    phone_number=phone_number,
+                    referral_code=referral_code,
+                )
+                domain = self.request.META.get("HTTP_X_ORIGIN")
+                url = f"{domain}/login/"
+                subject = "Успешная регистрация"
+                message = f"Вы успешно зарегистрированы, ваша школа '{school.name}' создана. Перейдите по ссылке для входа: {url}"
+                sender_service.send_code_by_email(
+                    email=user.email, subject=subject, message=message
+                )
 
-        # Отправка уведомления о успешной регистрации и создании школы
-        domain = self.request.META.get("HTTP_X_ORIGIN")
-        url = f"{domain}/login/"
-        subject = "Успешная регистрация"
-        message = f"Вы успешно зарегистрированы, ваша школа '{school_name}'создана.Перейдите по ссылке для ознакомления {url}"
+                try:
+                    html_message_template = render_to_string("register_user.html")
+                    sender_service.send_code_by_email(
+                        email=user.email,
+                        subject="Спасибо за регистрацию на CourseHub!",
+                        message=html_message_template,
+                    )
 
-        sender_service.send_code_by_email(
-            email=email, subject=subject, message=message
-        )
+                    html_message_template_d1 = render_to_string("day1.html")
+                    sender_service.send_code_by_email(
+                        email=user.email,
+                        subject="День первый: CourseHub",
+                        message=html_message_template_d1,
+                    )
+                except Exception as mail_e:
+                    logger.error(
+                        f"Error sending welcome emails to {user.email}: {mail_e}",
+                        exc_info=True,
+                    )
+                return Response(
+                    {
+                        "message": f"Школа '{school.name}' успешно создана для пользователя {user.email}."
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            except ValueError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                logger.error(
+                    f"Error creating school for authenticated user {user.email}: {e}",
+                    exc_info=True,
+                )
+                return Response(
+                    {"error": "Не удалось создать школу."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
-        html_message_template = render_to_string("register_user.html")
+        else:
 
-        sender_service.send_code_by_email(
-            email=email,
-            subject="Спасибо за верефикацию E-MAIL у нас на сайте",
-            message=html_message_template,
-        )
+            serializer = SignupSchoolOwnerSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        html_message_template = render_to_string("day1.html")
+            try:
+                user = serializer.save()
+            except serializers.ValidationError:
+                raise
+            except Exception as e:
+                logger.error(
+                    f"Error during user find/create in serializer: {e}", exc_info=True
+                )
+                return Response(
+                    {"error": "Ошибка при обработке данных пользователя."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
-        sender_service.send_code_by_email(
-            email=email,
-            subject="День первый: CourseHub",
-            message=html_message_template,
-        )
+            school_name = serializer.validated_data.get("school_name")
+            phone_number = serializer.validated_data.get("phone_number")
 
-        new_user = get_object_or_404(User, email=email)
+            if not user or not school_name or not phone_number:
+                return Response(
+                    {
+                        "error": "Не удалось получить все данные для создания школы после обработки пользователя."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        UtmLabel.objects.create(
-            user=new_user,
-            utm_source=utm_source,
-            utm_medium=utm_medium,
-            utm_campaign=utm_campaign,
-            utm_term=utm_term,
-            utm_content=utm_content,
-        )
+            try:
+                school = create_school_for_user(
+                    user=user,
+                    school_name=school_name,
+                    phone_number=phone_number,
+                    referral_code=referral_code,
+                )
 
-        return HttpResponse("/api/user/", status=201)
+                domain = self.request.META.get("HTTP_X_ORIGIN")
+                url = f"{domain}/login/"
+                subject = "Успешная регистрация"
+                message = f"Вы успешно зарегистрированы, ваша школа '{school.name}' создана. Перейдите по ссылке для входа: {url}"
+                sender_service.send_code_by_email(
+                    email=user.email, subject=subject, message=message
+                )
+
+                try:
+                    html_message_template = render_to_string("register_user.html")
+                    sender_service.send_code_by_email(
+                        email=user.email,
+                        subject="Спасибо за регистрацию на CourseHub!",
+                        message=html_message_template,
+                    )
+
+                    html_message_template_d1 = render_to_string("day1.html")
+                    sender_service.send_code_by_email(
+                        email=user.email,
+                        subject="День первый: CourseHub",
+                        message=html_message_template_d1,
+                    )
+                except Exception as mail_e:
+                    logger.error(
+                        f"Error sending welcome emails to {user.email}: {mail_e}",
+                        exc_info=True,
+                    )
+
+                UtmLabel.objects.create(
+                    user=user,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    utm_term=utm_term,
+                    utm_content=utm_content,
+                )
+
+                return Response(
+                    {
+                        "message": f"Пользователь {user.email} и школа '{school.name}' успешно зарегистрированы."
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+
+            except ValueError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                logger.error(
+                    f"Error creating school for new user {user.email}: {e}",
+                    exc_info=True,
+                )
+                return Response(
+                    {"error": "Не удалось создать школу."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )

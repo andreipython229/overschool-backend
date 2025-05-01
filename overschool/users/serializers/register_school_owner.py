@@ -1,5 +1,6 @@
-from django.contrib.auth.models import Group
-from django.utils import timezone
+import logging
+
+from allauth.account.models import EmailAddress
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from schools.models import (
@@ -13,6 +14,8 @@ from schools.models import (
 from transliterate import translit
 from users.models import User
 
+logger = logging.getLogger(__name__)
+
 
 class SignupSchoolOwnerSerializer(serializers.Serializer):
     school_name = serializers.CharField(write_only=True, required=True)
@@ -22,9 +25,6 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
     password_confirmation = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        referral_code = self.context.get("referral_code")
-        if referral_code:
-            attrs["referral_code"] = referral_code
         if not attrs.get("email"):
             raise serializers.ValidationError("'email' обязателеное поле.")
         if not attrs.get("phone_number"):
@@ -50,66 +50,60 @@ class SignupSchoolOwnerSerializer(serializers.Serializer):
             if password != password_confirmation:
                 raise serializers.ValidationError("Пароли не совпадают.")
 
-        attrs["school_name"] = translit(attrs.get("school_name"), "ru", reversed=True)
+        attrs["school_name"] = translit(
+            attrs.get("school_name"), "ru", reversed=True
+        ).replace(" ", "_")
         return attrs
 
     def create(self, validated_data):
-        school_name = validated_data.pop("school_name")
-        referral_code = validated_data.pop("referral_code", None)
-        phone_number = validated_data.pop("phone_number")
         email = validated_data.get("email")
-        password = validated_data.pop("password")
-        validated_data.pop("password_confirmation", None)
+        phone_number = validated_data.get("phone_number")
+        password = validated_data.get("password")
 
         user = User.objects.filter(email__iexact=email).first()
+
         if user:
-            user.phone_number = phone_number
-            user.save(update_fields=["phone_number"])
-
+            pass
         else:
-            # Если пользователя нет — создаём его
-            user = User(**validated_data)
+            logger.info(f"Creating new user with email {email}")
+
+            create_data = {"email": email}
+
+            user = User(**create_data)
+            user.phone_number = phone_number
             user.set_password(password)
-            user.save()
+            try:
+                user.save()
+                try:
+                    EmailAddress.objects.create(
+                        user=user, email=user.email, primary=True, verified=True
+                    )
+                except ImportError:
+                    logger.warning(
+                        "allauth.account.models.EmailAddress not found, skipping EmailAddress creation."
+                    )
+                except Exception as ea_e:
+                    logger.error(
+                        f"Failed to create EmailAddress for {user.email}: {ea_e}",
+                        exc_info=True,
+                    )
 
-        trial_days = 14
+            except Exception as e:
+                logger.error(f"Error saving new user {email}: {e}", exc_info=True)
+                raise serializers.ValidationError(
+                    "Не удалось сохранить нового пользователя."
+                )
 
-        if referral_code:
-            trial_days += 21
-        if School.objects.filter(owner=user).count() >= 2:
-            raise serializers.ValidationError(
-                "Пользователь может быть владельцем только двух школ."
-            )
-        school = School(
-            name=school_name,
-            owner=user,
-            tariff=Tariff.objects.get(name=TariffPlan.JUNIOR.value),
-            used_trial=True,
-            trial_end_date=timezone.now() + timezone.timedelta(days=trial_days),
-        )
-
-        school.save()
-
-        # Создаем запись реферрала, если указан реферральный код
-        if referral_code:
-            referrer_school = School.objects.get(referral_code=referral_code)
-            Referral.objects.create(
-                referrer_school=referrer_school, referred_school=school
-            )
-
-        if school:
-            school_header = SchoolHeader(school=school, name=school.name)
-            school_header.save()
-            SchoolDocuments.objects.create(school=school, user=user)
-
-        group = Group.objects.get(name="Admin")
-        user.groups.create(group=group, school=school)
         return user
 
-    def update(self, instance, validated_data):
-        instance.email = validated_data.get("email", instance.email)
-        instance.phone_number = validated_data.get(
-            "phone_number", instance.phone_number
-        )
-        instance.save()
-        return instance
+
+class CreateSchoolSerializer(serializers.Serializer):
+    school_name = serializers.CharField(required=True, max_length=255)
+    phone_number = PhoneNumberField(required=True)
+
+    def validate_school_name(self, value):
+
+        name_translit = translit(value, "ru", reversed=True).replace(" ", "_")
+        if School.objects.filter(name=name_translit).exists():
+            raise serializers.ValidationError("Школа с таким названием уже существует.")
+        return name_translit

@@ -44,6 +44,7 @@ from users.api_views import (
     SendPasswordView,
     SignupSchoolOwnerView,
     SignupView,
+    SocialLoginCompleteView,
     TariffSchoolOwner,
     TokenValidateView,
     UserSchoolsView,
@@ -63,6 +64,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("accounts/", include("allauth.urls")),
+    path(
+        "api/auth/social-complete/",
+        SocialLoginCompleteView.as_view(),
+        name="social_login_complete",
+    ),
     path("api/feedbacks/", FeedbackViewSet.as_view(), name="feedback-list"),
     path(
         "api/<str:school_name>/all_users/",

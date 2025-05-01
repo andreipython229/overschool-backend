@@ -11,6 +11,6 @@ from .profile import (
     UserProfileSerializer,
 )
 from .register import PasswordChangeSerializer, SignupSerializer
-from .register_school_owner import SignupSchoolOwnerSerializer
+from .register_school_owner import CreateSchoolSerializer, SignupSchoolOwnerSerializer
 from .user import AllUsersSerializer, UserSerializer
 from .user_role import UserRoleSerializer

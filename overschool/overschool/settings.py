@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sites",
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
@@ -50,11 +51,16 @@ INSTALLED_APPS = [
     "phonenumber_field",
     "drf_yasg",
     "ckeditor",
+    # allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.yandex",
     "common_services.apps.CommonServicesConfig",
     "users.apps.UsersConfig",
     "courses.apps.CoursesConfig",
     "schools.apps.SchoolsConfig",
-    "djoser",
     "corsheaders",
     "chats.apps.ChatsConfig",
     # "channels",
@@ -140,9 +146,10 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "schools.services.middleware.DomainAccessMiddleware",
     "schools.services.middleware.CheckTrialStatusMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -187,6 +194,7 @@ DATABASES = {
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -256,6 +264,26 @@ REST_FRAMEWORK = {
     ],
 }
 
+SITE_ID = 1
+# Allauth Settings
+SOCIALACCOUNT_ADAPTER = "users.adapters.CustomSocialAccountAdapter"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_UNIQUE_EMAIL = True
+LOGIN_REDIRECT_URL = "/api/auth/social-complete/"
+
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = ACCOUNT_EMAIL_VERIFICATION
+SOCIALACCOUNT_EMAIL_REQUIRED = ACCOUNT_SIGNUP_FIELDS
+
 # bepaid
 BEPAID_SHOP_ID: str = os.getenv("BEPAID_SHOP_ID")
 BEPAID_SECRET_KEY: str = os.getenv("BEPAID_SECRET_KEY")
@@ -269,6 +297,30 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": os.getenv("ALGORITHM"),
     "SIGNING_KEY": os.getenv("SIGNING_KEY"),
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env.str("GOOGLE_CLIENT_ID"),
+            "secret": env.str("GOOGLE_SECRET"),
+            "key": "",
+        },
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+    "yandex": {
+        "APP": {
+            "client_id": env.str("YANDEX_CLIENT_ID"),
+            "secret": env.str("YANDEX_SECRET_KEY"),
+            "key": "",
+        }
+    },
 }
 
 # ckeditor settings
