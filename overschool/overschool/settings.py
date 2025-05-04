@@ -288,7 +288,7 @@ REST_FRAMEWORK = {
 
 SITE_ID = 1
 # Allauth Settings
-SOCIALACCOUNT_ADAPTER = "users.adapters.CustomSocialAccountAdapter"
+# SOCIALACCOUNT_ADAPTER = "users.adapters.CustomSocialAccountAdapter"
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
 ACCOUNT_EMAIL_VERIFICATION = "optional"
