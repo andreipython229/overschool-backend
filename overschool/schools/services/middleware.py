@@ -83,59 +83,49 @@ class DomainAccessMiddleware(MiddlewareMixin):
         current_user = request.user
 
         domain = request.META.get("HTTP_X_ORIGIN")
+        host = request.META.get("HTTP_HOST")
         if domain:
             parsed_url = urlparse(domain)
             current_domain = parsed_url.netloc
+        elif host:
+            current_domain = host
         else:
-            current_domain = request.get_host().split(":")[0]
+            current_domain = None
 
+            # Проверка для общего домена
+        print(current_domain)
         if current_domain in self.ALLOWED_DOMAINS:
             return None
 
         if current_user and current_user.is_authenticated:
+            # Получаем все школы, к которым пользователь имеет доступ (как владелец или через группы)
             user_schools = set()
             user_schools.update(School.objects.filter(owner=current_user))
             user_schools.update(School.objects.filter(groups__user=current_user))
 
+            # Если есть школы у пользователя
             if user_schools:
-                # Ищем домен среди разрешенных для школ пользователя
-                school_found = False
-                for school in user_schools:
-                    # Проверяем основной домен школы и связанные домены
-                    if (
-                        school.subdomain == current_domain
-                        or Domain.objects.filter(
-                            school=school, domain_name=current_domain
-                        ).exists()
-                    ):
-                        school_found = True
-                        # Проверяем тариф только если доступ через собственный домен (не основной и не из ALLOWED_DOMAINS)
-                        is_custom_domain = (
-                            current_domain != school.subdomain
-                            and not Domain.objects.filter(
-                                school=school, domain_name=current_domain, is_main=True
-                            ).exists()
-                        )
+                # Проверяем домены всех школ пользователя
+                school_domains = Domain.objects.filter(school__in=user_schools)
 
-                        if (
-                            is_custom_domain
-                            and school.tariff.name != TariffPlan.SENIOR.value
-                        ):
+                for school_domain in school_domains:
+                    if school_domain.domain_name == current_domain:
+                        # Проверяем, что у школы тариф Senior
+                        if school_domain.school.tariff.name != TariffPlan.SENIOR.value:
                             return HttpResponseForbidden(
                                 "Доступ запрещен. Тариф школы не позволяет доступ через собственный домен."
                             )
-                        # Если это основной домен школы или тариф Senior, доступ разрешен
                         return None
 
-                # Если домен не найден среди разрешенных для пользователя
-                if not school_found:
-                    return HttpResponseForbidden(
-                        "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
-                    )
-            else:
                 return HttpResponseForbidden(
-                    "Доступ запрещен. Пользователь не привязан к школе."
+                    "Доступ запрещен. Вы не можете получить доступ к этой школе через этот домен."
                 )
+            else:
+                # Проверяем, существует ли домен и привязан ли он к школе для неавторизованных пользователей
+                if not Domain.objects.filter(domain_name=current_domain).exists():
+                    return HttpResponseForbidden(
+                        "Доступ запрещен. Необходимо выполнить вход."
+                    )
 
     def process_response(self, request, response):
         return response
