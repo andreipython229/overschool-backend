@@ -6,9 +6,7 @@ class AccessDistributionSerializer(serializers.Serializer):
     user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
     emails = serializers.ListField(child=serializers.EmailField(), required=False)
     role = serializers.ChoiceField(required=True, choices=[])
-    student_groups = serializers.ListField(
-        child=serializers.IntegerField(), required=False
-    )
+    student_groups = serializers.CharField(required=False)
     date = serializers.DateTimeField(required=False)
 
     def __init__(self, *args, **kwargs):
@@ -27,3 +25,17 @@ class AccessDistributionSerializer(serializers.Serializer):
                 "Укажите id либо email хотя бы одного пользователя"
             )
         return attrs
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        student_groups_str = data.get("student_groups")
+        if isinstance(student_groups_str, str):
+            data["student_groups"] = [
+                int(group_id.strip()) for group_id in student_groups_str.split(",")
+            ]
+        elif isinstance(student_groups_str, list):
+            # Если student_groups уже является списком строк, преобразуем в целые числа
+            data["student_groups"] = [
+                int(group_id.strip()) for group_id in student_groups_str
+            ]
+        return data

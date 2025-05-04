@@ -91,13 +91,12 @@ SITE_URL: str = os.getenv("SITE_URL")
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-
 SESSION_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = ["http://sandbox.coursehb.ru"]
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = None
 
 CORS_ALLOW_METHODS = [
@@ -297,6 +296,19 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": os.getenv("ALGORITHM"),
     "SIGNING_KEY": os.getenv("SIGNING_KEY"),
+}
+
+# Настройки drf-yasg (Swagger)
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": 'JWT Token (add "Bearer " prefix)',
+        }
+    },
+    "USE_SESSION_AUTH": False,
 }
 
 SOCIALACCOUNT_PROVIDERS = {

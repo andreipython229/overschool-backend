@@ -209,8 +209,42 @@ class AccessDistributionView(
             self.send_email_notification(user.email, course_name, school.name)
 
     @swagger_auto_schema(
-        request_body=AccessDistributionSerializer,
+        manual_parameters=[
+            openapi.Parameter(
+                name="emails",
+                in_=openapi.IN_FORM,
+                description="Список email адресов",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+            ),
+            openapi.Parameter(
+                name="user_ids",
+                in_=openapi.IN_FORM,
+                description="Список ID пользователей",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_INTEGER),
+            ),
+            openapi.Parameter(
+                name="student_groups",
+                in_=openapi.IN_FORM,
+                description="Список ID групп студентов",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_INTEGER),
+            ),
+            openapi.Parameter(
+                name="role",
+                in_=openapi.IN_FORM,
+                description="Роль пользователя",
+                required=True,
+                type=openapi.TYPE_STRING,
+            ),
+        ],
         tags=["access_distribution"],
+        operation_description="Распределение доступа",
+        responses={200: openapi.Response("OK")},
     )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -299,22 +333,51 @@ class AccessDistributionView(
                             status=400,
                         )
 
-                    if student_groups_ids:
-                        student_group = StudentsGroup.objects.get(
-                            group_id=student_groups_ids[0]
-                        )
-                        course = Course.objects.get(
-                            course_id=student_group.course_id_id
-                        )
+                    for student_group in student_groups:
+                        course = student_group.course_id
                         self.handle_students_group_fk(
-                            user, student_groups, course.name, school
+                            user, [student_group], course.name, school
                         )
 
         return HttpResponse("Доступы предоставлены", status=201)
 
     @swagger_auto_schema(
-        request_body=AccessDistributionSerializer,
+        manual_parameters=[
+            openapi.Parameter(
+                name="emails",
+                in_=openapi.IN_FORM,
+                description="Список email адресов",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+            ),
+            openapi.Parameter(
+                name="user_ids",
+                in_=openapi.IN_FORM,
+                description="Список ID пользователей",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_INTEGER),
+            ),
+            openapi.Parameter(
+                name="student_groups",
+                in_=openapi.IN_FORM,
+                description="Список ID групп студентов",
+                required=False,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_INTEGER),
+            ),
+            openapi.Parameter(
+                name="role",
+                in_=openapi.IN_FORM,
+                description="Роль пользователя",
+                required=True,
+                type=openapi.TYPE_STRING,
+            ),
+        ],
         tags=["access_distribution"],
+        operation_description="Распределение доступа",
+        responses={200: openapi.Response("OK")},
     )
     def delete(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)

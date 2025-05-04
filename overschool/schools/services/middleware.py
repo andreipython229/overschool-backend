@@ -137,16 +137,5 @@ class DomainAccessMiddleware(MiddlewareMixin):
                     "Доступ запрещен. Пользователь не привязан к школе."
                 )
 
-        else:
-            try:
-                domain_entry = Domain.objects.get(
-                    domain_name=current_domain, is_main=True
-                )
-                return None
-            except Domain.DoesNotExist:
-                return HttpResponseForbidden(
-                    "Доступ запрещен. Требуется выполнить вход."
-                )
-
     def process_response(self, request, response):
         return response
