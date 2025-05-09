@@ -197,6 +197,17 @@ class LessonAvailability(models.Model):
         BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
     )
     available = models.BooleanField(default=False, verbose_name="Доступен")
+    visible_timer = models.BooleanField(
+        default=False,
+        verbose_name="Видимый таймер",
+        help_text="Показывать ли таймер доступа к уроку"
+    )
+    access_time = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Время доступа",
+        help_text="Время доступа к уроку в часах"
+    )
 
     class Meta:
         verbose_name = "Доступность урока для студента"
@@ -205,6 +216,7 @@ class LessonAvailability(models.Model):
             models.Index(fields=["student"]),
             models.Index(fields=["lesson"]),
             models.Index(fields=["available"]),
+            models.Index(fields=["visible_timer"]),
         ]
 
 

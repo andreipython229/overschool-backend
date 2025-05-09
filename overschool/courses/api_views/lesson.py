@@ -68,6 +68,9 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                 for lesson_info in lesson_data:
                     lesson_id = lesson_info.get("lesson_id")
                     available = lesson_info.get("available")
+                    visible_timer = lesson_info.get("visible_timer", False)
+                    access_time = lesson_info.get("access_time")
+
                     if lesson_id is not None and available is not None:
                         # Удаляем ВСЕ дублирующие записи
                         LessonAvailability.objects.filter(
@@ -79,6 +82,8 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                             student_id=student_id,
                             lesson_id=lesson_id,
                             available=available,
+                            visible_timer=visible_timer,
+                            access_time=access_time if visible_timer else None,
                         )
 
         return Response(
@@ -114,7 +119,11 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                 LessonAvailability.objects.update_or_create(
                     student_id=student_id,
                     lesson=lesson,
-                    defaults={"available": available},
+                    defaults={
+                        "available": available,
+                        "visible_timer": False,
+                        "access_time": None
+                    },
                 )
 
         return Response(
@@ -134,6 +143,8 @@ class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
                 {
                     "lesson_id": lesson_availability.lesson.id,
                     "available": lesson_availability.available,
+                    "visible_timer": lesson_availability.visible_timer,
+                    "access_time": lesson_availability.access_time,
                 }
             )
 
