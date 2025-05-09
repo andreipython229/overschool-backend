@@ -147,8 +147,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "schools.services.middleware.DomainAccessMiddleware",
-    "schools.services.middleware.CheckTrialStatusMiddleware",
+    # "schools.services.middleware.DomainAccessMiddleware",
+    # "schools.services.middleware.CheckTrialStatusMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -277,7 +277,7 @@ ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_PRESERVE_USERNAME_CASING = False
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
-LOGIN_REDIRECT_URL = "/api/auth/social-complete/"
+LOGIN_REDIRECT_URL = "/social-auth-complete/"
 
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = ACCOUNT_EMAIL_VERIFICATION
