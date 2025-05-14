@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Max
 from rest_framework import serializers
 
-from .models import Chat, Message
+from .models import Chat, Message, UserChat
 
 User = get_user_model()
 s3 = UploadToS3()
@@ -15,13 +15,13 @@ class UserChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id",
-            "username",
+            "avatar",
+            "email",
             "first_name",
             "last_name",
-            "email",
-            "phone_number",
-            "avatar",
+            "id",
+            "username",
+            # "phone_number",
         ]
 
     def get_avatar(self, obj):
@@ -33,29 +33,43 @@ class UserChatSerializer(serializers.ModelSerializer):
             return s3.get_link(base_avatar_path)
 
 
+class UserChatRoleSerializer(serializers.ModelSerializer):
+    user = UserChatSerializer()
+
+    class Meta:
+        model = UserChat
+        fields = [
+            "user_role",
+            "user",
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return {"user_role": data["user_role"], **data["user"]}
+
+
 class ChatSerializer(serializers.ModelSerializer):
     senders = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
-    unread_count = serializers.SerializerMethodField()
+    unread = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = [
             "id",
-            "name",
-            "is_deleted",
             "created_at",
+            "is_deleted",
+            "name",
             "type",
-            "unread_count",
-            "senders",
             "last_message",
+            "senders",
+            "unread",
         ]
         read_only_fields = ["is_deleted"]
 
     def get_senders(self, obj):
         user_chats = obj.userchat_set.all()
-        users = [user_chat.user for user_chat in user_chats]
-        serializer = UserChatSerializer(users, many=True)
+        serializer = UserChatRoleSerializer(user_chats, many=True)
         return serializer.data
 
     def get_last_message(self, obj):
@@ -64,37 +78,43 @@ class ChatSerializer(serializers.ModelSerializer):
         ]
         if last_message:
             message = obj.message_set.filter(sent_at=last_message).first()
-            serializer = MessageSerializer(
+            serializer = MessageGetSerializer(
                 message, context={"request": self.context["request"]}
             )
             return serializer.data
         return None
 
-    def get_unread_count(self, obj):
-        user = self.context["request"].user
-
-        unread_count = obj.message_set.exclude(read_by=user).count()
-        return unread_count
+    def get_unread(self, obj):
+        return 0
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    read_by = serializers.SerializerMethodField()
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "sender",
+            "sent_at",
+            "content",
+            "file",
+        ]
+
+
+class MessageGetSerializer(serializers.ModelSerializer):
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
             "id",
             "sender",
-            "read_by",
             "sent_at",
             "content",
+            "file",
         ]
 
-    def get_read_by(self, obj):
-        if self.context["request"].user in obj.read_by.all():
-            return True
-        else:
-            return False
+    def get_file(self, obj):
+        return s3.get_link(obj.file.name) if obj.file else None
 
 
 class MessageInfoSerializer(serializers.ModelSerializer):
@@ -104,43 +124,3 @@ class MessageInfoSerializer(serializers.ModelSerializer):
             "sent_at",
             "content",
         ]
-
-
-class ChatInfoSerializer(serializers.ModelSerializer):
-    last_message = serializers.SerializerMethodField()
-    unread_count = serializers.SerializerMethodField()
-    senders = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Chat
-        fields = [
-            "id",
-            "name",
-            "type",
-            "is_deleted",
-            "unread_count",
-            "senders",
-            "last_message",
-        ]
-
-    def get_last_message(self, obj):
-        last_message = obj.message_set.aggregate(max_sent_at=Max("sent_at"))[
-            "max_sent_at"
-        ]
-        if last_message:
-            message = obj.message_set.filter(sent_at=last_message).first()
-            serializer = MessageInfoSerializer(message)
-            return serializer.data
-        return None
-
-    def get_unread_count(self, obj):
-        user = self.context["request"].user
-
-        unread_count = obj.message_set.exclude(read_by=user).count()
-        return unread_count
-
-    def get_senders(self, obj):
-        user_chats = obj.userchat_set.all()
-        users = [user_chat.user for user_chat in user_chats]
-        serializer = UserChatSerializer(users, many=True)
-        return serializer.data

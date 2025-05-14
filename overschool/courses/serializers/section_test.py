@@ -40,12 +40,14 @@ class TestSerializer(serializers.ModelSerializer):
             "attempt_count",
             "points_per_answer",
             "points",
+            "has_timer",
+            "time_limit",
             "order",
             "author_id",
             "type",
             "active",
         ]
-        read_only_fields = ["type", "order"]
+        read_only_fields = ["type"]
 
     def get_tests_ids(self, obj):
         test = SectionTest.objects.get(baselesson_ptr_id=obj.id)

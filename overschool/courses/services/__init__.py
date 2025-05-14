@@ -1,1 +1,2 @@
 from .progress_mixin import LessonProgressMixin
+from .student_progress import get_student_progress, progress_subquery

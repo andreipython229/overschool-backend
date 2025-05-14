@@ -5,6 +5,7 @@ from courses.models import (
     Section,
     SectionTest,
     StudentsGroup,
+    Course
 )
 from courses.models.students.user_progress import UserProgressLogs
 from rest_framework import status
@@ -16,14 +17,42 @@ class LessonProgressMixin:
         try:
             UserProgressLogs.objects.get(user=user, lesson=instance)
         except UserProgressLogs.DoesNotExist:
-            UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
+
+            if isinstance(instance, Lesson):
+                UserProgressLogs.objects.create(
+                    user=user, lesson=instance, viewed=True, completed=True
+                )
+            else:
+                UserProgressLogs.objects.create(user=user, lesson=instance, viewed=True)
 
     def check_lesson_progress(self, instance, user, baselesson):
+        school = baselesson.section.course.school
+        course_id = baselesson.section.course.pk
+        course_name = baselesson.section.course.name
+
+        # Если это тестовый курс, сразу возвращаем None
+        if course_id == 247:
+            return None
+
+        try:
+            course = Course.objects.get(course_id=course_id)
+            if course.is_copy:
+                # Проверяем, если у оригинального курса есть другие клоны
+                if Course.objects.filter(name=course_name, is_copy=True).exclude(course_id=course_id).exists():
+                    return None
+            else:
+                # Проверяем, если у текущего курса есть клоны
+                if Course.objects.filter(name=course_name, is_copy=True).exists():
+                    return None
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if user.groups.filter(
             group__name__in=[
                 "Admin",
                 "Teacher",
-            ]
+            ],
+            school=school,
         ).exists():
             return None
 
@@ -44,21 +73,37 @@ class LessonProgressMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
         if students_group.group_settings.strict_task_order:
+            print("students_group.group_settings.strict_task_order")
             try:
                 # Если есть запись в логе - то отдаём урок
                 UserProgressLogs.objects.get(user=user, lesson=instance)
             except UserProgressLogs.DoesNotExist:
-                course_lessons = BaseLesson.objects.filter(
-                    section__course_id=baselesson.section.course, active=True
-                ).order_by("section__order", "order")
+                course_lessons = (
+                    BaseLesson.objects.filter(
+                        section__course_id=baselesson.section.course, active=True
+                    )
+                    .exclude(
+                        lessonavailability__student=user,
+                    )
+                    .order_by("section__order", "order")
+                )
+
+                print("TEST LESSONS = ", course_lessons)
                 # Если урок стоит первым в курсе - то отдаём урок
                 if baselesson == course_lessons.first():
                     self.create_log(user=user, instance=instance)
                     return None
                 # Проверяем является ли урок минимальным в секции
-                is_minimum_order = not BaseLesson.objects.filter(
-                    section=instance.section, order__lt=instance.order, active=True
-                ).exists()
+                is_minimum_order = (
+                    not BaseLesson.objects.filter(
+                        section=instance.section, order__lt=instance.order, active=True
+                    )
+                    .exclude(
+                        lessonavailability__student=user,
+                    )
+                    .exists()
+                )
+
                 if is_minimum_order:
                     # берём последний урок из предыдущей секции
                     previous_section = (
@@ -92,6 +137,9 @@ class LessonProgressMixin:
                 previous_lesson = (
                     BaseLesson.objects.filter(
                         section=instance.section, order__lt=instance.order, active=True
+                    )
+                    .exclude(
+                        lessonavailability__student=user,
                     )
                     .order_by("-order")
                     .first()

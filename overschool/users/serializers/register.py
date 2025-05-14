@@ -4,7 +4,6 @@ from users.models import User
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
-
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
@@ -22,7 +21,7 @@ class SignupSerializer(serializers.Serializer):
         email = attrs.get("email")
         phone_number = attrs.get("phone_number")
 
-        if email and User.objects.filter(email=email).exists():
+        if email and User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("Email already exists.")
 
         if phone_number and User.objects.filter(phone_number=phone_number).exists():
@@ -32,10 +31,10 @@ class SignupSerializer(serializers.Serializer):
     def create(self, validated_data):
         validated_data.pop("password_confirmation")
         password = validated_data.pop("password")
+
         user = User(**validated_data)
-        user.set_password(password)  # Установка пароля с помощью set_password
+        user.set_password(password)
         user.save()
-        return user
 
 
 class PasswordChangeSerializer(serializers.Serializer):

@@ -1,19 +1,44 @@
-import re
-
+import requests
+from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
-from schools.models import School, Tariff, TariffPlan
+from schools.models import (
+    School,
+    SchoolBranding,
+    SchoolStudentsTableSettings,
+    SchoolTask,
+    Tariff,
+    TariffPlan,
+)
+from transliterate import translit
+
+s3 = UploadToS3()
 
 
-class SelectTrialSerializer(serializers.ModelSerializer):
+class SchoolBrandingUpdateSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для выбора пробного тарифа школы
+    Сериализатор для обновления модели ребрендинга.
     """
 
-    tariff = serializers.ChoiceField(choices=TariffPlan.choices)
+    platform_logo = serializers.SerializerMethodField()
 
     class Meta:
-        model = School
-        fields = ["tariff"]
+        model = SchoolBranding
+        fields = [
+            "platform_logo",
+            "email",
+            "phone",
+            "unp",
+            "full_organization_name",
+            "address",
+        ]
+
+    def get_platform_logo(self, obj):
+        if obj.platform_logo:
+            return s3.get_link(obj.platform_logo.name)
+        else:
+            # Если нет загруженной картинки, вернуть ссылку на дефолтное изображение
+            default_image_path = "base_school.jpg"
+            return s3.get_link(default_image_path)
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -34,6 +59,16 @@ class SchoolSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "offer_url",
+            "contact_link",
+            "referral_code",
+            "test_course",
+            "rebranding_enabled",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
         read_only_fields = [
             "order",
@@ -41,14 +76,15 @@ class SchoolSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
         if not attrs.get("name"):
             raise serializers.ValidationError("'name' обязателеное поле.")
 
-        attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
-
+        attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
+        attrs["name"] = attrs["name"].replace(" ", "_")
         return attrs
 
 
@@ -56,6 +92,8 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор обновления модели школы
     """
+
+    branding = SchoolBrandingUpdateSerializer()
 
     class Meta:
         model = School
@@ -67,9 +105,20 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
             "created_at",
             "updated_at",
             "offer_url",
+            "contact_link",
+            "test_course",
+            "rebranding_enabled",
+            "branding",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
         read_only_fields = [
             "order",
@@ -77,18 +126,47 @@ class SchoolUpdateSerializer(serializers.ModelSerializer):
             "purchased_tariff_end_date",
             "used_trial",
             "trial_end_date",
+            "referral_code",
         ]
 
     def validate(self, attrs):
         if attrs.get("name"):
-            attrs["name"] = re.sub(r"[^A-Za-z0-9._-]", "", attrs.get("name"))
+            attrs["name"] = translit(attrs.get("name"), "ru", reversed=True)
+            attrs["name"] = attrs["name"].replace(" ", "_")
         return attrs
+
+    def update(self, instance, validated_data):
+        # Обработка данных ребрендинга
+        rebranding_data = validated_data.pop("branding", None)
+        # Проверяем, включен ли ребрендинг
+        if instance.rebranding_enabled:
+            if rebranding_data:
+                rebranding_instance = getattr(instance, "branding", None)
+                if not rebranding_instance:
+                    rebranding_instance = SchoolBranding.objects.create(school=instance)
+
+                for attr, value in rebranding_data.items():
+                    setattr(rebranding_instance, attr, value)
+                rebranding_instance.save()
+        else:
+            # Если `rebranding_enabled` выключен, не обновляем и не создаем данные ребрендинга
+            if rebranding_data:
+                raise serializers.ValidationError(
+                    "Нельзя обновить ребрендинг, так как он отключён."
+                )
+        # Обновляем остальные поля школы
+        return super().update(instance, validated_data)
 
 
 class SchoolGetSerializer(serializers.ModelSerializer):
     """
     Сериализатор просмотра школы
     """
+
+    branding = SchoolBrandingUpdateSerializer()
+    referral_count = serializers.SerializerMethodField()
+    referral_click_count = serializers.SerializerMethodField()
+    unique_referral_click_count = serializers.SerializerMethodField()
 
     class Meta:
         model = School
@@ -104,10 +182,154 @@ class SchoolGetSerializer(serializers.ModelSerializer):
             "updated_at",
             "owner",
             "offer_url",
+            "contact_link",
+            "referral_code",
+            "test_course",
+            "referral_count",
+            "referral_click_count",
+            "unique_referral_click_count",
+            "rebranding_enabled",
+            "branding",
+            "telegram_link",
+            "instagram_link",
+            "twitter_link",
+            "vk_link",
+            "youtube_link",
+            "extra_link",
         ]
+        read_only_fields = [
+            "order",
+            "tariff",
+            "purchased_tariff_end_date",
+            "used_trial",
+            "trial_end_date",
+            "referral_code",
+        ]
+
+    def get_referral_count(self, obj):
+        return obj.referrals.count()
+
+    def get_referral_click_count(self, obj):
+        return obj.referral_clicks.count()
+
+    def get_unique_referral_click_count(self, obj):
+        return obj.referral_clicks.values("ip_address").distinct().count()
+
+    def to_representation(self, instance):
+        """
+        Кастомизация представления данных: если ребрендинг отключен, поле rebranding не будет отображаться
+        """
+        representation = super().to_representation(instance)
+
+        # Убираем поле rebranding, если ребрендинг отключен
+        if not instance.rebranding_enabled:
+            representation.pop("branding", None)
+
+        return representation
 
 
 class TariffSerializer(serializers.ModelSerializer):
+    price_rf_rub = serializers.SerializerMethodField()
+    discount_3_months_byn = serializers.SerializerMethodField()
+    discount_3_months_rub = serializers.SerializerMethodField()
+    discount_6_months_byn = serializers.SerializerMethodField()
+    discount_6_months_rub = serializers.SerializerMethodField()
+    discount_12_months_byn = serializers.SerializerMethodField()
+    discount_12_months_rub = serializers.SerializerMethodField()
+
+    # Храним курс как переменную класса, чтобы не делать запрос для каждого экземпляра
+    _rf_rate = None
+    _rf_rate_updated_at = None
+
     class Meta:
         model = Tariff
+        fields = [
+            "id",
+            "name",
+            "price",
+            "number_of_courses",
+            "number_of_staff",
+            "students_per_month",
+            "total_students",
+            "price_rf_rub",
+            "discount_3_months_byn",
+            "discount_3_months_rub",
+            "discount_6_months_byn",
+            "discount_6_months_rub",
+            "discount_12_months_byn",
+            "discount_12_months_rub",
+        ]
+
+    def get_rf_rate(self):
+        """Получение курса российского рубля с кэшированием на время сериализации"""
+        # Если уже есть кэшированный курс, используем его
+        if self.__class__._rf_rate is not None:
+            return self.__class__._rf_rate
+
+        # Получение курса от НБРБ
+        url = "https://api.nbrb.by/exrates/rates/456"
+
+        try:
+            response = requests.get(url, timeout=3)  # Добавляем таймаут
+            if response.status_code == 200:
+                data = response.json()
+                self.__class__._rf_rate = data.get("Cur_OfficialRate", 1)
+                import datetime
+                self.__class__._rf_rate_updated_at = datetime.datetime.now()
+                print(self.__class__._rf_rate)
+                return self.__class__._rf_rate
+        except Exception:
+            # В случае ошибки возвращаем значение по умолчанию
+            pass
+
+        return 3.3  # Значение по умолчанию, если не удалось получить курс
+
+    def convert_to_rub(self, byn_value):
+        """Общий метод для конвертации из BYN в RUB"""
+        if byn_value is None or float(byn_value) == 0.00:
+            return 0.00
+
+        rate = self.get_rf_rate()
+        return round((float(byn_value) / rate) * 100, 2)
+
+    def get_price_rf_rub(self, obj):
+        return self.convert_to_rub(obj.price)
+
+    def get_discount_3_months_byn(self, obj):
+        return obj.discount_3_months
+
+    def get_discount_3_months_rub(self, obj):
+        return self.convert_to_rub(obj.discount_3_months)
+
+    def get_discount_6_months_byn(self, obj):
+        return obj.discount_6_months
+
+    def get_discount_6_months_rub(self, obj):
+        return self.convert_to_rub(obj.discount_6_months)
+
+    def get_discount_12_months_byn(self, obj):
+        return obj.discount_12_months
+
+    def get_discount_12_months_rub(self, obj):
+        return self.convert_to_rub(obj.discount_12_months)
+
+
+class SchoolStudentsTableSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SchoolStudentsTableSettings
         fields = "__all__"
+
+
+class SchoolTaskSummarySerializer(serializers.Serializer):
+    total_tasks = serializers.IntegerField()
+    total_completed_tasks = serializers.IntegerField()
+    completion_percentage = serializers.FloatField()
+    tasks = serializers.ListField(child=serializers.DictField())
+
+    def to_representation(self, instance):
+        return {
+            "total_tasks": instance["total_tasks"],
+            "total_completed_tasks": instance["total_completed_tasks"],
+            "completion_percentage": instance["completion_percentage"],
+            "tasks": instance["tasks"],
+        }

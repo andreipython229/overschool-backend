@@ -1,0 +1,71 @@
+from db.database import meta, session_maker
+from sqlalchemy import desc, insert, select
+
+
+class TgORM:
+    @staticmethod
+    def select_user_in_db(email):
+        with session_maker() as session:
+            db_users = meta.tables["users_user"]
+            query = select(db_users).filter(db_users.c.email == email)
+            res = session.execute(query)
+            result = res.unique().first()
+            if result is None:
+                raise ValueError("Пользователь с таким email не найден")
+            return result.id
+
+    @staticmethod
+    def insert_user_in_db_tg_users(tg_user_id, first_name, user_id):
+        with session_maker() as session:
+            db_tg_users = meta.tables["tg_notifications_tgusers"]
+
+            query_user = select(db_tg_users.c.tg_user_id)
+            res_user = session.execute(query_user)
+            result_user = res_user.unique().all()
+
+            if (f"{tg_user_id}",) not in result_user:
+                tg_user = [
+                    {
+                        "tg_user_id": tg_user_id,
+                        "first_name": f"{first_name}",
+                        "user_id": user_id,
+                    }
+                ]
+
+                insert_tg_user = insert(db_tg_users).values(tg_user)
+                session.execute(insert_tg_user)
+                session.commit()
+                return "Верификация пройдена успешно! Для настройки уведомлений вернитесь на платформу."
+            else:
+                return "Верификация уже пройдена!"
+
+    @staticmethod
+    def insert_user_in_db_tg_notifications():
+        with session_maker() as session:
+            db_tg_notifications = meta.tables["tg_notifications_notifications"]
+            db_tg_users = meta.tables["tg_notifications_tgusers"]
+
+            query = select(db_tg_users).order_by(desc(db_tg_users.c.id))
+            res = session.execute(query)
+            tg_user_id = res.first()
+
+            query_notif = select(db_tg_notifications.c.tg_user_id)
+            res_notif = session.execute(query_notif)
+            result_notif = res_notif.unique().all()
+
+            if (int(f"{tg_user_id[0]}"),) not in result_notif:
+                notification = [
+                    {
+                        "homework_notifications": True,
+                        "messages_notifications": False,
+                        "tg_user_id": tg_user_id[0],
+                        "completed_courses_notifications": True,
+                    }
+                ]
+                insert_tg_notifications = insert(db_tg_notifications).values(
+                    notification
+                )
+                session.execute(insert_tg_notifications)
+                session.commit()
+            else:
+                return "Верификация уже пройдена!"

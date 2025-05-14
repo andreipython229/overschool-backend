@@ -1,28 +1,52 @@
+import hashlib
+from urllib.parse import urlencode, urlparse
+
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
 from django.http import HttpResponse
-from rest_framework import status, viewsets
+from django.shortcuts import redirect
+from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, permissions, serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-from users.models import Profile
+from users.models import Profile, User
 from users.permissions import OwnerProfilePermissions
 from users.serializers import UserProfileGetSerializer, UserProfileSerializer
+from users.services import SenderServiceMixin
+
+from overschool import settings
 
 s3 = UploadToS3()
 
 
-class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+def generate_hash_token(user):
+    user_info = f"{user.id}-{user.email}"
+    token = hashlib.sha256(user_info.encode()).hexdigest()
+    return token
+
+
+class ProfileViewSet(WithHeadersViewSet, viewsets.ModelViewSet):
     """Эндпоинт просмотра и изменения Profile\n
     <h2>/api/profile/</h2>\n
     возвращаем только объекты пользователя, сделавшего запрос"""
 
     queryset = Profile.objects.all()
     serializer_class = UserProfileSerializer
+    sender_service = SenderServiceMixin()
     permission_classes = [OwnerProfilePermissions]
     http_method_names = ["get", "put", "patch", "head"]
 
     def get_queryset(self):
         # Возвращаем только объекты пользователя, сделавшего запрос
+        if getattr(self, "swagger_fake_view", False):
+            return (
+                Profile.objects.none()
+            )  # Возвращаем пустой queryset при генерации схемы
+        self.request.user.last_login = timezone.now()
+        self.request.user.save()
         return Profile.objects.filter(user=self.request.user.id)
 
     def get_serializer_class(self):
@@ -41,8 +65,43 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         user = self.request.user
-        user.email = (None,)
-        user.save()
+        new_email = request.data.get("user", {}).get("email")
+        email = user.email
+        if email != new_email:
+            if User.objects.filter(email=new_email).exists():
+                return Response(
+                    "Пользователь с такой электронной почтой уже существует",
+                    status=400,
+                )
+            token = generate_hash_token(user)
+            domain = self.request.META.get("HTTP_X_ORIGIN")
+            reset_password_url = f"{domain}/email-confirm/{token}/"
+            email_params = {"from_email": new_email}
+            reset_password_url_with_params = (
+                f"{reset_password_url}?{urlencode(email_params)}"
+            )
+            if domain:
+                parsed_url = urlparse(domain)
+                current_domain = parsed_url.netloc
+            else:
+                current_domain = None
+            subject = f"Подтверждения электронной почты {current_domain}"
+            message = (
+                f"Токен для подтверждения электронной почты:<br>"
+                f"{token}<br>"
+                f"Если это письмо пришло вам по ошибке, просто проигнорируйте его."
+            )
+            send = self.sender_service.send_code_by_email(
+                email=new_email, subject=subject, message=message
+            )
+            if send and send["status_code"] == 500:
+                return Response(send["error"], status=send["status_code"])
+
+        if "user" in request.data and "email" in request.data["user"]:
+            del request.data["user"]["email"]
+        elif "user.email" in request.data:
+            del request.data["user.email"]
+
         serializer = UserProfileSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -57,9 +116,42 @@ class ProfileViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
 
         serializer.save()
 
-        serializer = UserProfileGetSerializer(instance)
+        serialized_data = UserProfileGetSerializer(instance).data
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serialized_data, status=status.HTTP_200_OK)
 
 
 ProfileViewSet = apply_swagger_auto_schema(tags=["profiles"])(ProfileViewSet)
+
+
+class EmailValidateSerializer(serializers.Serializer):
+    pass
+
+
+class EmailValidateView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
+    """
+    API для валидации email
+    <h2>/api/email-confirm/</h2>\n
+    """
+
+    parser_classes = (MultiPartParser,)
+    serializer_class = EmailValidateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(tags=["profiles"], request_body=EmailValidateSerializer)
+    @action(detail=False, methods=["POST"])
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        token = request.data.get("token")
+        expected_token = generate_hash_token(user)
+        from_email = request.data.get("email")
+
+        if token == expected_token:
+            if from_email:
+                user.email = from_email
+                user.save()
+                return Response("Токен действителен", status=200)
+            else:
+                return Response("Токен не действителен", status=400)
+        else:
+            return Response("Токен не действителен", status=400)

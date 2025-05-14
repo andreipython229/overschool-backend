@@ -1,12 +1,11 @@
 from django.urls import path
 
-from .views import ChatDetailDelete, ChatListCreate, ChatListInfo, MessageList
+from .views import ChatDetailDelete, ChatListCreate, MessageList, create_or_update_group_chat
 
 urlpatterns = [
     path(
         "", ChatListCreate.as_view(actions={"get": "get", "post": "post"}), name="chats"
     ),
-    path("info/", ChatListInfo.as_view(actions={"get": "list"}), name="info"),
     path(
         "<uuid:chat_uuid>/",
         ChatDetailDelete.as_view(
@@ -23,5 +22,9 @@ urlpatterns = [
         "create_personal_chat/",
         ChatListCreate.as_view(actions={"post": "create_personal_chat"}),
         name="create_personal_chat",
+    ),
+    path('chat_synchronizer/<int:group_id>/',
+         create_or_update_group_chat,
+         name='create_or_update_group_chat'
     ),
 ]

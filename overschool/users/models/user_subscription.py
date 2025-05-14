@@ -11,9 +11,17 @@ class UserSubscription(models.Model):
     school = models.ForeignKey(
         School, on_delete=models.CASCADE, related_name="subscriptions"
     )
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user} - {self.subscription_id} - {self.school}"
+        return (
+            f"{self.user} - {self.subscription_id} - {self.school} - {self.expires_at}"
+        )
 
     class Meta:
         unique_together = ("user", "school")
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["school"]),
+            models.Index(fields=["expires_at"]),
+        ]

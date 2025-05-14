@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from courses.models import StudentsGroup
+from courses.models import GroupCourseAccess, StudentsGroup
 from rest_framework import serializers
 from users.models import User
 
@@ -12,10 +12,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
     Сериализатор модели группы студентов
     """
 
-    group_settings = StudentsGroupSettingsSerializer(required=False)
-    students = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), many=True, required=False
-    )
+    group_settings = serializers.SerializerMethodField()
+    course_name = serializers.CharField(source="course_id.name", read_only=True)
 
     class Meta:
         model = StudentsGroup
@@ -23,11 +21,21 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             "name",
             "group_id",
             "course_id",
+            "course_name",
             "teacher_id",
             "students",
             "group_settings",
-            "type"
+            "type",
+            "certificate",
+            "training_duration",
         ]
+
+    def get_group_settings(self, obj):
+        return (
+            StudentsGroupSettingsSerializer(obj.group_settings).data
+            if obj.group_settings
+            else None
+        )
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -43,7 +51,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Поле 'teacher_id' обязательно для заполнения."
             )
-        elif teacher in students:
+        elif students and teacher and teacher in students:
             raise serializers.ValidationError(
                 "Учитель не может учиться в группе, в которой преподает."
             )
@@ -59,8 +67,8 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
                     StudentsGroup.objects.filter(
                         course_id=course, students__in=students
                     )
-                        .exclude(pk=view.get_object().pk)
-                        .count()
+                    .exclude(pk=view.get_object().pk)
+                    .count()
                 )
             if duplicate_count > 0:
                 raise serializers.ValidationError(
@@ -71,6 +79,7 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
+        certificate = validated_data.pop("certificate", None)
         instance = super().update(instance, validated_data)
 
         if group_settings_data:
@@ -78,20 +87,74 @@ class StudentsGroupSerializer(serializers.ModelSerializer):
             for key, value in group_settings_data.items():
                 setattr(group_settings, key, value)
             group_settings.save()
+
+        if certificate is not None:
+            instance.certificate = certificate
+            instance.save()
 
         return instance
 
 
 class StudentsGroupWTSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели группы студентов без учителя
+    """
+
+    group_settings = StudentsGroupSettingsSerializer(required=False)
+    students = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, required=False
+    )
+    type = serializers.CharField(required=False)
+    teacher_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=False, required=False
+    )
+
     class Meta:
         model = StudentsGroup
-        fields = ("type", "name", "course_id",  "students", "group_settings")
+        fields = (
+            "type",
+            "name",
+            "course_id",
+            "students",
+            "teacher_id",
+            "group_settings",
+            "certificate",
+            "training_duration",
+        )
 
-    def create(self, validated_data):
-        return StudentsGroup.objects.create(**validated_data)
+    def validate(self, attrs):
+        request = self.context.get("request")
+        view = self.context.get("view")
+        course = attrs.get("course_id")
+        students = attrs.get("students")
+        if request.method == "POST" and not course:
+            raise serializers.ValidationError("Курс должен быть указан.")
+
+        if students:
+            duplicate_count = 0
+            if request.method == "POST":
+                duplicate_count = StudentsGroup.objects.filter(
+                    course_id=course, students__in=students
+                ).count()
+            elif request.method in ["PUT", "PATCH"]:
+                duplicate_count = (
+                    StudentsGroup.objects.filter(
+                        course_id=course, students__in=students
+                    )
+                    .exclude(pk=view.get_object().pk)
+                    .count()
+                )
+            if duplicate_count > 0:
+                raise serializers.ValidationError(
+                    "Убедитесь, что каждый пользователь в группах курса уникален."
+                )
+
+        return attrs
 
     def update(self, instance, validated_data):
         group_settings_data = validated_data.pop("group_settings", None)
+        certificate = validated_data.pop("certificate", None)
+
         instance = super().update(instance, validated_data)
 
         if group_settings_data:
@@ -99,6 +162,10 @@ class StudentsGroupWTSerializer(serializers.ModelSerializer):
             for key, value in group_settings_data.items():
                 setattr(group_settings, key, value)
             group_settings.save()
+
+        if certificate is not None:
+            instance.certificate = certificate
+            instance.save()
 
         return instance
 
@@ -137,4 +204,16 @@ class GroupsInCourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentsGroup
-        fields = ["group_id", "name", "teacher_id"]
+        fields = ["group_id", "name", "teacher_id", "type"]
+
+
+class GroupCourseAccessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GroupCourseAccess
+        fields = ["id", "current_group", "course", "group"]
+
+
+class MultipleGroupCourseAccessSerializer(serializers.Serializer):
+    current_group = serializers.IntegerField()
+    course = serializers.IntegerField()
+    group = serializers.IntegerField()

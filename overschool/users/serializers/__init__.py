@@ -1,8 +1,16 @@
 from .access_distribution import AccessDistributionSerializer
-from .confident_files_serializers import UploadSerializer
+from .feedback import FeedbackSerializer
+from .forgot_password_serializer import (
+    ForgotPasswordSerializer,
+    PasswordResetSerializer,
+)
 from .login import LoginSerializer
-from .profile import UserProfileGetSerializer, UserProfileSerializer
+from .profile import (
+    EmailValidateSerializer,
+    UserProfileGetSerializer,
+    UserProfileSerializer,
+)
 from .register import PasswordChangeSerializer, SignupSerializer
-from .register_school_owner import SignupSchoolOwnerSerializer
+from .register_school_owner import CreateSchoolSerializer, SignupSchoolOwnerSerializer
 from .user import AllUsersSerializer, UserSerializer
 from .user_role import UserRoleSerializer

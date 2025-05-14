@@ -1,6 +1,7 @@
 from common_services.selectel_client import UploadToS3
 from rest_framework import serializers
-from users.models import User, UserGroup
+from schools.models import SchoolNewRole
+from users.models import User, UserGroup, UserPseudonym
 
 s3 = UploadToS3()
 
@@ -38,6 +39,8 @@ class UserSerializer(serializers.ModelSerializer):
 class AllUsersSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    pseudonym = serializers.SerializerMethodField()
+    additional_roles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -49,6 +52,8 @@ class AllUsersSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "avatar",
+            "pseudonym",
+            "additional_roles",
         ]
 
     def get_role(self, user):
@@ -65,3 +70,20 @@ class AllUsersSerializer(serializers.ModelSerializer):
             # Если нет загруженной фотографии, вернуть ссылку на базовую аватарку
             base_avatar_path = "users/avatars/base_avatar.jpg"
             return s3.get_link(base_avatar_path)
+
+    def get_pseudonym(self, user):
+        try:
+            user_pseudonym = user.pseudonyms_as_user.get(school=self.context["school"])
+            return user_pseudonym.pseudonym
+        except UserPseudonym.DoesNotExist:
+            return None  # Возвращаем None, если псевдоним не найден
+
+    def get_additional_roles(self, user):
+        school = self.context.get("school")
+        if not school:
+            return []  # Возвращаем пустой список, если школа не указана в контексте
+
+        additional_roles = SchoolNewRole.objects.filter(
+            user=user, school=school
+        ).values_list('role_name', flat=True)  # Получаем список названий ролей
+        return list(additional_roles)  # Преобразуем в список и возвращаем

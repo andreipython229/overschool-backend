@@ -1,9 +1,13 @@
 import uuid
 
+from common_services.selectel_client import UploadToS3
+from common_services.services import TruncateFileName, limit_size
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 from users.models.user import User
+
+s3 = UploadToS3()
 
 
 class Chat(models.Model):
@@ -15,6 +19,7 @@ class Chat(models.Model):
         ("GROUP", "Group"),
         ("PERSONAL", "Personal"),
         ("COURSE", "Course"),
+        ("ADMIN", "Admin"),
     )
 
     type = models.CharField(
@@ -36,6 +41,14 @@ class Chat(models.Model):
     def get_absolute_url(self):
         return reverse("chat_detail", args=[str(self.id)])
 
+    class Meta:
+        verbose_name = "Чат"
+        verbose_name_plural = "Чаты"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["type"]),
+        ]
+
 
 class ChatLink(models.Model):
     parent = models.ForeignKey(Chat, related_name="links_to", on_delete=models.CASCADE)
@@ -45,35 +58,74 @@ class ChatLink(models.Model):
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
-    read_by = models.ManyToManyField(
-        User,
-        related_name="read_messages",
-        blank=True,
-    )
     sent_at = models.DateTimeField(auto_now_add=True)
     content = models.TextField()
+    file = models.FileField(
+        max_length=300,
+        validators=[limit_size],
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+        help_text="Прикрепленный файл",
+        verbose_name="Прикрепленный файл",
+    )
+
+    def delete(self, *args, **kwargs):
+        # Удаляем файл из S3 перед удалением записи
+        if self.file:
+            s3.delete_file(str(self.file))
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.content
+
+    class Meta:
+        verbose_name = "Сообщение чата"
+        verbose_name_plural = "Сообщения чата"
+        indexes = [
+            models.Index(fields=["chat"]),
+            models.Index(fields=["sender"]),
+        ]
 
 
 # many-to-many
 class UserChat(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chats")
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    user_role = models.CharField(verbose_name="Роль пользователя", max_length=50)
+    unread_messages_count = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.user.__str__()} - {self.chat.__str__()}"
 
+    class Meta:
+        verbose_name = "Пользователь чата"
+        verbose_name_plural = "Пользователи чата"
+        indexes = [
+            models.Index(fields=["chat"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["user_role"]),
+        ]
+
     @classmethod
     def get_existed_chat_id(cls, chat_creator, reciever):
-        chats = cls.objects.filter(Q(user=chat_creator) | Q(user=reciever))
-        chats_list = [str(chat.chat) for chat in chats]
-        seen_chats = set()
-        existed_chat = [
-            chat for chat in chats_list if chat in seen_chats or seen_chats.add(chat)
-        ]
-        if existed_chat:
-            return existed_chat[0]
-        else:
-            return False
+        chat_id = (
+            cls.objects.filter(user__in=[chat_creator, reciever])
+            .values_list("chat__id", flat=True)
+            .distinct()
+            .first()
+        )
+
+        return str(chat_id) if chat_id is not None else False
+
+    @classmethod
+    def get_existed_chat_id_by_type(cls, chat_creator, reciever, type):
+        chat_id = (
+            cls.objects.filter(
+                user=chat_creator, chat__type=type, chat__userchat__user=reciever
+            )
+            .values_list("chat__id", flat=True)
+            .first()
+        )
+
+        return str(chat_id) if chat_id is not None else False

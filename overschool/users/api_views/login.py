@@ -1,16 +1,14 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from django.http import HttpResponse
-from rest_framework import permissions, views
+from django.contrib.auth import login
+from rest_framework import permissions, status, views
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from users.serializers import LoginSerializer
-from users.services import JWTHandler
-
-from overschool import settings
-
-jwt_handler = JWTHandler()
 
 
-class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
+class LoginView(WithHeadersViewSet, views.APIView):
     """<h2>/api/login/</h2>\n"""
 
     permission_classes = [permissions.AllowAny]
@@ -19,88 +17,41 @@ class LoginView(LoggingMixin, WithHeadersViewSet, views.APIView):
     parser_classes = (MultiPartParser,)
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-        access_token = jwt_handler.create_access_token(subject=user.id)
-        refresh_token = jwt_handler.create_refresh_token(subject=user.id)
+        user.backend = "django.contrib.auth.backends.ModelBackend"
+        login(request, user)
 
-        response = HttpResponse("/api/user/", status=200)
-        development_mode_header = request.META.get("HTTP_X_DEVELOPMENT_MODE")
-        origin = request.META.get("HTTP_ORIGIN")
-        if origin == "http://85.209.148.157":
-            SESSION_COOKIE_DOMAIN = "85.209.148.157"
-            response.delete_cookie(settings.ACCESS, domain=SESSION_COOKIE_DOMAIN)
-            response.delete_cookie(settings.REFRESH, domain=SESSION_COOKIE_DOMAIN)
-            response.set_cookie(
-                key=settings.ACCESS,
-                value=access_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-                domain=SESSION_COOKIE_DOMAIN,
-            )
+        tokens = serializer.create(serializer.validated_data)
 
-            response.set_cookie(
-                key=settings.REFRESH,
-                value=refresh_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-                domain=SESSION_COOKIE_DOMAIN,
-            )
+        return Response(tokens)
 
-        elif development_mode_header and development_mode_header == "false":
-            SESSION_COOKIE_DOMAIN = settings.SESSION_COOKIE_DOMAIN
-            response.delete_cookie(settings.ACCESS, domain=SESSION_COOKIE_DOMAIN)
-            response.delete_cookie(settings.REFRESH, domain=SESSION_COOKIE_DOMAIN)
-            response.set_cookie(
-                key=settings.ACCESS,
-                value=access_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-                domain=SESSION_COOKIE_DOMAIN,
-            )
 
-            response.set_cookie(
-                key=settings.REFRESH,
-                value=refresh_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-                domain=SESSION_COOKIE_DOMAIN,
-            )
-        else:
-            response.delete_cookie(settings.ACCESS)
-            response.delete_cookie(settings.REFRESH)
-            response.set_cookie(
-                key=settings.ACCESS,
-                value=access_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-            )
+class SocialLoginCompleteView(views.APIView):
+    """
+    Эндпоинт, проверяет сессию, установленную allauth, и выдает JWT.
+    """
 
-            response.set_cookie(
-                key=settings.REFRESH,
-                value=refresh_token,
-                max_age=settings.COOKIE_EXPIRE_SECONDS,
-                expires=settings.COOKIE_EXPIRE_SECONDS,
-                httponly=True,
-                samesite=None,
-                secure=False,
-            )
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [permissions.AllowAny]
 
-        return response
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        return Response(
+            {
+                "access": access_token,
+                "refresh": refresh_token,
+                "user": {
+                    "id": user.pk,
+                    "email": user.email,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

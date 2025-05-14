@@ -3,8 +3,9 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, permissions, serializers, status
+from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,7 +14,7 @@ from .constants import CustomResponses
 from .models import Chat, ChatLink, Message, UserChat
 from .request_params import ChatParams, UserParams
 from .schemas import ChatSchemas
-from .serializers import ChatInfoSerializer, ChatSerializer, MessageSerializer
+from .serializers import ChatSerializer, MessageGetSerializer, MessageSerializer
 
 User = get_user_model()
 
@@ -47,7 +48,7 @@ class AllChatSerializer(serializers.Serializer):
     pass
 
 
-class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
+class ChatListCreate(WithHeadersViewSet, APIView):
     """
     - Список всех чатов
     - Создание чата
@@ -56,6 +57,26 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     serializer_class = AllChatSerializer
     parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if (
+            user.groups.filter(
+                group__name__in=[
+                    "Admin",
+                    "Teacher",
+                    "Student",
+                ]
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     @swagger_auto_schema(
         responses=ChatSchemas.chats_for_user_schema,
@@ -77,21 +98,39 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
     @swagger_auto_schema(
         responses=ChatSchemas.chat_uuid_schema,
         manual_parameters=[UserParams.user_id],
-        operation_description="Get or create chat with user",
-        operation_summary="Get or create chat with user",
+        operation_description="Get or create PERSONAL chat with user",
+        operation_summary="Get or create PERSONAL chat with user",
         tags=["chats"],
     )
     def post(self, request, *args, **kwargs):
         chat_creator = self.request.user
+        role_creator = request.data.get("role_name")
+        role_reciever = request.data.get("role_reciever")
+        print(role_creator + " and " + role_reciever)
+        role1 = ""
+        role2 = ""
+        if role_creator == "Admin":
+            role1 = "Администратор"
+            role2 = "Студент"
+        elif role_creator == "Teacher":
+            role1 = "Ментор"
+            role2 = "Студент"
+        elif role_creator == "Student":
+            role1 = "Ментор"
+            role2 = "Студент"
+            role_reciever = "Teacher"
 
         chat_reciever_id = request.data.get("user_id")
+
         chat_reciever = is_user_exist(chat_reciever_id)
         if chat_reciever is False:
             return Response(
                 {"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
+        existed_chat_id = UserChat.get_existed_chat_id_by_type(
+            chat_creator, chat_reciever, type="PERSONAL"
+        )
         if existed_chat_id:
             existed_chat = Chat.objects.get(id=existed_chat_id)
             user_chat_serializer = ChatSerializer(
@@ -99,11 +138,31 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
             )
             return Response(user_chat_serializer.data, status=status.HTTP_200_OK)
         else:
-            chat = Chat.objects.create()
-            UserChat.objects.create(user=chat_creator, chat=chat)
-            UserChat.objects.create(user=chat_reciever, chat=chat)
+            chat = Chat.objects.create(
+                type="PERSONAL",
+                name=f"{role1}:"
+                f'{chat_creator.email if role_creator != "Student" else chat_reciever.email}:'
+                f"{role2}:"
+                f'{chat_reciever.email if role_creator != "Student" else chat_creator.email}',
+            )
+            user_chats = [
+                UserChat(user=chat_creator, chat=chat, user_role=role_creator),
+                UserChat(user=chat_reciever, chat=chat, user_role=role_reciever),
+            ]
 
-            existed_chat_id = UserChat.get_existed_chat_id(chat_creator, chat_reciever)
+            UserChat.objects.bulk_create(user_chats)
+
+            Message.objects.create(
+                chat=chat,
+                sender=chat_creator if role_creator != "Student" else chat_reciever,
+                content="""
+                    Приветствую Вас в чате техподдержки!😊
+                    Если Вам будет нужна помощь, пожалуйста, напишите мне)👋""",
+            )
+
+            existed_chat_id = UserChat.get_existed_chat_id_by_type(
+                chat_creator, chat_reciever, "PERSONAL"
+            )
             if existed_chat_id:
                 existed_chat = Chat.objects.get(id=existed_chat_id)
                 user_chat_serializer = ChatSerializer(
@@ -204,7 +263,7 @@ class ChatListCreate(LoggingMixin, WithHeadersViewSet, APIView):
         )
 
 
-class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
+class ChatDetailDelete(WithHeadersViewSet, APIView):
     """
     - Детали чата
     - Удаление / восстановление чата
@@ -312,7 +371,7 @@ class ChatDetailDelete(LoggingMixin, WithHeadersViewSet, APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
+class MessageList(WithHeadersViewSet, APIView):
     """
     - Сообщения чата
     """
@@ -344,53 +403,89 @@ class MessageList(LoggingMixin, WithHeadersViewSet, APIView):
             )
 
         messages = Message.objects.filter(chat=chat)
-        serializer = MessageSerializer(
+        serializer = MessageGetSerializer(
             messages, many=True, context={"request": self.request}
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ChatListInfo(LoggingMixin, WithHeadersViewSet, generics.ListAPIView):
-    """
-    - Список всех чатов для текущего пользователя с непрочитанными сообщениями
-    """
+from courses.models import StudentsGroup
+from rest_framework.decorators import api_view
 
-    serializer_class = ChatInfoSerializer
-    parser_classes = (MultiPartParser,)
-    permission_classes = [permissions.IsAuthenticated]
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
+@api_view(["POST"])
+def create_or_update_group_chat(request, group_id):
 
-    def get_queryset(self):
-        user = self.request.user
-        chats_for_user = UserChat.objects.filter(user=user)
-        chats_list = [str(chat.chat) for chat in chats_for_user]
-        queryset = Chat.objects.filter(id__in=chats_list)
-        return queryset
+    if not group_id:
+        return Response("Должны быть group_id")
 
-    def get_total_unread(self):
-        user = self.request.user
-        user_chats = Chat.objects.filter(userchat__user=user)
-        total_unread = (
-            Message.objects.filter(chat__in=user_chats).exclude(read_by=user).count()
-        )
-        return total_unread
+    try:
+        group = StudentsGroup.objects.get(pk=group_id)
+    except StudentsGroup.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
-    @swagger_auto_schema(
-        operation_description="Get all chats info for user",
-        operation_summary="Get all chats info for user",
-        tags=["chats"],
+    admins = User.objects.filter(
+        groups__school=group.course_id.school, groups__group__name__in=["Admin"]
     )
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
 
-        total_unread = self.get_total_unread()
-        total_unread_dict = {"total_unread": total_unread}
-        result_list = [total_unread_dict] + serializer.data
+    # Проверяем, есть ли у группы чат
+    if not group.chat:
+        # Создаем чат
+        chat = Chat.objects.create(type="GROUP", name=group.name)
+        group.chat = chat
+        group.save()
 
-        return Response(result_list)
+        # Создаем UserChat для студентов группы
+        for student in group.students.all():
+            UserChat.objects.create(user=student, chat=chat, user_role="Student")
+
+        # Если есть преподаватель, создаем UserChat для него
+        if group.teacher_id:
+            UserChat.objects.create(
+                user=group.teacher_id, chat=chat, user_role="Teacher"
+            )
+
+        # Создаем UserChat для администраторов
+        for admin in admins:
+            if not UserChat.objects.filter(
+                user=admin, chat=group.chat, user_role="Admin"
+            ).exists():
+                UserChat.objects.create(user=admin, chat=group.chat, user_role="Admin")
+
+        return Response(status=status.HTTP_201_CREATED)
+    else:
+        user_chats = UserChat.objects.filter(chat=group.chat)
+        for user_chat in user_chats:
+            if (
+                user_chat.user not in group.students.all()
+                and user_chat.user != group.teacher_id
+            ):
+                user_chat.delete()  # Удаляем чаты для неактуальных студентов
+
+        # Создаем UserChat для студентов
+        for student in group.students.all():
+            if not UserChat.objects.filter(user=student, chat=group.chat).exists():
+                UserChat.objects.create(
+                    user=student, chat=group.chat, user_role="Student"
+                )
+
+        # Создаем UserChat для преподавателя
+        if (
+            group.teacher_id
+            and not UserChat.objects.filter(
+                user=group.teacher_id, chat=group.chat
+            ).exists()
+        ):
+            UserChat.objects.create(
+                user=group.teacher_id, chat=group.chat, user_role="Teacher"
+            )
+
+        # Создаем UserChat для администраторов
+        for admin in admins:
+            if not UserChat.objects.filter(
+                user=admin, chat=group.chat, user_role="Admin"
+            ).exists():
+                UserChat.objects.create(user=admin, chat=group.chat, user_role="Admin")
+
+        return Response(status=status.HTTP_200_OK)

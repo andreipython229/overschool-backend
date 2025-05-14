@@ -6,11 +6,13 @@ from courses.serializers import AnswerGetSerializer, AnswerSerializer
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from schools.models import School
+from schools.school_mixin import SchoolMixin
 
 s3 = UploadToS3()
 
 
-class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
+class AnswerViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт на получение, создания, изменения и удаления уроков.\n
     <h2>/api/{school_name}/answers/</h2>\n
     Разрешения для просмотра ответов к тестам (любой пользователь).\n
@@ -27,20 +29,25 @@ class AnswerViewSet(LoggingMixin, WithHeadersViewSet, viewsets.ModelViewSet):
         else:
             return AnswerSerializer
 
-    def get_permissions(self):
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
         permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         if self.action in ["list", "retrieve"]:
             # Разрешения для просмотра ответов к тестам (любой пользователь)
             return permissions
         elif self.action in ["create", "update", "partial_update", "destroy"]:
             # Разрешения для создания и изменения ответов к тестам (только пользователи с группой 'Admin')
-            user = self.request.user
-            if user.groups.filter(group__name="Admin").exists():
+            if user.groups.filter(group__name="Admin", school=school_id).exists():
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
         else:
-            return permissions
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def create(self, request, *args, **kwargs):
         serializer = AnswerSerializer(data=request.data)

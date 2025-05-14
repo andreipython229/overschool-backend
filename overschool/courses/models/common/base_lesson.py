@@ -3,8 +3,11 @@ from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from common_services.services import TruncateFileName
 from django.db import connection, models
 from model_clone import CloneMixin
+from users.models import User
+from django.db import transaction
 
 from ..courses.section import Section
+from ..students.students_group import StudentsGroup
 
 
 class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
@@ -23,26 +26,6 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Название урока",
         default="Имя не придумано",
     )
-    description = RichTextField(
-        verbose_name="Описание", help_text="Описание к уроку", blank=True, null=True
-    )
-    code = RichTextField(
-        verbose_name="Код", help_text="Примеры кода к уроку", blank=True, null=True
-    )
-    video = models.FileField(
-        verbose_name="Видео",
-        help_text="Видеофайл размером до 2 ГБ",
-        max_length=300,
-        upload_to=TruncateFileName(300),
-        blank=True,
-        null=True,
-    )
-    url = models.URLField(
-        verbose_name="URL видео",
-        help_text="Ссылка на видео из YouTube",
-        blank=True,
-        null=True,
-    )
     points = models.PositiveIntegerField(
         verbose_name="Баллы за прохождение",
         help_text="Баллы за прохождение",
@@ -54,81 +37,204 @@ class BaseLesson(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Mod
         help_text="Определяет, виден ли урок, домашнее задание или тест всем кроме админа",
         blank=False,
     )
+
     _clone_o2o_fields = ["lessons", "homeworks", "tests"]
     _clone_m2o_or_o2m_fields = ["text_files", "audio_files", "url"]
 
     def __str__(self):
         return f"{self.section}. {self.name}"
 
+    def is_available_for_student(self, student):
+        availability = LessonAvailability.objects.filter(student=student, lesson=self).first()
+        return availability.available if availability else None
+
+    def is_available_for_group(self, group):
+        return not LessonEnrollment.objects.filter(
+            student_group=group, lesson=self
+        ).exists()
+
     def save(self, *args, **kwargs):
-        if not self.order:
-            max_order = BaseLesson.objects.all().aggregate(models.Max("order"))[
-                "order__max"
-            ]
-            order = max_order + 1 if max_order is not None else 1
-            self.order = order
-        if self.__class__ is not BaseLesson:
-            if self.baselesson_ptr_id:
-                baselesson = BaseLesson.objects.get(pk=self.baselesson_ptr_id)
-                self.section_id = baselesson.section.pk
-        super().save(*args, **kwargs)
+        with transaction.atomic():  # Гарантируем, что изменения пройдут атомарно
+            if not self.order:
+                max_order = BaseLesson.objects.filter(section=self.section).aggregate(models.Max("order"))["order__max"]
+                self.order = max_order + 1 if max_order is not None else 1
 
-    @classmethod
-    def disable_constraint(cls, constraint_name):
-        """
-        Метод для отключения ограничения базы данных.
+            else:
+                # Сдвигаем все записи, если вставляем в середину
+                BaseLesson.objects.filter(section=self.section, order__gte=self.order).update(order=models.F("order") + 1)
 
-        Args:
-            constraint_name (str): Название ограничения для отключения.
-
-        Returns:
-            bool: True, если ограничение успешно отключено, иначе False.
-        """
-        try:
-            with connection.cursor() as cursor:
-                # Проверяем наличие ограничения
-                cursor.execute(
-                    f"SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = %s AND constraint_name = %s;",
-                    (cls._meta.db_table, constraint_name),
-                )
-                if cursor.fetchone():
-                    # Ограничение существует, отключаем его
-                    cursor.execute(
-                        f"ALTER TABLE {cls._meta.db_table} DROP CONSTRAINT {constraint_name};"
-                    )
-                    return True
-                else:
-                    # Ограничение не существует
-                    return False
-        except Exception as e:
-            # Обработка ошибок
-            print(f"Error: {e}")
-            return False
-
-    @classmethod
-    def enable_constraint(cls):
-        """
-        Метод для включения ограничения базы данных.
-
-        Args:
-            constraint_name (str): Название ограничения для включения.
-
-        Returns:
-            bool: True, если ограничение успешно включено, иначе False.
-        """
-
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    'ALTER TABLE courses_baselesson ADD CONSTRAINT unique_section_lesson_order UNIQUE (section_id, "order");'
-                )
-            return True
-        except Exception as e:
-            return False
+            super().save(*args, **kwargs)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["section", "order"], name="unique_section_lesson_order"
-            ),
+        indexes = [
+            models.Index(fields=["section"]),
+            models.Index(fields=["name"]),
+        ]
+
+
+class BlockType(models.TextChoices):
+    VIDEO = "video", "video"
+    PICTURE = "picture", "picture"
+    DESCRIPTION = "description", "description"
+    CODE = "code", "code"
+    FORMULA = "formula", "formula"
+    BUTTONS = "buttons", "buttons"
+
+
+class BaseLessonBlock(OrderMixin, models.Model):
+    """Блоки урока"""
+
+    base_lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, related_name="blocks"
+    )
+    video = models.FileField(
+        verbose_name="Видео",
+        help_text="Видеофайл размером до 2 ГБ",
+        max_length=300,
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    video_screenshot = models.TextField(
+        verbose_name="Превью видео", help_text="Превью видео", blank=True, null=True
+    )
+    url = models.URLField(
+        verbose_name="URL видео",
+        help_text="Ссылка на видео из YouTube",
+        blank=True,
+        null=True,
+    )
+    description = RichTextField(
+        verbose_name="Описание",
+        help_text="Описание к уроку",
+        blank=True,
+        null=True,
+    )
+    code = RichTextField(
+        verbose_name="Код",
+        help_text="Примеры кода к уроку",
+        blank=True,
+        null=True,
+    )
+    language = models.CharField(
+        max_length=200,
+        verbose_name="Язык программирования",
+        help_text="Язык программирования",
+        blank=True,
+        null=True,
+    )
+    picture = models.ImageField(
+        verbose_name="Картинка",
+        help_text="Картинка к уроку",
+        upload_to=TruncateFileName(300),
+        blank=True,
+        null=True,
+    )
+    formula = models.CharField(
+        max_length=500,
+        verbose_name="Формула",
+        help_text="Формула",
+        blank=True,
+        null=True,
+    )
+    type = models.CharField(
+        max_length=15,
+        choices=BlockType.choices,
+        default=BlockType.DESCRIPTION,
+        verbose_name="Тип блока",
+        help_text="Тип блока",
+    )
+
+    class Meta:
+        verbose_name = "Блок урока"
+        verbose_name_plural = "Блоки уроков"
+        indexes = [
+            models.Index(fields=["base_lesson"]),
+            models.Index(fields=["description"]),
+            models.Index(fields=["code"]),
+        ]
+
+
+class BlockButton(models.Model):
+    """Кнопки со ссылками блока урока"""
+
+    block = models.ForeignKey(
+        BaseLessonBlock, on_delete=models.CASCADE, related_name="buttons"
+    )
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Текст кнопки",
+        help_text="Текст кнопки",
+    )
+    link = models.URLField(
+        max_length=500,
+        verbose_name="Ссылка",
+        help_text="Ссылка для перехода по кнопке",
+        blank=True,
+        null=True,
+    )
+    color = models.CharField(
+        max_length=50,
+        verbose_name="Цвет кнопки",
+        help_text="Цвет кнопки",
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = "Кнопка блока урока"
+        verbose_name_plural = "Кнопки блока урока"
+
+
+class LessonAvailability(models.Model):
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="lesson_availability",
+        verbose_name="Студент",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
+    available = models.BooleanField(default=False, verbose_name="Доступен")
+    visible_timer = models.BooleanField(
+        default=False,
+        verbose_name="Видимый таймер",
+        help_text="Показывать ли таймер доступа к уроку"
+    )
+    access_time = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Время доступа",
+        help_text="Время доступа к уроку в часах"
+    )
+
+    class Meta:
+        verbose_name = "Доступность урока для студента"
+        verbose_name_plural = "Доступность уроков для студентов"
+        indexes = [
+            models.Index(fields=["student"]),
+            models.Index(fields=["lesson"]),
+            models.Index(fields=["available"]),
+            models.Index(fields=["visible_timer"]),
+        ]
+
+
+class LessonEnrollment(models.Model):
+    student_group = models.ForeignKey(
+        StudentsGroup,
+        on_delete=models.CASCADE,
+        related_name="lesson_enrollment",
+        verbose_name="Группа студента",
+    )
+    lesson = models.ForeignKey(
+        BaseLesson, on_delete=models.CASCADE, verbose_name="Урок/ДЗ/Тест"
+    )
+
+    class Meta:
+        verbose_name = "Доступность урока для группы"
+        verbose_name_plural = "Доступность урока для группы"
+        indexes = [
+            models.Index(fields=["student_group"]),
+            models.Index(fields=["lesson"]),
         ]

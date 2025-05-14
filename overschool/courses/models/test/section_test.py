@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from model_clone import CloneMixin
 
@@ -46,12 +47,31 @@ class SectionTest(BaseLesson, CloneMixin):
     points_per_answer = models.PositiveIntegerField(
         default=1, verbose_name="Бал за каждый правильный ответ"
     )
+    has_timer = models.BooleanField(
+        default=False,
+        verbose_name="Использовать таймер",
+        help_text="Определяет, есть ли у теста ограничение по времени",
+    )
+    time_limit = models.DurationField(
+        null=True,
+        blank=True,
+        verbose_name="Лимит времени",
+        help_text="Продолжительность таймера для теста (например, 10 минут)",
+    )
     _clone_m2o_or_o2m_fields = ["questions"]
 
     class Meta:
         verbose_name = "Тест"
         verbose_name_plural = "Тесты"
         default_related_name = "tests"
+
+    def clean(self):
+        # Проверка, чтобы time_limit не был пустым, если has_timer=True
+        if self.has_timer and not self.time_limit:
+            raise ValidationError(
+                "Для теста с таймером необходимо указать лимит времени."
+            )
+        super().clean()
 
 
 class RandomTestTests(models.Model):

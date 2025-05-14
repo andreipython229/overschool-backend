@@ -1,26 +1,222 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Lesson, Section, StudentsGroup
+from courses.models import (
+    BaseLesson,
+    Course,
+    CourseCopy,
+    Lesson,
+    LessonAvailability,
+    LessonEnrollment,
+    Section,
+    StudentsGroup,
+)
 from courses.serializers import (
+    LessonAvailabilitySerializer,
     LessonDetailSerializer,
+    LessonEnrollmentSerializer,
     LessonSerializer,
     LessonUpdateSerializer,
 )
 from courses.services import LessonProgressMixin
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
+from django.db import DatabaseError, transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from schools.models import School
 from schools.school_mixin import SchoolMixin
+
+User = get_user_model()
 
 s3 = UploadToS3()
 
 
+class LessonAvailabilityViewSet(WithHeadersViewSet, SchoolMixin, APIView):
+    queryset = LessonAvailability.objects.all()
+    serializer_class = LessonAvailabilitySerializer
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        student_ids = request.data.get("student_ids")
+        lesson_data = request.data.get("lesson_data")
+
+        if student_ids is None or lesson_data is None:
+            return Response(
+                {"error": "Недостаточно данных для выполнения запроса."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            for student_id in student_ids:
+                for lesson_info in lesson_data:
+                    lesson_id = lesson_info.get("lesson_id")
+                    available = lesson_info.get("available")
+                    visible_timer = lesson_info.get("visible_timer", False)
+                    access_time = lesson_info.get("access_time")
+
+                    if lesson_id is not None and available is not None:
+                        # Удаляем ВСЕ дублирующие записи
+                        LessonAvailability.objects.filter(
+                            student_id=student_id, lesson_id=lesson_id
+                        ).delete()
+
+                        # Создаём новую запись
+                        LessonAvailability.objects.create(
+                            student_id=student_id,
+                            lesson_id=lesson_id,
+                            available=available,
+                            visible_timer=visible_timer,
+                            access_time=access_time if visible_timer else None,
+                        )
+
+        return Response(
+            {"success": "Доступность уроков обновлена."}, status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=["POST"])
+    def reset_to_group(self, request, *args, **kwargs):
+        group_id = request.data.get("group_id")
+        student_id = request.data.get("student_id")
+        if not group_id or not student_id:
+            return Response(
+                {"error": "group_id и student_id обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        student_group = StudentsGroup.objects.filter(pk=group_id).first()
+
+        if not student_group.students.filter(pk=student_id).exists():
+            return Response(
+                {"error": "Указанный студент не учится в указанной группе"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lessons = BaseLesson.objects.filter(section__course=student_group.course_id)
+        for lesson in lessons:
+            available = lesson.is_available_for_group(student_group)
+            existing_restriction = LessonAvailability.objects.filter(
+                student_id=student_id, lesson=lesson, available=False
+            )
+            if available and existing_restriction.exists():
+                existing_restriction.delete()
+            elif not available:
+                LessonAvailability.objects.update_or_create(
+                    student_id=student_id,
+                    lesson=lesson,
+                    defaults={
+                        "available": available,
+                        "visible_timer": False,
+                        "access_time": None
+                    },
+                )
+
+        return Response(
+            {"success": "Доступы студента к урокам обновлены до групповых."},
+            status=status.HTTP_200_OK,
+        )
+
+    def list(self, request, *args, **kwargs):
+        student_id = self.kwargs.get("student_id")
+        lesson_availabilities = LessonAvailability.objects.filter(
+            student_id=student_id, available=False
+        )
+
+        lessons_data = []
+        for lesson_availability in lesson_availabilities:
+            lessons_data.append(
+                {
+                    "lesson_id": lesson_availability.lesson.id,
+                    "available": lesson_availability.available,
+                    "visible_timer": lesson_availability.visible_timer,
+                    "access_time": lesson_availability.access_time,
+                }
+            )
+
+        return Response(lessons_data)
+
+
+class LessonEnrollmentViewSet(WithHeadersViewSet, SchoolMixin, APIView):
+    queryset = LessonEnrollment.objects.all()
+    serializer_class = LessonEnrollmentSerializer
+
+    def get_permissions(self, *args, **kwargs):
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        permissions = super().get_permissions()
+        user = self.request.user
+        if user.is_anonymous:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+        if user.groups.filter(group__name="Admin", school=school_id).exists():
+            return permissions
+        else:
+            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        student_group_id = request.data.get("student_group_id")
+        lesson_data = request.data.get("lesson_data")
+
+        if student_group_id is None or not lesson_data:
+            return Response(
+                {"error": "Недостаточно данных для выполнения запроса."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            for lesson_info in lesson_data:
+                lesson_id = lesson_info.get("lesson_id")
+                available = lesson_info.get("available")
+
+                if lesson_id is not None and available is not None:
+                    if available:
+                        LessonEnrollment.objects.filter(
+                            student_group_id=student_group_id, lesson_id=lesson_id
+                        ).delete()
+                    else:
+                        LessonEnrollment.objects.update_or_create(
+                            student_group_id=student_group_id, lesson_id=lesson_id
+                        )
+
+        return Response(
+            {"success": "Доступность уроков для группы студентов обновлена."},
+            status=status.HTTP_200_OK,
+        )
+
+    def list(self, request, *args, **kwargs):
+        student_group_id = request.data.get("student_group_id")
+
+        if student_group_id is None:
+            return Response(
+                {"error": "Недостаточно данных для выполнения запроса."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        lesson_enrollments = LessonEnrollment.objects.filter(
+            student_group_id=student_group_id
+        )
+        serializer = LessonEnrollmentSerializer(lesson_enrollments, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class LessonViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     LessonProgressMixin,
     SchoolMixin,
@@ -64,9 +260,36 @@ class LessonViewSet(
             return (
                 Lesson.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
+
+        try:
+            school_id = School.objects.get(name=school_name).school_id
+        except School.DoesNotExist:
+            return Response(
+                {"error": "School not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        course_id = self.request.GET.get("courseId")
+
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    original_course_id = CourseCopy.objects.get(
+                        course_copy_id=course.course_id
+                    )
+                    original_course = Course.objects.get(
+                        course_id=original_course_id.course_id
+                    )
+                    return Lesson.objects.filter(section__course=original_course)
+                else:
+                    return Lesson.objects.filter(section__course=course)
+            except Course.DoesNotExist:
+                return Response(
+                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                )
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Lesson.objects.filter(section__course__school__name=school_name)
@@ -79,7 +302,7 @@ class LessonViewSet(
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
+                course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
             return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
 
@@ -99,20 +322,12 @@ class LessonViewSet(
 
         serializer = LessonSerializer(data={**request.data})
         serializer.is_valid(raise_exception=True)
-        lesson = serializer.save(video=None)
-
-        if request.FILES.get("video"):
-            base_lesson = BaseLesson.objects.get(lessons=lesson)
-            video = s3.upload_large_file(request.FILES["video"], base_lesson)
-            lesson.video = video
-            lesson.save()
-            serializer = LessonDetailSerializer(lesson)
+        serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
-
         section = self.request.data.get("section")
 
         if section is not None:
@@ -123,7 +338,6 @@ class LessonViewSet(
                 raise NotFound(
                     "Указанная секция не относится не к одному курсу этой школы."
                 )
-        video_use = self.request.data.get("video_use")
         instance = self.get_object()
         serializer = LessonSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -131,20 +345,6 @@ class LessonViewSet(
         if not request.data.get("active"):
             serializer.validated_data["active"] = instance.active
 
-        video = request.FILES.get("video")
-        if video:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            base_lesson = BaseLesson.objects.get(lessons=instance)
-            serializer.validated_data["video"] = s3.upload_large_file(
-                request.FILES["video"], base_lesson
-            )
-        elif not video and video_use:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            instance.video = None
-        elif not video and not video_use:
-            serializer.validated_data["video"] = instance.video
         instance.save()
         self.perform_update(serializer)
 
@@ -161,9 +361,29 @@ class LessonViewSet(
                 + list(instance.audio_files.values("file")),
             )
         )
-
-        if instance.video:
-            s3.delete_file(str(instance.video))
+        blocks_video_to_delete = list(
+            map(
+                lambda el: str(el["video"]),
+                list(
+                    filter(
+                        lambda el: el["video"] != "", instance.blocks.values("video")
+                    )
+                ),
+            )
+        )
+        blocks_picture_to_delete = list(
+            map(
+                lambda el: str(el["picture"]),
+                list(
+                    filter(
+                        lambda el: el["picture"] != "",
+                        instance.blocks.values("picture"),
+                    )
+                ),
+            )
+        )
+        files_to_delete += blocks_video_to_delete
+        files_to_delete += blocks_picture_to_delete
 
         remove_resp = None
         objects_to_delete = [{"Key": key} for key in files_to_delete]
@@ -181,35 +401,75 @@ class LessonViewSet(
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class LessonUpdateViewSet(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
+class LessonUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
     serializer_class = None
 
-    @swagger_auto_schema(method="post", request_body=LessonUpdateSerializer)
+    @swagger_auto_schema(
+        method="post",
+        request_body=LessonUpdateSerializer(many=True),
+        responses={
+            200: "Уроки успешно обновлены",
+            400: "Ошибка валидации данных или урок не найден",
+            500: "Внутренняя ошибка сервера",
+        },
+        operation_summary="Массовое обновление порядка уроков",
+        operation_description="Принимает список объектов с id урока и новым порядковым номером 'order'.",
+    )
     @action(detail=False, methods=["POST"])
     def shuffle_lessons(self, request, *args, **kwargs):
+        serializer = LessonUpdateSerializer(data=request.data, many=True)
 
-        data = request.data
-
-        # сериализатор с полученными данными
-        serializer = LessonUpdateSerializer(data=data, many=True)
-
-        if serializer.is_valid():
-            BaseLesson.disable_constraint("unique_section_lesson_order")
-            for lesson_data in serializer.validated_data:
-                baselesson_ptr_id = lesson_data["baselesson_ptr_id"]
-                new_order = lesson_data["order"]
-
-                # Обновите порядок урока в базе данных
-                try:
-                    lesson = BaseLesson.objects.get(id=baselesson_ptr_id)
-                    lesson.order = new_order
-                    lesson.save()
-                except Exception as e:
-                    BaseLesson.enable_constraint()
-                    return Response(str(e), status=500)
-
-            BaseLesson.enable_constraint()
-            return Response("Уроки успешно обновлены", status=status.HTTP_200_OK)
-
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        lesson_update_map = {
+            item["baselesson_ptr_id"]: item["order"] for item in validated_data
+        }
+        lesson_ids = list(lesson_update_map.keys())
+
+        # 1. Начинаем транзакцию
+        try:
+            with transaction.atomic():
+                # 2. Получаем все нужные уроки одним запросом
+
+                lessons = BaseLesson.objects.select_for_update().filter(
+                    id__in=lesson_ids
+                )
+
+                lessons_to_update = []
+                found_ids = set()
+
+                for lesson in lessons:
+                    found_ids.add(lesson.id)
+                    new_order = lesson_update_map.get(lesson.id)
+
+                    if new_order is not None and lesson.order != new_order:
+                        lesson.order = new_order
+                        lessons_to_update.append(lesson)
+
+                # 3. Проверяем, все ли запрошенные ID были найдены
+                missing_ids = set(lesson_ids) - found_ids
+                if missing_ids:
+
+                    return Response(
+                        {"detail": f"Уроки с ID {list(missing_ids)} не найдены."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # 4. Выполняем массовое обновление, если есть что обновлять
+                if lessons_to_update:
+                    BaseLesson.objects.bulk_update(lessons_to_update, ["order"])
+
+            # 5. Возвращаем успешный ответ после коммита транзакции
+            return Response(
+                f"{len(lessons_to_update)} уроков успешно обновлены",
+                status=status.HTTP_200_OK,
+            )
+
+        except DatabaseError as e:
+
+            return Response(
+                "Ошибка базы данных при обновлении уроков.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -5,6 +5,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.decorators import action
@@ -29,7 +30,7 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
 
     def post(self, request):
         email = request.data.get("email")
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email__iexact=email).exists():
             return HttpResponse("User already exists")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -40,10 +41,7 @@ class SignupView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
 
 
 def generate_random_password(length=10):
-    # Создаем строку, содержащую цифры и буквы в верхнем и нижнем регистре
     characters = string.ascii_letters + string.digits
-
-    # Генерируем пароль с указанной длиной
     password = "".join(random.choice(characters) for _ in range(length))
 
     return password
@@ -51,6 +49,9 @@ def generate_random_password(length=10):
 
 class SendPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    patronymic = serializers.CharField(required=False)
 
 
 class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
@@ -67,30 +68,41 @@ class SendPasswordView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
 
     def post(self, request):
-        email = request.data.get("email")
-        if User.objects.filter(email=email).exists():
-            return HttpResponse("User already exists")
-        # Генерируем пароль
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data.get("email")
+        first_name = serializer.validated_data.get("first_name")
+        last_name = serializer.validated_data.get("last_name")
+        patronymic = serializer.validated_data.get("patronymic")
+
+        existing_user = User.objects.filter(email__iexact=email).first()
+        if existing_user:
+            return Response({"user_id": existing_user.id}, status=status.HTTP_200_OK)
+
         password = generate_random_password()
 
-        # Создаем пользователя и устанавливаем ему пароль
-        user = User(email=email)
-        user.password = make_password(password)
-        user.save()
-
-        # Отправляем пароль на почту
-        subject = "Your New Password"
-        message = f"Your new password is: {password}"
-
-        send = sender_service.send_code_by_email(
-            email=email, subject=subject, message=message
+        user = User.objects.create(
+            email=email.lower().strip(),
+            first_name=first_name,
+            last_name=last_name,
+            patronymic=patronymic,
+            password=make_password(password),
         )
-        if send and send["status_code"] == 500:
-            return Response(send["error"], status=send["status_code"])
 
-        return Response(
-            {"message": "Password sent successfully"}, status=status.HTTP_200_OK
+        # Отправка пароля на почту
+        domain = self.request.META.get("HTTP_X_ORIGIN")
+        url = f"{domain}/login/"
+        subject = "Новый пароль"
+        html_message = render_to_string(
+            "new_user_notification.html", {"password": password, "url": url}
         )
+
+        sender_service.send_code_by_email(
+            email=email, subject=subject, message=html_message
+        )
+
+        return Response({"user_id": user.id}, status=status.HTTP_200_OK)
 
 
 class PasswordChangeView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):

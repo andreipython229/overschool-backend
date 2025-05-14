@@ -1,16 +1,16 @@
+import base64
+import io
+import os
+from tempfile import NamedTemporaryFile
+
+import cv2
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
-from courses.models import BaseLesson, Homework, Lesson, Section, StudentsGroup
-from courses.serializers import (
-    HomeworkDetailSerializer,
-    HomeworkSerializer,
-    LessonDetailSerializer,
-    LessonSerializer,
-)
-from courses.services import LessonProgressMixin
+from courses.models.common.base_lesson import BaseLesson, BaseLessonBlock
+from courses.serializers import BlockDetailSerializer, BlockUpdateSerializer
 from django.core.exceptions import PermissionDenied
+from PIL import Image
 from rest_framework import permissions, status, viewsets
-from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from schools.models import School
 from schools.school_mixin import SchoolMixin
@@ -18,111 +18,12 @@ from schools.school_mixin import SchoolMixin
 s3 = UploadToS3()
 
 
-class HomeworkVideoViewSet(
-    LoggingMixin,
+class UploadVideoViewSet(
     WithHeadersViewSet,
-    LessonProgressMixin,
     SchoolMixin,
     viewsets.ModelViewSet,
 ):
-    serializer_class = HomeworkSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["patch"]
-
-    def get_permissions(self, *args, **kwargs):
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
-
-        permissions = super().get_permissions()
-        user = self.request.user
-        if user.is_anonymous:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return permissions
-        else:
-            raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
-
-    def get_queryset(self, *args, **kwargs):
-        if getattr(self, "swagger_fake_view", False):
-            return (
-                Homework.objects.none()
-            )  # Возвращаем пустой queryset при генерации схемы
-        school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
-        user = self.request.user
-
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            students_group = user.students_group_fk.all().values_list(
-                "course_id", flat=True
-            )
-            return Homework.objects.filter(
-                section__course__school__name=school_name,
-                section__course__in=students_group,
-            )
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            teacher_group = user.teacher_group_fk.all().values_list(
-                "course_id", flat=True
-            )
-            return Homework.objects.filter(
-                section__course__school__name=school_name,
-                section__course__in=teacher_group,
-            )
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Homework.objects.filter(section__course__school__name=school_name)
-        return Homework.objects.none()
-
-    def update(self, request, *args, **kwargs):
-        school_name = self.kwargs.get("school_name")
-        section = self.request.data.get("section")
-        if section is not None:
-            sections = Section.objects.filter(course__school__name=school_name)
-            try:
-                sections.get(pk=section)
-            except sections.model.DoesNotExist:
-                raise NotFound(
-                    "Указанная секция не относится не к одному курсу этой школы."
-                )
-        video_use = self.request.data.get("video_use")
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.context["request"] = request
-        serializer.is_valid(raise_exception=True)
-
-        video = request.FILES.get("video")
-        if video:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            base_lesson = BaseLesson.objects.get(homeworks=instance)
-            serializer.validated_data["video"] = s3.upload_large_file(
-                request.FILES["video"], base_lesson
-            )
-        elif not video and video_use:
-            if instance.video:
-                s3.delete_file(str(instance.video))
-            instance.video = None
-        elif not video and not video_use:
-            serializer.validated_data["video"] = instance.video
-        instance.save()
-        self.perform_update(serializer)
-
-        serializer = HomeworkDetailSerializer(instance, context={"request": request})
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class LessonVideoViewSet(
-    LoggingMixin,
-    WithHeadersViewSet,
-    LessonProgressMixin,
-    SchoolMixin,
-    viewsets.ModelViewSet,
-):
-    serializer_class = LessonSerializer
+    serializer_class = BlockUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["patch"]
 
@@ -142,67 +43,96 @@ class LessonVideoViewSet(
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return (
-                Lesson.objects.none()
+                BaseLessonBlock.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Lesson.objects.filter(section__course__school__name=school_name)
+            return BaseLessonBlock.objects.filter(
+                base_lesson__section__course__school__name=school_name
+            )
 
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
-                course_id__school__name=school_name, students=user
-            ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
-
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
-            ).values_list("course_id", flat=True)
-            return Lesson.objects.filter(active=True, section__course_id__in=course_ids)
-
-        return Lesson.objects.none()
+        return BaseLessonBlock.objects.none()
 
     def update(self, request, *args, **kwargs):
-        school_name = self.kwargs.get("school_name")
 
-        section = self.request.data.get("section")
-
-        if section is not None:
-            sections = Section.objects.filter(course__school__name=school_name)
-            try:
-                sections.get(pk=section)
-            except sections.model.DoesNotExist:
-                raise NotFound(
-                    "Указанная секция не относится не к одному курсу этой школы."
-                )
-        video_use = self.request.data.get("video_use")
+        file_use = self.request.data.get("file_use")
         instance = self.get_object()
-        serializer = LessonSerializer(instance, data=request.data)
+        serializer = BlockUpdateSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if not request.data.get("active"):
-            serializer.validated_data["active"] = instance.active
-
         video = request.FILES.get("video")
+        picture = request.FILES.get("picture")
         if video:
+            # Читаем содержимое файла один раз
+            video_content = request.FILES["video"].read()
+            # Возвращаем указатель в начало файла
+            request.FILES["video"].seek(0)
+
+            # Удаляем старое видео если есть
             if instance.video:
                 s3.delete_file(str(instance.video))
-            base_lesson = BaseLesson.objects.get(lessons=instance)
+
+            base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+
+            # Загружаем оригинальный файл в S3
             serializer.validated_data["video"] = s3.upload_large_file(
                 request.FILES["video"], base_lesson
             )
-        elif not video and video_use:
+
+            try:
+                with NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
+                    temp_file.write(video_content)
+                    temp_file_path = temp_file.name
+
+                video_capture = cv2.VideoCapture(temp_file_path)
+                if video_capture.isOpened():
+                    fps = video_capture.get(cv2.CAP_PROP_FPS)
+                    video_capture.set(cv2.CAP_PROP_POS_FRAMES, fps * 1)
+                    ret, frame = video_capture.read()
+
+                    if ret:
+                        screenshot_image = Image.fromarray(
+                            cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        )
+                        buffered = io.BytesIO()
+                        screenshot_image.save(buffered, format="JPEG", quality=85)
+                        encoded_screenshot = base64.b64encode(
+                            buffered.getvalue()
+                        ).decode("utf-8")
+                        serializer.validated_data[
+                            "video_screenshot"
+                        ] = encoded_screenshot
+
+            finally:
+                if "video_capture" in locals() and video_capture.isOpened():
+                    video_capture.release()
+                if temp_file_path and os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
+        if picture:
+            if instance.picture:
+                s3.delete_file(str(instance.picture))
+            base_lesson = BaseLesson.objects.get(pk=instance.base_lesson.id)
+            serializer.validated_data["picture"] = s3.upload_large_file(
+                request.FILES["picture"], base_lesson
+            )
+        elif not video and file_use:
             if instance.video:
                 s3.delete_file(str(instance.video))
             instance.video = None
-        elif not video and not video_use:
+        elif not picture and file_use:
+            if instance.picture:
+                s3.delete_file(str(instance.picture))
+            instance.video = None
+        elif not video and not file_use:
             serializer.validated_data["video"] = instance.video
+        elif not picture and not file_use:
+            serializer.validated_data["picture"] = instance.picture
         instance.save()
         self.perform_update(serializer)
 
-        serializer = LessonDetailSerializer(instance)
+        serializer = BlockDetailSerializer(instance)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

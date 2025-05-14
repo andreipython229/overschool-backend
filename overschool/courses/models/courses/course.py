@@ -1,10 +1,38 @@
 from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from common_services.services import TruncateFileName, limit_size
+from common_services.services import TruncateFileName, limit_image_size
+from django.contrib.postgres.search import SearchVectorField
+from django.core.exceptions import ValidationError
 from django.db import models
 from model_clone import CloneMixin
 from oauthlib.common import urldecode
+from phonenumber_field.modelfields import PhoneNumberField
+from phonenumbers import is_possible_number, is_valid_number, parse
 from schools.models import School
+
+
+class Folder(models.Model):
+    name = models.CharField(
+        max_length=256, verbose_name="Название папка", help_text="Название папки"
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="folder_school",
+        verbose_name="ID школы",
+        help_text="ID школы",
+    )
+
+    def __str__(self):
+        return f"{self.name} - {self.school}"
+
+    class Meta:
+        verbose_name = "Папка"
+        verbose_name_plural = "Папки"
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["name"]),
+        ]
 
 
 class Public(models.TextChoices):
@@ -36,6 +64,15 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         verbose_name="ID школы",
         help_text="ID школы",
     )
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="course_folder",
+        verbose_name="ID папки",
+        help_text="ID папки",
+    )
     public = models.CharField(
         max_length=256,
         choices=Public.choices,
@@ -44,6 +81,26 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         help_text="Формат публикации курса, отображает статус (Опубликован, Не опубликован, Скрыт настройками курса)",
         blank=True,
         null=True,
+    )
+    is_catalog = models.BooleanField(
+        verbose_name="Видимость в каталоге курсов",
+        help_text="Видимость в каталоге курсов",
+        default=False,
+    )
+    is_direct = models.BooleanField(
+        verbose_name="Доступ по прямой ссылке",
+        help_text="Позволяет получить доступ к курсу по прямой ссылке",
+        default=False,
+    )
+    is_copy = models.BooleanField(
+        verbose_name="Копия ли данный курс уже существующего",
+        help_text="Копия ли данный курс уже существующего",
+        default=False,
+    )
+    is_access = models.BooleanField(
+        verbose_name="Есть ли доступ к копии курса",
+        help_text="Есть ли доступ к копии курса",
+        default=True,
     )
     name = models.CharField(
         max_length=256,
@@ -61,7 +118,6 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         blank=True,
         null=True,
     )
-
     duration_days = models.PositiveIntegerField(
         verbose_name="Продолжительность курса",
         help_text="Продолжительность курса в днях",
@@ -85,12 +141,19 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
     photo = models.ImageField(
         verbose_name="Фотография",
         help_text="Главная фотография",
-        validators=[limit_size],
+        validators=[limit_image_size],
         max_length=300,
         upload_to=TruncateFileName(300),
         blank=True,
         null=True,
     )
+    course_removed = models.DateTimeField(
+        verbose_name="Дата и время помещения курса в корзину",
+        help_text="Дата и время помещения курса в корзину",
+        null=True,
+        blank=True,
+    )
+    search_vector = SearchVectorField(null=True, editable=False)
     _clone_m2o_or_o2m_fields = ["sections"]
 
     def photo_url(self):
@@ -103,10 +166,80 @@ class Course(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model):
         return str(self.course_id) + " " + str(self.name)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["search_vector"]),
+            models.Index(fields=["school"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["is_catalog"]),
+            models.Index(fields=["public"]),
+            models.Index(fields=["folder"]),
+        ]
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
         constraints = [
             models.UniqueConstraint(
                 fields=["school", "order"], name="unique_school_course_order"
             ),
+        ]
+
+
+class CourseAppeals(TimeStampMixin, models.Model):
+    """Модель заявки на курс"""
+
+    id = models.AutoField(
+        primary_key=True,
+        editable=False,
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        verbose_name="ID курса",
+        help_text="ID курса",
+    )
+    name = models.CharField(
+        max_length=256,
+        verbose_name="Имя",
+        help_text="Имя",
+    )
+    email = models.EmailField(
+        verbose_name="E-mail пользователя",
+        help_text="E-mail пользователя",
+    )
+    phone = PhoneNumberField(
+        verbose_name="Телефон пользователя",
+        help_text="Телефон пользователя",
+    )
+    message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Сообщение",
+        help_text="Сообщение",
+    )
+    is_read = models.BooleanField(
+        default=False,
+        verbose_name="Прочитано",
+        help_text="Прочитано",
+    )
+
+    def __str__(self):
+        return str(self.name) + " " + str(self.email) + " " + str(self.phone)
+
+    def save(self, *args, **kwargs):
+        # Получаем номер телефона из self.phone
+        phone_number = parse(str(self.phone), None)
+
+        # Проверяем, является ли номер действительным
+        if is_valid_number(phone_number) and is_possible_number(phone_number):
+            self.phone = phone_number
+            super().save(*args, **kwargs)
+        else:
+            raise ValidationError("Неверный формат номера телефона!")
+
+    class Meta:
+        verbose_name = "Заявка на курс"
+        verbose_name_plural = "Заявки на курс"
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["is_read"]),
         ]

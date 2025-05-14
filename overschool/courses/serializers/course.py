@@ -1,10 +1,20 @@
 from common_services.selectel_client import UploadToS3
-from courses.models import Course
+from courses.models import Course, Folder
 from rest_framework import serializers
 
 from .students_group import GroupsInCourseSerializer
 
 s3 = UploadToS3()
+
+
+class FolderSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели папки курса
+    """
+
+    class Meta:
+        model = Folder
+        fields = ["id", "name"]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -17,6 +27,9 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = [
             "course_id",
             "public",
+            "is_catalog",
+            "folder",
+            "is_direct",
             "name",
             "format",
             "duration_days",
@@ -26,8 +39,11 @@ class CourseSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "is_copy",
+            "is_access",
+            "course_removed",
         ]
-        read_only_fields = ["order"]
+        read_only_fields = ["order", "school"]
 
 
 class CourseGetSerializer(serializers.ModelSerializer):
@@ -36,11 +52,24 @@ class CourseGetSerializer(serializers.ModelSerializer):
     """
 
     photo = serializers.SerializerMethodField()
+    folder = serializers.SerializerMethodField()
+    baselessons_count = serializers.IntegerField(required=False)
+    homework_count = serializers.IntegerField(required=False)
+    test_count = serializers.IntegerField(required=False)
+    video_count = serializers.IntegerField(required=False)
+    students_count = serializers.IntegerField(required=False)
+    # Поля для информации ученикам о продолжительности их обучения
+    limit = serializers.IntegerField(required=False)
+    remaining_period = serializers.IntegerField(required=False)
+    certificate = serializers.BooleanField(required=False)
 
     class Meta:
         model = Course
         fields = [
             "course_id",
+            "is_catalog",
+            "folder",
+            "is_direct",
             "public",
             "name",
             "format",
@@ -51,7 +80,21 @@ class CourseGetSerializer(serializers.ModelSerializer):
             "order",
             "photo_url",
             "school",
+            "baselessons_count",
+            "homework_count",
+            "test_count",
+            "video_count",
+            "students_count",
+            "limit",
+            "remaining_period",
+            "certificate",
+            "is_copy",
+            "is_access",
+            "course_removed",
         ]
+
+    def get_folder(self, obj):
+        return FolderSerializer(obj.folder).data if obj.folder else None
 
     def get_photo(self, obj):
         if obj.photo:
@@ -79,12 +122,18 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
     """
 
     group_course_fk = GroupsInCourseSerializer(many=True)
+    folder = FolderSerializer()
 
     class Meta:
         model = Course
         fields = [
             "course_id",
             "public",
+            "is_catalog",
+            "is_copy",
+            "is_access",
+            "folder",
+            "is_direct",
             "name",
             "format",
             "duration_days",
@@ -95,6 +144,7 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
             "photo_url",
             "school",
             "group_course_fk",
+            "course_removed",
         ]
         read_only_fields = ["order"]
 
@@ -103,3 +153,12 @@ class CourseWithGroupsSerializer(serializers.ModelSerializer):
         representation["student_groups"] = representation["group_course_fk"]
         del representation["group_course_fk"]
         return representation
+
+
+class CourseCopySerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели хранения копий для оригинального курса
+    """
+
+    class Meta:
+        fields = "__all__"

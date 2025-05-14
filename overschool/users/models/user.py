@@ -33,8 +33,15 @@ class User(AbstractBaseUser):
         null=True,
         blank=True,
     )
-    patronymic = models.CharField(verbose_name="Отчество", max_length=150, default="")
-    email = models.EmailField(verbose_name="Почта", help_text="Почта", unique=True)
+    patronymic = models.CharField(
+        verbose_name="Отчество",
+        max_length=150,
+        null=True,
+        blank=True,
+    )
+    email = models.EmailField(
+        verbose_name="Почта", help_text="Почта", unique=True, null=False, blank=True
+    )
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
@@ -43,6 +50,12 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)
     date_joined = models.DateTimeField(
         verbose_name="Дата регистрации", default=timezone.now
+    )
+    last_login = models.DateTimeField(
+        auto_now=True, verbose_name="Последняя активность", null=True, blank=True
+    )
+    shown_welcome_message = models.BooleanField(
+        verbose_name="Приветственное сообщение OVER AI", default=False
     )
 
     USERNAME_FIELD = "username"
@@ -65,3 +78,13 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
+        indexes = [
+            models.Index(fields=["username"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["phone_number"]),
+            models.Index(fields=["last_login"]),
+            models.Index(fields=["date_joined"]),
+            models.Index(fields=["first_name"]),
+            models.Index(fields=["last_name"]),
+            models.Index(fields=["patronymic"]),
+        ]

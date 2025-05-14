@@ -1,5 +1,13 @@
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
-from django.db.models import OuterRef, Subquery
+from django.db.models import (
+    BooleanField,
+    Case,
+    ExpressionWrapper,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from django.http import HttpResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -8,7 +16,7 @@ from schools.serializers import SchoolSerializer
 from users.models import UserGroup
 
 
-class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView):
+class UserSchoolsView(WithHeadersViewSet, generics.GenericAPIView):
     """Ендпоинт получения доступных школ\n
     <h2>/api/user-school/</h2>\n
     Ендпоинт получения названий школ, доступных
@@ -29,8 +37,28 @@ class UserSchoolsView(LoggingMixin, WithHeadersViewSet, generics.GenericAPIView)
             )
             user_schools = user_schools.annotate(
                 role=Subquery(user_group.values("group__name")[:1])
+            ).annotate(
+                is_owner=Case(
+                    When(owner=self.request.user, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                tariff_paid=Case(
+                    When(tariff=None, then=Value(False)),
+                    default=Value(True),
+                    output_field=BooleanField(),
+                ),
             )
-            data = user_schools.values("school_id", "name", "header_school", "role")
+            data = user_schools.values(
+                "school_id",
+                "name",
+                "header_school",
+                "role",
+                "is_owner",
+                "tariff_paid",
+                "contact_link",
+                "test_course",
+            )
             return Response(data)
         else:
             data = []

@@ -6,6 +6,7 @@ from common_services.selectel_client import UploadToS3
 from courses.models import (
     Answer,
     BaseLesson,
+    Course,
     Question,
     RandomTestTests,
     Section,
@@ -20,6 +21,7 @@ from courses.serializers import (
 )
 from courses.services import LessonProgressMixin
 from django.db.models import Prefetch
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -31,7 +33,6 @@ s3 = UploadToS3()
 
 
 class TestViewSet(
-    LoggingMixin,
     WithHeadersViewSet,
     LessonProgressMixin,
     SchoolMixin,
@@ -44,7 +45,6 @@ class TestViewSet(
 
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # parser_classes = (MultiPartParser,)
 
     def get_permissions(self, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -60,11 +60,16 @@ class TestViewSet(
             "list",
             "retrieve",
             "get_questions",
+            "start_test",
+            "check_timer",
         ]:
             # Разрешения для просмотра тестов (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists():
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -82,9 +87,33 @@ class TestViewSet(
             return (
                 SectionTest.objects.none()
             )  # Возвращаем пустой queryset при генерации схемы
+
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
+
+        try:
+            school_id = School.objects.get(name=school_name).school_id
+        except School.DoesNotExist:
+            return Response(
+                {"error": "School not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        course_id = self.request.GET.get("courseId")
+
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id)
+                if course.is_copy:
+                    original_course = Course.objects.get(
+                        name=course.name, is_copy=False
+                    )
+                    return SectionTest.objects.filter(section__course=original_course)
+                else:
+                    return SectionTest.objects.filter(section__course=course)
+            except Course.DoesNotExist:
+                return Response(
+                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                )
 
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return SectionTest.objects.filter(section__course__school__name=school_name)
@@ -97,11 +126,26 @@ class TestViewSet(
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
-                course_id_id__school__name=school_name, teacher_id=user.pk
+                course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
             return SectionTest.objects.filter(section__course_id__in=course_ids)
 
         return SectionTest.objects.none()
+
+    def retrieve(self, request, *args, **kwargs):
+        # Получаем тест
+        test = self.get_object()
+        user = request.user
+        # Проверяем, существует ли уже запись UserTest для данного пользователя и теста
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
+            return Response(
+                {
+                    "status": "Error",
+                    "message": "Этот тест уже пройден пользователем",
+                },
+            )
+        serializer = self.get_serializer(test)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         school_name = self.kwargs.get("school_name")
@@ -166,9 +210,117 @@ class TestViewSet(
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=["post"], url_path="start-test")
+    def start_test(self, request, *args, **kwargs):
+        """
+        Запускает тест для студента.
+        """
+        test = self.get_object()
+        user = request.user
+        school_name = self.kwargs.get("school_name")
+        school_id = School.objects.get(name=school_name).school_id
+
+        # Проверяем, что пользователь является студентом
+        if not user.groups.filter(group__name="Student", school=school_id).exists():
+            return Response(
+                {"status": "Error", "message": "Только студенты могут начинать тест"},
+                status=403,
+            )
+
+        # Проверяем, если тест уже пройден
+        if UserTest.objects.filter(user=user, test=test, status=True).exists():
+            return Response(
+                {"status": "Error", "message": "Этот тест уже пройден пользователем"},
+                status=400,
+            )
+
+        user_test = UserTest.objects.filter(
+            user=user, test=test, success_percent=0
+        ).first()
+        if not user_test:
+            # Если записи нет, создаем новую
+            user_test = UserTest.objects.create(user=user, test=test, success_percent=0)
+        # Если тест с таймером, запускаем таймер
+        if test.has_timer:
+            user_test.start_test()
+
+        return Response(
+            {
+                "status": "Success",
+                "message": "Тест успешно начат",
+                "user_test_id": user_test.user_test_id,
+                "start_time": user_test.start_time,
+            }
+        )
+
+    @action(detail=True, methods=["get"], url_path="check-timer")
+    def check_timer(self, request, *args, **kwargs):
+        """
+        Проверяет, не истекло ли время прохождения теста.
+        """
+        user = request.user
+        test_id = kwargs.get("pk")
+
+        try:
+            # Получаем тест и последний `UserTest` для данного пользователя
+            test = SectionTest.objects.get(pk=test_id)
+            user_test = (
+                UserTest.objects.filter(user=user, test=test)
+                .order_by("-created_at")
+                .first()
+            )
+
+            # Проверяем, задан ли лимит времени для теста
+            if not test.time_limit:
+                return Response(
+                    {"status": "No Timer", "message": "Этот тест без таймера"},
+                    status=status.HTTP_200_OK,
+                )
+
+            # Проверяем, был ли таймер запущен
+            if not user_test or not user_test.start_time:
+                return Response(
+                    {
+                        "status": "Error",
+                        "message": "Таймер не был запущен или тест не начат",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Проверяем оставшееся время
+            elapsed_time = timezone.now() - user_test.start_time
+            if elapsed_time >= test.time_limit:
+                return Response(
+                    {
+                        "status": "Time Expired",
+                        "message": "Время прохождения теста истекло",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Вычисляем и возвращаем оставшееся время
+            remaining_time = test.time_limit - elapsed_time
+            return Response(
+                {
+                    "status": "Time Remaining",
+                    "remaining_time": remaining_time.total_seconds(),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except SectionTest.DoesNotExist:
+            return Response(
+                {"status": "Error", "message": "Тест не найден"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except UserTest.DoesNotExist:
+            return Response(
+                {"status": "Error", "message": "Не найдено начало теста"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     @action(detail=True, methods=["GET"])
     def get_questions(self, request, pk, *args, **kwargs):
-
         queryset = self.get_queryset()
         try:
             instance = queryset.get(test_id=pk)
@@ -224,10 +376,11 @@ class TestViewSet(
             "type": "test",
             "order": test_obj["order"],
             "name": test_obj["name"],
-            "description": test_obj["description"],
             "random_questions": test_obj["random_questions"],
             "random_answers": test_obj["random_answers"],
             "points": test_obj["points"],
+            "has_timer": test_obj["has_timer"],
+            "time_limit": test_obj["time_limit"],
             "show_right_answers": test_obj["show_right_answers"],
             "attempt_limit": test_obj["attempt_limit"],
             "attempt_count": test_obj["attempt_count"],
@@ -252,10 +405,28 @@ class TestViewSet(
         <h2>/api/{school_name}/tests/{test_id}/usertests/</h2>\n
         Список попыток прохождения пользователем конкретного теста"""
 
-        test = self.get_object()
         user = self.request.user
-        queryset = UserTest.objects.filter(test=test, user=user)
+        queryset = UserTest.objects.filter(test=pk, user=user)
         serializer = UserTestSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True)
+    def previous_tests(self, request, pk, *args, **kwargs):
+        """Список предыдущих тестов\n
+        <h2>/api/{school_name}/tests/{test_id}/previous_tests/</h2>\n
+        Список тестов курса, стоящих по порядку перед данным тестом и доступных для автогенерации на их основе списка вопросов"""
+
+        test = self.get_object()
+        section = test.section
+        previous_sections_tests = self.get_queryset().filter(
+            section__course=section.course, section__order__lt=section.order
+        )
+        current_section_tests = self.get_queryset().filter(
+            section=section, order__lt=test.order
+        )
+        serializer = TestSerializer(
+            previous_sections_tests | current_section_tests, many=True
+        )
         return Response(serializer.data)
 
 

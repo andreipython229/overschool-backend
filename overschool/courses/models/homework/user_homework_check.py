@@ -46,3 +46,8 @@ class UserHomeworkCheck(TimeStampMixin, AuthorMixin, models.Model):
     class Meta:
         verbose_name = "История проверки домашки юзера"
         verbose_name_plural = "Истории проверки домашки юзера"
+        indexes = [
+            models.Index(fields=["user_homework"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["mark"]),
+        ]

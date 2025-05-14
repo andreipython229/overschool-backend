@@ -1,5 +1,5 @@
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
-from django.db import models
+from django.db import models, transaction
 from model_clone import CloneMixin
 
 from .course import Course
@@ -31,11 +31,20 @@ class Section(TimeStampMixin, AuthorMixin, OrderMixin, CloneMixin, models.Model)
     def __str__(self):
         return str(self.section_id) + " " + str(self.name)
 
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            if not self.order:
+                max_order = Section.objects.filter(course=self.course).aggregate(models.Max("order"))["order__max"]
+                self.order = max_order + 1 if max_order is not None else 1
+            else:
+                Section.objects.filter(course=self.course, order__gte=self.order).update(order=models.F("order") + 1)
+
+            super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Раздел"
         verbose_name_plural = "Разделы"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["course", "order"], name="unique_course_section_order"
-            ),
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["name"]),
         ]

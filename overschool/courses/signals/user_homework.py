@@ -4,6 +4,8 @@ from courses.models.homework.user_homework_check import UserHomeworkCheck
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from tg_notifications.services import HomeworkNotifications
+
 
 @receiver(post_save, sender=UserHomework)
 def complete_homework(sender, instance, **kwargs):
@@ -26,7 +28,7 @@ def create_user_homework_check(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=UserHomeworkCheck)
-def update_user_homework_status(sender, instance, **kwargs):
+def update_user_homework_status(sender, instance, created, **kwargs):
     user_homework = instance.user_homework
     last_check_status = (
         UserHomeworkCheck.objects.filter(user_homework=user_homework)
@@ -40,6 +42,11 @@ def update_user_homework_status(sender, instance, **kwargs):
         .values_list("mark", flat=True)
         .first()
     )
+    if created:
+        HomeworkNotifications.send_telegram_notification(
+            user_homework,
+            instance,
+        )
 
     if last_check_status:
         user_homework.status = last_check_status

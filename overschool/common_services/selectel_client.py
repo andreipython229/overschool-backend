@@ -4,6 +4,7 @@ import zipfile
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 
 from overschool.settings import (
     ENDPOINT_URL,
@@ -62,16 +63,31 @@ class UploadToS3:
             return None
 
     def get_size_object(self, key):
-        response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
-        if "ContentLength" in response:
-            return response["ContentLength"]
-        else:
-            return None
+        try:
+            response = self.s3.head_object(Bucket=S3_BUCKET, Key=key)
+            if "ContentLength" in response:
+                return response["ContentLength"]
+            else:
+                return None
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return None
+            else:
+                raise
 
     def upload_course_image(self, uploaded_image, course):
         course_id = course.course_id
         school_id = course.school.school_id
         file_path = "{}_school/{}_course/{}@{}".format(
+            school_id, course_id, datetime.now(), uploaded_image.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
+        return file_path
+
+    def upload_course_landing_images(self, uploaded_image, course):
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/landing/{}@{}".format(
             school_id, course_id, datetime.now(), uploaded_image.name
         ).replace(" ", "_")
         self.s3.upload_fileobj(uploaded_image, S3_BUCKET, file_path)
@@ -87,6 +103,18 @@ class UploadToS3:
     def upload_avatar(self, avatar, user_id):
         file_path = "users/avatars/{}@{}".format(user_id, avatar.name).replace(" ", "_")
         self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
+        return file_path
+
+    def upload_avatar_feedback(self, avatar, feedback_id):
+        file_path = "users/avatars/feedback/{}@{}".format(
+            feedback_id, avatar.name
+        ).replace(" ", "_")
+        self.s3.upload_fileobj(avatar, S3_BUCKET, file_path)
+        return file_path
+
+    def upload_file_chat(self, file, chat):
+        file_path = "chats/files/{}@{}".format(chat, file.name).replace(" ", "_")
+        self.s3.upload_fileobj(file, S3_BUCKET, file_path)
         return file_path
 
     def upload_file(self, filename, base_lesson):
@@ -111,6 +139,15 @@ class UploadToS3:
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
         return file_path
 
+    def file_path(self, filename, base_lesson):
+        course = base_lesson.section.course
+        course_id = course.course_id
+        school_id = course.school.school_id
+        file_path = "{}_school/{}_course/{}_lesson/{}@{}".format(
+            school_id, course_id, base_lesson.id, datetime.now(), filename
+        ).replace(" ", "_")
+        return file_path
+
     def upload_large_file(self, filename, base_lesson):
         course = base_lesson.section.course
         course_id = course.course_id
@@ -122,6 +159,7 @@ class UploadToS3:
         # Определите размер файла
         segment_size = 50 * 1024 * 1024
         file_size = filename.size
+
         if file_size <= segment_size:
             self.s3.upload_fileobj(filename, S3_BUCKET, file_path)
             return file_path
@@ -165,7 +203,7 @@ class UploadToS3:
 
             return file_path
         except Exception as e:
-            # Произошла ошибка, так что нам нужно отменить многозадачную загрузку
+            # Произошла ошибка, нужно отменить многозадачную загрузку
             self.s3.abort_multipart_upload(
                 Bucket=S3_BUCKET, Key=file_path, UploadId=upload_id
             )

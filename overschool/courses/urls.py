@@ -1,34 +1,69 @@
 from courses.api_views import (
     AnswerViewSet,
+    BaseLessonBlockViewSet,
+    BlockButtonViewSet,
+    CommentViewSet,
+    CourseCatalogViewSet,
+    CourseLandingViewSet,
     CourseViewSet,
+    FolderCourseViewSet,
+    GetAppealsViewSet,
+    GroupCourseAccessViewSet,
     HomeworkCheckViewSet,
     HomeworkStatisticsView,
-    HomeworkVideoViewSet,
     HomeworkViewSet,
-    LessonVideoViewSet,
+    LessonAvailabilityViewSet,
+    LessonEnrollmentViewSet,
     LessonViewSet,
     QuestionViewSet,
     SectionViewSet,
     StudentProgressViewSet,
+    StudentRatingViewSet,
     StudentsGroupSettingsViewSet,
     StudentsGroupViewSet,
+    StudentsGroupWithoutTeacherViewSet,
     StudentsTableInfoViewSet,
     TestViewSet,
+    UploadVideoViewSet,
     UserHomeworkViewSet,
     UserTestViewSet,
-    StudentsGroupWithoutTeacherViewSet,
 )
+from django.urls import re_path
 from rest_framework import routers
+from schools.api_views import BonusViewSet, SchoolDocumentViewSet
 
 router = routers.DefaultRouter()
 router.register("courses", CourseViewSet, basename="courses")
+router.register("course_landing", CourseLandingViewSet, basename="course_landing")
+router.register("folder_course", FolderCourseViewSet, basename="folder_course")
+router.register("school_document", SchoolDocumentViewSet, basename="school_document")
+router.register("school_bonuses", BonusViewSet, basename="school_bonuses"),
 router.register("sections", SectionViewSet, basename="sections")
 router.register("lessons", LessonViewSet, basename="lessons")
+router.register("blocks", BaseLessonBlockViewSet, basename="blocks")
+router.register("block_buttons", BlockButtonViewSet, basename="block_buttons")
 router.register("students_group", StudentsGroupViewSet, basename="students_group")
-router.register("students_group_no_teacher", StudentsGroupWithoutTeacherViewSet, basename="students_group_no_teacher")
-router.register("students_group_settings", StudentsGroupSettingsViewSet, basename="students_group_settings",)
+router.register(
+    "group_course_access", GroupCourseAccessViewSet, basename="group_course_access"
+)
+router.register(
+    "students_group_no_teacher",
+    StudentsGroupWithoutTeacherViewSet,
+    basename="students_group_no_teacher",
+)
+router.register(
+    "students_group_settings",
+    StudentsGroupSettingsViewSet,
+    basename="students_group_settings",
+)
 router.register(
     "students_table_info", StudentsTableInfoViewSet, basename="students_table_info"
+)
+router.register(
+    "lesson-availability", LessonAvailabilityViewSet, basename="lesson-availability"
+)
+router.register(
+    "lesson-enrollment", LessonEnrollmentViewSet, basename="lesson-enrollment"
 )
 router.register("homeworks", HomeworkViewSet, basename="homeworks")
 router.register("homeworks_stats", HomeworkStatisticsView, basename="homeworks_stats")
@@ -41,10 +76,34 @@ router.register("questions", QuestionViewSet, basename="questions")
 router.register("answers", AnswerViewSet, basename="answers")
 router.register("usertest", UserTestViewSet, basename="test_user")
 router.register("student_progress", StudentProgressViewSet, basename="student_progress")
-
-urlpatterns = router.urls
+router.register("lesson_comments", CommentViewSet, basename="lesson_comments")
+router.register("student_rating", StudentRatingViewSet, basename="student_rating")
 
 router_video = routers.DefaultRouter()
 
-router_video.register("lesson_video", LessonVideoViewSet, basename="lesson_video")
-router_video.register("homework_video", HomeworkVideoViewSet, basename="homework_video")
+router_video.register("block_video", UploadVideoViewSet, basename="block_video")
+
+router_catalog = routers.DefaultRouter()
+
+router_catalog.register(
+    "course_catalog", CourseCatalogViewSet, basename="course_catalog"
+)
+
+router_appeals = routers.DefaultRouter()
+
+router_appeals.register("course-appeals", GetAppealsViewSet, basename="course-appeals")
+
+urlpatterns = [
+    re_path(
+        r'^(?P<school_name>[\w-]+)/user_homeworks/(?P<pk>\d+)/(?P<courseId>\d+)/$',
+        UserHomeworkViewSet.as_view({'get': 'retrieve'}),
+        name='user_homeworks-detail-with-courseId'
+    ),
+    re_path(
+        r'^(?P<school_name>[\w-]+)/user_homeworks/(?P<pk>\d+)/(?P<courseId>\d+)/$',
+        UserHomeworkViewSet.as_view({'get': 'list'}),
+        name='user_homeworks-detail-with-courseId'
+    ),
+]
+
+urlpatterns += router.urls

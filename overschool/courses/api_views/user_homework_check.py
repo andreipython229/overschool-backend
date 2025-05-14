@@ -1,5 +1,6 @@
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
+from courses.models import Course
 from courses.models.homework.user_homework import (
     UserHomework,
     UserHomeworkStatusChoices,
@@ -18,9 +19,7 @@ from schools.models import School
 from schools.school_mixin import SchoolMixin
 
 
-class HomeworkCheckViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class HomeworkCheckViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт создания историй проверок домашних заданий ученика.\n
     <h2>/api/{school_name}/user_homework_checks/</h2>\n
     Cоздавать истории может только ученик и учитель, а так же редактировать исключительно свои истории.
@@ -38,9 +37,12 @@ class HomeworkCheckViewSet(
         user = self.request.user
         if user.is_anonymous:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
-        if user.groups.filter(
-            group__name__in=["Student", "Teacher", "Admin"], school=school_id
-        ).exists():
+        if (
+            user.groups.filter(
+                group__name__in=["Student", "Teacher", "Admin"], school=school_id
+            ).exists()
+            or user.email == "student@coursehub.ru"
+        ):
             return permissions
         else:
             raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -81,10 +83,19 @@ class HomeworkCheckViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         user_homework = self.request.data.get("user_homework")
+        course_id = self.request.data.get("courseId")
+        course = Course.objects.get(course_id=course_id)
         if user_homework is not None:
-            user_homeworks = UserHomework.objects.filter(
-                homework__section__course__school__name=school_name
-            )
+            if course.is_copy:
+                # Если курс копия, искать д/з с соответствующим copy_course_id
+                user_homeworks = UserHomework.objects.filter(
+                    copy_course_id_id=int(course_id)
+                )
+            else:
+                # Стандартный поиск для не копий
+                user_homeworks = UserHomework.objects.filter(
+                    homework__section__course__school__name=school_name
+                )
             try:
                 user_homeworks.get(pk=user_homework)
             except user_homeworks.model.DoesNotExist:

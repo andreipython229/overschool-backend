@@ -1,5 +1,6 @@
 from django.db import models
 from users.models.user import User
+
 from .students_group import StudentsGroup
 
 
@@ -43,9 +44,22 @@ class StudentsHistory(models.Model):
         help_text="Студент удален из группы",
     )
 
+    finish_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата завершения обучения",
+        help_text="Дата завершения обучения",
+    )
+
     def __str__(self):
-        return f'{self.user} {self.students_group}'
+        return f"{self.user} {self.students_group}"
 
     class Meta:
-        verbose_name = "Student history"
-        verbose_name_plural = "Student history"
+        verbose_name = "История студента"
+        verbose_name_plural = "История студентов"
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["students_group"]),
+            models.Index(fields=["date_added"]),
+            models.Index(fields=["date_removed"]),
+        ]

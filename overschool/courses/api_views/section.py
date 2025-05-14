@@ -4,19 +4,28 @@ from common_services.selectel_client import UploadToS3
 from courses.models import (
     BaseLesson,
     Course,
+    CourseCopy,
     Homework,
     Lesson,
     Section,
     SectionTest,
     StudentsGroup,
     StudentsGroupSettings,
+    UserHomework,
     UserProgressLogs,
+    UserTest,
 )
-from courses.serializers import SectionRetrieveSerializer, SectionSerializer
-from django.db.models import F
+from courses.serializers import (
+    SectionOrderSerializer,
+    SectionRetrieveSerializer,
+    SectionSerializer,
+)
+from django.db import DatabaseError, transaction
+from django.db.models import F, Q
 from django.forms.models import model_to_dict
 from django.utils.decorators import method_decorator
-from rest_framework import permissions, status, viewsets
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import MultiPartParser
@@ -33,9 +42,7 @@ s3 = UploadToS3()
     name="partial_update",
     decorator=SectionsSchemas.partial_update_schema(),
 )
-class SectionViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class SectionViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт получения, создания, редактирования и удаления секций.\n
     <h2>/api/{school_name}/sections/</h2>\n
     Разрешения для просмотра секций (любой пользователь)
@@ -59,9 +66,12 @@ class SectionViewSet(
             return permissions
         if self.action in ["list", "retrieve", "lessons"]:
             # Разрешения для просмотра секций (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists():
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -77,6 +87,18 @@ class SectionViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
 
+        def get_original_course_ids(course_ids):
+            original_course_ids = CourseCopy.objects.filter(
+                course_copy_id__in=course_ids
+            ).values_list("course_id", flat=True)
+
+            original_courses = Course.objects.filter(
+                Q(course_id__in=original_course_ids)
+                | Q(course_id__in=course_ids, is_copy=False)
+            ).values_list("course_id", flat=True)
+
+            return original_courses
+
         if user.groups.filter(group__name="Admin", school=school_id).exists():
             return Section.objects.filter(course__school__name=school_name)
 
@@ -84,7 +106,8 @@ class SectionViewSet(
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
             ).values_list("course_id", flat=True)
-            return Section.objects.filter(course_id__in=course_ids)
+            original_course_ids = get_original_course_ids(course_ids)
+            return Section.objects.filter(course_id__in=original_course_ids)
 
         if user.groups.filter(group__name="Teacher", school=school_id).exists():
             course_ids = StudentsGroup.objects.filter(
@@ -166,16 +189,20 @@ class SectionViewSet(
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True)
+    @action(detail=True, url_path="lessons/(?P<courseId>[^/.]+)")
     def lessons(self, request, pk, *args, **kwargs):
         """Эндпоинт получения, всех уроков, домашек и тестов секций.\n
         <h2>/api/{school_name}/sections/{section_id}/lessons/</h2>\n
         """
         queryset = self.get_queryset()
+        course_id = kwargs["courseId"]
         section = queryset.filter(pk=pk)
+        section_obj = section.first()
 
         user = self.request.user
-        self.kwargs.get("school_name")
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        course = Course.objects.get(course_id=int(course_id))
 
         data = section.values(
             section_name=F("name"),
@@ -187,14 +214,26 @@ class SectionViewSet(
         )
 
         group = None
-        if user.groups.filter(group__name="Student").exists():
+        if user.groups.filter(group__name="Student", school=school).exists():
             try:
-                group = StudentsGroup.objects.get(
-                    students=user, course_id_id__sections=pk
-                )
+                group = StudentsGroup.objects.get(students=user, course_id_id=course_id)
+                if course.is_copy and course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                elif not course.is_copy and section_obj.course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
-        elif user.groups.filter(group__name="Teacher").exists():
+        elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
                     teacher_id=user.pk, course_id_id__sections=pk
@@ -205,14 +244,18 @@ class SectionViewSet(
             result_data["group_settings"] = {
                 "task_submission_lock": group.group_settings.task_submission_lock,
                 "strict_task_order": group.group_settings.strict_task_order,
+                "submit_homework_to_go_on": group.group_settings.submit_homework_to_go_on,
+                "submit_test_to_go_on": group.group_settings.submit_test_to_go_on,
+                "success_test_to_go_on": group.group_settings.success_test_to_go_on,
             }
+            result_data["group_id"] = group.group_id
 
         result_data["lessons"] = []
 
         lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
         types = {0: "homework", 1: "lesson", 2: "test"}
         for index, value in enumerate(data):
-            if user.groups.filter(group__name="Admin").exists():
+            if user.groups.filter(group__name="Admin", school=school).exists():
                 a = Homework.objects.filter(section=value["section"])
                 b = Lesson.objects.filter(section=value["section"])
                 c = SectionTest.objects.filter(section=value["section"])
@@ -220,13 +263,30 @@ class SectionViewSet(
                 group__name__in=[
                     "Student",
                     "Teacher",
-                ]
+                ],
+                school=school,
             ).exists():
+                base_filters = Q()
                 a = Homework.objects.filter(section=value["section"], active=True)
                 b = Lesson.objects.filter(section=value["section"], active=True)
                 c = SectionTest.objects.filter(section=value["section"], active=True)
+                if user.groups.filter(group__name="Student", school=school).exists():
+                    base_filters &= ~Q(lessonavailability__student=user) | Q(
+                        lessonavailability__available=True
+                    )
+                    a = a.filter(base_filters).distinct()
+                    b = b.filter(base_filters).distinct()
+                    c = c.filter(base_filters).distinct()
+
             for i in enumerate((a, b, c)):
                 for obj in i[1]:
+                    sended = None
+                    if obj in a:
+                        sended = UserHomework.objects.filter(
+                            homework=obj, user=user
+                        ).exists()
+                    if obj in c:
+                        sended = UserTest.objects.filter(test=obj, user=user).exists()
                     dict_obj = model_to_dict(obj)
                     result_data["lessons"].append(
                         {
@@ -241,6 +301,7 @@ class SectionViewSet(
                             "viewed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, viewed=True
                             ).exists(),
+                            "sended": sended,
                             "completed": lesson_progress.filter(
                                 lesson_id=obj.baselesson_ptr_id, completed=True
                             ).exists(),
@@ -254,3 +315,80 @@ class SectionViewSet(
 SectionViewSet = apply_swagger_auto_schema(
     tags=["sections"], excluded_methods=["partial_update"]
 )(SectionViewSet)
+
+
+class SectionUpdateViewSet(WithHeadersViewSet, SchoolMixin, generics.GenericAPIView):
+    serializer_class = None
+
+    @swagger_auto_schema(
+        method="post",
+        request_body=SectionOrderSerializer(many=True),
+        responses={
+            200: "Секции успешно обновлены",
+            400: "Ошибка валидации данных или секция не найдена",
+            500: "Внутренняя ошибка сервера",
+        },
+        operation_summary="Массовое обновление порядка секций",
+        operation_description="Принимает список объектов с id секции ('section_id') и новым порядковым номером 'order'.",
+    )
+    @action(detail=False, methods=["POST"])
+    def shuffle_sections(self, request, *args, **kwargs):
+        serializer = SectionOrderSerializer(data=request.data, many=True)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+
+        section_update_map = {
+            item["section_id"]: item["order"] for item in validated_data
+        }
+        section_ids = list(section_update_map.keys())
+
+        # 1. Начинаем транзакцию
+        try:
+            with transaction.atomic():
+                # 2. Получаем все нужные секции одним запросом
+
+                sections = Section.objects.select_for_update().filter(
+                    section_id__in=section_ids
+                )
+
+                sections_to_update = []
+                found_ids = set()
+
+                for section in sections:
+
+                    found_ids.add(section.section_id)
+                    new_order = section_update_map.get(section.section_id)
+
+                    if new_order is not None and section.order != new_order:
+                        section.order = new_order
+                        sections_to_update.append(section)
+
+                # 3. Проверяем, все ли запрошенные ID были найдены
+                missing_ids = set(section_ids) - found_ids
+                if missing_ids:
+
+                    return Response(
+                        {"detail": f"Секции с ID {list(missing_ids)} не найдены."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # 4. Выполняем массовое обновление, если есть что обновлять
+                if sections_to_update:
+
+                    Section.objects.bulk_update(sections_to_update, ["order"])
+
+            # 5. Возвращаем успешный ответ после коммита транзакции
+            return Response(
+                f"{len(sections_to_update)} секций успешно обновлены",
+                status=status.HTTP_200_OK,
+            )
+
+        except DatabaseError as e:
+
+            return Response(
+                "Ошибка базы данных при обновлении секций.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

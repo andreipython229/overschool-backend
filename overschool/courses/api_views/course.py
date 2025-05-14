@@ -1,20 +1,31 @@
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
+import pytz
 from chats.models import Chat, UserChat
 from common_services.apply_swagger_auto_schema import apply_swagger_auto_schema
 from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from common_services.selectel_client import UploadToS3
+from courses.api_views.students_group import get_student_training_duration
 from courses.models import (
+    BaseLessonBlock,
+    BlockType,
     Course,
+    CourseCopy,
+    Folder,
     Homework,
     Lesson,
     SectionTest,
     StudentsGroup,
+    TrainingDuration,
     UserProgressLogs,
+    UserTest,
 )
+from courses.models.courses.course import Public
 from courses.models.courses.section import Section
 from courses.models.homework.user_homework import UserHomework
-from courses.paginators import UserHomeworkPagination
+from courses.models.students.students_history import StudentsHistory
+from courses.paginators import StudentsPagination, UserHomeworkPagination
 from courses.serializers import (
     CourseGetSerializer,
     CourseSerializer,
@@ -22,8 +33,27 @@ from courses.serializers import (
     SectionSerializer,
     StudentsGroupSerializer,
 )
-from django.db.models import Avg, Count, F, Max, OuterRef, Subquery, Sum
+from courses.services import get_student_progress, progress_subquery
+from django.db import transaction
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    Max,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import ExtractDay, Now
+from django.db.models.lookups import GreaterThan, LessThan
 from django.forms.models import model_to_dict
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -32,8 +62,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from schools.models import School, TariffPlan
 from schools.school_mixin import SchoolMixin
-from users.models import Profile
-from users.serializers import UserProfileGetSerializer
+from users.models import Profile, User
 
 from .schemas.course import CoursesSchemas
 
@@ -48,9 +77,7 @@ s3 = UploadToS3()
     name="partial_update",
     decorator=CoursesSchemas.courses_update_schema(),
 )
-class CourseViewSet(
-    LoggingMixin, WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet
-):
+class CourseViewSet(WithHeadersViewSet, SchoolMixin, viewsets.ModelViewSet):
     """Эндпоинт для просмотра, создания, изменения и удаления курсов \n
     <h2>/api/{school_name}/courses/</h2>\n
     Получать курсы может любой пользователь. \n
@@ -59,6 +86,7 @@ class CourseViewSet(
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = UserHomeworkPagination
+
     parser_classes = (MultiPartParser,)
 
     def get_serializer_class(self):
@@ -88,9 +116,12 @@ class CourseViewSet(
             "student_groups",
         ]:
             # Разрешения для просмотра курсов (любой пользователь школы)
-            if user.groups.filter(
-                group__name__in=["Student", "Teacher"], school=school_id
-            ).exists():
+            if (
+                user.groups.filter(
+                    group__name__in=["Student", "Teacher"], school=school_id
+                ).exists()
+                or user.email == "student@coursehub.ru"
+            ):
                 return permissions
             else:
                 raise PermissionDenied("У вас нет прав для выполнения этого действия.")
@@ -104,18 +135,73 @@ class CourseViewSet(
             )  # Возвращаем пустой queryset при генерации схемы
         user = self.request.user
         school_name = self.kwargs.get("school_name")
-        school_id = School.objects.get(name=school_name).school_id
 
-        if user.groups.filter(group__name="Admin", school=school_id).exists():
-            return Course.objects.filter(school__name=school_name)
+        if user.groups.filter(group__name="Admin", school__name=school_name).exists():
+            # Основной queryset для админов
+            admin_queryset = Course.objects.filter(
+                Q(school__name=school_name) | Q(course_id=247)
+            ).annotate(
+                baselessons_count=Count("sections__lessons", distinct=True),
+                homework_count=Count("sections__lessons__homeworks", distinct=True),
+                test_count=Count("sections__lessons__tests", distinct=True),
+                video_count=Count(
+                    "sections__lessons__blocks",
+                    filter=Q(sections__lessons__blocks__type=BlockType.VIDEO),
+                    distinct=True,
+                ),
+                students_count=Count("group_course_fk__students", distinct=True),
+            )
 
-        if user.groups.filter(group__name="Student", school=school_id).exists():
-            course_ids = StudentsGroup.objects.filter(
+            return admin_queryset
+
+        if user.groups.filter(group__name="Student", school__name=school_name).exists():
+            sub_history = TrainingDuration.objects.filter(
+                students_group=OuterRef("group_id"), user=user
+            ).values("created_at")[:1]
+            sub_duration = TrainingDuration.objects.filter(
+                students_group=OuterRef("group_id"), user=user
+            ).values("limit")[:1]
+            student_groups = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, students=user
-            ).values_list("course_id", flat=True)
-            return Course.objects.filter(course_id__in=course_ids)
+            )
+            course_ids = student_groups.values_list("course_id", flat=True)
+            # Добавляем информацию для учеников о продолжительности их обучения
+            sub_group = student_groups.filter(course_id=OuterRef("course_id")).annotate(
+                limit=Case(
+                    When(
+                        Exists(Subquery(sub_duration))
+                        & GreaterThan(Subquery(sub_duration), 0),
+                        then=Subquery(sub_duration),
+                    ),
+                    When(training_duration__gt=0, then=F("training_duration")),
+                    default=None,
+                    output_field=IntegerField(),
+                ),
+                past_period=Case(
+                    When(
+                        Exists(Subquery(sub_history)),
+                        then=ExtractDay(Now() - Subquery(sub_history)),
+                    ),
+                    default=0,
+                ),
+                remaining_period=Case(
+                    When(
+                        GreaterThan(F("limit"), 0)
+                        & GreaterThan(F("limit"), F("past_period")),
+                        then=F("limit") - F("past_period"),
+                    ),
+                    When(limit__gt=0, then=0),
+                    default=None,
+                ),
+            )
+            courses = Course.objects.filter(course_id__in=course_ids).annotate(
+                limit=Subquery(sub_group.values("limit")[:1]),
+                remaining_period=Subquery(sub_group.values("remaining_period")[:1]),
+                certificate=Subquery(sub_group.values("certificate")[:1]),
+            )
+            return courses
 
-        if user.groups.filter(group__name="Teacher", school=school_id).exists():
+        if user.groups.filter(group__name="Teacher", school__name=school_name).exists():
             course_ids = StudentsGroup.objects.filter(
                 course_id__school__name=school_name, teacher_id=user.pk
             ).values_list("course_id", flat=True)
@@ -128,16 +214,20 @@ class CourseViewSet(
         school_obj = School.objects.get(name=school_name)
         school_id = school_obj.school_id
         school = self.request.data.get("school")
+        school_body_id = School.objects.get(name=school).school_id
 
-        if int(school) != school_id:
+        if school_body_id != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        if school_obj.tariff is None:
+            return Response(
+                "У вас нет оплаченного тарифа",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if (
-            school_obj.tariff.name
-            in [TariffPlan.INTERN, TariffPlan.JUNIOR, TariffPlan.MIDDLE]
+            school_obj.tariff.name in [TariffPlan.JUNIOR, TariffPlan.MIDDLE]
             and school_obj.course_school.count() >= school_obj.tariff.number_of_courses
         ):
             return Response(
@@ -147,7 +237,7 @@ class CourseViewSet(
 
         serializer = CourseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        course = serializer.save(photo=None)
+        course = serializer.save(school=school_obj, photo=None)
 
         if request.FILES.get("photo"):
             photo = s3.upload_course_image(request.FILES["photo"], course)
@@ -155,13 +245,13 @@ class CourseViewSet(
             course.save()
             serializer = CourseGetSerializer(course)
 
-        # Создайте чат с типом "COURSE" и именем, связанным с курсом
-        chat_name = f"Чат курса '{course.name}'"
-        chat = Chat.objects.create(name=chat_name, type="COURSE")
-
-        admin = request.user
-
-        UserChat.objects.create(user=admin, chat=chat)
+        # Чат с типом "COURSE" и именем, связанным с курсом
+        # chat_name = f"Чат курса '{course.name}'"
+        # chat = Chat.objects.create(name=chat_name, type="COURSE")
+        #
+        # admin = request.user
+        #
+        # UserChat.objects.create(user=admin, chat=chat)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -169,14 +259,35 @@ class CourseViewSet(
         school_name = self.kwargs.get("school_name")
         school_id = School.objects.get(name=school_name).school_id
         school = self.request.data.get("school")
+        course_removed = self.request.data.get("course_removed")
         if school and int(school) != school_id:
             return Response(
                 "Указанный id школы не соответствует id текущей школы.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        folder = self.request.data.get("folder")
 
+        if folder and folder != "-1":
+            folders = Folder.objects.filter(school__name=school_name)
+            try:
+                folders.get(pk=folder)
+            except folders.model.DoesNotExist:
+                raise NotFound("Указанная папка не относится к этой школе.")
+
+        data = request.data.copy()
         instance = self.get_object()
-        serializer = CourseSerializer(instance, data=request.data, partial=True)
+
+        if folder == "-1":
+            instance.folder = None
+            instance.save()
+            data.pop("folder")
+
+        if course_removed == "null":
+            instance.course_removed = None
+            instance.save()
+            return Response({"status": 200}, status=status.HTTP_200_OK)
+
+        serializer = CourseSerializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         if request.FILES.get("photo"):
@@ -196,27 +307,15 @@ class CourseViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        school_id = instance.school.school_id
 
-        # Получаем список файлов, хранящихся в папке удаляемого курса
-        files_to_delete = s3.get_list_objects(
-            "{}_school/{}_course".format(school_id, instance.pk)
-        )
-        # Удаляем все файлы и сегменты, связанные с удаляемым курсом
-        remove_resp = None
-        if files_to_delete:
-            if s3.delete_files(files_to_delete) == "Error":
-                remove_resp = "Error"
+        # Устанавливаем дату удаления курса
+        instance.course_removed = timezone.now()
+        instance.public = "Н"
+        instance.is_catalog = False
+        instance.is_direct = False
+        instance.save()
 
-        self.perform_destroy(instance)
-
-        if remove_resp == "Error":
-            return Response(
-                {"error": "Ошибка удаления ресурса из хранилища Selectel"},
-                status=status.HTTP_204_NO_CONTENT,
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["GET"])
     def get_students_for_course(self, request, pk=None, *args, **kwargs):
@@ -228,12 +327,36 @@ class CourseViewSet(
         course = self.get_object()
         school_name = self.kwargs.get("school_name")
         school = School.objects.get(name=school_name)
+        sort_by = request.GET.get("sort_by", "date_added")
+        sort_order = request.GET.get("sort_order", "desc")
+        default_date = datetime(2023, 11, 1, tzinfo=pytz.UTC)
+        fields = self.request.GET.getlist("fields")
         if user.groups.filter(group__name="Teacher", school=school).exists():
             queryset = StudentsGroup.objects.filter(
                 teacher_id=request.user, course_id=course.course_id
             )
         if user.groups.filter(group__name="Admin", school=school).exists():
             queryset = StudentsGroup.objects.filter(course_id=course.course_id)
+
+        all_active_students = queryset.count()
+
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
+
+            query = (
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+            )
+
+            if cleaned_phone:
+                query |= Q(students__phone_number__icontains=cleaned_phone)
+
+            queryset = queryset.filter(query)
+
         # Фильтры
         first_name = self.request.GET.get("first_name")
         if first_name:
@@ -246,17 +369,20 @@ class CourseViewSet(
             queryset = queryset.filter(name=group_name).distinct()
         last_active_min = self.request.GET.get("last_active_min")
         if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
             queryset = queryset.filter(
-                students__date_joined__gte=last_active_min
+                students__last_login__gte=last_active_min
             ).distinct()
         last_active_max = self.request.GET.get("last_active_max")
         if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
+            last_active_max += timedelta(days=1)
             queryset = queryset.filter(
-                students__date_joined__lte=last_active_max
+                students__last_login__lte=last_active_max
             ).distinct()
         last_active = self.request.GET.get("last_active")
         if last_active:
-            queryset = queryset.filter(students__date_joined=last_active).distinct()
+            queryset = queryset.filter(students__last_login=last_active).distinct()
         mark_sum = self.request.GET.get("mark_sum")
         if mark_sum:
             queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
@@ -301,13 +427,25 @@ class CourseViewSet(
             .annotate(avg=Avg("mark"))
             .values("avg")
         )
-        print(queryset, "-------")
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False,
+            )
+            .order_by("-date_added")
+            .values("date_added")[:1]
+        )
+
         data = queryset.values(
             "course_id",
             "course_id__name",
             "group_id",
             "students__date_joined",
+            "students__last_login",
             "students__email",
+            "students__phone_number",
             "students__first_name",
             "students__id",
             "students__profile__avatar",
@@ -316,35 +454,398 @@ class CourseViewSet(
         ).annotate(
             mark_sum=Subquery(subquery_mark_sum),
             average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+        )
+
+        filtered_active_students = queryset.count()
+
+        if sort_by == "progress":
+            for obj in data:
+                user_id = obj.get("students__id")
+                course_id = obj.get("course_id")
+
+                if user_id and course_id:
+                    progress = progress_subquery(user_id, course_id)
+                else:
+                    progress = None
+
+                obj["progress"] = progress
+
+        if sort_by in [
+            "students__last_name",
+            "last_name",
+            "students__email",
+            "name",
+            "course_id__name",
+            "date_added",
+            "date_removed",
+            "progress",
+            "average_mark",
+            "mark_sum",
+            "students__date_joined",
+        ]:
+            if sort_order == "asc":
+                if sort_by in ["date_added", "date_removed", "students__date_joined"]:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None
+                        else default_date,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                    )
+                else:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                    )
+
+            else:
+                if sort_by in ["date_added", "date_removed", "last_active"]:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: x.get(sort_by, datetime.min)
+                        if x.get(sort_by) is not None
+                        else default_date,
+                        reverse=True,
+                    )
+                elif sort_by in [
+                    "progress",
+                    "average_mark",
+                    "mark_sum",
+                ]:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: x.get(sort_by, 0)
+                        if x.get(sort_by) is not None
+                        else 0,
+                        reverse=True,
+                    )
+                else:
+                    sorted_data = sorted(
+                        data,
+                        key=lambda x: str(x.get(sort_by, "") or "").lower(),
+                        reverse=True,
+                    )
+
+            paginator = StudentsPagination()
+            paginated_data = paginator.paginate_queryset(sorted_data, request)
+            serialized_data = []
+            for item in paginated_data:
+                if not item["students__id"]:
+                    continue
+                if "Прогресс" in fields and sort_by != "progress":
+                    student_group = StudentsGroup.objects.filter(
+                        students__id=item["students__id"], course_id=item["course_id"]
+                    ).first()
+                    if student_group:
+                        serialized_data.append(
+                            {
+                                "course_id": item["course_id"],
+                                "course_name": item["course_id__name"],
+                                "group_id": item["group_id"],
+                                "last_active": item["students__date_joined"],
+                                "last_login": item["students__last_login"],
+                                "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
+                                "first_name": item["students__first_name"],
+                                "student_id": item["students__id"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
+                                "last_name": item["students__last_name"],
+                                "group_name": item["name"],
+                                "school_name": school.name,
+                                "mark_sum": item["mark_sum"],
+                                "average_mark": item["average_mark"],
+                                "date_added": item["date_added"],
+                                "progress": progress_subquery(
+                                    item["students__id"], item["course_id"]
+                                ),
+                                "all_active_students": all_active_students,
+                                "filtered_active_students": filtered_active_students,
+                                "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                    chat_creator=user,
+                                    reciever=item["students__id"],
+                                    type="PERSONAL",
+                                ),
+                            }
+                        )
+                    else:
+                        serialized_data.append(
+                            {
+                                "course_id": item["course_id"],
+                                "course_name": item["course_id__name"],
+                                "group_id": item["group_id"],
+                                "last_active": item["students__date_joined"],
+                                "last_login": item["students__last_login"],
+                                "email": item["students__email"],
+                                "phone_number": item["students__phone_number"],
+                                "first_name": item["students__first_name"],
+                                "student_id": item["students__id"],
+                                "avatar": s3.get_link(item["students__profile__avatar"])
+                                if item["students__profile__avatar"]
+                                else s3.get_link("users/avatars/base_avatar.jpg"),
+                                "last_name": item["students__last_name"],
+                                "group_name": item["name"],
+                                "school_name": school.name,
+                                "mark_sum": item["mark_sum"],
+                                "average_mark": item["average_mark"],
+                                "date_added": item["date_added"],
+                                "progress": 0,
+                                "all_active_students": all_active_students,
+                                "filtered_active_students": filtered_active_students,
+                                "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                    chat_creator=user,
+                                    reciever=item["students__id"],
+                                    type="PERSONAL",
+                                ),
+                            }
+                        )
+                elif sort_by == "progress":
+                    serialized_data.append(
+                        {
+                            "course_id": item["course_id"],
+                            "course_name": item["course_id__name"],
+                            "group_id": item["group_id"],
+                            "last_active": item["students__date_joined"],
+                            "last_login": item["students__last_login"],
+                            "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
+                            "first_name": item["students__first_name"],
+                            "student_id": item["students__id"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
+                            "last_name": item["students__last_name"],
+                            "group_name": item["name"],
+                            "school_name": school.name,
+                            "mark_sum": item["mark_sum"],
+                            "average_mark": item["average_mark"],
+                            "date_added": item["date_added"],
+                            "progress": item["progress"],
+                            "all_active_students": all_active_students,
+                            "filtered_active_students": filtered_active_students,
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=item["students__id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+                else:
+                    serialized_data.append(
+                        {
+                            "course_id": item["course_id"],
+                            "course_name": item["course_id__name"],
+                            "group_id": item["group_id"],
+                            "last_active": item["students__date_joined"],
+                            "last_login": item["students__last_login"],
+                            "email": item["students__email"],
+                            "phone_number": item["students__phone_number"],
+                            "first_name": item["students__first_name"],
+                            "student_id": item["students__id"],
+                            "avatar": s3.get_link(item["students__profile__avatar"])
+                            if item["students__profile__avatar"]
+                            else s3.get_link("users/avatars/base_avatar.jpg"),
+                            "last_name": item["students__last_name"],
+                            "group_name": item["name"],
+                            "school_name": school.name,
+                            "mark_sum": item["mark_sum"],
+                            "average_mark": item["average_mark"],
+                            "date_added": item["date_added"],
+                            "all_active_students": all_active_students,
+                            "filtered_active_students": filtered_active_students,
+                            "chat_uuid": UserChat.get_existed_chat_id_by_type(
+                                chat_creator=user,
+                                reciever=item["students__id"],
+                                type="PERSONAL",
+                            ),
+                        }
+                    )
+
+            pagination_data = {
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": serialized_data,
+            }
+            return Response(pagination_data)
+        else:
+            return Response(
+                {"error": "Ошибка в запросе"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=["GET"])
+    def get_all_students_for_course(self, request, pk=None, *args, **kwargs):
+        """Все студенты одного курса без пагинации\n
+        <h2>/api/{school_name}/courses/{course_id}/get_students_for_course/</h2>\n"""
+
+        queryset = StudentsGroup.objects.none()
+        user = self.request.user
+        course = self.get_object()
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        if user.groups.filter(group__name="Teacher", school=school).exists():
+            queryset = StudentsGroup.objects.filter(
+                teacher_id=request.user, course_id=course.course_id
+            )
+        if user.groups.filter(group__name="Admin", school=school).exists():
+            queryset = StudentsGroup.objects.filter(course_id=course.course_id)
+
+        # Поиск
+        search_value = self.request.GET.get("search_value")
+        if search_value:
+            cleaned_phone = re.sub(r"\D", "", search_value)
+
+            query = (
+                Q(students__first_name__icontains=search_value)
+                | Q(students__last_name__icontains=search_value)
+                | Q(students__email__icontains=search_value)
+                | Q(name__icontains=search_value)
+            )
+
+            if cleaned_phone:
+                query |= Q(students__phone_number=cleaned_phone)
+
+            queryset = queryset.filter(query)
+
+        # Фильтры
+        first_name = self.request.GET.get("first_name")
+        if first_name:
+            queryset = queryset.filter(students__first_name=first_name).distinct()
+        last_name = self.request.GET.get("last_name")
+        if last_name:
+            queryset = queryset.filter(students__last_name=last_name).distinct()
+        group_name = self.request.GET.get("group_name")
+        if group_name:
+            queryset = queryset.filter(name=group_name).distinct()
+        last_active_min = self.request.GET.get("last_active_min")
+        if last_active_min:
+            last_active_min = datetime.strptime(last_active_min, "%Y-%m-%d")
+            queryset = queryset.filter(
+                students__last_login__gte=last_active_min
+            ).distinct()
+        last_active_max = self.request.GET.get("last_active_max")
+        if last_active_max:
+            last_active_max = datetime.strptime(last_active_max, "%Y-%m-%d")
+            last_active_max += timedelta(days=1)
+            queryset = queryset.filter(
+                students__last_login__lte=last_active_max
+            ).distinct()
+        last_active = self.request.GET.get("last_active")
+        if last_active:
+            queryset = queryset.filter(students__last_login=last_active).distinct()
+        mark_sum = self.request.GET.get("mark_sum")
+        if mark_sum:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__exact=mark_sum)
+        average_mark = self.request.GET.get("average_mark")
+        if average_mark:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__exact=average_mark)
+        mark_sum_min = self.request.GET.get("mark_sum_min")
+        if mark_sum_min:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__gte=mark_sum_min)
+        mark_sum_max = self.request.GET.get("mark_sum_max")
+        if mark_sum_max:
+            queryset = queryset.annotate(mark_sum=Sum("students__user_homeworks__mark"))
+            queryset = queryset.filter(mark_sum__lte=mark_sum_max)
+        average_mark_min = self.request.GET.get("average_mark_min")
+        if average_mark_min:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__gte=average_mark_min)
+        average_mark_max = self.request.GET.get("average_mark_max")
+        if average_mark_max:
+            queryset = queryset.annotate(
+                average_mark=Avg("students__user_homeworks__mark")
+            )
+            queryset = queryset.filter(average_mark__lte=average_mark_max)
+
+        subquery_mark_sum = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(mark_sum=Sum("mark"))
+            .values("mark_sum")
+        )
+
+        subquery_average_mark = (
+            UserHomework.objects.filter(user_id=OuterRef("students__id"))
+            .values("user_id")
+            .annotate(avg=Avg("mark"))
+            .values("avg")
+        )
+
+        subquery_date_added = (
+            StudentsHistory.objects.filter(
+                user_id=OuterRef("students__id"),
+                students_group=OuterRef("group_id"),
+                is_deleted=False,
+            )
+            .order_by("-date_added")
+            .values("date_added")[:1]
+        )
+
+        subquery_date_removed = (
+            StudentsHistory.objects.none()
+            .order_by("-date_removed")
+            .values("date_removed")[:1]
+        )
+        data = queryset.values(
+            "course_id",
+            "course_id__name",
+            "group_id",
+            "students__date_joined",
+            "students__last_login",
+            "students__email",
+            "students__phone_number",
+            "students__first_name",
+            "students__id",
+            "students__profile__avatar",
+            "students__last_name",
+            "name",
+        ).annotate(
+            mark_sum=Subquery(subquery_mark_sum),
+            average_mark=Subquery(subquery_average_mark),
+            date_added=Subquery(subquery_date_added),
+            date_removed=Subquery(subquery_date_removed),
         )
 
         serialized_data = []
         for item in data:
             if not item["students__id"]:
                 continue
-            profile = Profile.objects.get(user_id=item["students__id"])
-            serializer = UserProfileGetSerializer(
-                profile, context={"request": self.request}
-            )
-            courses = Course.objects.filter(course_id=item["course_id"])
-            sections = Section.objects.filter(course__in=courses)
-            section_data = SectionSerializer(sections, many=True).data
             serialized_data.append(
                 {
-                    "course_id": item["course_id"],
-                    "course_name": item["course_id__name"],
-                    "group_id": item["group_id"],
-                    "last_active": item["students__date_joined"],
-                    "email": item["students__email"],
-                    "first_name": item["students__first_name"],
                     "student_id": item["students__id"],
-                    "avatar": serializer.data["avatar"],
+                    "first_name": item["students__first_name"],
                     "last_name": item["students__last_name"],
+                    "email": item["students__email"],
+                    "phone_number": item["students__phone_number"],
+                    "course_name": item["course_id__name"],
                     "group_name": item["name"],
-                    "school_name": school.name,
+                    "last_active": item["students__date_joined"],
                     "mark_sum": item["mark_sum"],
                     "average_mark": item["average_mark"],
-                    "sections": section_data,
+                    "date_added": item["date_added"],
+                    "date_removed": item["date_removed"],
+                    "progress": progress_subquery(
+                        item["students__id"], item["course_id"]
+                    ),
                 }
             )
 
@@ -357,12 +858,149 @@ class CourseViewSet(
         Клонирование курса"""
 
         course = self.get_object()
+        user_email = request.query_params.get("user_email")
+        max_id = Course.objects.all().aggregate(Max("course_id"))["course_id__max"]
         max_order = Course.objects.all().aggregate(Max("order"))["order__max"]
-        course_copy = course.make_clone(
-            attrs={"name": f"{course.name}-копия", "order": max_order + 1}
+        try:
+            user = User.objects.get(email=user_email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Пользователь с таким email не найден."}, status=404
+            )
+
+        user_schools = School.objects.filter(owner=user)
+        if not user_schools:
+            return Response(
+                {"detail": "Пользователь должен быть владельцем хотя бы одной школы."},
+                status=400,
+            )
+
+        existing_copies = Course.objects.filter(
+            name=course.name, school__in=user_schools, is_copy=True
         )
-        queryset = Course.objects.filter(pk=course_copy.pk)
-        return Response(queryset.values())
+
+        # Флаг для отслеживания изменений доступа
+        access_restored = False
+
+        if existing_copies.exists():
+            for copy in existing_copies:
+                if not copy.is_access:
+                    copy.is_access = True
+                    copy.save()
+                    access_restored = True
+
+            if access_restored:
+                return Response(
+                    {"detail": "Доступ к существующей копии курса восстановлен."},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {
+                        "detail": "У пользователя уже есть копия данного курса с доступом."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        try:
+            new_course = None
+            for school in user_schools:
+                new_course = course.make_clone(
+                    attrs={
+                        "course_id": max_id + 1,
+                        "order": max_order + 1,
+                        "school": school,
+                        "is_copy": True,
+                    }
+                )
+
+                # Обновление max_id и max_order для следующего клонирования
+                max_id += 1
+                max_order += 1
+
+            CourseCopy.objects.create(
+                course_copy_id=new_course, course_id=course.course_id
+            )
+            return Response(
+                {
+                    "detail": "Копирование курса успешно завершено.",
+                },
+                status=200,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Произошла ошибка при клонировании курса. ({e})"},
+                status=500,
+            )
+
+    @action(detail=True)
+    def get_course_copy_owners(self, request, *args, **kwargs):
+        """Получение владельцев школ, имеющих копии курса\n
+        <h2>/api/${school_name}/courses/${course_id}/get_course_copy_owners/?course_name=название</h2>\n
+        Возвращает владельцев школ, у которых есть копии курса с указанным названием."""
+
+        course_name = request.query_params.get("course_name")
+        if not course_name:
+            return Response({"detail": "Название курса не указано."}, status=400)
+
+        copy_courses = Course.objects.filter(
+            name=course_name, is_copy=True, is_access=True
+        )
+        school_ids = copy_courses.values_list("school", flat=True).distinct()
+        schools = School.objects.filter(school_id__in=school_ids)
+        owners = schools.values_list("owner", flat=True).distinct()
+        owners_info = User.objects.filter(id__in=owners).values("email")
+
+        return Response(list(owners_info))
+
+    @action(detail=True, methods=["patch"])
+    def delete_course_access(self, request, *args, **kwargs):
+        """Удаление доступа к копиям курса по email и названию курса\n
+        <h2>/api/{school_name}/courses/{course_id}/delete/</h2>\n
+        Удаление доступа к копиям курса"""
+
+        course_name = request.query_params.get("course_name")
+        user_emails = request.query_params.getlist("user_emails")
+
+        if not user_emails or not course_name:
+            return Response(
+                {"detail": "Не указаны email пользователей или название курса."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_courses = 0
+        not_found_emails = []
+        for user_email in user_emails:
+            try:
+                user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                not_found_emails.append(user_email)
+                continue
+
+            user_schools = School.objects.filter(owner=user)
+            if not user_schools:
+                not_found_emails.append(user_email)
+                continue
+
+            courses_to_update = Course.objects.filter(
+                name=course_name, is_copy=True, school__in=user_schools
+            )
+
+            if courses_to_update.exists():
+                updated_courses += courses_to_update.update(is_access=False)
+
+        if not_found_emails:
+            return Response(
+                {
+                    "detail": f'Пользователи с email {", ".join(not_found_emails)} не найдены, либо они не являются владельцами школ.',
+                    "updated_courses": updated_courses,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detail": f"Доступ к курсу успешно удален."}, status=status.HTTP_200_OK
+        )
 
     @action(detail=True)
     def sections(self, request, pk, *args, **kwargs):
@@ -370,31 +1008,77 @@ class CourseViewSet(
         <h2>/api/{school_name}/courses/{course_id}/sections/</h2>\n
         Данные по всем секциям курса"""
 
-        course = self.get_object()
-        queryset = Course.objects.filter(course_id=course.pk)
-
         user = self.request.user
-        self.kwargs.get("school_name")
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        course = self.get_object()
 
-        data = queryset.values(
-            course=F("course_id"),
-            course_name=F("name"),
-            section_name=F("sections__name"),
-            section=F("sections__section_id"),
-            section_order=F("sections__order"),
-        ).order_by("sections__order")
-        result_data = dict(
-            course_name=data[0]["course_name"],
-            course_id=data[0]["course"],
-        )
+        # Проверка, если курс является копией
+        if course.is_copy:
+            try:
+                original_course_id = CourseCopy.objects.get(
+                    course_copy_id=course.course_id
+                )
+                original_course = Course.objects.get(
+                    course_id=original_course_id.course_id
+                )
+            except Course.DoesNotExist:
+                return Response(
+                    {"error": "Оригинальный курс не найден."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            original_course = course
+
+        # Получаем параметр поиска из запроса
+        search_query = self.request.GET.get("search_query")
 
         group = None
-        if user.groups.filter(group__name="Student").exists():
+        if user.groups.filter(group__name="Student", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(students=user, course_id_id=course.pk)
-            except Exception:
-                raise NotFound("Ошибка поиска группы пользователя 1.")
-        elif user.groups.filter(group__name="Teacher").exists():
+
+                if course.public != "О":
+                    return Response(
+                        {
+                            "error": "Доступ к курсу временно заблокирован. Обратитесь к администратору"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+                limit, _, _, created_at, _, _ = get_student_training_duration(
+                    group, user.id
+                )
+
+                if limit:
+                    history = (
+                        StudentsHistory.objects.filter(
+                            user=user, students_group=group, is_deleted=False
+                        )
+                        .order_by("-date_added")
+                        .first()
+                    )
+                    if not history:
+                        StudentsHistory.objects.create(
+                            user=user,
+                            students_group=group,
+                            is_deleted=False,
+                            date_added=timezone.now(),
+                        )
+
+                    # Проверка срока действия
+                    if (
+                        created_at
+                        and (created_at + timedelta(days=limit)) < timezone.now()
+                    ):
+                        return Response(
+                            {"error": "Срок доступа к курсу истек."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
+            except Exception as e:
+                raise NotFound(str(e))
+
+        elif user.groups.filter(group__name="Teacher", school=school).exists():
             try:
                 group = StudentsGroup.objects.get(
                     teacher_id=user.pk, course_id_id=course.pk
@@ -402,61 +1086,198 @@ class CourseViewSet(
             except Exception:
                 raise NotFound("Ошибка поиска группы пользователя.")
 
+        queryset = Course.objects.filter(course_id=original_course.course_id)
+
+        data = (
+            queryset.values(
+                course=F("course_id"),
+                course_name=F("name"),
+                section_name=F("sections__name"),
+                section=F("sections__section_id"),
+                section_order=F("sections__order"),
+            )
+            .order_by("sections__order")
+            .distinct()
+        )
+        result_data = dict(
+            course_name=data[0]["course_name"],
+            course_id=data[0]["course"],
+        )
+
         if group:
             result_data["group_settings"] = {
                 "task_submission_lock": group.group_settings.task_submission_lock,
                 "strict_task_order": group.group_settings.strict_task_order,
+                "submit_homework_to_go_on": group.group_settings.submit_homework_to_go_on,
+                "submit_test_to_go_on": group.group_settings.submit_test_to_go_on,
+                "success_test_to_go_on": group.group_settings.success_test_to_go_on,
             }
+            result_data["teacher_id"] = group.teacher_id_id
 
         result_data["sections"] = []
 
-        lesson_progress = UserProgressLogs.objects.filter(user_id=user.pk)
-        types = {0: "homework", 1: "lesson", 2: "test"}
-        for index, value in enumerate(data):
-            result_data["sections"].append(
-                {
-                    "section_name": value["section_name"],
-                    "section": value["section"],
-                    "lessons": [],
-                }
+        # Предварительная загрузка прогресса пользователя
+        progress_map = {
+            prog.lesson_id: prog
+            for prog in UserProgressLogs.objects.filter(user_id=user.pk).select_related(
+                "lesson"
             )
-            if user.groups.filter(group__name="Admin").exists():
-                a = Homework.objects.filter(section=value["section"])
-                b = Lesson.objects.filter(section=value["section"])
-                c = SectionTest.objects.filter(section=value["section"])
-            elif user.groups.filter(
-                group__name__in=[
-                    "Student",
-                    "Teacher",
-                ]
-            ).exists():
-                a = Homework.objects.filter(section=value["section"], active=True)
-                b = Lesson.objects.filter(section=value["section"], active=True)
-                c = SectionTest.objects.filter(section=value["section"], active=True)
+        }
 
-            for i in enumerate((a, b, c)):
-                for obj in i[1]:
-                    dict_obj = model_to_dict(obj)
-                    result_data["sections"][index]["lessons"].append(
-                        {
-                            "type": types[i[0]],
-                            "order": dict_obj["order"],
-                            "name": dict_obj["name"],
-                            "id": obj.pk,
-                            "baselesson_ptr_id": obj.baselesson_ptr_id,
-                            "section_id": obj.section_id,
-                            "active": obj.active,
-                            "viewed": lesson_progress.filter(
-                                lesson_id=obj.baselesson_ptr_id, viewed=True
-                            ).exists(),
-                            "completed": lesson_progress.filter(
-                                lesson_id=obj.baselesson_ptr_id, completed=True
-                            ).exists(),
-                        }
-                    )
-            result_data["sections"][index]["lessons"].sort(
-                key=lambda x: x["order"] if x["order"] is not None else 0
+        # Предварительная загрузка информации о выполненных заданиях
+        completed_homeworks = set(
+            UserHomework.objects.filter(user=user).values_list("homework_id", flat=True)
+        )
+        completed_tests = set(
+            UserTest.objects.filter(user=user).values_list("test_id", flat=True)
+        )
+        # Базовый фильтр для поиска
+        search_filter = (
+            Q(name__icontains=search_query)
+            | Q(blocks__description__icontains=search_query)
+            if search_query
+            else Q()
+        )
+
+        # Определяем базовые фильтры в зависимости от роли пользователя
+        is_admin = user.groups.filter(group__name="Admin", school=school).exists()
+        is_student = user.groups.filter(group__name="Student", school=school).exists()
+
+        base_filters = Q()
+        if not is_admin:
+            base_filters &= Q(active=True)
+            if is_student:
+                base_filters &= ~Q(lessonavailability__student=user) | Q(
+                    lessonavailability__available=True
+                )
+        course_filter = Q(section__course=course.pk)
+        # Предварительная загрузка всех необходимых данных
+        homework_qs = (
+            Homework.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
+
+        lesson_qs = (
+            Lesson.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
+
+        test_qs = (
+            SectionTest.objects.filter(base_filters & search_filter & course_filter)
+            .select_related("section")
+            .distinct()
+        )
+        homework_data = list(
+            homework_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
             )
+        )
+        lesson_data = list(
+            lesson_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
+            )
+        )
+        test_data = list(
+            test_qs.values(
+                "pk", "order", "name", "baselesson_ptr_id", "section_id", "active"
+            )
+        )
+
+        # Подготавливаем наборы для быстрых проверок
+        viewed_lesson_ids = {k for k, v in progress_map.items() if v.viewed}
+        completed_lesson_ids = {k for k, v in progress_map.items() if v.completed}
+
+        section_lessons = {}
+        # video_screenshots = {
+        #     block['base_lesson']: block['video_screenshot']
+        #     for block in BaseLessonBlock.objects.filter(
+        #         type="video"
+        #     ).values('base_lesson', 'video_screenshot').distinct()
+        # }
+
+        def process_lesson_data(data, lesson_type, completed_set=None):
+            for obj in data:
+                section_id = obj["section_id"]
+                baselesson_ptr_id = obj["baselesson_ptr_id"]
+                if section_id not in section_lessons:
+                    section_lessons[section_id] = []
+                lesson_data = {
+                    "type": {0: "homework", 1: "lesson", 2: "test"}[lesson_type],
+                    "order": obj["order"],
+                    "name": obj["name"],
+                    "id": obj["pk"],
+                    "baselesson_ptr_id": baselesson_ptr_id,
+                    "section_id": section_id,
+                    "active": obj["active"],
+                    "viewed": baselesson_ptr_id in viewed_lesson_ids,
+                    "completed": baselesson_ptr_id in completed_lesson_ids,
+                    "sended": obj["pk"] in completed_set
+                    if completed_set is not None
+                    else None,
+                    "video_screenshot": None,
+                }
+                section_lessons[section_id].append(lesson_data)
+
+        # Обработка всех типов
+        process_lesson_data(homework_data, 0, completed_homeworks)
+        process_lesson_data(lesson_data, 1)
+        process_lesson_data(test_data, 2, completed_tests)
+
+        # Формируем финальный результат
+        for index, value in enumerate(data):
+            section_id = value["section"]
+            section_data = {
+                "section_name": value["section_name"],
+                "section": section_id,
+                "order": value["section_order"],
+                "lessons": sorted(
+                    section_lessons.get(section_id, []),
+                    key=lambda x: x["order"] if x["order"] is not None else 0,
+                ),
+            }
+
+            if is_student:
+                lessons = section_data["lessons"]
+
+                # Подсчёт статистики
+                hw_data = [l for l in lessons if l["type"] == "homework"]
+                lesson_data = [l for l in lessons if l["type"] == "lesson"]
+                test_data = [l for l in lessons if l["type"] == "test"]
+
+                section_data.update(
+                    {
+                        "homework_count": len(hw_data),
+                        "completed_hw_count": sum(1 for l in hw_data if l["completed"]),
+                        "lesson_count": len(lesson_data),
+                        "completed_les_count": sum(
+                            1 for l in lesson_data if l["viewed"]
+                        ),
+                        "test_count": len(test_data),
+                        "completed_test_count": sum(
+                            1 for l in test_data if l["completed"]
+                        ),
+                    }
+                )
+
+                section_data["completed_count"] = (
+                    section_data["completed_hw_count"]
+                    + section_data["completed_les_count"]
+                    + section_data["completed_test_count"]
+                )
+
+                # Оптимизированный подсчёт суммы оценок
+                marks_sum = (
+                    UserHomework.objects.filter(
+                        homework__section=section_id, user=user
+                    ).aggregate(Sum("mark"))["mark__sum"]
+                    or 0
+                )
+
+                section_data["sum_marks"] = marks_sum
+
+            result_data["sections"].append(section_data)
         return Response(result_data)
 
     @action(detail=True)
@@ -531,6 +1352,36 @@ class CourseViewSet(
         )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @transaction.atomic
+    @action(detail=False, methods=["POST"])
+    def create_courses_fully(self, request, *args, **kwargs):
+        """Создание курсов с модулями и уроками\n
+        <h2>/api/{school_name}/courses/create_courses_fully/</h2>\n
+        Создание курсов с модулями и уроками"""
+
+        school_name = self.kwargs.get("school_name")
+        school = School.objects.get(name=school_name)
+        courses_data = request.data.get("courses", [])
+        with transaction.atomic():
+            for course_data in courses_data:
+                course = Course.objects.create(
+                    school=school,
+                    name=course_data["name"],
+                    description=course_data["description"],
+                    public=Public.PUBLISHED,
+                    is_catalog=True,
+                )
+                for section_data in course_data["sections"]:
+                    section = Section.objects.create(
+                        course=course, name=section_data["title"]
+                    )
+                    for lesson_data in section_data["lessons"]:
+                        Lesson.objects.create(
+                            section=section, name=lesson_data, active=True
+                        )
+
+        return Response("Курсы созданы")
 
 
 CourseViewSet = apply_swagger_auto_schema(

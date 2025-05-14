@@ -24,4 +24,24 @@ def backup_db():
     run_pg_dump(db, backup_path)
 
     # Perform compression and upload of the backup file
-    compress_and_upload_backup(backup_path, db)
+    compress_and_upload_backup(backup_path, db, 10)
+
+
+@huey.periodic_task(
+    crontab(minute=0, hour=1, day_of_week=3),
+    max_retries=2,
+    delay=None,
+)
+def weekly_backup():
+    # Путь для файла резервной копии
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # Получаем имя базы данных из словаря db_config
+    db = list(db_config.keys())[0]
+
+    # Запускаем команду pg_dump для базы данных
+    backup_path = f"{db}_{timestamp}.backup"
+    run_pg_dump(db, backup_path)
+
+    # Выполняем сжатие и загрузку файла резервной копии
+    compress_and_upload_backup(backup_path, f"weekly_{db}", 8)
