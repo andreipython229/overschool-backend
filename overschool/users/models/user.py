@@ -45,6 +45,14 @@ class User(AbstractBaseUser):
     phone_number = PhoneNumberField(
         verbose_name="Номер телефона", help_text="Номер телефона", null=True, blank=True
     )
+
+    phone_set_by_manager = models.BooleanField(
+        default=False,
+        verbose_name="Номер телефона установлен менеджером"
+    )
+
+
+
     is_staff = models.BooleanField(verbose_name="Админ", default=False)
     is_active = models.BooleanField(verbose_name="Активный", default=True)
     is_superuser = models.BooleanField(verbose_name="Superuser status", default=False)
