@@ -49,7 +49,7 @@ from users.api_views import (
     TokenValidateView,
     UserSchoolsView,
 )
-
+from django.http import HttpResponse
 from .main_router import (
     appeal_router,
     catalogs_router,
@@ -245,6 +245,7 @@ urlpatterns = [
         TemplateView.as_view(),
         name="account_confirm_email",
     ),
+  path('', lambda request: HttpResponse("Главная страница сервера работает")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
