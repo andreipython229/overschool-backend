@@ -1,17 +1,26 @@
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.signals import user_logged_in
-from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
+import logging
 
-from users.models import Profile, User
+logger = logging.getLogger(__name__)
 
-
-@receiver(post_save, sender=User)
+@receiver(post_save)
 def create_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
+    """Автоматическое создание профиля для нового пользователя"""
+    if sender.__name__ == 'User' and created:
+        try:
+            from .models import Profile
+            Profile.objects.get_or_create(user=instance)
+        except Exception as e:
+            logger.error(f"Profile creation failed for user {instance.pk}: {e}")
 
-
-@receiver(post_save, sender=User)
+@receiver(post_save)
 def save_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    """Автоматическое сохранение профиля при обновлении пользователя"""
+    if sender.__name__ == 'User':
+        try:
+            instance.profile.save()
+        except (ObjectDoesNotExist, AttributeError) as e:
+            logger.warning(f"Profile save failed for user {instance.pk}: {e}")
+

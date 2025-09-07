@@ -1,6 +1,6 @@
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from django.db import models, transaction
-from model_clone import CloneMixin
+from schools.models.core import CloneMixin
 
 from .course import Course
 

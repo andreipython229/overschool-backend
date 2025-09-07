@@ -12,25 +12,33 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
-
 from environ import Env
+from corsheaders.defaults import default_headers
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Инициализация переменных окружения
 env = Env(DEBUG=(bool, False))
 Env.read_env(str(BASE_DIR / ".env"))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY")
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"]) if not DEBUG else ["*"]
+# Database
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("POSTGRES_DB_NAME"),
+        "USER": env("POSTGRES_USER"),
+        "PASSWORD": env("POSTGRES_USER_PASSWORD"),
+        "HOST": env("POSTGRES_HOST"),
+        "PORT": env.int("POSTGRES_PORT"),
+    }
+}
 
+# Остальные настройки (оставь как есть)
+# ... (всё, что у тебя уже есть ниже, можно не менять)
 # Application definition
 
 
@@ -64,7 +72,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "chats.apps.ChatsConfig",
     # "channels",
-    "sentry_sdk",
+    #"sentry_sdk",
     "chatgpt.apps.ChatGPTConfig",
     "tg_notifications.apps.TgNotificationsConfig",
 ]
@@ -90,6 +98,10 @@ SITE_URL: str = os.getenv("SITE_URL")
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-origin',
+]
 
 SESSION_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = ["http://sandbox.coursehb.ru"]
@@ -140,9 +152,9 @@ CHANNEL_LAYERS = {
 ASGI_APPLICATION_SHUTDOWN_TIMEOUT = 10
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -256,11 +268,15 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
-    "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
-    "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication" ,
         "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "EXCEPTION_HANDLER": "users.exceptions.user_registration.core_exception_handler",
+    "NON_FIELD_ERRORS_KEY": "error",
 }
 
 SITE_ID = 1
@@ -294,8 +310,8 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "ALGORITHM": os.getenv("ALGORITHM"),
-    "SIGNING_KEY": os.getenv("SIGNING_KEY"),
+    "ALGORITHM": env.str("ALGORITHM", default="HS256"),
+    "SIGNING_KEY": env.str("SIGNING_KEY"),
 }
 
 # Настройки drf-yasg (Swagger)
@@ -484,6 +500,6 @@ CONTAINER_KEY = env.str("CONTAINER_KEY")
 
 S3_SECRET_KEY = env.str("S3_SECRET_KEY")
 S3_ACCESS_KEY = env.str("S3_ACCESS_KEY")
-REGION_NAME = env.str("REGION_NAME")
-ENDPOINT_URL = env.str("ENDPOINT_URL")
+REGION_NAME = env.str("REGION_NAME", default="us-east-1")
+ENDPOINT_URL = env.str("ENDPOINT_URL", default="https://s3.amazonaws.com")
 S3_BUCKET = env.str("S3_BUCKET")

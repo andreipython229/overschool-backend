@@ -12,5 +12,6 @@ from .profile import (
 )
 from .register import PasswordChangeSerializer, SignupSerializer
 from .register_school_owner import CreateSchoolSerializer, SignupSchoolOwnerSerializer
+from .tariff import TariffSerializer  # Добавляем импорт для TariffSerializer
 from .user import AllUsersSerializer, UserSerializer
 from .user_role import UserRoleSerializer

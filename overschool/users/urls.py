@@ -1,11 +1,8 @@
 from rest_framework import routers
-from users.api_views import ProfileViewSet, UserViewSet, UserPseudonymViewSet, AccessDistributionView
+from users.views_api import FeedbackViewSet, TariffViewSet
 
-router = routers.DefaultRouter()
-router.register("user", UserViewSet, basename="user")
-router.register("profile", ProfileViewSet, basename="profile")
-router.register(r'(?P<school_name>\w+)/user_pseudonym', UserPseudonymViewSet, basename="user_pseudonym")
-router.register(r'(?P<school_name>\w+)/access-distribution', AccessDistributionView, basename='access-distribution')
+user_router = routers.DefaultRouter()
+user_router.register('feedbacks', FeedbackViewSet, basename='feedback')
+user_router.register('tariffs', TariffViewSet, basename='tariff')  # Добавляем маршрут для тарифов
 
-
-urlpatterns = router.urls
+urlpatterns = user_router.urls

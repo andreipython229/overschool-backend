@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from model_clone import CloneMixin
+from schools.models.core import CloneMixin
 
 from ..common.base_lesson import BaseLesson
 

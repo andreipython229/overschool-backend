@@ -4,7 +4,7 @@ from common_services.services import TruncateFileName, limit_image_size
 from django.contrib.postgres.search import SearchVectorField
 from django.core.exceptions import ValidationError
 from django.db import models
-from model_clone import CloneMixin
+from schools.models.core import CloneMixin
 from oauthlib.common import urldecode
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumbers import is_possible_number, is_valid_number, parse

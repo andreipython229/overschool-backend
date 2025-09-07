@@ -2,10 +2,8 @@ from common_services.mixins import TimeStampMixin
 from common_services.services import TruncateFileName, limit_image_size
 from django.db import models
 
-
 class Feedback(TimeStampMixin, models.Model):
     """Модель отзывов о платформе"""
-
     name = models.CharField(
         help_text="Имя пользователя",
         verbose_name="Имя пользователя",
@@ -54,8 +52,13 @@ class Feedback(TimeStampMixin, models.Model):
     )
 
     def __str__(self):
-        return f"{self.name + ' ' + self.surname} - {self.rating} - {self.content}"
+        return f"{self.name + ' ' + self.surname} - {self.rating} - {self.content[:50]}..."
 
     class Meta:
         verbose_name = "Отзыв о платформе"
         verbose_name_plural = "Отзывы о платформе"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['rating']),
+        ]

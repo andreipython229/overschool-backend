@@ -3,30 +3,30 @@ import logging
 import os
 import time
 
-import sentry_sdk
+#import sentry_sdk
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import SentryHandler
+#from sentry_sdk.integrations.django import DjangoIntegration
+#from sentry_sdk.integrations.logging import SentryHandler
 
 # Настройки Sentry
-SENTRY_INIT_OPTIONS = {
-    "dsn": "https://84b3a15795cd47f5a01a552151dabc06@o4505167864463360.ingest.sentry.io/4505173034270720",
-    "integrations": [DjangoIntegration()],
-    "send_default_pii": True,
-}
-sentry_sdk.init(**SENTRY_INIT_OPTIONS)
+#SENTRY_INIT_OPTIONS = {
+    #"dsn": "https://84b3a15795cd47f5a01a552151dabc06@o4505167864463360.ingest.sentry.io/4505173034270720",
+    #"integrations": [DjangoIntegration()],
+    #"send_default_pii": True,
+#}
+#sentry_sdk.init(**SENTRY_INIT_OPTIONS)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-handler = SentryHandler()
-handler.setLevel(logging.INFO)
-handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+#handler = SentryHandler()
+#handler.setLevel(logging.INFO)
+#handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 
-logger.addHandler(handler)
+#logger.addHandler(handler)
 
 message = "Сервер успешно запущен!"
 timestamp = time.time() + 10800

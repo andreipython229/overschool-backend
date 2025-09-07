@@ -10,7 +10,9 @@ from django.dispatch import receiver
 from django.utils import timezone
 from schools.managers import SchoolManager
 
-User = get_user_model()
+def get_user():
+    from django.contrib.auth import get_user_model
+    return get_user_model()
 
 
 class TariffPlan(models.TextChoices):
@@ -122,7 +124,7 @@ class School(TimeStampMixin, OrderMixin):
         help_text="Дата, когда пробный период истекает",
     )
     owner = models.ForeignKey(
-        User,
+    "users.User",
         on_delete=models.SET_NULL,
         blank=True,
         null=True,

@@ -1,13 +1,15 @@
 from django.db import models
 
-from .user import User
-
 
 class UtmLabel(models.Model):
     """Модель utm-меток при регистрации пользователя"""
 
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="utm_labels_as_user"
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="utm_labels_as_user",
+        verbose_name="Пользователь",
+        help_text="Пользователь, для которого сохранены utm-метки",
     )
     utm_source = models.CharField(
         verbose_name="Источник трафика",

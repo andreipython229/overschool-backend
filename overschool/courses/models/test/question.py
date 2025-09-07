@@ -2,7 +2,7 @@ from ckeditor.fields import RichTextField
 from common_services.mixins import TimeStampMixin
 from common_services.services import TruncateFileName, limit_image_size
 from django.db import models
-from model_clone import CloneMixin
+from schools.models.core import CloneMixin
 
 from .section_test import SectionTest
 

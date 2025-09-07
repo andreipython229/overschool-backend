@@ -1,14 +1,17 @@
 from common_services.services import TruncateFileName, limit_image_size
-from django.contrib.auth import get_user_model
 from django.db import models
 from schools.models import School
 
-User = get_user_model()
-
 
 class SchoolDocuments(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        "users.User",  # Используем строку вместо get_user_model()
+        on_delete=models.CASCADE
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE
+    )
     stamp = models.FileField(
         help_text="Печать школы",
         verbose_name="Печать школы",
@@ -28,7 +31,7 @@ class SchoolDocuments(models.Model):
         null=True,
     )
 
-    def __str__(self):
+    def str(self):
         return f"{self.user} - {self.school}"
 
     class Meta:

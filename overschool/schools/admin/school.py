@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.contrib import admin
 from django.db.models import Count
-from rangefilter.filters import DateRangeFilter, DateRangeFilterBuilder
+from rangefilter.filters import DateRangeFilter
 from schools.models import School, SchoolStatistics, SchoolTask, Tariff
 
 

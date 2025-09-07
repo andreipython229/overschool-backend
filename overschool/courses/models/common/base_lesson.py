@@ -2,7 +2,7 @@ from ckeditor.fields import RichTextField
 from common_services.mixins import AuthorMixin, OrderMixin, TimeStampMixin
 from common_services.services import TruncateFileName
 from django.db import connection, models
-from model_clone import CloneMixin
+from schools.models.core import CloneMixin
 from users.models import User
 from django.db import transaction
 

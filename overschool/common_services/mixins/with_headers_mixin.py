@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import permissions, viewsets
 
 
-class WithHeadersViewSet(viewsets.GenericViewSet):
+class WithHeadersViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     @property

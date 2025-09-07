@@ -107,3 +107,5 @@ urlpatterns = [
 ]
 
 urlpatterns += router.urls
+urlpatterns += router_catalog.urls
+urlpatterns += router_appeals.urls
