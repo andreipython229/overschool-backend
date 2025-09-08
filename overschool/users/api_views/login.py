@@ -2,7 +2,7 @@ from common_services.mixins import LoggingMixin, WithHeadersViewSet
 from django.contrib.auth import login
 from rest_framework import permissions, status, views
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.serializers import LoginSerializer
@@ -14,7 +14,7 @@ class LoginView(WithHeadersViewSet, views.APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
 
-    parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser, JSONParser)
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
